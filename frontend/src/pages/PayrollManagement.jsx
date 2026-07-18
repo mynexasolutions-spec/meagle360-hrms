@@ -1,0 +1,709 @@
+import { useState, useEffect, Fragment } from 'react';
+import {
+  getSalaryComponents, createSalaryComponent, updateSalaryComponent, deleteSalaryComponent,
+  getSalaryStructures, createSalaryStructure, updateSalaryStructure, deleteSalaryStructure,
+  getAssignmentHistory, assignEmployee,
+  getPayrollRuns, createPayrollRun, getRunPayslips, finalizeRun, deleteRun,
+  addPayslipAdjustment,
+} from '../api/payroll';
+import { getDirectory } from '../api/employees';
+import {
+  Wallet, Plus, Pencil, Trash2, Play, Lock, Users, Receipt,
+} from 'lucide-react';
+import Modal from '../components/Modal';
+
+const MONTH_NAMES = [
+  'January', 'February', 'March', 'April', 'May', 'June',
+  'July', 'August', 'September', 'October', 'November', 'December',
+];
+
+const CALC_LABELS = {
+  fixed: 'Fixed amount',
+  percent_of_basic: '% of Basic',
+  percent_of_gross: '% of Gross',
+};
+
+function money(n) {
+  return Number(n ?? 0).toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+}
+
+export default function PayrollManagement() {
+  const [tab, setTab] = useState('components');
+
+  return (
+    <div className="animate-fade-in">
+      <div className="page-header">
+        <div>
+          <h1>Payroll Management</h1>
+          <p>Configure salary structures, assign employees, and run monthly payroll</p>
+        </div>
+      </div>
+
+      <div className="tabs">
+        <button className={`tab ${tab === 'components' ? 'active' : ''}`} onClick={() => setTab('components')}>Salary Components</button>
+        <button className={`tab ${tab === 'structures' ? 'active' : ''}`} onClick={() => setTab('structures')}>Salary Structures</button>
+        <button className={`tab ${tab === 'assignments' ? 'active' : ''}`} onClick={() => setTab('assignments')}>Employee Assignments</button>
+        <button className={`tab ${tab === 'runs' ? 'active' : ''}`} onClick={() => setTab('runs')}>Payroll Runs</button>
+      </div>
+
+      {tab === 'components' && <ComponentsTab />}
+      {tab === 'structures' && <StructuresTab />}
+      {tab === 'assignments' && <AssignmentsTab />}
+      {tab === 'runs' && <RunsTab />}
+    </div>
+  );
+}
+
+// ── Salary Components ──────────────────────────────────────
+function ComponentsTab() {
+  const [components, setComponents] = useState([]);
+  const [showModal, setShowModal] = useState(false);
+  const [editing, setEditing] = useState(null);
+
+  useEffect(() => { load(); }, []);
+  const load = () => getSalaryComponents().then((r) => setComponents(r.data)).catch(() => {});
+
+  const openCreate = () => { setEditing(null); setShowModal(true); };
+  const openEdit = (c) => { setEditing(c); setShowModal(true); };
+
+  const handleToggleActive = async (c) => {
+    await updateSalaryComponent(c.id, { is_active: !c.is_active });
+    load();
+  };
+
+  const handleDelete = async (c) => {
+    if (!confirm(`Delete "${c.name}"? This cannot be undone.`)) return;
+    try {
+      await deleteSalaryComponent(c.id);
+      load();
+    } catch (err) {
+      alert(err.response?.data?.detail || 'Failed to delete — it may be in use by a salary structure');
+    }
+  };
+
+  const earnings = components.filter((c) => c.component_type === 'earning');
+  const deductions = components.filter((c) => c.component_type === 'deduction');
+
+  const renderTable = (list, title) => (
+    <div className="section-card" style={{ marginBottom: 20 }}>
+      <h3 style={{ marginBottom: 16 }}>{title}</h3>
+      <table className="data-table">
+        <thead>
+          <tr><th>Name</th><th>Calculation</th><th>Value</th><th>Statutory</th><th>Taxable</th><th>Status</th><th>Actions</th></tr>
+        </thead>
+        <tbody>
+          {list.map((c) => (
+            <tr key={c.id}>
+              <td style={{ fontWeight: 500 }}>{c.name}</td>
+              <td>{CALC_LABELS[c.calculation_type] || c.calculation_type}</td>
+              <td>{c.calculation_type === 'fixed' ? money(c.value) : `${c.value}%`}</td>
+              <td>{c.is_statutory ? <span className="badge badge-info">Statutory</span> : '—'}</td>
+              <td>{c.is_taxable ? 'Yes' : 'No'}</td>
+              <td>
+                <span className={`badge ${c.is_active ? 'badge-active' : 'badge-inactive'}`}>
+                  {c.is_active ? 'Active' : 'Disabled'}
+                </span>
+              </td>
+              <td>
+                <div style={{ display: 'flex', gap: 6 }}>
+                  <button className="btn btn-secondary btn-sm" onClick={() => openEdit(c)}><Pencil size={13} /></button>
+                  <button className="btn btn-secondary btn-sm" onClick={() => handleToggleActive(c)}>
+                    {c.is_active ? 'Disable' : 'Enable'}
+                  </button>
+                  <button className="btn btn-danger btn-sm" onClick={() => handleDelete(c)}><Trash2 size={13} /></button>
+                </div>
+              </td>
+            </tr>
+          ))}
+        </tbody>
+      </table>
+      {list.length === 0 && <div className="empty-state"><p>None configured</p></div>}
+    </div>
+  );
+
+  return (
+    <div>
+      <div style={{ display: 'flex', justifyContent: 'flex-end', marginBottom: 16 }}>
+        <button className="btn btn-primary" onClick={openCreate}><Plus size={16} /> Add Component</button>
+      </div>
+      {renderTable(earnings, 'Earnings')}
+      {renderTable(deductions, 'Deductions')}
+
+      {showModal && (
+        <ComponentModal
+          component={editing}
+          onClose={() => setShowModal(false)}
+          onSuccess={() => { setShowModal(false); load(); }}
+        />
+      )}
+    </div>
+  );
+}
+
+function ComponentModal({ component, onClose, onSuccess }) {
+  const [form, setForm] = useState(component ? {
+    name: component.name,
+    component_type: component.component_type,
+    calculation_type: component.calculation_type,
+    value: component.value,
+    is_statutory: component.is_statutory,
+    is_taxable: component.is_taxable,
+    display_order: component.display_order,
+  } : {
+    name: '', component_type: 'earning', calculation_type: 'fixed', value: 0,
+    is_statutory: false, is_taxable: true, display_order: 0,
+  });
+  const [error, setError] = useState('');
+
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+    setError('');
+    try {
+      if (component) {
+        await updateSalaryComponent(component.id, form);
+      } else {
+        await createSalaryComponent(form);
+      }
+      onSuccess();
+    } catch (err) {
+      setError(err.response?.data?.detail || 'Failed to save component');
+    }
+  };
+
+  return (
+    <Modal title={component ? 'Edit Salary Component' : 'Add Salary Component'} onClose={onClose}>
+      <form onSubmit={handleSubmit}>
+        {error && <div style={{ marginBottom: 12, color: 'var(--accent-rose)', fontSize: '0.875rem' }}>{error}</div>}
+        <div className="input-group">
+          <label className="input-label">Name</label>
+          <input className="input-field" value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })} required />
+        </div>
+        <div className="input-group">
+          <label className="input-label">Type</label>
+          <select className="input-field" value={form.component_type} onChange={(e) => setForm({ ...form, component_type: e.target.value })}>
+            <option value="earning">Earning</option>
+            <option value="deduction">Deduction</option>
+          </select>
+        </div>
+        <div className="input-group">
+          <label className="input-label">Calculation</label>
+          <select className="input-field" value={form.calculation_type} onChange={(e) => setForm({ ...form, calculation_type: e.target.value })}>
+            <option value="fixed">Fixed amount</option>
+            <option value="percent_of_basic">% of Basic Pay</option>
+            {form.component_type === 'deduction' && <option value="percent_of_gross">% of Gross Pay</option>}
+          </select>
+        </div>
+        <div className="input-group">
+          <label className="input-label">{form.calculation_type === 'fixed' ? 'Amount' : 'Percentage'}</label>
+          <input type="number" step="0.01" className="input-field" value={form.value} onChange={(e) => setForm({ ...form, value: e.target.value })} required />
+        </div>
+        <div className="input-group">
+          <label className="input-label">Display Order</label>
+          <input type="number" className="input-field" value={form.display_order} onChange={(e) => setForm({ ...form, display_order: e.target.value })} />
+        </div>
+        <div className="input-group" style={{ display: 'flex', gap: 20 }}>
+          <label style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: '0.875rem' }}>
+            <input type="checkbox" checked={form.is_statutory} onChange={(e) => setForm({ ...form, is_statutory: e.target.checked })} /> Statutory
+          </label>
+          <label style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: '0.875rem' }}>
+            <input type="checkbox" checked={form.is_taxable} onChange={(e) => setForm({ ...form, is_taxable: e.target.checked })} /> Taxable
+          </label>
+        </div>
+        <div style={{ display: 'flex', gap: 10, justifyContent: 'flex-end', marginTop: 20 }}>
+          <button type="button" className="btn btn-secondary" onClick={onClose}>Cancel</button>
+          <button type="submit" className="btn btn-primary">Save</button>
+        </div>
+      </form>
+    </Modal>
+  );
+}
+
+// ── Salary Structures ───────────────────────────────────────
+function StructuresTab() {
+  const [structures, setStructures] = useState([]);
+  const [components, setComponents] = useState([]);
+  const [showModal, setShowModal] = useState(false);
+  const [editing, setEditing] = useState(null);
+
+  useEffect(() => { load(); }, []);
+  const load = () => {
+    getSalaryStructures().then((r) => setStructures(r.data)).catch(() => {});
+    getSalaryComponents().then((r) => setComponents(r.data)).catch(() => {});
+  };
+
+  const handleDelete = async (s) => {
+    if (!confirm(`Delete structure "${s.name}"?`)) return;
+    try {
+      await deleteSalaryStructure(s.id);
+      load();
+    } catch (err) {
+      alert(err.response?.data?.detail || 'Failed to delete — employees may still be assigned to it');
+    }
+  };
+
+  return (
+    <div>
+      <div style={{ display: 'flex', justifyContent: 'flex-end', marginBottom: 16 }}>
+        <button className="btn btn-primary" onClick={() => { setEditing(null); setShowModal(true); }}>
+          <Plus size={16} /> Add Structure
+        </button>
+      </div>
+
+      <div style={{ display: 'grid', gap: 16 }}>
+        {structures.map((s) => (
+          <div key={s.id} className="section-card">
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
+              <div>
+                <h3 style={{ marginBottom: 4 }}>{s.name}</h3>
+                {s.description && <p style={{ fontSize: '0.8125rem', color: 'var(--text-muted)' }}>{s.description}</p>}
+              </div>
+              <div style={{ display: 'flex', gap: 6 }}>
+                <button className="btn btn-secondary btn-sm" onClick={() => { setEditing(s); setShowModal(true); }}><Pencil size={13} /> Edit</button>
+                <button className="btn btn-danger btn-sm" onClick={() => handleDelete(s)}><Trash2 size={13} /></button>
+              </div>
+            </div>
+            <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8, marginTop: 12 }}>
+              {s.components.map((c) => (
+                <span key={c.id} className={`badge ${c.component_type === 'earning' ? 'badge-active' : 'badge-rejected'}`}>
+                  {c.name}
+                </span>
+              ))}
+              {s.components.length === 0 && <span style={{ fontSize: '0.8125rem', color: 'var(--text-muted)' }}>No components added yet</span>}
+            </div>
+          </div>
+        ))}
+        {structures.length === 0 && (
+          <div className="section-card">
+            <div className="empty-state"><Wallet size={48} /><p>No salary structures yet</p></div>
+          </div>
+        )}
+      </div>
+
+      {showModal && (
+        <StructureModal
+          structure={editing}
+          components={components}
+          onClose={() => setShowModal(false)}
+          onSuccess={() => { setShowModal(false); load(); }}
+        />
+      )}
+    </div>
+  );
+}
+
+function StructureModal({ structure, components, onClose, onSuccess }) {
+  const [name, setName] = useState(structure?.name || '');
+  const [description, setDescription] = useState(structure?.description || '');
+  const [selectedIds, setSelectedIds] = useState(structure ? structure.components.map((c) => c.id) : []);
+  const [error, setError] = useState('');
+
+  const toggle = (id) => {
+    setSelectedIds((prev) => prev.includes(id) ? prev.filter((x) => x !== id) : [...prev, id]);
+  };
+
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+    setError('');
+    try {
+      const payload = { name, description: description || null, component_ids: selectedIds };
+      if (structure) {
+        await updateSalaryStructure(structure.id, payload);
+      } else {
+        await createSalaryStructure(payload);
+      }
+      onSuccess();
+    } catch (err) {
+      setError(err.response?.data?.detail || 'Failed to save structure');
+    }
+  };
+
+  const earnings = components.filter((c) => c.component_type === 'earning');
+  const deductions = components.filter((c) => c.component_type === 'deduction');
+
+  return (
+    <Modal title={structure ? 'Edit Salary Structure' : 'Add Salary Structure'} onClose={onClose}>
+      <form onSubmit={handleSubmit}>
+        {error && <div style={{ marginBottom: 12, color: 'var(--accent-rose)', fontSize: '0.875rem' }}>{error}</div>}
+        <div className="input-group">
+          <label className="input-label">Name</label>
+          <input className="input-field" value={name} onChange={(e) => setName(e.target.value)} required />
+        </div>
+        <div className="input-group">
+          <label className="input-label">Description</label>
+          <input className="input-field" value={description} onChange={(e) => setDescription(e.target.value)} />
+        </div>
+        <div className="input-group">
+          <label className="input-label">Earnings</label>
+          <div style={{ display: 'grid', gap: 6, maxHeight: 140, overflowY: 'auto' }}>
+            {earnings.map((c) => (
+              <label key={c.id} style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: '0.8125rem' }}>
+                <input type="checkbox" checked={selectedIds.includes(c.id)} onChange={() => toggle(c.id)} /> {c.name}
+              </label>
+            ))}
+          </div>
+        </div>
+        <div className="input-group">
+          <label className="input-label">Deductions</label>
+          <div style={{ display: 'grid', gap: 6, maxHeight: 140, overflowY: 'auto' }}>
+            {deductions.map((c) => (
+              <label key={c.id} style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: '0.8125rem' }}>
+                <input type="checkbox" checked={selectedIds.includes(c.id)} onChange={() => toggle(c.id)} /> {c.name}
+              </label>
+            ))}
+          </div>
+        </div>
+        <div style={{ display: 'flex', gap: 10, justifyContent: 'flex-end', marginTop: 20 }}>
+          <button type="button" className="btn btn-secondary" onClick={onClose}>Cancel</button>
+          <button type="submit" className="btn btn-primary">Save</button>
+        </div>
+      </form>
+    </Modal>
+  );
+}
+
+// ── Employee Assignments ───────────────────────────────────
+function AssignmentsTab() {
+  const [employees, setEmployees] = useState([]);
+  const [structures, setStructures] = useState([]);
+  const [selectedEmployeeId, setSelectedEmployeeId] = useState('');
+  const [history, setHistory] = useState([]);
+  const [showModal, setShowModal] = useState(false);
+
+  useEffect(() => {
+    getDirectory().then((r) => setEmployees(r.data)).catch(() => {});
+    getSalaryStructures().then((r) => setStructures(r.data)).catch(() => {});
+  }, []);
+
+  useEffect(() => {
+    if (selectedEmployeeId) loadHistory();
+  }, [selectedEmployeeId]);
+
+  const loadHistory = () => getAssignmentHistory(selectedEmployeeId).then((r) => setHistory(r.data)).catch(() => setHistory([]));
+
+  return (
+    <div>
+      <div className="section-card" style={{ marginBottom: 20 }}>
+        <h3 style={{ marginBottom: 16 }}><Users size={18} style={{ color: 'var(--accent-violet)' }} /> Employee Salary Assignment</h3>
+        <div style={{ display: 'flex', gap: 16, flexWrap: 'wrap', alignItems: 'flex-end' }}>
+          <div style={{ flex: '1 1 240px' }}>
+            <select className="input-field" value={selectedEmployeeId} onChange={(e) => setSelectedEmployeeId(e.target.value)}>
+              <option value="">Select an employee...</option>
+              {employees.map((e) => (
+                <option key={e.id} value={e.id}>{e.full_name} ({e.employee_code})</option>
+              ))}
+            </select>
+          </div>
+          {selectedEmployeeId && (
+            <button className="btn btn-primary" onClick={() => setShowModal(true)}>
+              <Plus size={16} /> New Assignment
+            </button>
+          )}
+        </div>
+      </div>
+
+      {selectedEmployeeId && (
+        <div className="section-card">
+          <h3 style={{ marginBottom: 16 }}>Assignment History</h3>
+          <table className="data-table">
+            <thead><tr><th>Effective From</th><th>Salary Structure</th><th>Basic Pay</th></tr></thead>
+            <tbody>
+              {history.map((h) => (
+                <tr key={h.id}>
+                  <td>{h.effective_from}</td>
+                  <td>{h.salary_structure_name || '—'}</td>
+                  <td>{money(h.basic_pay)}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+          {history.length === 0 && <div className="empty-state"><p>No salary assignment yet</p></div>}
+        </div>
+      )}
+
+      {showModal && (
+        <AssignmentModal
+          employeeId={selectedEmployeeId}
+          structures={structures}
+          onClose={() => setShowModal(false)}
+          onSuccess={() => { setShowModal(false); loadHistory(); }}
+        />
+      )}
+    </div>
+  );
+}
+
+function AssignmentModal({ employeeId, structures, onClose, onSuccess }) {
+  const [form, setForm] = useState({ salary_structure_id: '', basic_pay: '', effective_from: '' });
+  const [error, setError] = useState('');
+
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+    setError('');
+    try {
+      await assignEmployee({
+        employee_id: employeeId,
+        salary_structure_id: form.salary_structure_id || null,
+        basic_pay: Number(form.basic_pay),
+        effective_from: form.effective_from,
+      });
+      onSuccess();
+    } catch (err) {
+      setError(err.response?.data?.detail || 'Failed to assign salary');
+    }
+  };
+
+  return (
+    <Modal title="New Salary Assignment" onClose={onClose}>
+      <form onSubmit={handleSubmit}>
+        {error && <div style={{ marginBottom: 12, color: 'var(--accent-rose)', fontSize: '0.875rem' }}>{error}</div>}
+        <div className="input-group">
+          <label className="input-label">Salary Structure</label>
+          <select className="input-field" value={form.salary_structure_id} onChange={(e) => setForm({ ...form, salary_structure_id: e.target.value })}>
+            <option value="">No structure (Basic only)</option>
+            {structures.map((s) => (
+              <option key={s.id} value={s.id}>{s.name}</option>
+            ))}
+          </select>
+        </div>
+        <div className="input-group">
+          <label className="input-label">Basic Pay (monthly)</label>
+          <input type="number" step="0.01" className="input-field" value={form.basic_pay} onChange={(e) => setForm({ ...form, basic_pay: e.target.value })} required />
+        </div>
+        <div className="input-group">
+          <label className="input-label">Effective From</label>
+          <input type="date" className="input-field" value={form.effective_from} onChange={(e) => setForm({ ...form, effective_from: e.target.value })} required />
+        </div>
+        <div style={{ display: 'flex', gap: 10, justifyContent: 'flex-end', marginTop: 20 }}>
+          <button type="button" className="btn btn-secondary" onClick={onClose}>Cancel</button>
+          <button type="submit" className="btn btn-primary">Save</button>
+        </div>
+      </form>
+    </Modal>
+  );
+}
+
+// ── Payroll Runs ─────────────────────────────────────────────
+function RunsTab() {
+  const [runs, setRuns] = useState([]);
+  const [selectedRun, setSelectedRun] = useState(null);
+  const [payslips, setPayslips] = useState([]);
+  const [showRunModal, setShowRunModal] = useState(false);
+  const [expandedPayslip, setExpandedPayslip] = useState(null);
+  const [showAdjustModal, setShowAdjustModal] = useState(null);
+
+  useEffect(() => { loadRuns(); }, []);
+  const loadRuns = () => getPayrollRuns().then((r) => setRuns(r.data)).catch(() => {});
+
+  const openRun = async (run) => {
+    setSelectedRun(run);
+    const res = await getRunPayslips(run.id);
+    setPayslips(res.data);
+  };
+
+  const handleCreateRun = async (year, month) => {
+    try {
+      await createPayrollRun({ year, month });
+      setShowRunModal(false);
+      loadRuns();
+    } catch (err) {
+      alert(err.response?.data?.detail || 'Failed to run payroll');
+    }
+  };
+
+  const handleFinalize = async () => {
+    if (!confirm(`Finalize payroll for ${MONTH_NAMES[selectedRun.month - 1]} ${selectedRun.year}? This locks every payslip and cannot be undone.`)) return;
+    try {
+      const res = await finalizeRun(selectedRun.id);
+      setSelectedRun(res.data);
+      loadRuns();
+    } catch (err) {
+      alert(err.response?.data?.detail || 'Failed to finalize');
+    }
+  };
+
+  const handleDeleteRun = async (run) => {
+    if (!confirm('Delete this draft payroll run?')) return;
+    try {
+      await deleteRun(run.id);
+      if (selectedRun?.id === run.id) setSelectedRun(null);
+      loadRuns();
+    } catch (err) {
+      alert(err.response?.data?.detail || 'Failed to delete');
+    }
+  };
+
+  return (
+    <div>
+      <div style={{ display: 'flex', justifyContent: 'flex-end', marginBottom: 16 }}>
+        <button className="btn btn-primary" onClick={() => setShowRunModal(true)}><Play size={16} /> Run Payroll</button>
+      </div>
+
+      <div className="section-card" style={{ marginBottom: 20 }}>
+        <table className="data-table">
+          <thead><tr><th>Period</th><th>Status</th><th>Employees</th><th>Total Net Pay</th><th>Actions</th></tr></thead>
+          <tbody>
+            {runs.map((run) => (
+              <tr key={run.id} style={{ cursor: 'pointer' }} onClick={() => openRun(run)}>
+                <td style={{ fontWeight: 500 }}>{MONTH_NAMES[run.month - 1]} {run.year}</td>
+                <td><span className={`badge ${run.status === 'finalized' ? 'badge-active' : 'badge-pending'}`}>{run.status}</span></td>
+                <td>{run.payslip_count}</td>
+                <td>{money(run.total_net_pay)}</td>
+                <td onClick={(e) => e.stopPropagation()}>
+                  {run.status === 'draft' && (
+                    <button className="btn btn-danger btn-sm" onClick={() => handleDeleteRun(run)}><Trash2 size={13} /></button>
+                  )}
+                </td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+        {runs.length === 0 && <div className="empty-state"><Wallet size={48} /><p>No payroll runs yet</p></div>}
+      </div>
+
+      {selectedRun && (
+        <div className="section-card">
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 }}>
+            <h3 style={{ marginBottom: 0 }}>
+              <Receipt size={18} style={{ color: 'var(--accent-blue)' }} /> {MONTH_NAMES[selectedRun.month - 1]} {selectedRun.year} Payslips
+            </h3>
+            {selectedRun.status === 'draft' && (
+              <button className="btn btn-success btn-sm" onClick={handleFinalize}><Lock size={13} /> Finalize Run</button>
+            )}
+          </div>
+          <table className="data-table">
+            <thead><tr><th>Employee</th><th>Basic</th><th>Earnings</th><th>Deductions</th><th>LOP Days</th><th>Net Pay</th><th>Actions</th></tr></thead>
+            <tbody>
+              {payslips.map((p) => (
+                <Fragment key={p.id}>
+                  <tr>
+                    <td style={{ fontWeight: 500 }}>{p.employee_name} ({p.employee_code})</td>
+                    <td>{money(p.basic_pay)}</td>
+                    <td>{money(p.gross_earnings)}</td>
+                    <td>{money(p.gross_deductions)}</td>
+                    <td>{p.lop_days}</td>
+                    <td style={{ fontWeight: 600 }}>{money(p.net_pay)}</td>
+                    <td>
+                      <div style={{ display: 'flex', gap: 6 }}>
+                        <button className="btn btn-secondary btn-sm" onClick={() => setExpandedPayslip(expandedPayslip === p.id ? null : p.id)}>
+                          {expandedPayslip === p.id ? 'Hide' : 'Details'}
+                        </button>
+                        {selectedRun.status === 'draft' && (
+                          <button className="btn btn-secondary btn-sm" onClick={() => setShowAdjustModal(p)}>Adjust</button>
+                        )}
+                      </div>
+                    </td>
+                  </tr>
+                  {expandedPayslip === p.id && (
+                    <tr>
+                      <td colSpan={7} style={{ background: 'var(--bg-input)' }}>
+                        <div style={{ padding: '10px 4px', display: 'grid', gap: 4, fontSize: '0.8125rem' }}>
+                          {p.lines.map((line) => (
+                            <div key={line.id} style={{ display: 'flex', justifyContent: 'space-between', maxWidth: 420 }}>
+                              <span>{line.component_name} {line.is_manual_adjustment && <span className="badge badge-info" style={{ marginLeft: 6 }}>Adjustment</span>}</span>
+                              <span style={{ color: line.component_type === 'earning' ? 'var(--accent-emerald)' : 'var(--accent-rose)' }}>
+                                {line.component_type === 'earning' ? '+' : '-'}{money(line.amount)}
+                              </span>
+                            </div>
+                          ))}
+                        </div>
+                      </td>
+                    </tr>
+                  )}
+                </Fragment>
+              ))}
+            </tbody>
+          </table>
+          {payslips.length === 0 && <div className="empty-state"><p>No payslips in this run</p></div>}
+        </div>
+      )}
+
+      {showRunModal && (
+        <RunPayrollModal onClose={() => setShowRunModal(false)} onSubmit={handleCreateRun} />
+      )}
+      {showAdjustModal && (
+        <AdjustmentModal
+          payslip={showAdjustModal}
+          onClose={() => setShowAdjustModal(null)}
+          onSuccess={async () => { setShowAdjustModal(null); const res = await getRunPayslips(selectedRun.id); setPayslips(res.data); }}
+        />
+      )}
+    </div>
+  );
+}
+
+function RunPayrollModal({ onClose, onSubmit }) {
+  const now = new Date();
+  const [year, setYear] = useState(now.getFullYear());
+  const [month, setMonth] = useState(now.getMonth() + 1);
+
+  return (
+    <Modal title="Run Payroll" onClose={onClose}>
+      <form onSubmit={(e) => { e.preventDefault(); onSubmit(Number(year), Number(month)); }}>
+        <div className="input-group">
+          <label className="input-label">Month</label>
+          <select className="input-field" value={month} onChange={(e) => setMonth(e.target.value)}>
+            {MONTH_NAMES.map((m, i) => <option key={i} value={i + 1}>{m}</option>)}
+          </select>
+        </div>
+        <div className="input-group">
+          <label className="input-label">Year</label>
+          <input type="number" className="input-field" value={year} onChange={(e) => setYear(e.target.value)} required />
+        </div>
+        <p style={{ fontSize: '0.8125rem', color: 'var(--text-muted)', marginBottom: 12 }}>
+          This generates a draft payslip for every employee with an active salary assignment. You can review and adjust before finalizing.
+        </p>
+        <div style={{ display: 'flex', gap: 10, justifyContent: 'flex-end', marginTop: 8 }}>
+          <button type="button" className="btn btn-secondary" onClick={onClose}>Cancel</button>
+          <button type="submit" className="btn btn-primary"><Play size={14} /> Run Payroll</button>
+        </div>
+      </form>
+    </Modal>
+  );
+}
+
+function AdjustmentModal({ payslip, onClose, onSuccess }) {
+  const [form, setForm] = useState({ component_name: '', component_type: 'earning', amount: '', description: '' });
+  const [error, setError] = useState('');
+
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+    setError('');
+    try {
+      await addPayslipAdjustment(payslip.id, { ...form, amount: Number(form.amount) });
+      onSuccess();
+    } catch (err) {
+      setError(err.response?.data?.detail || 'Failed to add adjustment');
+    }
+  };
+
+  return (
+    <Modal title={`Adjustment — ${payslip.employee_name}`} onClose={onClose}>
+      <form onSubmit={handleSubmit}>
+        {error && <div style={{ marginBottom: 12, color: 'var(--accent-rose)', fontSize: '0.875rem' }}>{error}</div>}
+        <div className="input-group">
+          <label className="input-label">Label</label>
+          <input className="input-field" placeholder="e.g. Festival Bonus" value={form.component_name} onChange={(e) => setForm({ ...form, component_name: e.target.value })} required />
+        </div>
+        <div className="input-group">
+          <label className="input-label">Type</label>
+          <select className="input-field" value={form.component_type} onChange={(e) => setForm({ ...form, component_type: e.target.value })}>
+            <option value="earning">Earning (adds to pay)</option>
+            <option value="deduction">Deduction (subtracts from pay)</option>
+          </select>
+        </div>
+        <div className="input-group">
+          <label className="input-label">Amount</label>
+          <input type="number" step="0.01" className="input-field" value={form.amount} onChange={(e) => setForm({ ...form, amount: e.target.value })} required />
+        </div>
+        <div className="input-group">
+          <label className="input-label">Note (optional)</label>
+          <input className="input-field" value={form.description} onChange={(e) => setForm({ ...form, description: e.target.value })} />
+        </div>
+        <div style={{ display: 'flex', gap: 10, justifyContent: 'flex-end', marginTop: 20 }}>
+          <button type="button" className="btn btn-secondary" onClick={onClose}>Cancel</button>
+          <button type="submit" className="btn btn-primary">Add Adjustment</button>
+        </div>
+      </form>
+    </Modal>
+  );
+}
