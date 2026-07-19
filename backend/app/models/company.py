@@ -1,7 +1,8 @@
 """Company model — the root entity for multi-tenancy."""
 
 import uuid
-from sqlalchemy import Boolean, Integer, String
+from decimal import Decimal
+from sqlalchemy import Boolean, Integer, Numeric, String
 from sqlalchemy.dialects.postgresql import JSON, UUID
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
@@ -29,6 +30,25 @@ class Company(Base, TimestampMixin):
     # Python date.weekday() convention: Monday=0 ... Sunday=6. Used to tell
     # a weekly off apart from an unpaid absence when computing payroll LOP.
     weekly_off_days: Mapped[list[int]] = mapped_column(JSON, default=lambda: [5, 6])
+
+    # ── Statutory policy (India Labour Codes, 2025) — every threshold and
+    # rate here is a company-level setting, not hardcoded, since the rollout
+    # is uneven across states and continues to change. ────────────────────
+    min_basic_percent_of_ctc: Mapped[Decimal] = mapped_column(Numeric(5, 2), nullable=False, default=50)
+    epf_threshold_employee_count: Mapped[int] = mapped_column(Integer, nullable=False, default=20)
+    esi_threshold_employee_count: Mapped[int] = mapped_column(Integer, nullable=False, default=10)
+    esi_wage_ceiling: Mapped[Decimal] = mapped_column(Numeric(10, 2), nullable=False, default=21000)
+    gratuity_threshold_employee_count: Mapped[int] = mapped_column(Integer, nullable=False, default=10)
+    gratuity_years_regular: Mapped[Decimal] = mapped_column(Numeric(4, 1), nullable=False, default=5)
+    gratuity_years_fixed_term: Mapped[Decimal] = mapped_column(Numeric(4, 1), nullable=False, default=1)
+    fnf_settlement_days: Mapped[int] = mapped_column(Integer, nullable=False, default=2)
+    standard_working_hours_per_day: Mapped[Decimal] = mapped_column(Numeric(4, 2), nullable=False, default=8)
+    overtime_rate_multiplier: Mapped[Decimal] = mapped_column(Numeric(4, 2), nullable=False, default=2)
+    tds_cess_percent: Mapped[Decimal] = mapped_column(Numeric(5, 2), nullable=False, default=4)
+    # Once headcount crosses epf_threshold_employee_count, this flips True
+    # and stays True even if headcount later drops — matches how EPF
+    # registration works in practice.
+    epf_registered: Mapped[bool] = mapped_column(Boolean, nullable=False, default=False)
 
     # ── Relationships ────────────────────────────────────
     departments = relationship("Department", back_populates="company", cascade="all, delete-orphan")

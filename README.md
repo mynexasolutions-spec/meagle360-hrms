@@ -153,7 +153,8 @@ If you ran `seed_dummy_org.py`, "Dummy Test Org" has one user per role (Admin, M
 | Leave | Configurable leave types (with paid/unpaid flag), balances, requests + approval |
 | Shifts | Shift definitions, employee assignment, roster |
 | Expense Management | Claims, categories, approve/reject/reimburse, company-wide ledger |
-| Payroll Management | Configurable salary components/structures (India-standard defaults pre-seeded, fully editable), employee salary assignment, automatic Loss-of-Pay calculation, payroll runs with manual adjustments and finalize-lock, employee self-service payslips |
+| Payroll Management | Configurable salary components/structures (India-standard defaults pre-seeded, fully editable), CTC-driven Basic-% floor validation, employer-vs-employee cost split, a "balancing figure" component, employee salary assignment, automatic Loss-of-Pay calculation, payroll runs with manual adjustments and finalize-lock, employee self-service payslips |
+| Payroll — Statutory Engine | Every rate/threshold is an admin-configurable row, not hardcoded: EPF/ESI eligibility (headcount thresholds, ESI wage ceiling, contribution-cycle "once covered stays covered", per-employee manual override), Professional Tax by configurable state slabs, TDS by configurable income-tax slabs (old/new regime) + employee tax regime/declared investments, gratuity eligibility/estimate (configurable years-of-service and headcount threshold, fixed-term vs regular), employee loans/advances (auto-deducted monthly), overtime pay pulled from approved Attendance requests, expense reimbursements pulled from approved Expense claims, and a Full & Final settlement flow at employee exit (pending salary + leave encashment + gratuity − outstanding loans) |
 | Sites | Multiple work locations per company, employee assignment/transfer |
 | Multi-role access | Grant additional roles to a user (e.g. Payroll Manager) without changing their primary role |
 | Dashboard | Live stats, attendance trend, leave summary, "Who's Online" widget, announcements, quick actions |
@@ -165,8 +166,9 @@ If you ran `seed_dummy_org.py`, "Dummy Test Org" has one user per role (Admin, M
 ### Explicitly not built (by design, not oversight)
 - Email delivery (invite links and payslips are generated in-app, not emailed)
 - PDF generation / downloadable payslips
-- Real statutory tax compliance (Payroll's India defaults are an editable starting point, not certified compliance)
-- Bank disbursement / direct deposit
+- Certified statutory tax compliance (Payroll's India defaults — tax slabs, PT slabs, EPF/ESI rates — are an editable, illustrative starting point that Admin must review for their state(s)/tax year, not certified compliance)
+- Bank disbursement / direct deposit (loan/salary bank details are captured, but no payment file generation or gateway integration)
+- Real-time YTD-cumulative TDS recalculation (each month's TDS is estimated as annual-projected-tax ÷ 12, not the cumulative "cess up as declarations change" method some payroll software uses)
 - Per-site role scoping, Manager-to-direct-reports scoping
 - Task/Project Management and Helpdesk (permission keys exist for their roles; no feature built yet)
 - SSO, biometric/GPS clock-in, native mobile apps

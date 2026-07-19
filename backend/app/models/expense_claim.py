@@ -46,6 +46,11 @@ class ExpenseClaim(Base, TimestampMixin):
     )
     reviewed_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
     reimbursed_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
+    # Set once a payroll run pulls this reimbursed claim into a payslip —
+    # prevents the same claim being paid out twice across separate runs.
+    paid_via_payslip_id: Mapped[uuid.UUID | None] = mapped_column(
+        UUID(as_uuid=True), ForeignKey("payslip.id", ondelete="SET NULL"), nullable=True,
+    )
 
     # ── Relationships ────────────────────────────────────
     employee = relationship("Employee", foreign_keys=[employee_id], back_populates="expense_claims")

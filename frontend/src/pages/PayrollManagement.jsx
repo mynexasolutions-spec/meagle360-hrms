@@ -5,10 +5,14 @@ import {
   getAssignmentHistory, assignEmployee,
   getPayrollRuns, createPayrollRun, getRunPayslips, finalizeRun, deleteRun,
   addPayslipAdjustment,
+  getPayrollPolicy, updatePayrollPolicy,
+  getTaxSlabs, createTaxSlab, deleteTaxSlab,
+  getPtSlabs, createPtSlab, deletePtSlab,
+  getEmployeeLoans, createLoan, closeLoan,
 } from '../api/payroll';
 import { getDirectory } from '../api/employees';
 import {
-  Wallet, Plus, Pencil, Trash2, Play, Lock, Users, Receipt,
+  Wallet, Plus, Pencil, Trash2, Play, Lock, Users, Receipt, Settings2, Landmark, HandCoins,
 } from 'lucide-react';
 import Modal from '../components/Modal';
 
@@ -44,12 +48,20 @@ export default function PayrollManagement() {
         <button className={`tab ${tab === 'structures' ? 'active' : ''}`} onClick={() => setTab('structures')}>Salary Structures</button>
         <button className={`tab ${tab === 'assignments' ? 'active' : ''}`} onClick={() => setTab('assignments')}>Employee Assignments</button>
         <button className={`tab ${tab === 'runs' ? 'active' : ''}`} onClick={() => setTab('runs')}>Payroll Runs</button>
+        <button className={`tab ${tab === 'tax-slabs' ? 'active' : ''}`} onClick={() => setTab('tax-slabs')}>Tax Slabs</button>
+        <button className={`tab ${tab === 'pt-slabs' ? 'active' : ''}`} onClick={() => setTab('pt-slabs')}>PT Slabs</button>
+        <button className={`tab ${tab === 'loans' ? 'active' : ''}`} onClick={() => setTab('loans')}>Loans</button>
+        <button className={`tab ${tab === 'policy' ? 'active' : ''}`} onClick={() => setTab('policy')}>Policy</button>
       </div>
 
       {tab === 'components' && <ComponentsTab />}
       {tab === 'structures' && <StructuresTab />}
       {tab === 'assignments' && <AssignmentsTab />}
       {tab === 'runs' && <RunsTab />}
+      {tab === 'tax-slabs' && <TaxSlabsTab />}
+      {tab === 'pt-slabs' && <PtSlabsTab />}
+      {tab === 'loans' && <LoansTab />}
+      {tab === 'policy' && <PolicyTab />}
     </div>
   );
 }
@@ -89,7 +101,7 @@ function ComponentsTab() {
       <h3 style={{ marginBottom: 16 }}>{title}</h3>
       <table className="data-table">
         <thead>
-          <tr><th>Name</th><th>Calculation</th><th>Value</th><th>Statutory</th><th>Taxable</th><th>Status</th><th>Actions</th></tr>
+          <tr><th>Name</th><th>Calculation</th><th>Value</th><th>Rulebook</th><th>Flags</th><th>Status</th><th>Actions</th></tr>
         </thead>
         <tbody>
           {list.map((c) => (
@@ -97,8 +109,12 @@ function ComponentsTab() {
               <td style={{ fontWeight: 500 }}>{c.name}</td>
               <td>{CALC_LABELS[c.calculation_type] || c.calculation_type}</td>
               <td>{c.calculation_type === 'fixed' ? money(c.value) : `${c.value}%`}</td>
-              <td>{c.is_statutory ? <span className="badge badge-info">Statutory</span> : '—'}</td>
-              <td>{c.is_taxable ? 'Yes' : 'No'}</td>
+              <td>{c.statutory_type ? <span className="badge badge-info">{c.statutory_type.toUpperCase()}</span> : '—'}</td>
+              <td>
+                {c.is_employer_contribution && <span className="badge badge-pending" style={{ marginRight: 4 }}>Employer Cost</span>}
+                {c.is_balancing_figure && <span className="badge badge-active">Balancing</span>}
+                {!c.is_employer_contribution && !c.is_balancing_figure && '—'}
+              </td>
               <td>
                 <span className={`badge ${c.is_active ? 'badge-active' : 'badge-inactive'}`}>
                   {c.is_active ? 'Active' : 'Disabled'}
@@ -149,9 +165,13 @@ function ComponentModal({ component, onClose, onSuccess }) {
     is_statutory: component.is_statutory,
     is_taxable: component.is_taxable,
     display_order: component.display_order,
+    is_employer_contribution: component.is_employer_contribution,
+    is_balancing_figure: component.is_balancing_figure,
+    statutory_type: component.statutory_type || '',
   } : {
     name: '', component_type: 'earning', calculation_type: 'fixed', value: 0,
     is_statutory: false, is_taxable: true, display_order: 0,
+    is_employer_contribution: false, is_balancing_figure: false, statutory_type: '',
   });
   const [error, setError] = useState('');
 
@@ -159,10 +179,11 @@ function ComponentModal({ component, onClose, onSuccess }) {
     e.preventDefault();
     setError('');
     try {
+      const payload = { ...form, statutory_type: form.statutory_type || null };
       if (component) {
-        await updateSalaryComponent(component.id, form);
+        await updateSalaryComponent(component.id, payload);
       } else {
-        await createSalaryComponent(form);
+        await createSalaryComponent(payload);
       }
       onSuccess();
     } catch (err) {
@@ -201,7 +222,20 @@ function ComponentModal({ component, onClose, onSuccess }) {
           <label className="input-label">Display Order</label>
           <input type="number" className="input-field" value={form.display_order} onChange={(e) => setForm({ ...form, display_order: e.target.value })} />
         </div>
-        <div className="input-group" style={{ display: 'flex', gap: 20 }}>
+        <div className="input-group">
+          <label className="input-label">Statutory Rulebook</label>
+          <select className="input-field" value={form.statutory_type} onChange={(e) => setForm({ ...form, statutory_type: e.target.value })}>
+            <option value="">None — plain fixed/percent component</option>
+            <option value="epf">EPF — gated by headcount threshold + admin override</option>
+            <option value="esi">ESI — gated by headcount + wage ceiling + coverage cycle</option>
+            <option value="pt">Professional Tax — looked up from PT Slabs by employee's state</option>
+            <option value="tds">TDS — computed from Tax Slabs + employee's regime/declarations</option>
+          </select>
+          <p style={{ fontSize: '0.75rem', color: 'var(--text-muted)', marginTop: 4 }}>
+            When set, this component's amount is computed by the matching rulebook instead of its own Value above (except EPF/ESI, which still use Value as the % or fixed rate — just gated by eligibility).
+          </p>
+        </div>
+        <div className="input-group" style={{ display: 'flex', gap: 20, flexWrap: 'wrap' }}>
           <label style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: '0.875rem' }}>
             <input type="checkbox" checked={form.is_statutory} onChange={(e) => setForm({ ...form, is_statutory: e.target.checked })} /> Statutory
           </label>
@@ -209,6 +243,18 @@ function ComponentModal({ component, onClose, onSuccess }) {
             <input type="checkbox" checked={form.is_taxable} onChange={(e) => setForm({ ...form, is_taxable: e.target.checked })} /> Taxable
           </label>
         </div>
+        {form.component_type === 'earning' && (
+          <div className="input-group" style={{ display: 'flex', gap: 20, flexWrap: 'wrap' }}>
+            <label style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: '0.875rem' }}>
+              <input type="checkbox" checked={form.is_employer_contribution} onChange={(e) => setForm({ ...form, is_employer_contribution: e.target.checked })} />
+              Employer cost (not paid to employee, e.g. Employer PF)
+            </label>
+            <label style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: '0.875rem' }}>
+              <input type="checkbox" checked={form.is_balancing_figure} onChange={(e) => setForm({ ...form, is_balancing_figure: e.target.checked })} />
+              Balancing figure (absorbs remaining CTC, e.g. Special Allowance)
+            </label>
+          </div>
+        )}
         <div style={{ display: 'flex', gap: 10, justifyContent: 'flex-end', marginTop: 20 }}>
           <button type="button" className="btn btn-secondary" onClick={onClose}>Cancel</button>
           <button type="submit" className="btn btn-primary">Save</button>
@@ -405,12 +451,13 @@ function AssignmentsTab() {
         <div className="section-card">
           <h3 style={{ marginBottom: 16 }}>Assignment History</h3>
           <table className="data-table">
-            <thead><tr><th>Effective From</th><th>Salary Structure</th><th>Basic Pay</th></tr></thead>
+            <thead><tr><th>Effective From</th><th>Salary Structure</th><th>Annual CTC</th><th>Basic Pay</th></tr></thead>
             <tbody>
               {history.map((h) => (
                 <tr key={h.id}>
                   <td>{h.effective_from}</td>
                   <td>{h.salary_structure_name || '—'}</td>
+                  <td>{h.annual_ctc ? money(h.annual_ctc) : '—'}</td>
                   <td>{money(h.basic_pay)}</td>
                 </tr>
               ))}
@@ -433,7 +480,7 @@ function AssignmentsTab() {
 }
 
 function AssignmentModal({ employeeId, structures, onClose, onSuccess }) {
-  const [form, setForm] = useState({ salary_structure_id: '', basic_pay: '', effective_from: '' });
+  const [form, setForm] = useState({ salary_structure_id: '', annual_ctc: '', basic_pay: '', effective_from: '' });
   const [error, setError] = useState('');
 
   const handleSubmit = async (e) => {
@@ -443,6 +490,7 @@ function AssignmentModal({ employeeId, structures, onClose, onSuccess }) {
       await assignEmployee({
         employee_id: employeeId,
         salary_structure_id: form.salary_structure_id || null,
+        annual_ctc: form.annual_ctc ? Number(form.annual_ctc) : null,
         basic_pay: Number(form.basic_pay),
         effective_from: form.effective_from,
       });
@@ -464,6 +512,13 @@ function AssignmentModal({ employeeId, structures, onClose, onSuccess }) {
               <option key={s.id} value={s.id}>{s.name}</option>
             ))}
           </select>
+        </div>
+        <div className="input-group">
+          <label className="input-label">Annual CTC (optional)</label>
+          <input type="number" step="0.01" className="input-field" value={form.annual_ctc} onChange={(e) => setForm({ ...form, annual_ctc: e.target.value })} />
+          <p style={{ fontSize: '0.75rem', color: 'var(--text-muted)', marginTop: 4 }}>
+            When set, Basic Pay is validated against the company's minimum Basic-%-of-CTC floor, and any "balancing figure" component (e.g. Special Allowance) absorbs whatever's left of CTC after Basic, employer contributions, and other earnings.
+          </p>
         </div>
         <div className="input-group">
           <label className="input-label">Basic Pay (monthly)</label>
@@ -599,9 +654,17 @@ function RunsTab() {
                         <div style={{ padding: '10px 4px', display: 'grid', gap: 4, fontSize: '0.8125rem' }}>
                           {p.lines.map((line) => (
                             <div key={line.id} style={{ display: 'flex', justifyContent: 'space-between', maxWidth: 420 }}>
-                              <span>{line.component_name} {line.is_manual_adjustment && <span className="badge badge-info" style={{ marginLeft: 6 }}>Adjustment</span>}</span>
-                              <span style={{ color: line.component_type === 'earning' ? 'var(--accent-emerald)' : 'var(--accent-rose)' }}>
-                                {line.component_type === 'earning' ? '+' : '-'}{money(line.amount)}
+                              <span>
+                                {line.component_name}
+                                {line.is_manual_adjustment && <span className="badge badge-info" style={{ marginLeft: 6 }}>Adjustment</span>}
+                                {line.component_type === 'employer_cost' && <span className="badge badge-pending" style={{ marginLeft: 6 }}>Employer Cost (not paid to employee)</span>}
+                              </span>
+                              <span style={{
+                                color: line.component_type === 'earning' ? 'var(--accent-emerald)'
+                                  : line.component_type === 'employer_cost' ? 'var(--text-muted)'
+                                  : 'var(--accent-rose)',
+                              }}>
+                                {line.component_type === 'deduction' ? '-' : line.component_type === 'earning' ? '+' : ''}{money(line.amount)}
                               </span>
                             </div>
                           ))}
@@ -705,5 +768,414 @@ function AdjustmentModal({ payslip, onClose, onSuccess }) {
         </div>
       </form>
     </Modal>
+  );
+}
+
+// ── Tax Slabs ────────────────────────────────────────────────
+function TaxSlabsTab() {
+  const [slabs, setSlabs] = useState([]);
+  const [showModal, setShowModal] = useState(false);
+
+  useEffect(() => { load(); }, []);
+  const load = () => getTaxSlabs().then((r) => setSlabs(r.data)).catch(() => {});
+
+  const handleDelete = async (s) => {
+    if (!confirm('Delete this tax slab?')) return;
+    await deleteTaxSlab(s.id);
+    load();
+  };
+
+  const renderRegime = (regime, title) => {
+    const rows = slabs.filter((s) => s.regime === regime).sort((a, b) => a.min_income - b.min_income);
+    return (
+      <div className="section-card" style={{ marginBottom: 20 }}>
+        <h3 style={{ marginBottom: 16 }}>{title}</h3>
+        <table className="data-table">
+          <thead><tr><th>Income From</th><th>Income To</th><th>Rate</th><th>Actions</th></tr></thead>
+          <tbody>
+            {rows.map((s) => (
+              <tr key={s.id}>
+                <td>₹{money(s.min_income)}</td>
+                <td>{s.max_income ? `₹${money(s.max_income)}` : 'and above'}</td>
+                <td>{s.rate_percent}%</td>
+                <td><button className="btn btn-danger btn-sm" onClick={() => handleDelete(s)}><Trash2 size={13} /></button></td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+        {rows.length === 0 && <div className="empty-state"><p>No slabs configured for this regime</p></div>}
+      </div>
+    );
+  };
+
+  return (
+    <div>
+      <p style={{ fontSize: '0.8125rem', color: 'var(--text-muted)', marginBottom: 16 }}>
+        These slabs drive the TDS calculation on every payslip. They're illustrative starting values — review and update them for the current assessment year and any government changes.
+      </p>
+      <div style={{ display: 'flex', justifyContent: 'flex-end', marginBottom: 16 }}>
+        <button className="btn btn-primary" onClick={() => setShowModal(true)}><Plus size={16} /> Add Slab</button>
+      </div>
+      {renderRegime('new', 'New Regime')}
+      {renderRegime('old', 'Old Regime')}
+      {showModal && (
+        <TaxSlabModal onClose={() => setShowModal(false)} onSuccess={() => { setShowModal(false); load(); }} />
+      )}
+    </div>
+  );
+}
+
+function TaxSlabModal({ onClose, onSuccess }) {
+  const [form, setForm] = useState({ regime: 'new', min_income: '', max_income: '', rate_percent: '' });
+  const [error, setError] = useState('');
+
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+    setError('');
+    try {
+      await createTaxSlab({
+        regime: form.regime,
+        min_income: Number(form.min_income),
+        max_income: form.max_income ? Number(form.max_income) : null,
+        rate_percent: Number(form.rate_percent),
+      });
+      onSuccess();
+    } catch (err) {
+      setError(err.response?.data?.detail || 'Failed to add slab');
+    }
+  };
+
+  return (
+    <Modal title="Add Tax Slab" onClose={onClose}>
+      <form onSubmit={handleSubmit}>
+        {error && <div style={{ marginBottom: 12, color: 'var(--accent-rose)', fontSize: '0.875rem' }}>{error}</div>}
+        <div className="input-group">
+          <label className="input-label">Regime</label>
+          <select className="input-field" value={form.regime} onChange={(e) => setForm({ ...form, regime: e.target.value })}>
+            <option value="new">New Regime</option>
+            <option value="old">Old Regime</option>
+          </select>
+        </div>
+        <div className="input-group">
+          <label className="input-label">Income From (₹, annual)</label>
+          <input type="number" step="0.01" className="input-field" value={form.min_income} onChange={(e) => setForm({ ...form, min_income: e.target.value })} required />
+        </div>
+        <div className="input-group">
+          <label className="input-label">Income To (₹, annual — leave blank for no upper bound)</label>
+          <input type="number" step="0.01" className="input-field" value={form.max_income} onChange={(e) => setForm({ ...form, max_income: e.target.value })} />
+        </div>
+        <div className="input-group">
+          <label className="input-label">Rate (%)</label>
+          <input type="number" step="0.01" className="input-field" value={form.rate_percent} onChange={(e) => setForm({ ...form, rate_percent: e.target.value })} required />
+        </div>
+        <div style={{ display: 'flex', gap: 10, justifyContent: 'flex-end', marginTop: 20 }}>
+          <button type="button" className="btn btn-secondary" onClick={onClose}>Cancel</button>
+          <button type="submit" className="btn btn-primary">Add</button>
+        </div>
+      </form>
+    </Modal>
+  );
+}
+
+// ── Professional Tax Slabs ──────────────────────────────────
+function PtSlabsTab() {
+  const [slabs, setSlabs] = useState([]);
+  const [showModal, setShowModal] = useState(false);
+
+  useEffect(() => { load(); }, []);
+  const load = () => getPtSlabs().then((r) => setSlabs(r.data)).catch(() => {});
+
+  const handleDelete = async (s) => {
+    if (!confirm('Delete this PT slab?')) return;
+    await deletePtSlab(s.id);
+    load();
+  };
+
+  const states = [...new Set(slabs.map((s) => s.state))];
+
+  return (
+    <div>
+      <p style={{ fontSize: '0.8125rem', color: 'var(--text-muted)', marginBottom: 16 }}>
+        Professional Tax is looked up by the employee's state (via their assigned Site). A state with no slabs configured means PT simply doesn't apply to employees there.
+      </p>
+      <div style={{ display: 'flex', justifyContent: 'flex-end', marginBottom: 16 }}>
+        <button className="btn btn-primary" onClick={() => setShowModal(true)}><Plus size={16} /> Add Slab</button>
+      </div>
+      {states.map((state) => (
+        <div key={state} className="section-card" style={{ marginBottom: 20 }}>
+          <h3 style={{ marginBottom: 16 }}><Landmark size={18} style={{ color: 'var(--accent-blue)' }} /> {state}</h3>
+          <table className="data-table">
+            <thead><tr><th>Gross From</th><th>Gross To</th><th>Amount</th><th>Actions</th></tr></thead>
+            <tbody>
+              {slabs.filter((s) => s.state === state).sort((a, b) => a.min_gross - b.min_gross).map((s) => (
+                <tr key={s.id}>
+                  <td>₹{money(s.min_gross)}</td>
+                  <td>{s.max_gross ? `₹${money(s.max_gross)}` : 'and above'}</td>
+                  <td>₹{money(s.amount)}</td>
+                  <td><button className="btn btn-danger btn-sm" onClick={() => handleDelete(s)}><Trash2 size={13} /></button></td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      ))}
+      {states.length === 0 && (
+        <div className="section-card">
+          <div className="empty-state"><Landmark size={48} /><p>No states configured yet</p></div>
+        </div>
+      )}
+      {showModal && (
+        <PtSlabModal onClose={() => setShowModal(false)} onSuccess={() => { setShowModal(false); load(); }} />
+      )}
+    </div>
+  );
+}
+
+function PtSlabModal({ onClose, onSuccess }) {
+  const [form, setForm] = useState({ state: '', min_gross: '', max_gross: '', amount: '' });
+  const [error, setError] = useState('');
+
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+    setError('');
+    try {
+      await createPtSlab({
+        state: form.state,
+        min_gross: Number(form.min_gross),
+        max_gross: form.max_gross ? Number(form.max_gross) : null,
+        amount: Number(form.amount),
+      });
+      onSuccess();
+    } catch (err) {
+      setError(err.response?.data?.detail || 'Failed to add slab');
+    }
+  };
+
+  return (
+    <Modal title="Add Professional Tax Slab" onClose={onClose}>
+      <form onSubmit={handleSubmit}>
+        {error && <div style={{ marginBottom: 12, color: 'var(--accent-rose)', fontSize: '0.875rem' }}>{error}</div>}
+        <div className="input-group">
+          <label className="input-label">State</label>
+          <input className="input-field" value={form.state} onChange={(e) => setForm({ ...form, state: e.target.value })} required />
+        </div>
+        <div className="input-group">
+          <label className="input-label">Gross From (₹, monthly)</label>
+          <input type="number" step="0.01" className="input-field" value={form.min_gross} onChange={(e) => setForm({ ...form, min_gross: e.target.value })} required />
+        </div>
+        <div className="input-group">
+          <label className="input-label">Gross To (₹, monthly — leave blank for no upper bound)</label>
+          <input type="number" step="0.01" className="input-field" value={form.max_gross} onChange={(e) => setForm({ ...form, max_gross: e.target.value })} />
+        </div>
+        <div className="input-group">
+          <label className="input-label">PT Amount (₹/month)</label>
+          <input type="number" step="0.01" className="input-field" value={form.amount} onChange={(e) => setForm({ ...form, amount: e.target.value })} required />
+        </div>
+        <div style={{ display: 'flex', gap: 10, justifyContent: 'flex-end', marginTop: 20 }}>
+          <button type="button" className="btn btn-secondary" onClick={onClose}>Cancel</button>
+          <button type="submit" className="btn btn-primary">Add</button>
+        </div>
+      </form>
+    </Modal>
+  );
+}
+
+// ── Employee Loans ───────────────────────────────────────────
+function LoansTab() {
+  const [employees, setEmployees] = useState([]);
+  const [selectedEmployeeId, setSelectedEmployeeId] = useState('');
+  const [loans, setLoans] = useState([]);
+  const [showModal, setShowModal] = useState(false);
+
+  useEffect(() => {
+    getDirectory().then((r) => setEmployees(r.data)).catch(() => {});
+  }, []);
+
+  useEffect(() => {
+    if (selectedEmployeeId) loadLoans();
+  }, [selectedEmployeeId]);
+
+  const loadLoans = () => getEmployeeLoans(selectedEmployeeId).then((r) => setLoans(r.data)).catch(() => setLoans([]));
+
+  const handleClose = async (loan) => {
+    if (!confirm('Mark this loan as closed (forgive remaining balance)?')) return;
+    await closeLoan(loan.id);
+    loadLoans();
+  };
+
+  return (
+    <div>
+      <div className="section-card" style={{ marginBottom: 20 }}>
+        <h3 style={{ marginBottom: 16 }}><HandCoins size={18} style={{ color: 'var(--accent-amber)' }} /> Employee Loans / Advances</h3>
+        <div style={{ display: 'flex', gap: 16, flexWrap: 'wrap', alignItems: 'flex-end' }}>
+          <div style={{ flex: '1 1 240px' }}>
+            <select className="input-field" value={selectedEmployeeId} onChange={(e) => setSelectedEmployeeId(e.target.value)}>
+              <option value="">Select an employee...</option>
+              {employees.map((e) => (
+                <option key={e.id} value={e.id}>{e.full_name} ({e.employee_code})</option>
+              ))}
+            </select>
+          </div>
+          {selectedEmployeeId && (
+            <button className="btn btn-primary" onClick={() => setShowModal(true)}><Plus size={16} /> New Loan</button>
+          )}
+        </div>
+      </div>
+
+      {selectedEmployeeId && (
+        <div className="section-card">
+          <table className="data-table">
+            <thead><tr><th>Start Date</th><th>Principal</th><th>Monthly Installment</th><th>Remaining</th><th>Status</th><th>Reason</th><th>Actions</th></tr></thead>
+            <tbody>
+              {loans.map((l) => (
+                <tr key={l.id}>
+                  <td>{l.start_date}</td>
+                  <td>{money(l.principal_amount)}</td>
+                  <td>{money(l.monthly_installment)}</td>
+                  <td>{money(l.remaining_balance)}</td>
+                  <td><span className={`badge ${l.status === 'active' ? 'badge-pending' : 'badge-active'}`}>{l.status}</span></td>
+                  <td>{l.reason || '—'}</td>
+                  <td>
+                    {l.status === 'active' && (
+                      <button className="btn btn-secondary btn-sm" onClick={() => handleClose(l)}>Close</button>
+                    )}
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+          {loans.length === 0 && <div className="empty-state"><p>No loans on record</p></div>}
+        </div>
+      )}
+
+      {showModal && (
+        <LoanModal
+          employeeId={selectedEmployeeId}
+          onClose={() => setShowModal(false)}
+          onSuccess={() => { setShowModal(false); loadLoans(); }}
+        />
+      )}
+    </div>
+  );
+}
+
+function LoanModal({ employeeId, onClose, onSuccess }) {
+  const [form, setForm] = useState({ principal_amount: '', monthly_installment: '', start_date: '', reason: '' });
+  const [error, setError] = useState('');
+
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+    setError('');
+    try {
+      await createLoan({
+        employee_id: employeeId,
+        principal_amount: Number(form.principal_amount),
+        monthly_installment: Number(form.monthly_installment),
+        start_date: form.start_date,
+        reason: form.reason || null,
+      });
+      onSuccess();
+    } catch (err) {
+      setError(err.response?.data?.detail || 'Failed to create loan');
+    }
+  };
+
+  return (
+    <Modal title="New Loan / Advance" onClose={onClose}>
+      <form onSubmit={handleSubmit}>
+        {error && <div style={{ marginBottom: 12, color: 'var(--accent-rose)', fontSize: '0.875rem' }}>{error}</div>}
+        <div className="input-group">
+          <label className="input-label">Principal Amount</label>
+          <input type="number" step="0.01" className="input-field" value={form.principal_amount} onChange={(e) => setForm({ ...form, principal_amount: e.target.value })} required />
+        </div>
+        <div className="input-group">
+          <label className="input-label">Monthly Installment</label>
+          <input type="number" step="0.01" className="input-field" value={form.monthly_installment} onChange={(e) => setForm({ ...form, monthly_installment: e.target.value })} required />
+        </div>
+        <div className="input-group">
+          <label className="input-label">Start Date</label>
+          <input type="date" className="input-field" value={form.start_date} onChange={(e) => setForm({ ...form, start_date: e.target.value })} required />
+        </div>
+        <div className="input-group">
+          <label className="input-label">Reason (optional)</label>
+          <input className="input-field" value={form.reason} onChange={(e) => setForm({ ...form, reason: e.target.value })} />
+        </div>
+        <div style={{ display: 'flex', gap: 10, justifyContent: 'flex-end', marginTop: 20 }}>
+          <button type="button" className="btn btn-secondary" onClick={onClose}>Cancel</button>
+          <button type="submit" className="btn btn-primary">Create Loan</button>
+        </div>
+      </form>
+    </Modal>
+  );
+}
+
+// ── Payroll Policy ───────────────────────────────────────────
+function PolicyTab() {
+  const [policy, setPolicy] = useState(null);
+  const [saving, setSaving] = useState(false);
+  const [saved, setSaved] = useState(false);
+
+  useEffect(() => {
+    getPayrollPolicy().then((r) => setPolicy(r.data)).catch(() => {});
+  }, []);
+
+  const handleSave = async (e) => {
+    e.preventDefault();
+    setSaving(true);
+    setSaved(false);
+    try {
+      const res = await updatePayrollPolicy(policy);
+      setPolicy(res.data);
+      setSaved(true);
+    } catch (err) {
+      alert(err.response?.data?.detail || 'Failed to save policy');
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  if (!policy) return null;
+
+  const field = (key, label, hint) => (
+    <div className="input-group">
+      <label className="input-label">{label}</label>
+      <input
+        type="number" step="0.01" className="input-field"
+        value={policy[key]}
+        onChange={(e) => setPolicy({ ...policy, [key]: e.target.value })}
+      />
+      {hint && <p style={{ fontSize: '0.75rem', color: 'var(--text-muted)', marginTop: 4 }}>{hint}</p>}
+    </div>
+  );
+
+  return (
+    <div className="section-card">
+      <h3 style={{ marginBottom: 4 }}><Settings2 size={18} style={{ color: 'var(--accent-violet)' }} /> Payroll Policy</h3>
+      <p style={{ fontSize: '0.8125rem', color: 'var(--text-muted)', marginBottom: 16 }}>
+        Every threshold below drives the payroll engine directly — nothing here is hardcoded in the app.
+        {policy.epf_registered && (
+          <span> Note: this company has already crossed the EPF headcount threshold and is marked EPF-registered — that stays true even if headcount later drops.</span>
+        )}
+      </p>
+      <form onSubmit={handleSave}>
+        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16 }}>
+          {field('min_basic_percent_of_ctc', 'Min Basic % of CTC', 'Basic + DA wage floor (India Labour Codes default: 50%)')}
+          {field('epf_threshold_employee_count', 'EPF Headcount Threshold')}
+          {field('esi_threshold_employee_count', 'ESI Headcount Threshold')}
+          {field('esi_wage_ceiling', 'ESI Wage Ceiling (₹/month)')}
+          {field('gratuity_threshold_employee_count', 'Gratuity Headcount Threshold')}
+          {field('gratuity_years_regular', 'Gratuity Years (Regular)')}
+          {field('gratuity_years_fixed_term', 'Gratuity Years (Fixed-Term)')}
+          {field('fnf_settlement_days', 'F&F Settlement Days')}
+          {field('standard_working_hours_per_day', 'Standard Working Hours/Day')}
+          {field('overtime_rate_multiplier', 'Overtime Rate Multiplier')}
+          {field('tds_cess_percent', 'TDS Cess %')}
+        </div>
+        <div style={{ display: 'flex', gap: 10, alignItems: 'center', marginTop: 20 }}>
+          <button type="submit" className="btn btn-primary" disabled={saving}>{saving ? 'Saving...' : 'Save Policy'}</button>
+          {saved && <span style={{ color: 'var(--accent-emerald)', fontSize: '0.875rem' }}>Saved</span>}
+        </div>
+      </form>
+    </div>
   );
 }

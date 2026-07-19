@@ -11,9 +11,14 @@ import {
   getRoles,
   updateEmployeeRoles,
 } from '../api/employees';
-import { ArrowLeft, Copy, Pencil, UserX, UserCheck, Mail, FileText, Upload, Shield } from 'lucide-react';
+import { getGratuityStatus, getFnfForEmployee, initiateFnf, processFnf } from '../api/payroll';
+import { ArrowLeft, Copy, Pencil, UserX, UserCheck, Mail, FileText, Upload, Shield, LogOut, Award } from 'lucide-react';
 import Modal from '../components/Modal';
 import { useAuth } from '../context/AuthContext';
+
+function money(n) {
+  return Number(n ?? 0).toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+}
 
 const ACCOUNT_STATUS_LABEL = {
   active: 'Active',
@@ -39,6 +44,17 @@ const EMPTY_EDIT_FORM = {
   address: '',
   emergency_contact_name: '',
   emergency_contact_phone: '',
+  employment_type: 'full_time',
+  pan_number: '',
+  uan_number: '',
+  bank_account_number: '',
+  bank_ifsc: '',
+  esi_number: '',
+  esi_registered_date: '',
+  tax_regime: '',
+  declared_investments: '0',
+  epf_applicable: '',
+  esi_applicable: '',
 };
 
 export default function EmployeeProfile() {
@@ -47,18 +63,24 @@ export default function EmployeeProfile() {
   const { user } = useAuth();
   const canManage = !!user?.permissions?.['employees:write'];
   const canManageRoles = !!user?.permissions?.['settings:write'];
+  const canViewPayroll = !!user?.permissions?.['payroll:read'];
+  const canManagePayroll = !!user?.permissions?.['payroll:write'];
+  const canApprovePayroll = !!user?.permissions?.['payroll:approve'];
 
   const [employee, setEmployee] = useState(null);
   const [documents, setDocuments] = useState([]);
   const [departments, setDepartments] = useState([]);
   const [sites, setSites] = useState([]);
   const [allRoles, setAllRoles] = useState([]);
+  const [gratuity, setGratuity] = useState(null);
+  const [fnf, setFnf] = useState(null);
   const [showEdit, setShowEdit] = useState(false);
   const [editForm, setEditForm] = useState(EMPTY_EDIT_FORM);
   const [showUploadDoc, setShowUploadDoc] = useState(false);
   const [docForm, setDocForm] = useState({ doc_type: '', file_url: '' });
   const [showRoles, setShowRoles] = useState(false);
   const [selectedRoleIds, setSelectedRoleIds] = useState([]);
+  const [showFnf, setShowFnf] = useState(false);
   const [inviteLink, setInviteLink] = useState('');
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(true);
@@ -69,6 +91,10 @@ export default function EmployeeProfile() {
     getSites().then((res) => setSites(res.data)).catch(() => {});
     if (canManageRoles) {
       getRoles().then((res) => setAllRoles(res.data)).catch(() => {});
+    }
+    if (canViewPayroll) {
+      getGratuityStatus(id).then((res) => setGratuity(res.data)).catch(() => {});
+      getFnfForEmployee(id).then((res) => setFnf(res.data)).catch(() => {});
     }
   }, [id]);
 
@@ -92,6 +118,17 @@ export default function EmployeeProfile() {
         address: empRes.data.address || '',
         emergency_contact_name: empRes.data.emergency_contact_name || '',
         emergency_contact_phone: empRes.data.emergency_contact_phone || '',
+        employment_type: empRes.data.employment_type || 'full_time',
+        pan_number: empRes.data.pan_number || '',
+        uan_number: empRes.data.uan_number || '',
+        bank_account_number: empRes.data.bank_account_number || '',
+        bank_ifsc: empRes.data.bank_ifsc || '',
+        esi_number: empRes.data.esi_number || '',
+        esi_registered_date: empRes.data.esi_registered_date || '',
+        tax_regime: empRes.data.tax_regime || '',
+        declared_investments: String(empRes.data.declared_investments ?? '0'),
+        epf_applicable: empRes.data.epf_applicable === null || empRes.data.epf_applicable === undefined ? '' : String(empRes.data.epf_applicable),
+        esi_applicable: empRes.data.esi_applicable === null || empRes.data.esi_applicable === undefined ? '' : String(empRes.data.esi_applicable),
       });
       setDocuments(docsRes.data);
       setSelectedRoleIds(empRes.data.additional_role_ids || []);
@@ -128,11 +165,43 @@ export default function EmployeeProfile() {
         address: editForm.address || null,
         emergency_contact_name: editForm.emergency_contact_name || null,
         emergency_contact_phone: editForm.emergency_contact_phone || null,
+        employment_type: editForm.employment_type,
+        pan_number: editForm.pan_number || null,
+        uan_number: editForm.uan_number || null,
+        bank_account_number: editForm.bank_account_number || null,
+        bank_ifsc: editForm.bank_ifsc || null,
+        esi_number: editForm.esi_number || null,
+        esi_registered_date: editForm.esi_registered_date || null,
+        tax_regime: editForm.tax_regime || null,
+        declared_investments: Number(editForm.declared_investments || 0),
+        epf_applicable: editForm.epf_applicable === '' ? null : editForm.epf_applicable === 'true',
+        esi_applicable: editForm.esi_applicable === '' ? null : editForm.esi_applicable === 'true',
       });
       setShowEdit(false);
       load();
     } catch (err) {
       setError(err.response?.data?.detail || 'Failed to update employee');
+    }
+  };
+
+  const handleInitiateFnf = async (exitDate, exitReason) => {
+    try {
+      const res = await initiateFnf(id, { exit_date: exitDate, exit_reason: exitReason || null });
+      setFnf(res.data);
+      setShowFnf(false);
+      load();
+    } catch (err) {
+      alert(err.response?.data?.detail || 'Failed to initiate Full & Final settlement');
+    }
+  };
+
+  const handleProcessFnf = async () => {
+    if (!confirm('Mark this Full & Final settlement as processed/paid?')) return;
+    try {
+      const res = await processFnf(fnf.id);
+      setFnf(res.data);
+    } catch (err) {
+      alert(err.response?.data?.detail || 'Failed to process settlement');
     }
   };
 
@@ -297,6 +366,81 @@ export default function EmployeeProfile() {
           </dl>
         </div>
 
+        {canViewPayroll && (
+          <div className="section-card" style={{ gridColumn: '1 / -1' }}>
+            <h3 style={{ marginBottom: 16 }}>Statutory & Payroll Details</h3>
+            <dl style={{ display: 'grid', gridTemplateColumns: '160px 1fr 160px 1fr', rowGap: 12, columnGap: 16, fontSize: '0.875rem' }}>
+              <dt style={{ color: 'var(--text-muted)' }}>Employment Type</dt>
+              <dd style={{ textTransform: 'capitalize' }}>{(employee.employment_type || 'full_time').replace('_', ' ')}</dd>
+              <dt style={{ color: 'var(--text-muted)' }}>PAN</dt>
+              <dd>{employee.pan_number || '—'}</dd>
+              <dt style={{ color: 'var(--text-muted)' }}>UAN</dt>
+              <dd>{employee.uan_number || '—'}</dd>
+              <dt style={{ color: 'var(--text-muted)' }}>Bank Account</dt>
+              <dd>{employee.bank_account_number ? `${employee.bank_account_number} (${employee.bank_ifsc || 'no IFSC'})` : '—'}</dd>
+              <dt style={{ color: 'var(--text-muted)' }}>ESI Number</dt>
+              <dd>{employee.esi_number || '—'}</dd>
+              <dt style={{ color: 'var(--text-muted)' }}>ESI Registered</dt>
+              <dd>{employee.esi_registered_date || '—'}</dd>
+              <dt style={{ color: 'var(--text-muted)' }}>EPF Applicable</dt>
+              <dd>{employee.epf_applicable === null || employee.epf_applicable === undefined ? 'Auto (company policy)' : employee.epf_applicable ? 'Yes' : 'No'}</dd>
+              <dt style={{ color: 'var(--text-muted)' }}>ESI Applicable</dt>
+              <dd>{employee.esi_applicable === null || employee.esi_applicable === undefined ? 'Auto (headcount/ceiling)' : employee.esi_applicable ? 'Yes' : 'No'}</dd>
+              <dt style={{ color: 'var(--text-muted)' }}>Tax Regime</dt>
+              <dd style={{ textTransform: 'capitalize' }}>{employee.tax_regime || 'New (default)'}</dd>
+              <dt style={{ color: 'var(--text-muted)' }}>Declared Investments</dt>
+              <dd>₹{money(employee.declared_investments)} <span style={{ color: 'var(--text-muted)' }}>(old regime only)</span></dd>
+            </dl>
+          </div>
+        )}
+
+        {canViewPayroll && (
+          <div className="section-card" style={{ gridColumn: '1 / -1' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 }}>
+              <h3 style={{ marginBottom: 0 }}><Award size={18} style={{ color: 'var(--accent-amber)' }} /> Gratuity & Exit</h3>
+              {canManagePayroll && !fnf && employee.employment_status === 'active' && (
+                <button className="btn btn-secondary btn-sm" onClick={() => setShowFnf(true)}>
+                  <LogOut size={14} /> Initiate Exit / Full & Final
+                </button>
+              )}
+            </div>
+            {gratuity && (
+              <dl style={{ display: 'grid', gridTemplateColumns: '160px 1fr 160px 1fr', rowGap: 12, columnGap: 16, fontSize: '0.875rem', marginBottom: fnf ? 20 : 0 }}>
+                <dt style={{ color: 'var(--text-muted)' }}>Gratuity Eligible</dt>
+                <dd>{gratuity.eligible ? 'Yes' : 'Not yet'}</dd>
+                <dt style={{ color: 'var(--text-muted)' }}>Years of Service</dt>
+                <dd>{gratuity.years_of_service} (needs {gratuity.years_required})</dd>
+                <dt style={{ color: 'var(--text-muted)' }}>Headcount Requirement Met</dt>
+                <dd>{gratuity.headcount_met ? 'Yes' : 'No'}</dd>
+                <dt style={{ color: 'var(--text-muted)' }}>Estimated Gratuity</dt>
+                <dd>₹{money(gratuity.estimated_amount)}</dd>
+              </dl>
+            )}
+            {fnf && (
+              <div style={{ borderTop: gratuity ? '1px solid var(--border-color)' : 'none', paddingTop: gratuity ? 16 : 0 }}>
+                <h4 style={{ marginBottom: 12, fontSize: '0.9375rem' }}>Full & Final Settlement — Exit Date: {fnf.exit_date}</h4>
+                <dl style={{ display: 'grid', gridTemplateColumns: '160px 1fr 160px 1fr', rowGap: 12, columnGap: 16, fontSize: '0.875rem' }}>
+                  <dt style={{ color: 'var(--text-muted)' }}>Pending Salary</dt>
+                  <dd>₹{money(fnf.pending_salary_amount)}</dd>
+                  <dt style={{ color: 'var(--text-muted)' }}>Leave Encashment</dt>
+                  <dd>{fnf.leave_encashment_days} days = ₹{money(fnf.leave_encashment_amount)}</dd>
+                  <dt style={{ color: 'var(--text-muted)' }}>Gratuity</dt>
+                  <dd>{fnf.gratuity_eligible ? `₹${money(fnf.gratuity_amount)}` : 'Not eligible'}</dd>
+                  <dt style={{ color: 'var(--text-muted)' }}>Outstanding Deductions</dt>
+                  <dd>-₹{money(fnf.outstanding_deductions)}</dd>
+                  <dt style={{ color: 'var(--text-muted)' }}>Net Payable</dt>
+                  <dd style={{ fontWeight: 700 }}>₹{money(fnf.net_payable)}</dd>
+                  <dt style={{ color: 'var(--text-muted)' }}>Status</dt>
+                  <dd><span className={`badge ${fnf.status === 'processed' ? 'badge-active' : 'badge-pending'}`}>{fnf.status}</span></dd>
+                </dl>
+                {canApprovePayroll && fnf.status === 'pending' && (
+                  <button className="btn btn-success btn-sm" style={{ marginTop: 16 }} onClick={handleProcessFnf}>Mark as Processed / Paid</button>
+                )}
+              </div>
+            )}
+          </div>
+        )}
+
         <div className="section-card" style={{ gridColumn: '1 / -1' }}>
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 }}>
             <h3 style={{ marginBottom: 0 }}>Documents</h3>
@@ -444,12 +588,84 @@ export default function EmployeeProfile() {
                 onChange={(e) => setEditForm({ ...editForm, emergency_contact_phone: e.target.value })}
               />
             </div>
+
+            {canViewPayroll && (
+              <>
+                <h4 style={{ margin: '16px 0 8px', fontSize: '0.875rem', color: 'var(--text-muted)' }}>Statutory & Payroll</h4>
+                <div className="input-group">
+                  <label className="input-label">Employment Type</label>
+                  <select className="input-field" value={editForm.employment_type} onChange={(e) => setEditForm({ ...editForm, employment_type: e.target.value })}>
+                    <option value="full_time">Full-time</option>
+                    <option value="fixed_term">Fixed-term</option>
+                    <option value="contractor">Contractor</option>
+                    <option value="intern">Intern</option>
+                  </select>
+                </div>
+                <div className="input-group">
+                  <label className="input-label">PAN Number</label>
+                  <input className="input-field" value={editForm.pan_number} onChange={(e) => setEditForm({ ...editForm, pan_number: e.target.value })} />
+                </div>
+                <div className="input-group">
+                  <label className="input-label">UAN Number</label>
+                  <input className="input-field" value={editForm.uan_number} onChange={(e) => setEditForm({ ...editForm, uan_number: e.target.value })} />
+                </div>
+                <div className="input-group">
+                  <label className="input-label">Bank Account Number</label>
+                  <input className="input-field" value={editForm.bank_account_number} onChange={(e) => setEditForm({ ...editForm, bank_account_number: e.target.value })} />
+                </div>
+                <div className="input-group">
+                  <label className="input-label">Bank IFSC</label>
+                  <input className="input-field" value={editForm.bank_ifsc} onChange={(e) => setEditForm({ ...editForm, bank_ifsc: e.target.value })} />
+                </div>
+                <div className="input-group">
+                  <label className="input-label">ESI Number</label>
+                  <input className="input-field" value={editForm.esi_number} onChange={(e) => setEditForm({ ...editForm, esi_number: e.target.value })} />
+                </div>
+                <div className="input-group">
+                  <label className="input-label">ESI Registered Date</label>
+                  <input type="date" className="input-field" value={editForm.esi_registered_date} onChange={(e) => setEditForm({ ...editForm, esi_registered_date: e.target.value })} />
+                </div>
+                <div className="input-group">
+                  <label className="input-label">EPF Applicable</label>
+                  <select className="input-field" value={editForm.epf_applicable} onChange={(e) => setEditForm({ ...editForm, epf_applicable: e.target.value })}>
+                    <option value="">Auto (follow company policy)</option>
+                    <option value="true">Force Yes</option>
+                    <option value="false">Force No</option>
+                  </select>
+                </div>
+                <div className="input-group">
+                  <label className="input-label">ESI Applicable</label>
+                  <select className="input-field" value={editForm.esi_applicable} onChange={(e) => setEditForm({ ...editForm, esi_applicable: e.target.value })}>
+                    <option value="">Auto (headcount/ceiling/cycle)</option>
+                    <option value="true">Force Yes</option>
+                    <option value="false">Force No</option>
+                  </select>
+                </div>
+                <div className="input-group">
+                  <label className="input-label">Tax Regime</label>
+                  <select className="input-field" value={editForm.tax_regime} onChange={(e) => setEditForm({ ...editForm, tax_regime: e.target.value })}>
+                    <option value="">New (default)</option>
+                    <option value="old">Old</option>
+                    <option value="new">New</option>
+                  </select>
+                </div>
+                <div className="input-group">
+                  <label className="input-label">Declared Investments (₹/year, old regime only)</label>
+                  <input type="number" step="0.01" className="input-field" value={editForm.declared_investments} onChange={(e) => setEditForm({ ...editForm, declared_investments: e.target.value })} />
+                </div>
+              </>
+            )}
+
             <div style={{ display: 'flex', gap: 10, justifyContent: 'flex-end', marginTop: 20 }}>
               <button type="button" className="btn btn-secondary" onClick={() => setShowEdit(false)}>Cancel</button>
               <button type="submit" className="btn btn-primary">Save</button>
             </div>
           </form>
         </Modal>
+      )}
+
+      {showFnf && (
+        <FnfModal onClose={() => setShowFnf(false)} onSubmit={handleInitiateFnf} />
       )}
 
       {showRoles && (
@@ -511,5 +727,32 @@ export default function EmployeeProfile() {
         </Modal>
       )}
     </div>
+  );
+}
+
+function FnfModal({ onClose, onSubmit }) {
+  const [exitDate, setExitDate] = useState('');
+  const [exitReason, setExitReason] = useState('');
+
+  return (
+    <Modal title="Initiate Exit / Full & Final Settlement" onClose={onClose}>
+      <form onSubmit={(e) => { e.preventDefault(); onSubmit(exitDate, exitReason); }}>
+        <p style={{ fontSize: '0.8125rem', color: 'var(--text-muted)', marginBottom: 12 }}>
+          This deactivates the employee and computes pending salary, leave encashment, and gratuity (if eligible) into a settlement you can review before marking it paid.
+        </p>
+        <div className="input-group">
+          <label className="input-label">Exit Date</label>
+          <input type="date" className="input-field" value={exitDate} onChange={(e) => setExitDate(e.target.value)} required />
+        </div>
+        <div className="input-group">
+          <label className="input-label">Reason (optional)</label>
+          <input className="input-field" value={exitReason} onChange={(e) => setExitReason(e.target.value)} />
+        </div>
+        <div style={{ display: 'flex', gap: 10, justifyContent: 'flex-end', marginTop: 20 }}>
+          <button type="button" className="btn btn-secondary" onClick={onClose}>Cancel</button>
+          <button type="submit" className="btn btn-primary">Initiate Settlement</button>
+        </div>
+      </form>
+    </Modal>
   );
 }

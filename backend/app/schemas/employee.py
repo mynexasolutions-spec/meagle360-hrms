@@ -2,6 +2,7 @@
 
 from uuid import UUID
 from datetime import date, datetime
+from decimal import Decimal
 from pydantic import BaseModel, EmailStr
 
 
@@ -47,6 +48,17 @@ class EmployeeUpdate(BaseModel):
     address: str | None = None
     emergency_contact_name: str | None = None
     emergency_contact_phone: str | None = None
+    employment_type: str | None = None  # full_time | fixed_term | contractor | intern
+    pan_number: str | None = None
+    uan_number: str | None = None
+    bank_account_number: str | None = None
+    bank_ifsc: str | None = None
+    esi_number: str | None = None
+    esi_registered_date: date | None = None
+    epf_applicable: bool | None = None
+    esi_applicable: bool | None = None
+    tax_regime: str | None = None  # old | new
+    declared_investments: Decimal | None = None
 
 
 class EmployeeResponse(BaseModel):
@@ -67,6 +79,19 @@ class EmployeeResponse(BaseModel):
     address: str | None
     emergency_contact_name: str | None
     emergency_contact_phone: str | None
+    employment_type: str
+    date_of_exit: date | None = None
+    exit_reason: str | None = None
+    pan_number: str | None = None
+    uan_number: str | None = None
+    bank_account_number: str | None = None
+    bank_ifsc: str | None = None
+    esi_number: str | None = None
+    esi_registered_date: date | None = None
+    epf_applicable: bool | None = None
+    esi_applicable: bool | None = None
+    tax_regime: str | None = None
+    declared_investments: Decimal
     created_at: datetime
     updated_at: datetime
 
@@ -95,6 +120,19 @@ class EmployeeProfileResponse(BaseModel):
     address: str | None = None
     emergency_contact_name: str | None = None
     emergency_contact_phone: str | None = None
+    employment_type: str = "full_time"
+    date_of_exit: date | None = None
+    exit_reason: str | None = None
+    pan_number: str | None = None
+    uan_number: str | None = None
+    bank_account_number: str | None = None
+    bank_ifsc: str | None = None
+    esi_number: str | None = None
+    esi_registered_date: date | None = None
+    epf_applicable: bool | None = None
+    esi_applicable: bool | None = None
+    tax_regime: str | None = None
+    declared_investments: Decimal = Decimal("0")
     created_at: datetime
     updated_at: datetime
     account_status: str = "no_login"  # no_login | invited | active

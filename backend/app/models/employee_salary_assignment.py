@@ -32,6 +32,7 @@ class EmployeeSalaryAssignment(Base, TimestampMixin):
         UUID(as_uuid=True), ForeignKey("salary_structure.id", ondelete="SET NULL"),
         nullable=True,
     )
+    annual_ctc: Mapped[Decimal | None] = mapped_column(Numeric(12, 2), nullable=True)
     basic_pay: Mapped[Decimal] = mapped_column(Numeric(12, 2), nullable=False)
     effective_from: Mapped[date_type] = mapped_column(Date, nullable=False)
 

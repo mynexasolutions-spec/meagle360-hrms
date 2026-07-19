@@ -11,6 +11,10 @@ from app.models.salary_structure_component import SalaryStructureComponent
 from app.models.employee_salary_assignment import EmployeeSalaryAssignment
 from app.models.payroll_run import PayrollRun
 from app.models.payslip import Payslip
+from app.models.tax_slab import TaxSlab
+from app.models.professional_tax_slab import ProfessionalTaxSlab
+from app.models.employee_loan import EmployeeLoan
+from app.models.fnf_settlement import FnfSettlement
 from app.repositories.base import BaseRepository
 
 
@@ -149,3 +153,71 @@ class PayslipRepository(BaseRepository[Payslip]):
             .order_by(Payslip.created_at.desc())
             .offset(skip).limit(limit).all()
         )
+
+
+class TaxSlabRepository(BaseRepository[TaxSlab]):
+    def __init__(self, db: Session, company_id: UUID):
+        super().__init__(TaxSlab, db, company_id)
+
+    def get_by_regime(self, regime: str):
+        return (
+            self._scoped_query()
+            .filter(TaxSlab.regime == regime)
+            .order_by(TaxSlab.min_income.asc())
+            .all()
+        )
+
+    def get_all(self):
+        return self._scoped_query().order_by(TaxSlab.regime.asc(), TaxSlab.min_income.asc()).all()
+
+
+class ProfessionalTaxSlabRepository(BaseRepository[ProfessionalTaxSlab]):
+    def __init__(self, db: Session, company_id: UUID):
+        super().__init__(ProfessionalTaxSlab, db, company_id)
+
+    def get_by_state(self, state: str):
+        return (
+            self._scoped_query()
+            .filter(ProfessionalTaxSlab.state == state)
+            .order_by(ProfessionalTaxSlab.min_gross.asc())
+            .all()
+        )
+
+    def get_all(self):
+        return self._scoped_query().order_by(ProfessionalTaxSlab.state.asc(), ProfessionalTaxSlab.min_gross.asc()).all()
+
+
+class EmployeeLoanRepository(BaseRepository[EmployeeLoan]):
+    def __init__(self, db: Session, company_id: UUID):
+        super().__init__(EmployeeLoan, db, company_id)
+
+    def get_active_for_employee(self, employee_id: UUID):
+        return (
+            self._scoped_query()
+            .filter(EmployeeLoan.employee_id == employee_id, EmployeeLoan.status == "active")
+            .all()
+        )
+
+    def get_by_employee(self, employee_id: UUID):
+        return (
+            self._scoped_query()
+            .filter(EmployeeLoan.employee_id == employee_id)
+            .order_by(EmployeeLoan.start_date.desc())
+            .all()
+        )
+
+
+class FnfSettlementRepository(BaseRepository[FnfSettlement]):
+    def __init__(self, db: Session, company_id: UUID):
+        super().__init__(FnfSettlement, db, company_id)
+
+    def get_by_employee(self, employee_id: UUID):
+        return (
+            self._scoped_query()
+            .filter(FnfSettlement.employee_id == employee_id)
+            .order_by(FnfSettlement.exit_date.desc())
+            .first()
+        )
+
+    def get_all(self):
+        return self._scoped_query().order_by(FnfSettlement.exit_date.desc()).all()

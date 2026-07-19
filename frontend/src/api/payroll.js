@@ -29,3 +29,33 @@ export const addPayslipAdjustment = (payslipId, data) =>
 
 // ── Self-service ─────────────────────────────────────────────
 export const getMyPayslips = () => client.get('/payroll/my-payslips');
+
+// ── Payroll Policy ───────────────────────────────────────────
+export const getPayrollPolicy = () => client.get('/payroll/policy');
+export const updatePayrollPolicy = (data) => client.put('/payroll/policy', data);
+
+// ── Tax Slabs ────────────────────────────────────────────────
+export const getTaxSlabs = () => client.get('/payroll/tax-slabs');
+export const createTaxSlab = (data) => client.post('/payroll/tax-slabs', data);
+export const updateTaxSlab = (id, data) => client.put(`/payroll/tax-slabs/${id}`, data);
+export const deleteTaxSlab = (id) => client.delete(`/payroll/tax-slabs/${id}`);
+
+// ── Professional Tax Slabs ───────────────────────────────────
+export const getPtSlabs = () => client.get('/payroll/pt-slabs');
+export const createPtSlab = (data) => client.post('/payroll/pt-slabs', data);
+export const updatePtSlab = (id, data) => client.put(`/payroll/pt-slabs/${id}`, data);
+export const deletePtSlab = (id) => client.delete(`/payroll/pt-slabs/${id}`);
+
+// ── Employee Loans ───────────────────────────────────────────
+export const getEmployeeLoans = (employeeId) => client.get(`/payroll/loans/${employeeId}`);
+export const createLoan = (data) => client.post('/payroll/loans', data);
+export const closeLoan = (loanId) => client.post(`/payroll/loans/${loanId}/close`);
+
+// ── Gratuity ─────────────────────────────────────────────────
+export const getGratuityStatus = (employeeId) => client.get(`/payroll/gratuity/${employeeId}`);
+
+// ── Full & Final Settlement ──────────────────────────────────
+export const getAllFnf = () => client.get('/payroll/fnf');
+export const getFnfForEmployee = (employeeId) => client.get(`/payroll/fnf/${employeeId}`);
+export const initiateFnf = (employeeId, data) => client.post(`/payroll/fnf/${employeeId}/initiate`, data);
+export const processFnf = (settlementId) => client.post(`/payroll/fnf/${settlementId}/process`);

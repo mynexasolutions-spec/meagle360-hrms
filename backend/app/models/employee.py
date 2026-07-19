@@ -2,8 +2,9 @@
 
 import uuid
 from datetime import date
+from decimal import Decimal
 
-from sqlalchemy import Date, ForeignKey, String, Text, UniqueConstraint
+from sqlalchemy import Boolean, Date, ForeignKey, Numeric, String, Text, UniqueConstraint
 from sqlalchemy.dialects.postgresql import UUID
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
@@ -59,6 +60,32 @@ class Employee(Base, TimestampMixin):
     address: Mapped[str | None] = mapped_column(Text, nullable=True)
     emergency_contact_name: Mapped[str | None] = mapped_column(String(255), nullable=True)
     emergency_contact_phone: Mapped[str | None] = mapped_column(String(30), nullable=True)
+
+    # ── Employment classification (drives which statutory rules apply) ──
+    employment_type: Mapped[str] = mapped_column(
+        String(20), nullable=False, default="full_time"
+    )  # full_time | fixed_term | contractor | intern
+    date_of_exit: Mapped[date | None] = mapped_column(Date, nullable=True)
+    exit_reason: Mapped[str | None] = mapped_column(String(255), nullable=True)
+
+    # ── Statutory / payroll identifiers ──────────────────
+    pan_number: Mapped[str | None] = mapped_column(String(20), nullable=True)
+    uan_number: Mapped[str | None] = mapped_column(String(20), nullable=True)
+    bank_account_number: Mapped[str | None] = mapped_column(String(40), nullable=True)
+    bank_ifsc: Mapped[str | None] = mapped_column(String(20), nullable=True)
+
+    # EPF/ESI applicability is recomputed automatically each payroll run
+    # (headcount thresholds + ESI wage ceiling), but persisted here so
+    # "once ESI-covered, stays covered for the contribution cycle" holds.
+    epf_applicable: Mapped[bool | None] = mapped_column(Boolean, nullable=True, default=None)
+    esi_applicable: Mapped[bool | None] = mapped_column(Boolean, nullable=True, default=None)
+    esi_number: Mapped[str | None] = mapped_column(String(30), nullable=True)
+    esi_registered_date: Mapped[date | None] = mapped_column(Date, nullable=True)
+    esi_coverage_cycle_end: Mapped[date | None] = mapped_column(Date, nullable=True)
+
+    # ── Tax (TDS) ─────────────────────────────────────────
+    tax_regime: Mapped[str | None] = mapped_column(String(10), nullable=True)  # old | new
+    declared_investments: Mapped[Decimal] = mapped_column(Numeric(12, 2), nullable=False, default=0)
 
     # ── Relationships ────────────────────────────────────
     company = relationship("Company", back_populates="employees")

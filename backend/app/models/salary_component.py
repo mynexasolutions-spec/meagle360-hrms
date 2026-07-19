@@ -35,6 +35,21 @@ class SalaryComponent(Base, TimestampMixin):
     is_active: Mapped[bool] = mapped_column(Boolean, nullable=False, default=True)
     display_order: Mapped[int] = mapped_column(Integer, nullable=False, default=0)
 
+    # Cost to the company that's never paid to the employee (e.g. Employer
+    # PF) — part of CTC, excluded from Gross/Net entirely.
+    is_employer_contribution: Mapped[bool] = mapped_column(Boolean, nullable=False, default=False)
+    # This component's amount is auto-computed as whatever's left of CTC
+    # after Basic, employer contributions, and every other fixed/percent
+    # earning are accounted for (e.g. "Special Allowance"). At most one
+    # such component should be active per structure.
+    is_balancing_figure: Mapped[bool] = mapped_column(Boolean, nullable=False, default=False)
+    # When set, the engine overrides normal fixed/percent calculation with
+    # specialized, still fully-configurable rule engines: headcount+ceiling
+    # eligibility for epf/esi, state-slab lookup for pt, income-slab
+    # calculation for tds. Admin still names/labels the component freely —
+    # this only tells the engine which rulebook to apply.
+    statutory_type: Mapped[str | None] = mapped_column(String(20), nullable=True)  # epf | esi | pt | tds
+
     # ── Relationships ────────────────────────────────────
     company = relationship("Company")
     structure_links = relationship(

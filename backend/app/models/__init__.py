@@ -35,6 +35,10 @@ from app.models.employee_salary_assignment import EmployeeSalaryAssignment
 from app.models.payroll_run import PayrollRun
 from app.models.payslip import Payslip
 from app.models.payslip_line import PayslipLine
+from app.models.tax_slab import TaxSlab
+from app.models.professional_tax_slab import ProfessionalTaxSlab
+from app.models.employee_loan import EmployeeLoan
+from app.models.fnf_settlement import FnfSettlement
 
 __all__ = [
     "Base",
@@ -67,4 +71,8 @@ __all__ = [
     "PayrollRun",
     "Payslip",
     "PayslipLine",
+    "TaxSlab",
+    "ProfessionalTaxSlab",
+    "EmployeeLoan",
+    "FnfSettlement",
 ]
