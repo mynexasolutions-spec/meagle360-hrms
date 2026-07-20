@@ -2,20 +2,29 @@ import { useState, useEffect } from 'react';
 import { useAuth } from '../context/AuthContext';
 import {
   getLeaveTypes, getLeaveBalance, getMyRequests,
-  getPendingRequests, requestLeave, approveReject,
+  getPendingRequests, requestLeave, approveReject, adjustBalance,
+  createLeaveType, updateLeaveType, accrueMonthly,
 } from '../api/leave';
-import { CalendarDays, Plus, Check, X, Clock } from 'lucide-react';
+import { getEmployees } from '../api/employees';
+import { CalendarDays, Plus, Check, X, Clock, Pencil, Layers, RefreshCw, SlidersHorizontal } from 'lucide-react';
 import Modal from '../components/Modal';
 
 export default function LeaveManagement() {
   const { user } = useAuth();
+  const isAdmin = user?.role_name === 'Admin';
   const canApprove = !!user?.permissions?.['leave:approve'];
-  const [tab, setTab] = useState('my-leave');
+  const canManageBalances = !!user?.permissions?.['settings:write'];
+  const [tab, setTab] = useState(isAdmin ? 'approvals' : 'my-leave');
   const [types, setTypes] = useState([]);
   const [balances, setBalances] = useState([]);
   const [myRequests, setMyRequests] = useState([]);
   const [pending, setPending] = useState([]);
+  const [employees, setEmployees] = useState([]);
   const [showRequest, setShowRequest] = useState(false);
+  const [editBalance, setEditBalance] = useState(null);
+  const [showLeaveTypeModal, setShowLeaveTypeModal] = useState(null);
+  const [showAdjustBalance, setShowAdjustBalance] = useState(false);
+  const [accruing, setAccruing] = useState(false);
   const [form, setForm] = useState({ leave_type_id: '', start_date: '', end_date: '' });
 
   useEffect(() => {
@@ -24,16 +33,24 @@ export default function LeaveManagement() {
 
   const loadData = async () => {
     try {
-      const [typesRes, balRes, myRes, pendRes] = await Promise.all([
-        getLeaveTypes(),
-        getLeaveBalance().catch(() => ({ data: [] })),
-        getMyRequests().catch(() => ({ data: [] })),
+      const [pendRes, typesRes] = await Promise.all([
         getPendingRequests().catch(() => ({ data: [] })),
+        getLeaveTypes().catch(() => ({ data: [] })),
       ]);
-      setTypes(typesRes.data);
-      setBalances(balRes.data);
-      setMyRequests(myRes.data);
       setPending(pendRes.data);
+      setTypes(typesRes.data);
+      if (!isAdmin) {
+        const [balRes, myRes] = await Promise.all([
+          getLeaveBalance().catch(() => ({ data: [] })),
+          getMyRequests().catch(() => ({ data: [] })),
+        ]);
+        setBalances(balRes.data);
+        setMyRequests(myRes.data);
+      }
+      if (canManageBalances) {
+        const eRes = await getEmployees(0, 500).catch(() => ({ data: [] }));
+        setEmployees(eRes.data);
+      }
     } catch (e) {
       console.error(e);
     }
@@ -59,56 +76,104 @@ export default function LeaveManagement() {
     }
   };
 
+  const toggleLeaveTypePaid = async (lt) => {
+    try {
+      await updateLeaveType(lt.id, { is_paid: !lt.is_paid });
+      loadData();
+    } catch (err) {
+      alert(err.response?.data?.detail || 'Failed to update leave type');
+    }
+  };
+
+  const handleAccrueMonthly = async () => {
+    setAccruing(true);
+    try {
+      const res = await accrueMonthly();
+      const r = res.data;
+      if (r.already_run) {
+        alert(`Already run for ${r.period} — no leave types were pending accrual.`);
+      } else {
+        alert(`Accrued ${r.leave_types_accrued.join(', ')} for ${r.employees_processed} employees (${r.period}).`);
+      }
+      loadData();
+    } catch (err) {
+      alert(err.response?.data?.detail || 'Failed to run monthly accrual');
+    } finally {
+      setAccruing(false);
+    }
+  };
+
   return (
     <div className="animate-fade-in">
       <div className="page-header">
         <div>
           <h1>Leave Management</h1>
-          <p>Track balances, request leave, and manage approvals</p>
+          <p>{isAdmin ? 'Review and manage leave approvals' : 'Track balances, request leave, and manage approvals'}</p>
         </div>
-        <button className="btn btn-primary" onClick={() => setShowRequest(true)}>
-          <Plus size={16} /> Request Leave
-        </button>
-      </div>
-
-      {/* Balance Cards */}
-      <div className="stats-grid stagger-children" style={{ marginBottom: 24 }}>
-        {balances.map((b) => (
-          <div key={b.id} className="glass-card" style={{ padding: 20 }}>
-            <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)', marginBottom: 8 }}>
-              {b.leave_type_name || 'Leave'}
-            </div>
-            <div style={{ fontSize: '1.75rem', fontWeight: 700, color: 'var(--accent-blue)' }}>
-              {Number(b.balance).toFixed(1)}
-            </div>
-            <div style={{ fontSize: '0.6875rem', color: 'var(--text-muted)', marginTop: 4 }}>
-              days remaining ({b.year})
-            </div>
-          </div>
-        ))}
-        {balances.length === 0 && (
-          <div className="glass-card" style={{ padding: 20, gridColumn: '1 / -1' }}>
-            <div style={{ color: 'var(--text-muted)', fontSize: '0.875rem' }}>
-              No leave balances configured yet
-            </div>
-          </div>
+        {!isAdmin && (
+          <button className="btn btn-primary" onClick={() => setShowRequest(true)}>
+            <Plus size={16} /> Request Leave
+          </button>
         )}
       </div>
 
+      {/* Balance Cards */}
+      {!isAdmin && (
+        <div className="stats-grid stagger-children" style={{ marginBottom: 24 }}>
+          {balances.map((b) => (
+            <div key={b.id} className="glass-card" style={{ padding: 20, position: 'relative' }}>
+              {canManageBalances && (
+                <button
+                  className="btn-icon btn-ghost"
+                  title="Edit balance"
+                  onClick={() => setEditBalance(b)}
+                  style={{ position: 'absolute', top: 12, right: 12 }}
+                >
+                  <Pencil size={14} />
+                </button>
+              )}
+              <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)', marginBottom: 8 }}>
+                {b.leave_type_name || 'Leave'}
+              </div>
+              <div style={{ fontSize: '1.75rem', fontWeight: 700, color: 'var(--accent-blue)' }}>
+                {Number(b.balance).toFixed(1)}
+              </div>
+              <div style={{ fontSize: '0.6875rem', color: 'var(--text-muted)', marginTop: 4 }}>
+                days remaining ({b.year})
+              </div>
+            </div>
+          ))}
+          {balances.length === 0 && (
+            <div className="glass-card" style={{ padding: 20, gridColumn: '1 / -1' }}>
+              <div style={{ color: 'var(--text-muted)', fontSize: '0.875rem' }}>
+                No leave balances configured yet
+              </div>
+            </div>
+          )}
+        </div>
+      )}
+
       {/* Tabs */}
       <div className="tabs">
-        <button className={`tab ${tab === 'my-leave' ? 'active' : ''}`} onClick={() => setTab('my-leave')}>
-          My Requests
-        </button>
-        {canApprove && (
+        {!isAdmin && (
+          <button className={`tab ${tab === 'my-leave' ? 'active' : ''}`} onClick={() => setTab('my-leave')}>
+            My Requests
+          </button>
+        )}
+        {(canApprove || isAdmin) && (
           <button className={`tab ${tab === 'approvals' ? 'active' : ''}`} onClick={() => setTab('approvals')}>
             Approval Queue ({pending.length})
+          </button>
+        )}
+        {canManageBalances && (
+          <button className={`tab ${tab === 'leave-types' ? 'active' : ''}`} onClick={() => setTab('leave-types')}>
+            Leave Types
           </button>
         )}
       </div>
 
       {/* My Requests */}
-      {tab === 'my-leave' && (
+      {!isAdmin && tab === 'my-leave' && (
         <div className="section-card">
           <table className="data-table">
             <thead>
@@ -184,6 +249,57 @@ export default function LeaveManagement() {
         </div>
       )}
 
+      {/* Leave Types (Admin) */}
+      {tab === 'leave-types' && canManageBalances && (
+        <div className="section-card">
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 }}>
+            <h3 style={{ marginBottom: 0 }}><Layers size={18} style={{ color: 'var(--accent-violet)' }} /> Leave Types</h3>
+            <div style={{ display: 'flex', gap: 8 }}>
+              <button className="btn btn-secondary btn-sm" onClick={() => setShowAdjustBalance(true)}>
+                <SlidersHorizontal size={14} /> Adjust Employee Balance
+              </button>
+              <button className="btn btn-secondary btn-sm" onClick={handleAccrueMonthly} disabled={accruing}>
+                <RefreshCw size={14} /> {accruing ? 'Running...' : 'Run Monthly Accrual'}
+              </button>
+              <button className="btn btn-primary btn-sm" onClick={() => setShowLeaveTypeModal({ mode: 'add' })}>+ Add</button>
+            </div>
+          </div>
+          <p style={{ fontSize: '0.8125rem', color: 'var(--text-muted)', marginBottom: 16 }}>
+            Accrual Rate is how many days each employee earns per month for that leave type — raise it here to
+            increase everyone's future entitlement, then "Run Monthly Accrual" to credit it to balances. Safe to
+            click more than once; a type already accrued for the current month is skipped.
+          </p>
+          <table className="data-table">
+            <thead><tr><th>Name</th><th>Accrual Rate</th><th>Payroll Effect</th><th>Last Accrued</th><th>Actions</th></tr></thead>
+            <tbody>
+              {types.map((lt) => (
+                <tr key={lt.id}>
+                  <td style={{ fontWeight: 500 }}>{lt.name}</td>
+                  <td>{Number(lt.accrual_rate).toFixed(2)} days/month</td>
+                  <td>
+                    <span className={`badge ${lt.is_paid ? 'badge-active' : 'badge-rejected'}`}>
+                      {lt.is_paid ? 'Paid' : 'Unpaid (Loss of Pay)'}
+                    </span>
+                  </td>
+                  <td style={{ color: 'var(--text-muted)', fontSize: '0.8125rem' }}>{lt.last_accrued_period || '—'}</td>
+                  <td>
+                    <div style={{ display: 'flex', gap: 6 }}>
+                      <button className="btn btn-secondary btn-sm" onClick={() => setShowLeaveTypeModal({ mode: 'edit', leaveType: lt })}>
+                        Edit
+                      </button>
+                      <button className="btn btn-secondary btn-sm" onClick={() => toggleLeaveTypePaid(lt)}>
+                        Mark as {lt.is_paid ? 'Unpaid' : 'Paid'}
+                      </button>
+                    </div>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+          {types.length === 0 && <div className="empty-state"><p>No leave types configured</p></div>}
+        </div>
+      )}
+
       {/* Request Modal */}
       {showRequest && (
         <Modal title="Request Leave" onClose={() => setShowRequest(false)}>
@@ -229,6 +345,224 @@ export default function LeaveManagement() {
           </form>
         </Modal>
       )}
+
+      {/* Edit Balance Modal (Admin only) */}
+      {editBalance && (
+        <EditBalanceModal
+          balance={editBalance}
+          onClose={() => setEditBalance(null)}
+          onSuccess={loadData}
+        />
+      )}
+
+      {/* Add/Edit Leave Type Modal (Admin only) */}
+      {showLeaveTypeModal && (
+        <LeaveTypeModal
+          leaveType={showLeaveTypeModal.mode === 'edit' ? showLeaveTypeModal.leaveType : null}
+          onClose={() => setShowLeaveTypeModal(null)}
+          onSuccess={loadData}
+        />
+      )}
+
+      {/* Adjust Employee Balance Modal (Admin only) */}
+      {showAdjustBalance && (
+        <AdjustBalanceModal
+          employees={employees}
+          leaveTypes={types}
+          onClose={() => setShowAdjustBalance(false)}
+          onSuccess={loadData}
+        />
+      )}
     </div>
+  );
+}
+
+function LeaveTypeModal({ leaveType, onClose, onSuccess }) {
+  const isEdit = !!leaveType;
+  const [form, setForm] = useState({ name: leaveType?.name || '', accrual_rate: leaveType?.accrual_rate ?? '0' });
+  const [error, setError] = useState('');
+
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+    setError('');
+    try {
+      if (isEdit) {
+        await updateLeaveType(leaveType.id, form);
+      } else {
+        await createLeaveType(form);
+      }
+      onSuccess();
+      onClose();
+    } catch (err) {
+      setError(err.response?.data?.detail || 'Failed to save leave type');
+    }
+  };
+
+  return (
+    <Modal title={isEdit ? 'Edit Leave Type' : 'Add Leave Type'} onClose={onClose}>
+      <form onSubmit={handleSubmit}>
+        {error && <div style={{ marginBottom: 12, color: 'var(--accent-rose)', fontSize: '0.875rem' }}>{error}</div>}
+        <div className="input-group">
+          <label className="input-label">Name</label>
+          <input className="input-field" value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })} required />
+        </div>
+        <div className="input-group">
+          <label className="input-label">Accrual Rate (days/month)</label>
+          <input type="number" step="0.01" className="input-field" value={form.accrual_rate} onChange={(e) => setForm({ ...form, accrual_rate: e.target.value })} required />
+        </div>
+        {isEdit && (
+          <p style={{ fontSize: '0.8125rem', color: 'var(--text-muted)', marginBottom: 8 }}>
+            Changing this only sets the future monthly rate — run "Run Monthly Accrual" afterward to credit the new rate to balances.
+          </p>
+        )}
+        <div style={{ display: 'flex', gap: 10, justifyContent: 'flex-end', marginTop: 20 }}>
+          <button type="button" className="btn btn-secondary" onClick={onClose}>Cancel</button>
+          <button type="submit" className="btn btn-primary">{isEdit ? 'Save' : 'Add'}</button>
+        </div>
+      </form>
+    </Modal>
+  );
+}
+
+function AdjustBalanceModal({ employees, leaveTypes, onClose, onSuccess }) {
+  const [form, setForm] = useState({ employee_id: '', leave_type_id: '', delta: '', reason: '' });
+  const [error, setError] = useState('');
+  const [saving, setSaving] = useState(false);
+
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+    setError('');
+    setSaving(true);
+    try {
+      await adjustBalance({ ...form, delta: Number(form.delta) });
+      onSuccess();
+      onClose();
+    } catch (err) {
+      setError(err.response?.data?.detail || 'Failed to adjust balance');
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  return (
+    <Modal title="Adjust Employee Leave Balance" onClose={onClose}>
+      <form onSubmit={handleSubmit}>
+        {error && <div style={{ marginBottom: 12, color: 'var(--accent-rose)', fontSize: '0.875rem' }}>{error}</div>}
+        <div className="input-group">
+          <label className="input-label">Employee</label>
+          <select
+            className="input-field"
+            value={form.employee_id}
+            onChange={(e) => setForm({ ...form, employee_id: e.target.value })}
+            required
+          >
+            <option value="">Select employee...</option>
+            {employees.map((e) => (
+              <option key={e.id} value={e.id}>{e.full_name}</option>
+            ))}
+          </select>
+        </div>
+        <div className="input-group">
+          <label className="input-label">Leave Type</label>
+          <select
+            className="input-field"
+            value={form.leave_type_id}
+            onChange={(e) => setForm({ ...form, leave_type_id: e.target.value })}
+            required
+          >
+            <option value="">Select type...</option>
+            {leaveTypes.map((t) => (
+              <option key={t.id} value={t.id}>{t.name}</option>
+            ))}
+          </select>
+        </div>
+        <div className="input-group">
+          <label className="input-label">Days to Add (negative to deduct)</label>
+          <input
+            type="number"
+            step="0.01"
+            className="input-field"
+            value={form.delta}
+            onChange={(e) => setForm({ ...form, delta: e.target.value })}
+            required
+          />
+        </div>
+        <div className="input-group">
+          <label className="input-label">Reason</label>
+          <input
+            className="input-field"
+            value={form.reason}
+            onChange={(e) => setForm({ ...form, reason: e.target.value })}
+            placeholder="e.g. Carry-forward from last year, one-off grant..."
+            required
+          />
+        </div>
+        <div style={{ display: 'flex', gap: 10, justifyContent: 'flex-end', marginTop: 20 }}>
+          <button type="button" className="btn btn-secondary" onClick={onClose}>Cancel</button>
+          <button type="submit" className="btn btn-primary" disabled={saving}>{saving ? 'Saving...' : 'Apply'}</button>
+        </div>
+      </form>
+    </Modal>
+  );
+}
+
+function EditBalanceModal({ balance, onClose, onSuccess }) {
+  const [value, setValue] = useState(Number(balance.balance));
+  const [reason, setReason] = useState('');
+  const [saving, setSaving] = useState(false);
+  const [error, setError] = useState('');
+
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+    setError('');
+    setSaving(true);
+    try {
+      const delta = Number(value) - Number(balance.balance);
+      await adjustBalance({
+        employee_id: balance.employee_id,
+        leave_type_id: balance.leave_type_id,
+        year: balance.year,
+        delta,
+        reason: reason || 'Manual balance correction',
+      });
+      onSuccess();
+      onClose();
+    } catch (err) {
+      setError(err.response?.data?.detail || 'Failed to update balance');
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  return (
+    <Modal title={`Edit ${balance.leave_type_name || 'Leave'} Balance`} onClose={onClose}>
+      <form onSubmit={handleSubmit}>
+        {error && <div style={{ marginBottom: 12, color: 'var(--accent-rose)', fontSize: '0.875rem' }}>{error}</div>}
+        <div className="input-group">
+          <label className="input-label">New Balance (days)</label>
+          <input
+            type="number"
+            step="0.01"
+            className="input-field"
+            value={value}
+            onChange={(e) => setValue(e.target.value)}
+            required
+          />
+        </div>
+        <div className="input-group">
+          <label className="input-label">Reason</label>
+          <input
+            className="input-field"
+            value={reason}
+            onChange={(e) => setReason(e.target.value)}
+            placeholder="e.g. Carry-forward, correction..."
+          />
+        </div>
+        <div style={{ display: 'flex', gap: 10, justifyContent: 'flex-end', marginTop: 20 }}>
+          <button type="button" className="btn btn-secondary" onClick={onClose}>Cancel</button>
+          <button type="submit" className="btn btn-primary" disabled={saving}>{saving ? 'Saving...' : 'Save'}</button>
+        </div>
+      </form>
+    </Modal>
   );
 }

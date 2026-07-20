@@ -24,6 +24,7 @@ class LeaveTypeResponse(BaseModel):
     name: str
     accrual_rate: Decimal
     is_paid: bool
+    last_accrued_period: str | None = None
     created_at: datetime
 
     class Config:
@@ -61,6 +62,22 @@ class LeaveBalanceResponse(BaseModel):
     balance: Decimal
     year: int
     leave_type_name: str | None = None
+    annual_entitlement: Decimal | None = None  # accrual_rate * 12, for "X / Y days" display
 
     class Config:
         from_attributes = True
+
+
+class BalanceAdjustmentCreate(BaseModel):
+    employee_id: UUID
+    leave_type_id: UUID
+    delta: Decimal  # positive to grant days, negative to deduct
+    reason: str
+    year: int | None = None
+
+
+class AccrueMonthlyResponse(BaseModel):
+    period: str
+    leave_types_accrued: list[str]
+    employees_processed: int
+    already_run: bool

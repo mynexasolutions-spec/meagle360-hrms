@@ -40,6 +40,11 @@ class HolidayCalendarCreate(BaseModel):
     name: str
 
 
+class HolidayCalendarUpdate(BaseModel):
+    holiday_date: date | None = None
+    name: str | None = None
+
+
 class TimesheetSession(BaseModel):
     clock_in: datetime
     clock_out: datetime | None

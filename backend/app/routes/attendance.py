@@ -14,6 +14,7 @@ from app.schemas.attendance import (
     ClockInRequest,
     AttendanceRecordResponse,
     HolidayCalendarCreate,
+    HolidayCalendarUpdate,
     HolidayCalendarResponse,
     TimesheetResponse,
 )
@@ -228,9 +229,50 @@ def create_holiday(
     data: HolidayCalendarCreate,
     db: Session = Depends(get_db),
     company_id: UUID = Depends(get_company_id),
+    _=Depends(require_permissions("settings:write")),
 ):
     holiday = HolidayCalendar(company_id=company_id, **data.model_dump())
     db.add(holiday)
     db.commit()
     db.refresh(holiday)
     return holiday
+
+
+@router.put("/holidays/{holiday_id}", response_model=HolidayCalendarResponse)
+def update_holiday(
+    holiday_id: UUID,
+    data: HolidayCalendarUpdate,
+    db: Session = Depends(get_db),
+    company_id: UUID = Depends(get_company_id),
+    _=Depends(require_permissions("settings:write")),
+):
+    holiday = (
+        db.query(HolidayCalendar)
+        .filter(HolidayCalendar.id == holiday_id, HolidayCalendar.company_id == company_id)
+        .first()
+    )
+    if not holiday:
+        raise HTTPException(status_code=404, detail="Holiday not found")
+    for key, value in data.model_dump(exclude_unset=True).items():
+        setattr(holiday, key, value)
+    db.commit()
+    db.refresh(holiday)
+    return holiday
+
+
+@router.delete("/holidays/{holiday_id}", status_code=204)
+def delete_holiday(
+    holiday_id: UUID,
+    db: Session = Depends(get_db),
+    company_id: UUID = Depends(get_company_id),
+    _=Depends(require_permissions("settings:write")),
+):
+    holiday = (
+        db.query(HolidayCalendar)
+        .filter(HolidayCalendar.id == holiday_id, HolidayCalendar.company_id == company_id)
+        .first()
+    )
+    if not holiday:
+        raise HTTPException(status_code=404, detail="Holiday not found")
+    db.delete(holiday)
+    db.commit()

@@ -30,6 +30,10 @@ class LeaveType(Base, TimestampMixin):
     # loss-of-pay when computing payroll (False) — e.g. "Loss of Pay" leave
     # itself, or an exhausted-balance policy.
     is_paid: Mapped[bool] = mapped_column(Boolean, nullable=False, default=True)
+    # "YYYY-MM" of the last month this type's accrual was credited to
+    # employees — lets accrue_monthly() be re-run safely without
+    # double-crediting the same month.
+    last_accrued_period: Mapped[str | None] = mapped_column(String(7), nullable=True)
 
     # ── Relationships ────────────────────────────────────
     company = relationship("Company", back_populates="leave_types")

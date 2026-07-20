@@ -93,6 +93,7 @@ class DashboardService:
             {
                 "employee_id": e.id,
                 "full_name": e.full_name,
+                "photo_url": e.photo_url,
                 "department_name": e.department.name if e.department else None,
                 "status": "online" if e.id in online_since else "offline",
                 "online_since": online_since.get(e.id),
@@ -131,3 +132,61 @@ class DashboardService:
             }
             for name, days in totals.items()
         ]
+
+    def get_leave_insight(self, year: int | None = None) -> dict:
+        """Company-wide leave usage this year vs. total possible entitlement
+        (sum of every LeaveType's annual accrual, across every active
+        employee) — drives the Dashboard's "Looks good" / "running high"
+        banner from real numbers, not a hardcoded message."""
+        if year is None:
+            year = date.today().year
+
+        breakdown = self.get_leave_summary(year)
+        # get_leave_summary defaults an empty result's total_days to 1 to
+        # avoid div-by-zero in its own percentages — undo that here so a
+        # genuinely empty year reports 0 taken, not 1.
+        requests_exist = (
+            self.db.query(LeaveRequest)
+            .filter(
+                LeaveRequest.company_id == self.company_id,
+                LeaveRequest.status == "approved",
+                func.extract("year", LeaveRequest.start_date) == year,
+            )
+            .first()
+            is not None
+        )
+        total_days_taken = sum(item["days"] for item in breakdown) if requests_exist else 0
+
+        active_headcount = (
+            self.db.query(func.count(Employee.id))
+            .filter(Employee.company_id == self.company_id, Employee.employment_status == "active")
+            .scalar()
+            or 0
+        )
+        annual_entitlement_per_employee = (
+            self.db.query(func.coalesce(func.sum(LeaveType.accrual_rate), 0))
+            .filter(LeaveType.company_id == self.company_id)
+            .scalar()
+            or Decimal(0)
+        ) * 12
+
+        total_entitlement = float(annual_entitlement_per_employee) * active_headcount
+        usage_percentage = round((total_days_taken / total_entitlement) * 100, 1) if total_entitlement > 0 else 0
+
+        if total_days_taken == 0:
+            level, message = "good", "No leave taken yet this year."
+        elif usage_percentage <= 50:
+            level, message = "good", "Looks good! No excess leave taken this year."
+        elif usage_percentage <= 80:
+            level, message = "neutral", "Leave usage is on track this year."
+        else:
+            level, message = "warning", "Leave usage is running high this year — worth a look."
+
+        return {
+            "year": year,
+            "total_days_taken": total_days_taken,
+            "total_entitlement": round(total_entitlement, 1),
+            "usage_percentage": usage_percentage,
+            "level": level,
+            "message": message,
+        }

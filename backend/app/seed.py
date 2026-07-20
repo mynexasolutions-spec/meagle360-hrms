@@ -211,12 +211,15 @@ def seed():
         db.flush()
 
         # ── Leave Balances (2026) ────────────────────────
+        # Starting balance mirrors each type's own accrual rate * 12 months,
+        # so a 0-accrual type (e.g. Maternity/Paternity before a company
+        # sets a real rate) doesn't start with days nobody actually earned.
         year = 2026
         for emp in [ceo, hr_manager, dev1, dev2, fin_analyst]:
             for lt in leave_types:
                 db.add(LeaveBalance(
                     company_id=company.id, employee_id=emp.id,
-                    leave_type_id=lt.id, balance=Decimal("12.00"), year=year,
+                    leave_type_id=lt.id, balance=lt.accrual_rate * 12, year=year,
                 ))
 
         # ── Holidays ─────────────────────────────────────

@@ -1,7 +1,6 @@
 import { useState, useEffect } from 'react';
-import { Settings as SettingsIcon, Building, Shield, Calendar, Layers, ScrollText, MapPin, Wallet } from 'lucide-react';
-import { getHolidays, createHoliday } from '../api/attendance';
-import { getLeaveTypes, createLeaveType, updateLeaveType } from '../api/leave';
+import { Settings as SettingsIcon, Building, Shield, Calendar, ScrollText, MapPin, Wallet, Pencil, Trash2 } from 'lucide-react';
+import { getHolidays, createHoliday, updateHoliday, deleteHoliday } from '../api/attendance';
 import { getDepartments, createDepartment, getSites, createSite } from '../api/employees';
 import { getAuditLogs } from '../api/audit';
 import { getMyCompany, updateMyCompany } from '../api/company';
@@ -13,7 +12,6 @@ const WEEKDAY_LABELS = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 
 export default function Settings() {
   const [tab, setTab] = useState('holidays');
   const [holidays, setHolidays] = useState([]);
-  const [leaveTypes, setLeaveTypes] = useState([]);
   const [departments, setDepartments] = useState([]);
   const [sites, setSites] = useState([]);
   const [auditLogs, setAuditLogs] = useState([]);
@@ -24,16 +22,14 @@ export default function Settings() {
 
   const loadAll = async () => {
     try {
-      const [hRes, ltRes, dRes, sRes, alRes, cRes] = await Promise.all([
+      const [hRes, dRes, sRes, alRes, cRes] = await Promise.all([
         getHolidays().catch(() => ({ data: [] })),
-        getLeaveTypes().catch(() => ({ data: [] })),
         getDepartments().catch(() => ({ data: [] })),
         getSites().catch(() => ({ data: [] })),
         getAuditLogs().catch(() => ({ data: [] })),
         getMyCompany().catch(() => ({ data: null })),
       ]);
       setHolidays(hRes.data);
-      setLeaveTypes(ltRes.data);
       setDepartments(dRes.data);
       setSites(sRes.data);
       setAuditLogs(alRes.data);
@@ -54,18 +50,18 @@ export default function Settings() {
     }
   };
 
-  const toggleLeaveTypePaid = async (lt) => {
+  const handleDeleteHoliday = async (h) => {
+    if (!confirm(`Delete "${h.name}" (${h.holiday_date})?`)) return;
     try {
-      await updateLeaveType(lt.id, { is_paid: !lt.is_paid });
+      await deleteHoliday(h.id);
       loadAll();
     } catch (err) {
-      alert(err.response?.data?.detail || 'Failed to update leave type');
+      alert(err.response?.data?.detail || 'Failed to delete holiday');
     }
   };
 
   const tabs = [
     { id: 'holidays', label: 'Holidays', icon: Calendar },
-    { id: 'leave-types', label: 'Leave Types', icon: Layers },
     { id: 'departments', label: 'Departments', icon: Building },
     { id: 'sites', label: 'Sites', icon: MapPin },
     { id: 'payroll-policy', label: 'Payroll Policy', icon: Wallet },
@@ -98,49 +94,27 @@ export default function Settings() {
             <button className="btn btn-primary btn-sm" onClick={() => setShowAdd('holiday')}>+ Add</button>
           </div>
           <table className="data-table">
-            <thead><tr><th>Date</th><th>Holiday</th></tr></thead>
+            <thead><tr><th>Date</th><th>Holiday</th><th>Actions</th></tr></thead>
             <tbody>
               {holidays.map((h) => (
                 <tr key={h.id}>
                   <td style={{ fontWeight: 500 }}>{h.holiday_date}</td>
                   <td>{h.name}</td>
+                  <td>
+                    <div style={{ display: 'flex', gap: 6 }}>
+                      <button className="btn btn-secondary btn-sm" onClick={() => setShowAdd({ type: 'edit-holiday', holiday: h })}>
+                        <Pencil size={14} />
+                      </button>
+                      <button className="btn btn-danger btn-sm" onClick={() => handleDeleteHoliday(h)}>
+                        <Trash2 size={14} />
+                      </button>
+                    </div>
+                  </td>
                 </tr>
               ))}
             </tbody>
           </table>
           {holidays.length === 0 && <div className="empty-state"><p>No holidays configured</p></div>}
-        </div>
-      )}
-
-      {/* Leave Types */}
-      {tab === 'leave-types' && (
-        <div className="section-card">
-          <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 16 }}>
-            <h3><Layers size={18} style={{ color: 'var(--accent-violet)' }} /> Leave Types</h3>
-            <button className="btn btn-primary btn-sm" onClick={() => setShowAdd('leave-type')}>+ Add</button>
-          </div>
-          <table className="data-table">
-            <thead><tr><th>Name</th><th>Accrual Rate</th><th>Payroll Effect</th><th>Actions</th></tr></thead>
-            <tbody>
-              {leaveTypes.map((lt) => (
-                <tr key={lt.id}>
-                  <td style={{ fontWeight: 500 }}>{lt.name}</td>
-                  <td>{Number(lt.accrual_rate).toFixed(2)} days/month</td>
-                  <td>
-                    <span className={`badge ${lt.is_paid ? 'badge-active' : 'badge-rejected'}`}>
-                      {lt.is_paid ? 'Paid' : 'Unpaid (Loss of Pay)'}
-                    </span>
-                  </td>
-                  <td>
-                    <button className="btn btn-secondary btn-sm" onClick={() => toggleLeaveTypePaid(lt)}>
-                      Mark as {lt.is_paid ? 'Unpaid' : 'Paid'}
-                    </button>
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-          {leaveTypes.length === 0 && <div className="empty-state"><p>No leave types configured</p></div>}
         </div>
       )}
 
@@ -242,8 +216,8 @@ export default function Settings() {
       {showAdd === 'holiday' && (
         <AddHolidayModal onClose={() => setShowAdd(false)} onSuccess={loadAll} />
       )}
-      {showAdd === 'leave-type' && (
-        <AddLeaveTypeModal onClose={() => setShowAdd(false)} onSuccess={loadAll} />
+      {showAdd?.type === 'edit-holiday' && (
+        <EditHolidayModal holiday={showAdd.holiday} onClose={() => setShowAdd(false)} onSuccess={loadAll} />
       )}
       {showAdd === 'department' && (
         <AddDepartmentModal onClose={() => setShowAdd(false)} onSuccess={loadAll} />
@@ -283,28 +257,35 @@ function AddHolidayModal({ onClose, onSuccess }) {
   );
 }
 
-function AddLeaveTypeModal({ onClose, onSuccess }) {
-  const [form, setForm] = useState({ name: '', accrual_rate: '0' });
+function EditHolidayModal({ holiday, onClose, onSuccess }) {
+  const [form, setForm] = useState({ holiday_date: holiday.holiday_date, name: holiday.name });
+  const [error, setError] = useState('');
   const handleSubmit = async (e) => {
     e.preventDefault();
-    await createLeaveType(form);
-    onSuccess();
-    onClose();
+    setError('');
+    try {
+      await updateHoliday(holiday.id, form);
+      onSuccess();
+      onClose();
+    } catch (err) {
+      setError(err.response?.data?.detail || 'Failed to update holiday');
+    }
   };
   return (
-    <Modal title="Add Leave Type" onClose={onClose}>
+    <Modal title="Edit Holiday" onClose={onClose}>
       <form onSubmit={handleSubmit}>
+        {error && <div style={{ marginBottom: 12, color: 'var(--accent-rose)', fontSize: '0.875rem' }}>{error}</div>}
         <div className="input-group">
-          <label className="input-label">Name</label>
-          <input className="input-field" value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })} required />
+          <label className="input-label">Date</label>
+          <input type="date" className="input-field" value={form.holiday_date} onChange={(e) => setForm({ ...form, holiday_date: e.target.value })} required />
         </div>
         <div className="input-group">
-          <label className="input-label">Accrual Rate (days/month)</label>
-          <input type="number" step="0.01" className="input-field" value={form.accrual_rate} onChange={(e) => setForm({ ...form, accrual_rate: e.target.value })} required />
+          <label className="input-label">Holiday Name</label>
+          <input className="input-field" value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })} required />
         </div>
         <div style={{ display: 'flex', gap: 10, justifyContent: 'flex-end', marginTop: 20 }}>
           <button type="button" className="btn btn-secondary" onClick={onClose}>Cancel</button>
-          <button type="submit" className="btn btn-primary">Add</button>
+          <button type="submit" className="btn btn-primary">Save</button>
         </div>
       </form>
     </Modal>

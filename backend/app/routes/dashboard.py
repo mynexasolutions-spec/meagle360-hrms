@@ -46,3 +46,12 @@ def get_leave_summary(
     company_id: UUID = Depends(get_company_id),
 ):
     return DashboardService(db, company_id).get_leave_summary(year)
+
+
+@router.get("/leave-insight")
+def get_leave_insight(
+    year: int | None = None,
+    db: Session = Depends(get_db),
+    company_id: UUID = Depends(get_company_id),
+):
+    return DashboardService(db, company_id).get_leave_insight(year)

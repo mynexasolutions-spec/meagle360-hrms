@@ -16,6 +16,8 @@ from app.schemas.leave import (
     LeaveRequestResponse,
     LeaveApprovalRequest,
     LeaveBalanceResponse,
+    BalanceAdjustmentCreate,
+    AccrueMonthlyResponse,
 )
 
 router = APIRouter(prefix="/api/leave", tags=["Leave"])
@@ -158,6 +160,40 @@ def get_balance(
             balance=b.balance,
             year=b.year,
             leave_type_name=b.leave_type.name if b.leave_type else None,
+            annual_entitlement=(b.leave_type.accrual_rate * 12) if b.leave_type else None,
         )
         for b in balances
     ]
+
+
+@router.post("/accrue-monthly", response_model=AccrueMonthlyResponse)
+def accrue_monthly(
+    db: Session = Depends(get_db),
+    company_id: UUID = Depends(get_company_id),
+    current_user: UserAccount = Depends(require_permissions("settings:write")),
+):
+    svc = LeaveService(db, company_id)
+    return svc.accrue_monthly(current_user.employee_id)
+
+
+@router.post("/balance/adjust", response_model=LeaveBalanceResponse)
+def adjust_balance(
+    data: BalanceAdjustmentCreate,
+    db: Session = Depends(get_db),
+    company_id: UUID = Depends(get_company_id),
+    current_user: UserAccount = Depends(require_permissions("settings:write")),
+):
+    svc = LeaveService(db, company_id)
+    balance = svc.adjust_balance(
+        data.employee_id, data.leave_type_id, data.delta, data.reason,
+        current_user.employee_id, data.year,
+    )
+    return LeaveBalanceResponse(
+        id=balance.id,
+        employee_id=balance.employee_id,
+        leave_type_id=balance.leave_type_id,
+        balance=balance.balance,
+        year=balance.year,
+        leave_type_name=balance.leave_type.name if balance.leave_type else None,
+        annual_entitlement=(balance.leave_type.accrual_rate * 12) if balance.leave_type else None,
+    )

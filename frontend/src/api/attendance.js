@@ -17,6 +17,10 @@ export const getHolidays = () => client.get('/attendance/holidays');
 
 export const createHoliday = (data) => client.post('/attendance/holidays', data);
 
+export const updateHoliday = (id, data) => client.put(`/attendance/holidays/${id}`, data);
+
+export const deleteHoliday = (id) => client.delete(`/attendance/holidays/${id}`);
+
 // ── Regularization requests ──────────────────────────────
 export const requestRegularization = (data) =>
   client.post('/attendance/regularization-requests', data);

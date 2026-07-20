@@ -17,3 +17,7 @@ export const approveReject = (id, status) =>
 
 export const getLeaveBalance = (year) =>
   client.get('/leave/balance', { params: { year } });
+
+export const accrueMonthly = () => client.post('/leave/accrue-monthly');
+
+export const adjustBalance = (data) => client.post('/leave/balance/adjust', data);

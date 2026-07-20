@@ -104,15 +104,30 @@ class LeaveService:
     def count_pending(self) -> int:
         return self.request_repo.count_pending()
 
-    def accrue_monthly(self):
-        """Run monthly accrual for all employees — called by cron/scheduler."""
+    def accrue_monthly(self, actor_employee_id: UUID | None = None) -> dict:
+        """Credit each leave type's monthly accrual rate to every active
+        employee's balance for the current year. Safe to call more than
+        once — a leave type already accrued for the current "YYYY-MM"
+        period is skipped, so re-running mid-month (or a duplicate
+        scheduler trigger) never double-credits."""
         from app.models.employee import Employee
 
-        year = date.today().year
-        leave_types = self.type_repo.get_all()
+        today = date.today()
+        year = today.year
+        period = f"{today.year:04d}-{today.month:02d}"
+
+        leave_types = [lt for lt in self.type_repo.get_all() if lt.last_accrued_period != period]
+        if not leave_types:
+            return {
+                "period": period,
+                "leave_types_accrued": [],
+                "employees_processed": 0,
+                "already_run": True,
+            }
+
         employees = (
             self.db.query(Employee)
-            .filter(Employee.company_id == self.company_id)
+            .filter(Employee.company_id == self.company_id, Employee.employment_status == "active")
             .all()
         )
 
@@ -131,4 +146,56 @@ class LeaveService:
                     )
                     self.db.add(new_balance)
 
+        for lt in leave_types:
+            lt.last_accrued_period = period
+
+        log_action(
+            self.db, self.company_id, actor_employee_id,
+            "leave.accrue_monthly", "leave_type", None,
+            details={"period": period, "leave_types": [lt.name for lt in leave_types], "employees_processed": len(employees)},
+        )
         self.db.commit()
+
+        return {
+            "period": period,
+            "leave_types_accrued": [lt.name for lt in leave_types],
+            "employees_processed": len(employees),
+            "already_run": False,
+        }
+
+    def adjust_balance(
+        self,
+        employee_id: UUID,
+        leave_type_id: UUID,
+        delta: Decimal,
+        reason: str,
+        actor_employee_id: UUID | None,
+        year: int | None = None,
+    ) -> LeaveBalance:
+        """Manually add (or subtract) days from one employee's balance —
+        for one-off grants, carry-forwards, or corrections outside the
+        regular monthly accrual."""
+        if year is None:
+            year = date.today().year
+
+        balance = self.balance_repo.get_specific(employee_id, leave_type_id, year)
+        if balance:
+            balance.balance += delta
+        else:
+            balance = LeaveBalance(
+                company_id=self.company_id,
+                employee_id=employee_id,
+                leave_type_id=leave_type_id,
+                balance=max(delta, Decimal(0)),
+                year=year,
+            )
+            self.db.add(balance)
+
+        log_action(
+            self.db, self.company_id, actor_employee_id,
+            "leave.balance_adjusted", "leave_balance", None,
+            details={"employee_id": str(employee_id), "leave_type_id": str(leave_type_id), "delta": str(delta), "reason": reason},
+        )
+        self.db.commit()
+        self.db.refresh(balance)
+        return balance
