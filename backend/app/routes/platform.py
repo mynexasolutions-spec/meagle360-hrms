@@ -115,6 +115,7 @@ def list_company_users(
             employee_code=u.employee.employee_code if u.employee else "",
             role_names=[r.name for r in u.all_roles],
             mfa_enabled=u.mfa_enabled,
+            invite_accepted_at=u.invite_accepted_at,
             created_at=u.created_at,
         )
         for u in users
@@ -196,17 +197,16 @@ def invite_company_admin(
     db: Session = Depends(get_db),
     _: PlatformAdmin = Depends(get_current_platform_admin),
 ):
-    """Create the first Admin user for a tenant and return an invite token.
-
-    In production the token would be emailed as a setup link; it's returned
-    directly here since no email provider is wired up yet.
+    """Create the first Admin user for a tenant and email them a setup link.
+    The invite token is still returned as a fallback to share manually if the
+    email fails to send.
     """
     company = db.query(Company).filter(Company.id == company_id).first()
     if not company:
         raise HTTPException(status_code=404, detail="Company not found")
 
     try:
-        user, invite_token = platform_service.invite_company_admin(
+        user, invite_token, email_sent = platform_service.invite_company_admin(
             db,
             company_id=company_id,
             email=data.email,
@@ -220,4 +220,33 @@ def invite_company_admin(
         user_account_id=user.id,
         email=user.email,
         invite_token=invite_token,
+        email_sent=email_sent,
+    )
+
+
+@router.post(
+    "/companies/{company_id}/users/{user_account_id}/resend-invite",
+    response_model=CompanyAdminInviteResponse,
+)
+def resend_company_admin_invite(
+    company_id: UUID,
+    user_account_id: UUID,
+    db: Session = Depends(get_db),
+    _: PlatformAdmin = Depends(get_current_platform_admin),
+):
+    """Regenerate an invite token for a company user who hasn't set their
+    password yet — for when the original link was lost or expired, without
+    needing to re-invite the same email as if it were brand new."""
+    try:
+        user, invite_token, email_sent = platform_service.resend_company_admin_invite(
+            db, company_id=company_id, user_account_id=user_account_id,
+        )
+    except ValueError as e:
+        raise HTTPException(status_code=400, detail=str(e))
+
+    return CompanyAdminInviteResponse(
+        user_account_id=user.id,
+        email=user.email,
+        invite_token=invite_token,
+        email_sent=email_sent,
     )

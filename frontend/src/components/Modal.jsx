@@ -1,7 +1,8 @@
+import { createPortal } from 'react-dom';
 import { X } from 'lucide-react';
 
 export default function Modal({ title, onClose, children }) {
-  return (
+  return createPortal(
     <div className="modal-overlay" onClick={(e) => e.target === e.currentTarget && onClose()}>
       <div className="modal-content">
         <div className="modal-header">
@@ -10,8 +11,9 @@ export default function Modal({ title, onClose, children }) {
             <X size={18} />
           </button>
         </div>
-        {children}
+        <div className="modal-body">{children}</div>
       </div>
-    </div>
+    </div>,
+    document.body
   );
 }

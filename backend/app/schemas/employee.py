@@ -31,7 +31,8 @@ class EmployeeInviteResponse(BaseModel):
     employee_id: UUID
     user_account_id: UUID
     email: str
-    invite_token: str  # in production this is emailed, not returned in the response
+    invite_token: str  # returned as a fallback in case the email below failed to send
+    email_sent: bool = False
 
 
 class EmployeeUpdate(BaseModel):

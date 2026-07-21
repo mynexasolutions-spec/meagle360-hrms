@@ -69,104 +69,158 @@ export default function Settings() {
   ];
 
   return (
-    <div className="animate-fade-in">
-      <div className="page-header">
-        <div>
-          <h1>Settings</h1>
-          <p>Configure company policies, holidays, and structure</p>
+    <div className="animate-fade-in" style={{ maxWidth: 1200, margin: '0 auto' }}>
+      {/* Header */}
+      <div className="page-header" style={{ marginBottom: 24 }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 14 }}>
+          <div
+            style={{
+              width: 48, height: 48, borderRadius: 16, flexShrink: 0,
+              background: '#eff6ff', display: 'flex', alignItems: 'center', justifyContent: 'center',
+              boxShadow: '0 4px 14px rgba(37, 99, 235, 0.13)',
+            }}
+          >
+            <SettingsIcon size={22} style={{ color: '#2563eb' }} />
+          </div>
+          <div style={{ minWidth: 0 }}>
+            <h1 style={{ fontSize: 'clamp(1.25rem, 4.5vw, 1.75rem)', fontWeight: 800, color: '#0f172a' }}>Settings</h1>
+            <p style={{ color: '#64748b', fontSize: '0.875rem' }}>Configure company policies, holiday calendars, work sites &amp; system audit logs</p>
+          </div>
         </div>
       </div>
 
-      <div className="tabs">
+      {/* Modern Pill Tabs */}
+      <div className="pill-tabs" style={{ marginBottom: 24 }}>
         {tabs.map((t) => (
-          <button key={t.id} className={`tab ${tab === t.id ? 'active' : ''}`} onClick={() => setTab(t.id)}>
-            <t.icon size={14} style={{ marginRight: 6 }} />
+          <button
+            key={t.id}
+            onClick={() => setTab(t.id)}
+            style={{
+              padding: '9px 18px',
+              borderRadius: 12,
+              fontSize: '0.85rem',
+              fontWeight: 700,
+              border: tab === t.id ? 'none' : '1px solid #cbd5e1',
+              background: tab === t.id ? '#0f172a' : '#ffffff',
+              color: tab === t.id ? '#ffffff' : '#64748b',
+              cursor: 'pointer',
+              boxShadow: tab === t.id ? '0 4px 12px rgba(15, 23, 42, 0.15)' : 'none',
+              display: 'inline-flex',
+              alignItems: 'center',
+              gap: 6,
+              transition: 'all 0.15s ease',
+            }}
+          >
+            <t.icon size={15} style={{ color: tab === t.id ? '#ffffff' : '#2563eb' }} />
             {t.label}
           </button>
         ))}
       </div>
 
-      {/* Holidays */}
+      {/* Holidays Tab */}
       {tab === 'holidays' && (
-        <div className="section-card">
-          <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 16 }}>
-            <h3><Calendar size={18} style={{ color: 'var(--accent-amber)' }} /> Holiday Calendar</h3>
-            <button className="btn btn-primary btn-sm" onClick={() => setShowAdd('holiday')}>+ Add</button>
+        <div className="section-card" style={{ borderTop: '3px solid #d97706' }}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 20, flexWrap: 'wrap', gap: 12 }}>
+            <h3 style={{ marginBottom: 0 }}><Calendar size={18} style={{ color: 'var(--accent-amber)' }} /> Holiday Calendar</h3>
+            <button
+              onClick={() => setShowAdd('holiday')}
+              style={{
+                display: 'inline-flex',
+                alignItems: 'center',
+                gap: 6,
+                padding: '8px 16px',
+                borderRadius: 10,
+                border: 'none',
+                background: 'linear-gradient(135deg, #2563eb, #1d4ed8)',
+                color: '#ffffff',
+                fontWeight: 600,
+                fontSize: '0.85rem',
+                cursor: 'pointer',
+              }}
+            >
+              + Add Holiday
+            </button>
           </div>
-          <table className="data-table">
-            <thead><tr><th>Date</th><th>Holiday</th><th>Actions</th></tr></thead>
-            <tbody>
-              {holidays.map((h) => (
-                <tr key={h.id}>
-                  <td style={{ fontWeight: 500 }}>{h.holiday_date}</td>
-                  <td>{h.name}</td>
-                  <td>
-                    <div style={{ display: 'flex', gap: 6 }}>
-                      <button className="btn btn-secondary btn-sm" onClick={() => setShowAdd({ type: 'edit-holiday', holiday: h })}>
-                        <Pencil size={14} />
-                      </button>
-                      <button className="btn btn-danger btn-sm" onClick={() => handleDeleteHoliday(h)}>
-                        <Trash2 size={14} />
-                      </button>
-                    </div>
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
+          <div style={{ overflowX: 'auto' }}>
+            <table className="data-table">
+              <thead><tr><th style={{ whiteSpace: 'nowrap' }}>Date</th><th style={{ whiteSpace: 'nowrap' }}>Holiday</th><th style={{ whiteSpace: 'nowrap' }}>Actions</th></tr></thead>
+              <tbody>
+                {holidays.map((h) => (
+                  <tr key={h.id}>
+                    <td style={{ fontWeight: 500, whiteSpace: 'nowrap' }}>{h.holiday_date}</td>
+                    <td style={{ whiteSpace: 'nowrap' }}>{h.name}</td>
+                    <td style={{ whiteSpace: 'nowrap' }}>
+                      <div className="table-row-actions">
+                        <button className="btn btn-secondary btn-sm" onClick={() => setShowAdd({ type: 'edit-holiday', holiday: h })}>
+                          <Pencil size={14} />
+                        </button>
+                        <button className="btn btn-danger btn-sm" onClick={() => handleDeleteHoliday(h)}>
+                          <Trash2 size={14} />
+                        </button>
+                      </div>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
           {holidays.length === 0 && <div className="empty-state"><p>No holidays configured</p></div>}
         </div>
       )}
 
       {/* Departments */}
       {tab === 'departments' && (
-        <div className="section-card">
-          <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 16 }}>
-            <h3><Building size={18} style={{ color: 'var(--accent-blue)' }} /> Departments</h3>
+        <div className="section-card" style={{ borderTop: '3px solid #2563eb' }}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 16, flexWrap: 'wrap', gap: 12 }}>
+            <h3 style={{ marginBottom: 0 }}><Building size={18} style={{ color: 'var(--accent-blue)' }} /> Departments</h3>
             <button className="btn btn-primary btn-sm" onClick={() => setShowAdd('department')}>+ Add</button>
           </div>
-          <table className="data-table">
-            <thead><tr><th>Name</th><th>ID</th></tr></thead>
-            <tbody>
-              {departments.map((d) => (
-                <tr key={d.id}>
-                  <td style={{ fontWeight: 500 }}>{d.name}</td>
-                  <td style={{ color: 'var(--text-muted)', fontSize: '0.75rem' }}>{d.id.slice(0, 8)}...</td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
+          <div style={{ overflowX: 'auto' }}>
+            <table className="data-table">
+              <thead><tr><th style={{ whiteSpace: 'nowrap' }}>Name</th><th style={{ whiteSpace: 'nowrap' }}>ID</th></tr></thead>
+              <tbody>
+                {departments.map((d) => (
+                  <tr key={d.id}>
+                    <td style={{ fontWeight: 500, whiteSpace: 'nowrap' }}>{d.name}</td>
+                    <td style={{ color: 'var(--text-muted)', fontSize: '0.75rem', whiteSpace: 'nowrap' }}>{d.id.slice(0, 8)}...</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
           {departments.length === 0 && <div className="empty-state"><p>No departments</p></div>}
         </div>
       )}
 
       {/* Sites */}
       {tab === 'sites' && (
-        <div className="section-card">
-          <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 16 }}>
-            <h3><MapPin size={18} style={{ color: 'var(--accent-emerald)' }} /> Sites</h3>
+        <div className="section-card" style={{ borderTop: '3px solid #059669' }}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 16, flexWrap: 'wrap', gap: 12 }}>
+            <h3 style={{ marginBottom: 0 }}><MapPin size={18} style={{ color: 'var(--accent-emerald)' }} /> Sites</h3>
             <button className="btn btn-primary btn-sm" onClick={() => setShowAdd('site')}>+ Add</button>
           </div>
-          <table className="data-table">
-            <thead><tr><th>Name</th><th>City</th><th>State</th><th>Country</th></tr></thead>
-            <tbody>
-              {sites.map((s) => (
-                <tr key={s.id}>
-                  <td style={{ fontWeight: 500 }}>{s.name}</td>
-                  <td style={{ color: 'var(--text-secondary)' }}>{s.city || '—'}</td>
-                  <td style={{ color: 'var(--text-secondary)' }}>{s.state || '—'}</td>
-                  <td style={{ color: 'var(--text-secondary)' }}>{s.country || '—'}</td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
+          <div style={{ overflowX: 'auto' }}>
+            <table className="data-table">
+              <thead><tr><th style={{ whiteSpace: 'nowrap' }}>Name</th><th style={{ whiteSpace: 'nowrap' }}>City</th><th style={{ whiteSpace: 'nowrap' }}>State</th><th style={{ whiteSpace: 'nowrap' }}>Country</th></tr></thead>
+              <tbody>
+                {sites.map((s) => (
+                  <tr key={s.id}>
+                    <td style={{ fontWeight: 500, whiteSpace: 'nowrap' }}>{s.name}</td>
+                    <td style={{ color: 'var(--text-secondary)', whiteSpace: 'nowrap' }}>{s.city || '—'}</td>
+                    <td style={{ color: 'var(--text-secondary)', whiteSpace: 'nowrap' }}>{s.state || '—'}</td>
+                    <td style={{ color: 'var(--text-secondary)', whiteSpace: 'nowrap' }}>{s.country || '—'}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
           {sites.length === 0 && <div className="empty-state"><MapPin size={48} /><p>No sites registered yet</p></div>}
         </div>
       )}
 
       {/* Payroll Policy */}
       {tab === 'payroll-policy' && (
-        <div className="section-card">
+        <div className="section-card" style={{ borderTop: '3px solid #7c3aed' }}>
           <h3 style={{ marginBottom: 8 }}><Wallet size={18} style={{ color: 'var(--accent-emerald)' }} /> Weekly Off Days</h3>
           <p style={{ fontSize: '0.8125rem', color: 'var(--text-muted)', marginBottom: 16 }}>
             Used by Payroll to tell a weekly off apart from an unpaid absence when calculating Loss of Pay.
@@ -193,21 +247,23 @@ export default function Settings() {
 
       {/* Audit Log */}
       {tab === 'audit-log' && (
-        <div className="section-card">
+        <div className="section-card" style={{ borderTop: '3px solid #dc2626' }}>
           <h3><ScrollText size={18} style={{ color: 'var(--accent-rose)' }} /> Audit Log</h3>
-          <table className="data-table">
-            <thead><tr><th>When</th><th>Actor</th><th>Action</th><th>Entity</th></tr></thead>
-            <tbody>
-              {auditLogs.map((log) => (
-                <tr key={log.id}>
-                  <td style={{ color: 'var(--text-muted)', fontSize: '0.8125rem' }}>{new Date(log.created_at).toLocaleString()}</td>
-                  <td style={{ fontWeight: 500 }}>{log.actor_name}</td>
-                  <td>{log.action}</td>
-                  <td style={{ color: 'var(--text-muted)' }}>{log.entity_type}</td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
+          <div style={{ overflowX: 'auto' }}>
+            <table className="data-table">
+              <thead><tr><th style={{ whiteSpace: 'nowrap' }}>When</th><th style={{ whiteSpace: 'nowrap' }}>Actor</th><th style={{ whiteSpace: 'nowrap' }}>Action</th><th style={{ whiteSpace: 'nowrap' }}>Entity</th></tr></thead>
+              <tbody>
+                {auditLogs.map((log) => (
+                  <tr key={log.id}>
+                    <td style={{ color: 'var(--text-muted)', fontSize: '0.8125rem', whiteSpace: 'nowrap' }}>{new Date(log.created_at).toLocaleString()}</td>
+                    <td style={{ fontWeight: 500, whiteSpace: 'nowrap' }}>{log.actor_name}</td>
+                    <td style={{ whiteSpace: 'nowrap' }}>{log.action}</td>
+                    <td style={{ color: 'var(--text-muted)', whiteSpace: 'nowrap' }}>{log.entity_type}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
           {auditLogs.length === 0 && <div className="empty-state"><ScrollText size={48} /><p>No audit activity yet</p></div>}
         </div>
       )}

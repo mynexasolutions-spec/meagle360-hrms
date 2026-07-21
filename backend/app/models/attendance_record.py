@@ -40,6 +40,9 @@ class AttendanceRecord(Base, TimestampMixin):
     location: Mapped[str | None] = mapped_column(
         String(255), nullable=True
     )  # "lat,lng" — PostGIS upgrade path later
+    summary: Mapped[str | None] = mapped_column(
+        String(1000), nullable=True
+    )  # Optional day summary / work notes
 
     # ── Relationships ────────────────────────────────────
     employee = relationship("Employee", back_populates="attendance_records")

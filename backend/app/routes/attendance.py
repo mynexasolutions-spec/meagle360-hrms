@@ -12,6 +12,7 @@ from app.models.holiday_calendar import HolidayCalendar
 from app.services.attendance_service import AttendanceService
 from app.schemas.attendance import (
     ClockInRequest,
+    ClockOutRequest,
     AttendanceRecordResponse,
     HolidayCalendarCreate,
     HolidayCalendarUpdate,
@@ -40,6 +41,7 @@ def clock_in(
             employee_id=current_user.employee_id,
             source=data.source,
             location=data.location,
+            summary=data.summary,
         )
         return record
     except ValueError as e:
@@ -48,13 +50,15 @@ def clock_in(
 
 @router.post("/clock-out", response_model=AttendanceRecordResponse)
 def clock_out(
+    data: ClockOutRequest | None = None,
     db: Session = Depends(get_db),
     company_id: UUID = Depends(get_company_id),
     current_user: UserAccount = Depends(get_current_user),
 ):
     svc = AttendanceService(db, company_id)
     try:
-        return svc.clock_out(current_user.employee_id)
+        summary = data.summary if data else None
+        return svc.clock_out(current_user.employee_id, summary=summary)
     except ValueError as e:
         raise HTTPException(status_code=400, detail=str(e))
 

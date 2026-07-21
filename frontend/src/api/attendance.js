@@ -2,7 +2,7 @@ import client from './client';
 
 export const clockIn = (data = {}) => client.post('/attendance/clock-in', data);
 
-export const clockOut = () => client.post('/attendance/clock-out');
+export const clockOut = (data = {}) => client.post('/attendance/clock-out', data);
 
 export const getAttendanceRecords = (params = {}) =>
   client.get('/attendance/records', { params });

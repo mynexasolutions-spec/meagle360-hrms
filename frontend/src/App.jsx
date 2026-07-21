@@ -22,6 +22,7 @@ import Settings from './pages/Settings';
 import Documents from './pages/Documents';
 import ReportsAnalytics from './pages/ReportsAnalytics';
 import MyProfile from './pages/MyProfile';
+import ActionTracker from './pages/ActionTracker';
 
 function ProtectedRoute({ children }) {
   const { user, loading } = useAuth();
@@ -108,6 +109,7 @@ function AppRoutes() {
         <Route path="/documents" element={<Documents />} />
         <Route path="/profile" element={<MyProfile />} />
         <Route path="/my-payslips" element={<MyPayslips />} />
+        <Route path="/action-tracker" element={<ActionTracker />} />
         <Route
           path="/payroll"
           element={

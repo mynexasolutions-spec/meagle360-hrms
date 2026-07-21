@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { usePlatformAuth } from '../context/PlatformAuthContext';
 import { platformLogin, getPlatformMe } from '../api/platform';
-import { Lock, Mail, Eye, EyeOff, ArrowRight, ShieldCheck } from 'lucide-react';
+import { Lock, Mail, Eye, EyeOff, ArrowRight, ShieldCheck, KeyRound } from 'lucide-react';
 
 export default function PlatformLogin() {
   const [email, setEmail] = useState('');
@@ -45,28 +45,45 @@ export default function PlatformLogin() {
 
   return (
     <div
-      className="glass-card animate-fade-in"
-      style={{ width: '100%', maxWidth: 420, padding: 40, position: 'relative', zIndex: 1 }}
+      className="glass-card animate-fade-in auth-card"
+      style={{
+        width: '100%',
+        maxWidth: 420,
+        position: 'relative',
+        zIndex: 1,
+      }}
     >
-      <div style={{ textAlign: 'center', marginBottom: 32 }}>
+      <div style={{ textAlign: 'center', marginBottom: 28 }}>
         <div
           style={{
             width: 56,
             height: 56,
             borderRadius: 'var(--radius-lg)',
-            background: 'var(--gradient-primary)',
+            background: 'linear-gradient(135deg, #6366f1, #a855f7)',
             display: 'inline-flex',
             alignItems: 'center',
             justifyContent: 'center',
             marginBottom: 16,
+            boxShadow: '0 8px 24px rgba(99, 102, 241, 0.3)',
           }}
         >
           <ShieldCheck size={28} color="white" />
         </div>
         <h1 style={{ fontSize: '1.5rem', fontWeight: 700, marginBottom: 4 }}>Nexa Solutions</h1>
         <p style={{ color: 'var(--text-muted)', fontSize: '0.875rem' }}>
-          Platform admin — manage HRMS tenants
+          Platform console — manage HRMS tenants
         </p>
+        <span
+          style={{
+            display: 'inline-flex', alignItems: 'center', gap: 6, marginTop: 12,
+            fontSize: '0.6875rem', fontWeight: 700, letterSpacing: '0.04em',
+            color: '#7c3aed', background: 'var(--accent-violet-light)',
+            border: '1px solid rgba(139, 92, 246, 0.25)',
+            borderRadius: 'var(--radius-full)', padding: '4px 12px',
+          }}
+        >
+          <KeyRound size={11} /> RESTRICTED — PLATFORM STAFF ONLY
+        </span>
       </div>
 
       {error && (
@@ -134,9 +151,15 @@ export default function PlatformLogin() {
 
         <button
           type="submit"
-          className="btn btn-primary"
           disabled={loading}
-          style={{ width: '100%', justifyContent: 'center', marginTop: 8, padding: '12px 20px' }}
+          style={{
+            width: '100%', justifyContent: 'center', marginTop: 8, padding: '12px 20px',
+            display: 'inline-flex', alignItems: 'center', gap: 8,
+            background: 'linear-gradient(135deg, #6366f1, #a855f7)', color: 'white',
+            border: 'none', borderRadius: 'var(--radius-md)', fontWeight: 600, fontSize: '0.875rem',
+            cursor: loading ? 'default' : 'pointer', opacity: loading ? 0.7 : 1,
+            boxShadow: '0 4px 16px rgba(99, 102, 241, 0.3)', transition: 'transform 150ms ease',
+          }}
         >
           {loading ? 'Signing in...' : 'Sign In'}
           {!loading && <ArrowRight size={16} />}

@@ -27,11 +27,15 @@ def list_shifts(
     return svc.list_shifts()
 
 
+from app.dependencies import get_company_id, require_permissions, get_current_user
+from app.models.user_account import UserAccount
+
 @router.post("/", response_model=ShiftResponse, status_code=201)
 def create_shift(
     data: ShiftCreate,
     db: Session = Depends(get_db),
     company_id: UUID = Depends(get_company_id),
+    _=Depends(require_permissions("settings:write")),
 ):
     svc = ShiftService(db, company_id)
     return svc.create_shift(data.model_dump())
@@ -43,6 +47,7 @@ def update_shift(
     data: ShiftUpdate,
     db: Session = Depends(get_db),
     company_id: UUID = Depends(get_company_id),
+    _=Depends(require_permissions("settings:write")),
 ):
     svc = ShiftService(db, company_id)
     shift = svc.update_shift(shift_id, data.model_dump(exclude_unset=True))
@@ -56,6 +61,7 @@ def delete_shift(
     shift_id: UUID,
     db: Session = Depends(get_db),
     company_id: UUID = Depends(get_company_id),
+    _=Depends(require_permissions("settings:write")),
 ):
     svc = ShiftService(db, company_id)
     if not svc.delete_shift(shift_id):
@@ -67,7 +73,21 @@ def assign_shift(
     data: EmployeeShiftAssign,
     db: Session = Depends(get_db),
     company_id: UUID = Depends(get_company_id),
+    current_user: UserAccount = Depends(get_current_user),
 ):
+    from app.models.employee import Employee
+    isAdmin = current_user.role.name == "Admin" if current_user.role else False
+    isManagerPermission = bool(current_user.merged_permissions.get("attendance:approve") or current_user.merged_permissions.get("settings:write"))
+
+    target_emp = db.query(Employee).filter(Employee.id == data.employee_id, Employee.company_id == company_id).first()
+    if not target_emp:
+        raise HTTPException(status_code=404, detail="Employee not found")
+
+    isDirectManager = target_emp.manager_id == current_user.employee_id
+
+    if not (isAdmin or isManagerPermission or isDirectManager):
+        raise HTTPException(status_code=403, detail="You do not have permission to assign shifts to this employee")
+
     svc = ShiftService(db, company_id)
     assignment = svc.assign_shift(data.model_dump())
     return EmployeeShiftResponse(

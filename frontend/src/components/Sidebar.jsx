@@ -12,6 +12,7 @@ import {
   GitBranch,
   Receipt,
   Wallet,
+  CheckSquare,
 } from 'lucide-react';
 
 // permission: a permission key the user must have, or an array (any-of).
@@ -25,6 +26,7 @@ const NAV_CONFIG = [
   { path: '/expenses', label: 'Expenses', icon: Receipt, permission: 'expenses:read' },
   { path: '/payroll', label: 'Payroll', icon: Wallet, permission: 'payroll:read' },
   { path: '/my-payslips', label: 'My Payslips', icon: Wallet },
+  { path: '/action-tracker', label: 'Action Tracker', icon: CheckSquare },
   { path: '/shifts', label: 'Shifts', icon: GitBranch, permission: 'shifts:read' },
   { path: '/documents', label: 'Documents', icon: FileText, permission: 'employees:read' },
   { path: '/reports', label: 'Reports & Analytics', icon: BarChart3, permission: ['leave:approve', 'settings:write'] },
@@ -40,26 +42,16 @@ function hasPermission(permissions, required) {
 }
 
 export default function Sidebar({ sidebarOpen, permissions }) {
-  const linkStyle = ({ isActive }) => ({
-    display: 'flex',
-    alignItems: 'center',
-    gap: '12px',
-    padding: '10px 12px',
-    borderRadius: 'var(--radius-md)',
-    color: isActive ? 'var(--accent-blue)' : 'var(--text-secondary)',
-    background: isActive ? 'var(--accent-blue-light)' : 'transparent',
-    marginBottom: '4px',
-    transition: 'all var(--transition-fast)',
-    textDecoration: 'none',
-    fontSize: '0.875rem',
-    fontWeight: isActive ? 600 : 400,
-  });
-
   return (
-    <nav style={{ flex: 1, padding: '12px 8px', overflowY: 'auto' }}>
+    <nav style={{ flex: 1, padding: '16px 10px', overflowY: 'auto' }}>
       {NAV_CONFIG.filter((item) => hasPermission(permissions, item.permission)).map((item) => (
-        <NavLink key={item.path} to={item.path} end={item.path === '/'} style={linkStyle}>
-          <item.icon size={20} style={{ flexShrink: 0 }} />
+        <NavLink
+          key={item.path}
+          to={item.path}
+          end={item.path === '/'}
+          className={({ isActive }) => `sidebar-link${isActive ? ' active' : ''}`}
+        >
+          <item.icon size={19} />
           {sidebarOpen && <span>{item.label}</span>}
         </NavLink>
       ))}

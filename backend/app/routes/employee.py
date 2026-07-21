@@ -53,16 +53,13 @@ def invite_employee(
     company_id: UUID = Depends(get_company_id),
     current_user: UserAccount = Depends(require_permissions("employees:write")),
 ):
-    """Create a new employee with a login and an assigned role, returning an
-    invite token for them to set their own password.
-
-    In production the token would be emailed as a setup link; it's returned
-    directly here since no email provider is wired up yet — same pattern as
-    the platform's company-admin invite flow.
+    """Create a new employee with a login and an assigned role, and email them
+    a setup link. The invite token is still returned in the response as a
+    fallback to share manually if the email fails to send.
     """
     svc = EmployeeService(db, company_id)
     try:
-        employee, user, invite_token = svc.invite_employee(data.model_dump(), current_user.employee_id)
+        employee, user, invite_token, email_sent = svc.invite_employee(data.model_dump(), current_user.employee_id)
     except ValueError as e:
         raise HTTPException(status_code=400, detail=str(e))
 
@@ -71,6 +68,7 @@ def invite_employee(
         user_account_id=user.id,
         email=user.email,
         invite_token=invite_token,
+        email_sent=email_sent,
     )
 
 
@@ -87,7 +85,7 @@ def resend_invite(
     if not emp:
         raise HTTPException(status_code=404, detail="Employee not found")
     try:
-        invite_token = svc.resend_invite(employee_id, current_user.employee_id)
+        invite_token, email_sent = svc.resend_invite(employee_id, current_user.employee_id)
     except ValueError as e:
         raise HTTPException(status_code=400, detail=str(e))
 
@@ -96,6 +94,7 @@ def resend_invite(
         user_account_id=emp.user_account.id,
         email=emp.user_account.email,
         invite_token=invite_token,
+        email_sent=email_sent,
     )
 
 

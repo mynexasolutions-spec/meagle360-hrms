@@ -34,24 +34,60 @@ function money(n) {
 export default function PayrollManagement() {
   const [tab, setTab] = useState('components');
 
+  const tabsList = [
+    { key: 'components', label: 'Salary Components' },
+    { key: 'structures', label: 'Salary Structures' },
+    { key: 'assignments', label: 'Employee Assignments' },
+    { key: 'runs', label: 'Payroll Runs' },
+    { key: 'tax-slabs', label: 'Tax Slabs' },
+    { key: 'pt-slabs', label: 'PT Slabs' },
+    { key: 'loans', label: 'Loans' },
+    { key: 'policy', label: 'Policy' },
+  ];
+
   return (
-    <div className="animate-fade-in">
-      <div className="page-header">
-        <div>
-          <h1>Payroll Management</h1>
-          <p>Configure salary structures, assign employees, and run monthly payroll</p>
+    <div className="animate-fade-in" style={{ maxWidth: 1200, margin: '0 auto' }}>
+      {/* Page Header */}
+      <div className="page-header" style={{ marginBottom: 24 }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 14 }}>
+          <div
+            style={{
+              width: 48, height: 48, borderRadius: 16, flexShrink: 0,
+              background: '#eff6ff', display: 'flex', alignItems: 'center', justifyContent: 'center',
+              boxShadow: '0 4px 14px rgba(37, 99, 235, 0.13)',
+            }}
+          >
+            <Wallet size={22} style={{ color: '#2563eb' }} />
+          </div>
+          <div style={{ minWidth: 0 }}>
+            <h1 style={{ fontSize: 'clamp(1.25rem, 4.5vw, 1.75rem)', fontWeight: 800, color: '#0f172a' }}>Payroll Management</h1>
+            <p style={{ color: '#64748b', fontSize: '0.875rem' }}>Configure salary structures, assign employee CTC, and run monthly payroll</p>
+          </div>
         </div>
       </div>
 
-      <div className="tabs">
-        <button className={`tab ${tab === 'components' ? 'active' : ''}`} onClick={() => setTab('components')}>Salary Components</button>
-        <button className={`tab ${tab === 'structures' ? 'active' : ''}`} onClick={() => setTab('structures')}>Salary Structures</button>
-        <button className={`tab ${tab === 'assignments' ? 'active' : ''}`} onClick={() => setTab('assignments')}>Employee Assignments</button>
-        <button className={`tab ${tab === 'runs' ? 'active' : ''}`} onClick={() => setTab('runs')}>Payroll Runs</button>
-        <button className={`tab ${tab === 'tax-slabs' ? 'active' : ''}`} onClick={() => setTab('tax-slabs')}>Tax Slabs</button>
-        <button className={`tab ${tab === 'pt-slabs' ? 'active' : ''}`} onClick={() => setTab('pt-slabs')}>PT Slabs</button>
-        <button className={`tab ${tab === 'loans' ? 'active' : ''}`} onClick={() => setTab('loans')}>Loans</button>
-        <button className={`tab ${tab === 'policy' ? 'active' : ''}`} onClick={() => setTab('policy')}>Policy</button>
+      {/* Modern Pill Tabs */}
+      <div className="pill-tabs" style={{ marginBottom: 24 }}>
+        {tabsList.map((item) => (
+          <button
+            key={item.key}
+            onClick={() => setTab(item.key)}
+            style={{
+              padding: '9px 18px',
+              borderRadius: 12,
+              fontSize: '0.85rem',
+              fontWeight: 700,
+              border: tab === item.key ? 'none' : '1px solid #cbd5e1',
+              background: tab === item.key ? '#0f172a' : '#ffffff',
+              color: tab === item.key ? '#ffffff' : '#64748b',
+              cursor: 'pointer',
+              boxShadow: tab === item.key ? '0 4px 12px rgba(15, 23, 42, 0.15)' : 'none',
+              transition: 'all 0.15s ease',
+            }}
+          >
+            {item.label}
+          </button>
+        ))}
       </div>
 
       {tab === 'components' && <ComponentsTab />}
@@ -99,40 +135,50 @@ function ComponentsTab() {
   const renderTable = (list, title) => (
     <div className="section-card" style={{ marginBottom: 20 }}>
       <h3 style={{ marginBottom: 16 }}>{title}</h3>
-      <table className="data-table">
-        <thead>
-          <tr><th>Name</th><th>Calculation</th><th>Value</th><th>Rulebook</th><th>Flags</th><th>Status</th><th>Actions</th></tr>
-        </thead>
-        <tbody>
-          {list.map((c) => (
-            <tr key={c.id}>
-              <td style={{ fontWeight: 500 }}>{c.name}</td>
-              <td>{CALC_LABELS[c.calculation_type] || c.calculation_type}</td>
-              <td>{c.calculation_type === 'fixed' ? money(c.value) : `${c.value}%`}</td>
-              <td>{c.statutory_type ? <span className="badge badge-info">{c.statutory_type.toUpperCase()}</span> : '—'}</td>
-              <td>
-                {c.is_employer_contribution && <span className="badge badge-pending" style={{ marginRight: 4 }}>Employer Cost</span>}
-                {c.is_balancing_figure && <span className="badge badge-active">Balancing</span>}
-                {!c.is_employer_contribution && !c.is_balancing_figure && '—'}
-              </td>
-              <td>
-                <span className={`badge ${c.is_active ? 'badge-active' : 'badge-inactive'}`}>
-                  {c.is_active ? 'Active' : 'Disabled'}
-                </span>
-              </td>
-              <td>
-                <div style={{ display: 'flex', gap: 6 }}>
-                  <button className="btn btn-secondary btn-sm" onClick={() => openEdit(c)}><Pencil size={13} /></button>
-                  <button className="btn btn-secondary btn-sm" onClick={() => handleToggleActive(c)}>
-                    {c.is_active ? 'Disable' : 'Enable'}
-                  </button>
-                  <button className="btn btn-danger btn-sm" onClick={() => handleDelete(c)}><Trash2 size={13} /></button>
-                </div>
-              </td>
+      <div style={{ overflowX: 'auto' }}>
+        <table className="data-table">
+          <thead>
+            <tr>
+              <th style={{ whiteSpace: 'nowrap' }}>Name</th>
+              <th style={{ whiteSpace: 'nowrap' }}>Calculation</th>
+              <th style={{ whiteSpace: 'nowrap' }}>Value</th>
+              <th style={{ whiteSpace: 'nowrap' }}>Rulebook</th>
+              <th style={{ whiteSpace: 'nowrap' }}>Flags</th>
+              <th style={{ whiteSpace: 'nowrap' }}>Status</th>
+              <th style={{ whiteSpace: 'nowrap' }}>Actions</th>
             </tr>
-          ))}
-        </tbody>
-      </table>
+          </thead>
+          <tbody>
+            {list.map((c) => (
+              <tr key={c.id}>
+                <td style={{ fontWeight: 500, whiteSpace: 'nowrap' }}>{c.name}</td>
+                <td style={{ whiteSpace: 'nowrap' }}>{CALC_LABELS[c.calculation_type] || c.calculation_type}</td>
+                <td style={{ whiteSpace: 'nowrap' }}>{c.calculation_type === 'fixed' ? money(c.value) : `${c.value}%`}</td>
+                <td style={{ whiteSpace: 'nowrap' }}>{c.statutory_type ? <span className="badge badge-info">{c.statutory_type.toUpperCase()}</span> : '—'}</td>
+                <td style={{ whiteSpace: 'nowrap' }}>
+                  {c.is_employer_contribution && <span className="badge badge-pending" style={{ marginRight: 4 }}>Employer Cost</span>}
+                  {c.is_balancing_figure && <span className="badge badge-active">Balancing</span>}
+                  {!c.is_employer_contribution && !c.is_balancing_figure && '—'}
+                </td>
+                <td style={{ whiteSpace: 'nowrap' }}>
+                  <span className={`badge ${c.is_active ? 'badge-active' : 'badge-inactive'}`}>
+                    {c.is_active ? 'Active' : 'Disabled'}
+                  </span>
+                </td>
+                <td style={{ whiteSpace: 'nowrap' }}>
+                  <div className="table-row-actions">
+                    <button className="btn btn-secondary btn-sm" onClick={() => openEdit(c)}><Pencil size={13} /></button>
+                    <button className="btn btn-secondary btn-sm" onClick={() => handleToggleActive(c)}>
+                      {c.is_active ? 'Disable' : 'Enable'}
+                    </button>
+                    <button className="btn btn-danger btn-sm" onClick={() => handleDelete(c)}><Trash2 size={13} /></button>
+                  </div>
+                </td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
       {list.length === 0 && <div className="empty-state"><p>None configured</p></div>}
     </div>
   );
@@ -298,12 +344,12 @@ function StructuresTab() {
       <div style={{ display: 'grid', gap: 16 }}>
         {structures.map((s) => (
           <div key={s.id} className="section-card">
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
-              <div>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', flexWrap: 'wrap', gap: 12 }}>
+              <div style={{ minWidth: 0 }}>
                 <h3 style={{ marginBottom: 4 }}>{s.name}</h3>
                 {s.description && <p style={{ fontSize: '0.8125rem', color: 'var(--text-muted)' }}>{s.description}</p>}
               </div>
-              <div style={{ display: 'flex', gap: 6 }}>
+              <div className="table-row-actions">
                 <button className="btn btn-secondary btn-sm" onClick={() => { setEditing(s); setShowModal(true); }}><Pencil size={13} /> Edit</button>
                 <button className="btn btn-danger btn-sm" onClick={() => handleDelete(s)}><Trash2 size={13} /></button>
               </div>
@@ -450,19 +496,21 @@ function AssignmentsTab() {
       {selectedEmployeeId && (
         <div className="section-card">
           <h3 style={{ marginBottom: 16 }}>Assignment History</h3>
-          <table className="data-table">
-            <thead><tr><th>Effective From</th><th>Salary Structure</th><th>Annual CTC</th><th>Basic Pay</th></tr></thead>
-            <tbody>
-              {history.map((h) => (
-                <tr key={h.id}>
-                  <td>{h.effective_from}</td>
-                  <td>{h.salary_structure_name || '—'}</td>
-                  <td>{h.annual_ctc ? money(h.annual_ctc) : '—'}</td>
-                  <td>{money(h.basic_pay)}</td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
+          <div style={{ overflowX: 'auto' }}>
+            <table className="data-table">
+              <thead><tr><th style={{ whiteSpace: 'nowrap' }}>Effective From</th><th style={{ whiteSpace: 'nowrap' }}>Salary Structure</th><th style={{ whiteSpace: 'nowrap' }}>Annual CTC</th><th style={{ whiteSpace: 'nowrap' }}>Basic Pay</th></tr></thead>
+              <tbody>
+                {history.map((h) => (
+                  <tr key={h.id}>
+                    <td style={{ whiteSpace: 'nowrap' }}>{h.effective_from}</td>
+                    <td style={{ whiteSpace: 'nowrap' }}>{h.salary_structure_name || '—'}</td>
+                    <td style={{ whiteSpace: 'nowrap' }}>{h.annual_ctc ? money(h.annual_ctc) : '—'}</td>
+                    <td style={{ whiteSpace: 'nowrap' }}>{money(h.basic_pay)}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
           {history.length === 0 && <div className="empty-state"><p>No salary assignment yet</p></div>}
         </div>
       )}
@@ -594,30 +642,32 @@ function RunsTab() {
       </div>
 
       <div className="section-card" style={{ marginBottom: 20 }}>
-        <table className="data-table">
-          <thead><tr><th>Period</th><th>Status</th><th>Employees</th><th>Total Net Pay</th><th>Actions</th></tr></thead>
-          <tbody>
-            {runs.map((run) => (
-              <tr key={run.id} style={{ cursor: 'pointer' }} onClick={() => openRun(run)}>
-                <td style={{ fontWeight: 500 }}>{MONTH_NAMES[run.month - 1]} {run.year}</td>
-                <td><span className={`badge ${run.status === 'finalized' ? 'badge-active' : 'badge-pending'}`}>{run.status}</span></td>
-                <td>{run.payslip_count}</td>
-                <td>{money(run.total_net_pay)}</td>
-                <td onClick={(e) => e.stopPropagation()}>
-                  {run.status === 'draft' && (
-                    <button className="btn btn-danger btn-sm" onClick={() => handleDeleteRun(run)}><Trash2 size={13} /></button>
-                  )}
-                </td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
+        <div style={{ overflowX: 'auto' }}>
+          <table className="data-table">
+            <thead><tr><th style={{ whiteSpace: 'nowrap' }}>Period</th><th style={{ whiteSpace: 'nowrap' }}>Status</th><th style={{ whiteSpace: 'nowrap' }}>Employees</th><th style={{ whiteSpace: 'nowrap' }}>Total Net Pay</th><th style={{ whiteSpace: 'nowrap' }}>Actions</th></tr></thead>
+            <tbody>
+              {runs.map((run) => (
+                <tr key={run.id} style={{ cursor: 'pointer' }} onClick={() => openRun(run)}>
+                  <td style={{ fontWeight: 500, whiteSpace: 'nowrap' }}>{MONTH_NAMES[run.month - 1]} {run.year}</td>
+                  <td style={{ whiteSpace: 'nowrap' }}><span className={`badge ${run.status === 'finalized' ? 'badge-active' : 'badge-pending'}`}>{run.status}</span></td>
+                  <td style={{ whiteSpace: 'nowrap' }}>{run.payslip_count}</td>
+                  <td style={{ whiteSpace: 'nowrap' }}>{money(run.total_net_pay)}</td>
+                  <td style={{ whiteSpace: 'nowrap' }} onClick={(e) => e.stopPropagation()}>
+                    {run.status === 'draft' && (
+                      <button className="btn btn-danger btn-sm" onClick={() => handleDeleteRun(run)}><Trash2 size={13} /></button>
+                    )}
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
         {runs.length === 0 && <div className="empty-state"><Wallet size={48} /><p>No payroll runs yet</p></div>}
       </div>
 
       {selectedRun && (
         <div className="section-card">
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 }}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16, flexWrap: 'wrap', gap: 12 }}>
             <h3 style={{ marginBottom: 0 }}>
               <Receipt size={18} style={{ color: 'var(--accent-blue)' }} /> {MONTH_NAMES[selectedRun.month - 1]} {selectedRun.year} Payslips
             </h3>
@@ -625,57 +675,70 @@ function RunsTab() {
               <button className="btn btn-success btn-sm" onClick={handleFinalize}><Lock size={13} /> Finalize Run</button>
             )}
           </div>
-          <table className="data-table">
-            <thead><tr><th>Employee</th><th>Basic</th><th>Earnings</th><th>Deductions</th><th>LOP Days</th><th>Net Pay</th><th>Actions</th></tr></thead>
-            <tbody>
-              {payslips.map((p) => (
-                <Fragment key={p.id}>
-                  <tr>
-                    <td style={{ fontWeight: 500 }}>{p.employee_name} ({p.employee_code})</td>
-                    <td>{money(p.basic_pay)}</td>
-                    <td>{money(p.gross_earnings)}</td>
-                    <td>{money(p.gross_deductions)}</td>
-                    <td>{p.lop_days}</td>
-                    <td style={{ fontWeight: 600 }}>{money(p.net_pay)}</td>
-                    <td>
-                      <div style={{ display: 'flex', gap: 6 }}>
-                        <button className="btn btn-secondary btn-sm" onClick={() => setExpandedPayslip(expandedPayslip === p.id ? null : p.id)}>
-                          {expandedPayslip === p.id ? 'Hide' : 'Details'}
-                        </button>
-                        {selectedRun.status === 'draft' && (
-                          <button className="btn btn-secondary btn-sm" onClick={() => setShowAdjustModal(p)}>Adjust</button>
-                        )}
-                      </div>
-                    </td>
-                  </tr>
-                  {expandedPayslip === p.id && (
+          <div style={{ overflowX: 'auto' }}>
+            <table className="data-table">
+              <thead>
+                <tr>
+                  <th style={{ whiteSpace: 'nowrap' }}>Employee</th>
+                  <th style={{ whiteSpace: 'nowrap' }}>Basic</th>
+                  <th style={{ whiteSpace: 'nowrap' }}>Earnings</th>
+                  <th style={{ whiteSpace: 'nowrap' }}>Deductions</th>
+                  <th style={{ whiteSpace: 'nowrap' }}>LOP Days</th>
+                  <th style={{ whiteSpace: 'nowrap' }}>Net Pay</th>
+                  <th style={{ whiteSpace: 'nowrap' }}>Actions</th>
+                </tr>
+              </thead>
+              <tbody>
+                {payslips.map((p) => (
+                  <Fragment key={p.id}>
                     <tr>
-                      <td colSpan={7} style={{ background: 'var(--bg-input)' }}>
-                        <div style={{ padding: '10px 4px', display: 'grid', gap: 4, fontSize: '0.8125rem' }}>
-                          {p.lines.map((line) => (
-                            <div key={line.id} style={{ display: 'flex', justifyContent: 'space-between', maxWidth: 420 }}>
-                              <span>
-                                {line.component_name}
-                                {line.is_manual_adjustment && <span className="badge badge-info" style={{ marginLeft: 6 }}>Adjustment</span>}
-                                {line.component_type === 'employer_cost' && <span className="badge badge-pending" style={{ marginLeft: 6 }}>Employer Cost (not paid to employee)</span>}
-                              </span>
-                              <span style={{
-                                color: line.component_type === 'earning' ? 'var(--accent-emerald)'
-                                  : line.component_type === 'employer_cost' ? 'var(--text-muted)'
-                                  : 'var(--accent-rose)',
-                              }}>
-                                {line.component_type === 'deduction' ? '-' : line.component_type === 'earning' ? '+' : ''}{money(line.amount)}
-                              </span>
-                            </div>
-                          ))}
+                      <td style={{ fontWeight: 500, whiteSpace: 'nowrap' }}>{p.employee_name} ({p.employee_code})</td>
+                      <td style={{ whiteSpace: 'nowrap' }}>{money(p.basic_pay)}</td>
+                      <td style={{ whiteSpace: 'nowrap' }}>{money(p.gross_earnings)}</td>
+                      <td style={{ whiteSpace: 'nowrap' }}>{money(p.gross_deductions)}</td>
+                      <td style={{ whiteSpace: 'nowrap' }}>{p.lop_days}</td>
+                      <td style={{ fontWeight: 600, whiteSpace: 'nowrap' }}>{money(p.net_pay)}</td>
+                      <td style={{ whiteSpace: 'nowrap' }}>
+                        <div className="table-row-actions">
+                          <button className="btn btn-secondary btn-sm" onClick={() => setExpandedPayslip(expandedPayslip === p.id ? null : p.id)}>
+                            {expandedPayslip === p.id ? 'Hide' : 'Details'}
+                          </button>
+                          {selectedRun.status === 'draft' && (
+                            <button className="btn btn-secondary btn-sm" onClick={() => setShowAdjustModal(p)}>Adjust</button>
+                          )}
                         </div>
                       </td>
                     </tr>
-                  )}
-                </Fragment>
-              ))}
-            </tbody>
-          </table>
+                    {expandedPayslip === p.id && (
+                      <tr>
+                        <td colSpan={7} style={{ background: 'var(--bg-input)' }}>
+                          <div style={{ padding: '10px 4px', display: 'grid', gap: 4, fontSize: '0.8125rem' }}>
+                            {p.lines.map((line) => (
+                              <div key={line.id} style={{ display: 'flex', justifyContent: 'space-between', gap: 10, maxWidth: 420 }}>
+                                <span>
+                                  {line.component_name}
+                                  {line.is_manual_adjustment && <span className="badge badge-info" style={{ marginLeft: 6 }}>Adjustment</span>}
+                                  {line.component_type === 'employer_cost' && <span className="badge badge-pending" style={{ marginLeft: 6 }}>Employer Cost (not paid to employee)</span>}
+                                </span>
+                                <span style={{
+                                  flexShrink: 0,
+                                  color: line.component_type === 'earning' ? 'var(--accent-emerald)'
+                                    : line.component_type === 'employer_cost' ? 'var(--text-muted)'
+                                    : 'var(--accent-rose)',
+                                }}>
+                                  {line.component_type === 'deduction' ? '-' : line.component_type === 'earning' ? '+' : ''}{money(line.amount)}
+                                </span>
+                              </div>
+                            ))}
+                          </div>
+                        </td>
+                      </tr>
+                    )}
+                  </Fragment>
+                ))}
+              </tbody>
+            </table>
+          </div>
           {payslips.length === 0 && <div className="empty-state"><p>No payslips in this run</p></div>}
         </div>
       )}
@@ -790,19 +853,21 @@ function TaxSlabsTab() {
     return (
       <div className="section-card" style={{ marginBottom: 20 }}>
         <h3 style={{ marginBottom: 16 }}>{title}</h3>
-        <table className="data-table">
-          <thead><tr><th>Income From</th><th>Income To</th><th>Rate</th><th>Actions</th></tr></thead>
-          <tbody>
-            {rows.map((s) => (
-              <tr key={s.id}>
-                <td>₹{money(s.min_income)}</td>
-                <td>{s.max_income ? `₹${money(s.max_income)}` : 'and above'}</td>
-                <td>{s.rate_percent}%</td>
-                <td><button className="btn btn-danger btn-sm" onClick={() => handleDelete(s)}><Trash2 size={13} /></button></td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
+        <div style={{ overflowX: 'auto' }}>
+          <table className="data-table">
+            <thead><tr><th style={{ whiteSpace: 'nowrap' }}>Income From</th><th style={{ whiteSpace: 'nowrap' }}>Income To</th><th style={{ whiteSpace: 'nowrap' }}>Rate</th><th style={{ whiteSpace: 'nowrap' }}>Actions</th></tr></thead>
+            <tbody>
+              {rows.map((s) => (
+                <tr key={s.id}>
+                  <td style={{ whiteSpace: 'nowrap' }}>₹{money(s.min_income)}</td>
+                  <td style={{ whiteSpace: 'nowrap' }}>{s.max_income ? `₹${money(s.max_income)}` : 'and above'}</td>
+                  <td style={{ whiteSpace: 'nowrap' }}>{s.rate_percent}%</td>
+                  <td style={{ whiteSpace: 'nowrap' }}><button className="btn btn-danger btn-sm" onClick={() => handleDelete(s)}><Trash2 size={13} /></button></td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
         {rows.length === 0 && <div className="empty-state"><p>No slabs configured for this regime</p></div>}
       </div>
     );
@@ -904,19 +969,21 @@ function PtSlabsTab() {
       {states.map((state) => (
         <div key={state} className="section-card" style={{ marginBottom: 20 }}>
           <h3 style={{ marginBottom: 16 }}><Landmark size={18} style={{ color: 'var(--accent-blue)' }} /> {state}</h3>
-          <table className="data-table">
-            <thead><tr><th>Gross From</th><th>Gross To</th><th>Amount</th><th>Actions</th></tr></thead>
-            <tbody>
-              {slabs.filter((s) => s.state === state).sort((a, b) => a.min_gross - b.min_gross).map((s) => (
-                <tr key={s.id}>
-                  <td>₹{money(s.min_gross)}</td>
-                  <td>{s.max_gross ? `₹${money(s.max_gross)}` : 'and above'}</td>
-                  <td>₹{money(s.amount)}</td>
-                  <td><button className="btn btn-danger btn-sm" onClick={() => handleDelete(s)}><Trash2 size={13} /></button></td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
+          <div style={{ overflowX: 'auto' }}>
+            <table className="data-table">
+              <thead><tr><th style={{ whiteSpace: 'nowrap' }}>Gross From</th><th style={{ whiteSpace: 'nowrap' }}>Gross To</th><th style={{ whiteSpace: 'nowrap' }}>Amount</th><th style={{ whiteSpace: 'nowrap' }}>Actions</th></tr></thead>
+              <tbody>
+                {slabs.filter((s) => s.state === state).sort((a, b) => a.min_gross - b.min_gross).map((s) => (
+                  <tr key={s.id}>
+                    <td style={{ whiteSpace: 'nowrap' }}>₹{money(s.min_gross)}</td>
+                    <td style={{ whiteSpace: 'nowrap' }}>{s.max_gross ? `₹${money(s.max_gross)}` : 'and above'}</td>
+                    <td style={{ whiteSpace: 'nowrap' }}>₹{money(s.amount)}</td>
+                    <td style={{ whiteSpace: 'nowrap' }}><button className="btn btn-danger btn-sm" onClick={() => handleDelete(s)}><Trash2 size={13} /></button></td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
         </div>
       ))}
       {states.length === 0 && (
@@ -1024,26 +1091,38 @@ function LoansTab() {
 
       {selectedEmployeeId && (
         <div className="section-card">
-          <table className="data-table">
-            <thead><tr><th>Start Date</th><th>Principal</th><th>Monthly Installment</th><th>Remaining</th><th>Status</th><th>Reason</th><th>Actions</th></tr></thead>
-            <tbody>
-              {loans.map((l) => (
-                <tr key={l.id}>
-                  <td>{l.start_date}</td>
-                  <td>{money(l.principal_amount)}</td>
-                  <td>{money(l.monthly_installment)}</td>
-                  <td>{money(l.remaining_balance)}</td>
-                  <td><span className={`badge ${l.status === 'active' ? 'badge-pending' : 'badge-active'}`}>{l.status}</span></td>
-                  <td>{l.reason || '—'}</td>
-                  <td>
-                    {l.status === 'active' && (
-                      <button className="btn btn-secondary btn-sm" onClick={() => handleClose(l)}>Close</button>
-                    )}
-                  </td>
+          <div style={{ overflowX: 'auto' }}>
+            <table className="data-table">
+              <thead>
+                <tr>
+                  <th style={{ whiteSpace: 'nowrap' }}>Start Date</th>
+                  <th style={{ whiteSpace: 'nowrap' }}>Principal</th>
+                  <th style={{ whiteSpace: 'nowrap' }}>Monthly Installment</th>
+                  <th style={{ whiteSpace: 'nowrap' }}>Remaining</th>
+                  <th style={{ whiteSpace: 'nowrap' }}>Status</th>
+                  <th style={{ whiteSpace: 'nowrap' }}>Reason</th>
+                  <th style={{ whiteSpace: 'nowrap' }}>Actions</th>
                 </tr>
-              ))}
-            </tbody>
-          </table>
+              </thead>
+              <tbody>
+                {loans.map((l) => (
+                  <tr key={l.id}>
+                    <td style={{ whiteSpace: 'nowrap' }}>{l.start_date}</td>
+                    <td style={{ whiteSpace: 'nowrap' }}>{money(l.principal_amount)}</td>
+                    <td style={{ whiteSpace: 'nowrap' }}>{money(l.monthly_installment)}</td>
+                    <td style={{ whiteSpace: 'nowrap' }}>{money(l.remaining_balance)}</td>
+                    <td style={{ whiteSpace: 'nowrap' }}><span className={`badge ${l.status === 'active' ? 'badge-pending' : 'badge-active'}`}>{l.status}</span></td>
+                    <td style={{ whiteSpace: 'nowrap' }}>{l.reason || '—'}</td>
+                    <td style={{ whiteSpace: 'nowrap' }}>
+                      {l.status === 'active' && (
+                        <button className="btn btn-secondary btn-sm" onClick={() => handleClose(l)}>Close</button>
+                      )}
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
           {loans.length === 0 && <div className="empty-state"><p>No loans on record</p></div>}
         </div>
       )}
@@ -1158,7 +1237,7 @@ function PolicyTab() {
         )}
       </p>
       <form onSubmit={handleSave}>
-        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16 }}>
+        <div className="form-grid-2">
           {field('min_basic_percent_of_ctc', 'Min Basic % of CTC', 'Basic + DA wage floor (India Labour Codes default: 50%)')}
           {field('epf_threshold_employee_count', 'EPF Headcount Threshold')}
           {field('esi_threshold_employee_count', 'ESI Headcount Threshold')}

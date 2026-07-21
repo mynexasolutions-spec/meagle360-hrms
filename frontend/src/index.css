@@ -79,6 +79,7 @@ body {
   color: var(--text-primary);
   line-height: 1.6;
   min-height: 100vh;
+  overflow-x: hidden;
 }
 
 #root {
@@ -218,6 +219,11 @@ a:hover {
   color: var(--text-muted);
 }
 
+input[type="password"]::-ms-reveal,
+input[type="password"]::-ms-clear {
+  display: none;
+}
+
 .input-label {
   display: block;
   font-size: 0.8125rem;
@@ -239,6 +245,7 @@ a:hover {
   font-size: 0.75rem;
   font-weight: 600;
   text-transform: capitalize;
+  white-space: nowrap;
 }
 .badge-active, .badge-approved {
   background: var(--accent-emerald-light);
@@ -303,12 +310,12 @@ a:hover {
 /* ── Animations ───────────────────────────────────────── */
 @keyframes fadeIn {
   from { opacity: 0; transform: translateY(10px); }
-  to { opacity: 1; transform: translateY(0); }
+  to { opacity: 1; transform: none; }
 }
 
 @keyframes slideIn {
   from { opacity: 0; transform: translateX(-20px); }
-  to { opacity: 1; transform: translateX(0); }
+  to { opacity: 1; transform: none; }
 }
 
 @keyframes pulse {
@@ -320,6 +327,12 @@ a:hover {
   from { transform: rotate(0deg); }
   to { transform: rotate(360deg); }
 }
+
+@keyframes shimmer {
+  0%, 100% { background-position: 0% 50%; }
+  50% { background-position: 100% 50%; }
+}
+
 
 .animate-fade-in {
   animation: fadeIn 0.4s ease forwards;
@@ -360,40 +373,70 @@ a:hover {
 }
 
 /* ── Modal Overlay ────────────────────────────────────── */
+@keyframes modalPop {
+  from { opacity: 0; transform: scale(0.95) translateY(10px); }
+  to { opacity: 1; transform: scale(1) translateY(0); }
+}
+
 .modal-overlay {
   position: fixed;
   inset: 0;
-  background: rgba(0, 0, 0, 0.6);
-  backdrop-filter: blur(4px);
+  background: rgba(15, 23, 42, 0.55);
+  backdrop-filter: blur(6px);
   display: flex;
   align-items: center;
   justify-content: center;
   z-index: 1000;
   animation: fadeIn 0.2s ease;
+  padding: 20px;
 }
 
 .modal-content {
   background: var(--bg-secondary);
   border: 1px solid var(--border-color);
-  border-radius: var(--radius-lg);
-  padding: 24px;
+  border-top: 4px solid var(--accent-blue);
+  border-radius: var(--radius-xl);
   width: 90%;
   max-width: 520px;
   max-height: 85vh;
-  overflow-y: auto;
-  animation: fadeIn 0.3s ease;
+  /* Clips the body's scrollbar to the rounded corners below — a scrollbar on
+     an element that itself has border-radius doesn't get rounded by the
+     browser, so it was poking out past the curve. Hoisting overflow to this
+     outer, unscrolled shell (which browsers do clip correctly) fixes that. */
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+  animation: modalPop 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+  box-shadow: 0 24px 60px -12px rgba(15, 23, 42, 0.35);
 }
 
 .modal-header {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  margin-bottom: 20px;
+  padding: 26px 28px 14px;
+  border-bottom: 1px solid var(--border-color);
+  flex-shrink: 0;
+}
+
+.modal-body {
+  overflow-y: auto;
+  padding: 20px 28px 26px;
 }
 
 .modal-header h2 {
-  font-size: 1.125rem;
-  font-weight: 600;
+  font-size: 1.2rem;
+  font-weight: 700;
+  letter-spacing: -0.01em;
+  color: var(--text-primary);
+}
+
+.modal-header .btn-icon {
+  transition: transform 0.2s ease, background 0.15s ease, color 0.15s ease;
+}
+.modal-header .btn-icon:hover {
+  transform: rotate(90deg);
+  color: var(--accent-rose);
 }
 
 /* ── Page Layout ──────────────────────────────────────── */
@@ -442,6 +485,290 @@ a:hover {
   border: 1px solid var(--border-color);
   border-radius: var(--radius-lg);
   padding: 20px;
+  transition: box-shadow var(--transition-base), border-color var(--transition-base);
+}
+.section-card:hover {
+  box-shadow: var(--shadow-md);
+  border-color: #dbe3ee;
+}
+
+.quick-action-row {
+  transition: transform var(--transition-fast), box-shadow var(--transition-fast);
+}
+.quick-action-row:hover {
+  transform: translateX(2px);
+  box-shadow: 0 4px 12px -4px rgba(15, 23, 42, 0.15);
+}
+
+.employee-card {
+  transition: transform var(--transition-base), box-shadow var(--transition-base), border-color var(--transition-base);
+}
+.employee-card:hover {
+  transform: translateY(-4px);
+  box-shadow: 0 16px 32px -12px rgba(15, 23, 42, 0.18);
+  border-color: #bfdbfe !important;
+}
+
+/* ── Org Chart — list view (indented rows) ───────────── */
+.org-node-card {
+  transition: transform var(--transition-fast), box-shadow var(--transition-fast), border-color var(--transition-fast);
+}
+.org-node-card:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 10px 24px -8px rgba(15, 23, 42, 0.15);
+}
+
+.org-node-children {
+  margin-left: 26px;
+  padding-left: 20px;
+}
+
+.org-node-info-row {
+  flex-wrap: wrap;
+}
+
+@media (max-width: 640px) {
+  .org-node-children {
+    margin-left: 12px;
+    padding-left: 12px;
+  }
+  .org-node-card {
+    flex-wrap: wrap;
+  }
+}
+
+/* ── Org Chart — classic connector-line tree diagram ─── */
+.org-tree-scroll {
+  overflow-x: auto;
+  padding: 24px 12px;
+}
+
+.org-forest {
+  display: flex;
+  justify-content: center;
+  gap: 48px;
+  flex-wrap: wrap;
+  min-width: fit-content;
+}
+
+.org-tree, .org-tree ul {
+  display: flex;
+  justify-content: center;
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+/* every nested ul (any depth) gets a trunk stub from its parent card down to its bus line */
+.org-tree ul {
+  padding-top: 32px;
+  position: relative;
+}
+.org-tree ul::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 50%;
+  border-left: 2px solid #cbd5e1;
+  width: 0;
+  height: 32px;
+}
+
+.org-tree li {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 0 14px;
+}
+
+/* sibling connector lines (horizontal bus + drop stub) — only for li inside a nested ul, never the root */
+.org-tree ul li {
+  padding-top: 32px;
+}
+.org-tree ul li::before,
+.org-tree ul li::after {
+  content: '';
+  position: absolute;
+  top: 0;
+  right: 50%;
+  width: 50%;
+  height: 32px;
+  border-top: 2px solid #cbd5e1;
+}
+.org-tree ul li::after {
+  right: auto;
+  left: 50%;
+  border-left: 2px solid #cbd5e1;
+}
+.org-tree ul li:only-child::before,
+.org-tree ul li:only-child::after {
+  display: none;
+}
+.org-tree ul li:only-child {
+  padding-top: 0;
+}
+.org-tree ul li:first-child::before,
+.org-tree ul li:last-child::after {
+  border: 0 none;
+}
+.org-tree ul li:last-child::before {
+  border-right: 2px solid #cbd5e1;
+  border-radius: 0 6px 0 0;
+}
+.org-tree ul li:first-child::after {
+  border-radius: 6px 0 0 0;
+}
+
+.org-card {
+  width: 208px;
+  background: #ffffff;
+  border-radius: 16px;
+  border: 1px solid #e2e8f0;
+  border-top: 3px solid var(--org-accent, #2563eb);
+  padding: 16px 14px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+  gap: 4px;
+  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.03);
+  transition: transform var(--transition-fast), box-shadow var(--transition-fast), border-color var(--transition-fast);
+}
+.org-card.clickable {
+  cursor: pointer;
+}
+.org-card.clickable:hover {
+  transform: translateY(-3px);
+  box-shadow: 0 12px 28px -8px rgba(15, 23, 42, 0.18);
+}
+
+.org-card-toggle {
+  margin-top: 8px;
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 0.6875rem;
+  font-weight: 700;
+  padding: 3px 10px;
+  border-radius: var(--radius-full);
+  background: var(--bg-input);
+  color: var(--text-secondary);
+}
+
+@media (max-width: 768px) {
+  .org-card {
+    width: 168px;
+    padding: 12px 10px;
+  }
+  .org-tree li {
+    padding: 0 8px;
+  }
+  .org-tree ul {
+    padding-top: 24px;
+  }
+  .org-tree ul::before {
+    height: 24px;
+  }
+  .org-tree ul li {
+    padding-top: 24px;
+  }
+  .org-tree ul li::before,
+  .org-tree ul li::after {
+    height: 24px;
+  }
+}
+
+/* ── Profile Info Definition Lists ────────────────────── */
+.info-dl {
+  display: grid;
+  grid-template-columns: minmax(120px, 160px) 1fr;
+  row-gap: 14px;
+  column-gap: 16px;
+  font-size: 0.875rem;
+}
+.info-dl-wide {
+  display: grid;
+  grid-template-columns: minmax(120px, 160px) 1fr minmax(120px, 160px) 1fr;
+  row-gap: 14px;
+  column-gap: 16px;
+  font-size: 0.875rem;
+}
+.info-dl dt, .info-dl-wide dt {
+  color: var(--text-muted);
+  font-weight: 500;
+}
+.info-dl dd, .info-dl-wide dd {
+  color: var(--text-primary);
+  font-weight: 600;
+}
+
+@media (max-width: 768px) {
+  .info-dl, .info-dl-wide {
+    grid-template-columns: 1fr;
+    row-gap: 3px;
+  }
+  .info-dl dt, .info-dl-wide dt {
+    font-size: 0.6875rem;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+    margin-top: 10px;
+  }
+  .info-dl dd, .info-dl-wide dd {
+    padding-bottom: 4px;
+    border-bottom: 1px solid var(--border-color);
+  }
+}
+
+.profile-hero {
+  position: relative;
+  border-radius: var(--radius-xl);
+  overflow: hidden;
+  border: 1px solid var(--border-color);
+  margin-bottom: 24px;
+  background: var(--bg-card);
+}
+.profile-hero-cover {
+  height: 88px;
+  background: linear-gradient(120deg, #0f172a 0%, #1e3a8a 50%, #312e81 100%);
+}
+.profile-hero-avatar {
+  position: absolute;
+  left: 28px;
+  top: 44px;
+}
+.profile-hero-body {
+  padding: 16px 28px 24px 132px;
+  min-height: 60px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 18px;
+  flex-wrap: wrap;
+}
+
+@media (max-width: 640px) {
+  .profile-hero-avatar {
+    left: 18px;
+    top: 60px;
+    width: 64px !important;
+    height: 64px !important;
+  }
+  .profile-hero-body {
+    padding: 16px 18px 20px 96px;
+  }
+
+  /* Opt-out: keep the desktop avatar size/position on mobile too
+     (used by My Profile, where the avatar should look the same at any width). */
+  .profile-hero--avatar-lg .profile-hero-avatar {
+    left: 28px;
+    top: 44px;
+    width: 96px !important;
+    height: 96px !important;
+  }
+  .profile-hero--avatar-lg .profile-hero-body {
+    padding: 16px 28px 24px 132px !important;
+  }
 }
 
 .section-card h3 {
@@ -671,7 +998,463 @@ a:hover {
   font-variant-numeric: tabular-nums;
 }
 
+/* ── App Shell (Sidebar / Main) ──────────────────────── */
+.app-sidebar {
+  width: var(--sidebar-width);
+}
+.app-sidebar.collapsed {
+  width: 72px;
+}
+
+.app-main {
+  margin-left: var(--sidebar-width);
+}
+.app-main.sidebar-collapsed {
+  margin-left: 72px;
+}
+
+/* ── Sidebar Nav Links ─────────────────────────────────── */
+.sidebar-link {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 10px 14px;
+  border-radius: 12px;
+  color: var(--text-secondary);
+  background: transparent;
+  border-left: 3px solid transparent;
+  margin-bottom: 4px;
+  transition: all 0.15s cubic-bezier(0.4, 0, 0.2, 1);
+  text-decoration: none;
+  font-size: 0.875rem;
+  font-weight: 600;
+}
+.sidebar-link svg {
+  transition: transform 0.15s ease;
+  flex-shrink: 0;
+}
+.sidebar-link:hover {
+  background: var(--bg-hover);
+  color: var(--accent-blue);
+  transform: translateX(3px);
+}
+.sidebar-link:hover svg {
+  transform: scale(1.12);
+}
+.sidebar-link.active {
+  color: var(--accent-blue);
+  background: linear-gradient(135deg, #eff6ff, #eef2ff);
+  border-left-color: var(--accent-blue);
+  font-weight: 700;
+  box-shadow: 0 2px 10px rgba(37, 99, 235, 0.1);
+}
+.sidebar-link.active:hover {
+  transform: none;
+}
+
+.sidebar-user-block {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 6px 8px;
+  border-radius: 12px;
+  text-decoration: none;
+  transition: background 0.15s ease;
+}
+.sidebar-user-block:hover {
+  background: var(--bg-hover);
+}
+.sidebar-user-block:hover .avatar {
+  transform: scale(1.06);
+}
+.avatar {
+  transition: transform 0.15s ease;
+}
+
+/* ── Top Bar ──────────────────────────────────────────── */
+.topbar-search-form {
+  position: relative;
+  transition: transform 0.15s ease;
+}
+.topbar-search-form input {
+  border-radius: var(--radius-full);
+  transition: all 0.15s ease;
+}
+.topbar-search-form input:focus {
+  background: var(--bg-secondary);
+}
+.topbar-search-form svg {
+  transition: color 0.15s ease;
+}
+.topbar-search-form:focus-within svg {
+  color: var(--accent-blue);
+}
+
+.topbar-icon-btn {
+  transition: transform 0.15s ease, background 0.15s ease, color 0.15s ease;
+}
+.topbar-icon-btn:hover {
+  transform: translateY(-1px);
+  color: var(--accent-blue);
+}
+.topbar-notif-dot {
+  animation: pulse 2s ease-in-out infinite;
+}
+
+.topbar-profile-trigger {
+  transition: background 0.15s ease;
+}
+.topbar-profile-trigger:hover {
+  background: var(--bg-hover);
+}
+.topbar-profile-trigger:hover .avatar {
+  transform: scale(1.06);
+}
+.topbar-profile-trigger .topbar-chevron {
+  transition: transform 0.2s ease;
+}
+.topbar-profile-trigger.open .topbar-chevron {
+  transform: rotate(180deg);
+}
+
+.topbar-menu-item {
+  transition: background 0.12s ease, transform 0.12s ease;
+}
+.topbar-menu-item:hover {
+  background: var(--bg-hover);
+  transform: translateX(2px);
+}
+.topbar-menu-item.danger:hover {
+  background: var(--accent-rose-light);
+}
+.topbar-menu-icon {
+  width: 26px;
+  height: 26px;
+  border-radius: 8px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.sidebar-backdrop {
+  display: none;
+}
+
+/* ── Clock Strip ──────────────────────────────────────── */
+.clock-strip {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 16px;
+}
+.clock-strip > * {
+  min-width: 0;
+}
+
+/* ── Dashboard Columns ────────────────────────────────── */
+.dashboard-columns {
+  display: grid;
+  grid-template-columns: minmax(0, 2.4fr) minmax(280px, 1fr);
+  gap: 20px;
+}
+
+/* ── Leave Management Layout ──────────────────────────── */
+.leave-layout {
+  display: grid;
+  grid-template-columns: minmax(280px, 380px) minmax(0, 1fr);
+  gap: 28px;
+  align-items: start;
+}
+.leave-layout > * {
+  min-width: 0;
+}
+
+/* Wrap unconditionally: a nowrap flex row with many fixed-gap segments has a
+   min-content width driven by gap-count alone, which forces the whole grid
+   column (and the page) to overflow horizontally once a leave type's total
+   entitlement is large. Wrapping caps that at one row's worth of gaps. */
+.leave-progress-segments {
+  flex-wrap: wrap;
+  row-gap: 4px;
+}
+
+/* ── Generic mobile-safe helpers (reusable across pages) ─ */
+.pill-tabs {
+  display: flex;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+.table-row-actions {
+  display: flex;
+  gap: 6px;
+}
+
+/* ── Generic 2-column form row (stacks on very small phones) ─ */
+.form-grid-2 {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 16px;
+}
+@media (max-width: 480px) {
+  .form-grid-2 {
+    grid-template-columns: 1fr;
+  }
+}
+
+/* ── My Profile — field chip grid ─────────────────────── */
+.profile-fields-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+  gap: 16px;
+}
+.profile-field-card {
+  transition: transform 0.15s ease, box-shadow 0.15s ease, border-color 0.15s ease;
+}
+.profile-field-card:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 8px 20px -8px rgba(15, 23, 42, 0.12);
+  border-color: #dbe3ee !important;
+}
+@media (max-width: 480px) {
+  .profile-fields-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+/* ── Shift Management ─────────────────────────────────── */
+.shift-card {
+  background: #ffffff;
+  border-radius: 20px;
+  padding: 22px 24px;
+  border: 1px solid #e2e8f0;
+  border-top: 3px solid #7c3aed;
+  box-shadow: 0 4px 20px -2px rgba(0, 0, 0, 0.03);
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  transition: transform 0.15s ease, box-shadow 0.15s ease;
+}
+.shift-card:hover {
+  transform: translateY(-3px);
+  box-shadow: 0 14px 30px -10px rgba(15, 23, 42, 0.15);
+}
+
+/* ── Action Tracker ───────────────────────────────────── */
+.action-task-card {
+  display: grid;
+  grid-template-columns: 1fr auto;
+  gap: 20px;
+  align-items: start;
+  padding: 22px 26px;
+  border-radius: 20px;
+  background: #ffffff;
+  box-shadow: 0 4px 20px -2px rgba(0, 0, 0, 0.03);
+  transition: transform 0.15s ease, box-shadow 0.15s ease;
+}
+.action-task-card:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 10px 26px -8px rgba(15, 23, 42, 0.12);
+}
+.action-task-controls {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  align-items: flex-end;
+}
+@media (max-width: 640px) {
+  .action-task-card {
+    grid-template-columns: 1fr;
+    padding: 18px;
+    gap: 14px;
+  }
+  .action-task-controls {
+    flex-direction: row;
+    align-items: center;
+    justify-content: space-between;
+    width: 100%;
+  }
+  .action-task-controls select {
+    flex: 1;
+    min-width: 0;
+  }
+}
+
+/* ── My Payslips ──────────────────────────────────────── */
+.payslip-card {
+  background: #ffffff;
+  border-radius: 16px;
+  border: 1px solid #e2e8f0;
+  border-top: 3px solid #2563eb;
+  overflow: hidden;
+  transition: box-shadow 0.2s ease;
+}
+.payslip-card:hover {
+  box-shadow: 0 10px 28px -10px rgba(15, 23, 42, 0.14);
+}
+.payslip-header-bar {
+  padding: 20px 28px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  cursor: pointer;
+  gap: 16px;
+  flex-wrap: wrap;
+  transition: background 0.15s ease;
+}
+.payslip-header-bar:hover {
+  background: #f8fafc;
+}
+.payslip-header-left {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  min-width: 0;
+}
+.payslip-header-right {
+  display: flex;
+  align-items: center;
+  gap: 24px;
+  flex-shrink: 0;
+}
+.payslip-doc-body {
+  padding: 32px 36px;
+  background: #ffffff;
+}
+.payslip-voucher {
+  border: 2px solid #0f172a;
+  border-radius: 12px;
+  padding: 28px 32px;
+  background: #ffffff;
+  box-shadow: 0 10px 25px rgba(0, 0, 0, 0.03);
+}
+.payslip-banner-header {
+  display: flex;
+  justify-content: space-between;
+  gap: 20px;
+  border-bottom: 2px solid #0f172a;
+  padding-bottom: 20px;
+  margin-bottom: 24px;
+  flex-wrap: wrap;
+}
+.payslip-meta-grid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 16px;
+  background: #f8fafc;
+  padding: 16px 20px;
+  border-radius: 10px;
+  border: 1px solid #e2e8f0;
+  margin-bottom: 28px;
+}
+.payslip-tables {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 24px;
+  margin-bottom: 28px;
+}
+.payslip-net-banner {
+  background: linear-gradient(135deg, #0f172a, #1e293b);
+  border-radius: 12px;
+  padding: 20px 24px;
+  color: #ffffff;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  flex-wrap: wrap;
+  box-shadow: 0 8px 20px rgba(15, 23, 42, 0.15);
+}
+
+@media (max-width: 768px) {
+  .payslip-header-bar {
+    padding: 16px 18px;
+  }
+  .payslip-header-right {
+    width: 100%;
+    justify-content: space-between;
+  }
+  .payslip-doc-body {
+    padding: 22px 18px;
+  }
+  .payslip-voucher {
+    padding: 20px 18px;
+  }
+  .payslip-meta-grid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+  .payslip-tables {
+    grid-template-columns: 1fr;
+  }
+}
+
+@media (max-width: 480px) {
+  .payslip-banner-header > div:last-child {
+    text-align: left !important;
+  }
+}
+
 /* ── Responsive ───────────────────────────────────────── */
+@media (max-width: 1024px) {
+  .dashboard-columns {
+    grid-template-columns: 1fr;
+  }
+}
+
+@media (max-width: 900px) {
+  .leave-layout {
+    grid-template-columns: 1fr;
+    gap: 20px;
+  }
+}
+
+@media (max-width: 640px) {
+  .leave-balance-card {
+    padding: 18px !important;
+    border-radius: 18px !important;
+  }
+  .leave-balance-header {
+    flex-direction: column !important;
+    align-items: stretch !important;
+    gap: 12px !important;
+  }
+  .leave-balance-header button {
+    width: 100%;
+    justify-content: center;
+  }
+  .leave-progress-segments > div {
+    min-width: 8px;
+  }
+  .leave-tabs {
+    flex-wrap: nowrap !important;
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+    padding-bottom: 2px;
+  }
+  .leave-tabs button {
+    flex: 1 1 auto;
+    white-space: nowrap;
+    text-align: center;
+  }
+  .leave-row-actions {
+    flex-wrap: wrap;
+  }
+  .pill-tabs {
+    flex-wrap: nowrap;
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+    padding-bottom: 2px;
+  }
+  .pill-tabs button {
+    flex: 1 1 auto;
+    white-space: nowrap;
+    text-align: center;
+  }
+  .table-row-actions {
+    flex-wrap: wrap;
+  }
+}
+
 @media (max-width: 768px) {
   .stats-grid {
     grid-template-columns: 1fr 1fr;
@@ -695,6 +1478,127 @@ a:hover {
   }
   .timesheet-month-nav {
     justify-content: center;
+  }
+
+  /* Sidebar becomes an off-canvas drawer */
+  .app-sidebar {
+    width: min(80vw, 280px) !important;
+    transform: translateX(-100%);
+    transition: transform var(--transition-slow);
+    box-shadow: var(--shadow-lg);
+  }
+  .app-sidebar.mobile-open {
+    transform: translateX(0);
+  }
+
+  .app-main,
+  .app-main.sidebar-collapsed {
+    margin-left: 0 !important;
+  }
+
+  .sidebar-backdrop.visible {
+    display: block;
+    position: fixed;
+    inset: 0;
+    background: rgba(15, 23, 42, 0.5);
+    z-index: 90;
+    animation: fadeIn 0.2s ease;
+  }
+
+  .clock-strip {
+    justify-content: flex-start;
+    padding: 16px !important;
+  }
+
+  .dashboard-date-block {
+    text-align: left !important;
+    width: 100%;
+  }
+
+  .clock-strip-badge {
+    margin-left: 0 !important;
+  }
+
+  .app-content {
+    padding: 16px !important;
+  }
+
+  .topbar-search {
+    max-width: none !important;
+  }
+
+  .topbar-help,
+  .topbar-profile-text {
+    display: none !important;
+  }
+}
+
+@media (max-width: 480px) {
+  .topbar-search {
+    display: none !important;
+  }
+}
+
+@media (max-width: 640px) {
+  .platform-action-label {
+    display: none;
+  }
+  .platform-actions .btn {
+    padding: 6px 8px;
+  }
+  .view-toggle-label {
+    display: none;
+  }
+}
+
+/* ── Auth Card (Login / Platform Login) ──────────────── */
+.auth-card {
+  padding: 40px;
+}
+
+@media (max-width: 480px) {
+  .auth-card {
+    padding: 24px 20px;
+  }
+}
+
+/* ── Platform Console ─────────────────────────────────── */
+.platform-header {
+  padding: 16px 32px;
+}
+
+.platform-main {
+  padding: 32px;
+}
+
+@media (max-width: 768px) {
+  .platform-header {
+    padding: 12px 16px;
+  }
+  .platform-main {
+    padding: 16px;
+  }
+  .platform-admin-text,
+  .platform-admin-badge {
+    display: none;
+  }
+  .platform-admin-block {
+    padding-right: 10px !important;
+    gap: 0 !important;
+  }
+}
+
+/* Print Styles for Payslips PDF Generation */
+@media print {
+  body {
+    background: #ffffff !important;
+  }
+  aside, header, nav, .no-print, button {
+    display: none !important;
+  }
+  main, .main-content {
+    margin: 0 !important;
+    padding: 0 !important;
   }
 }
 

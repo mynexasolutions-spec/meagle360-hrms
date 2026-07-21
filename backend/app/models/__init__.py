@@ -39,6 +39,7 @@ from app.models.tax_slab import TaxSlab
 from app.models.professional_tax_slab import ProfessionalTaxSlab
 from app.models.employee_loan import EmployeeLoan
 from app.models.fnf_settlement import FnfSettlement
+from app.models.action_item import ActionItem
 
 __all__ = [
     "Base",
@@ -75,4 +76,5 @@ __all__ = [
     "ProfessionalTaxSlab",
     "EmployeeLoan",
     "FnfSettlement",
+    "ActionItem",
 ]

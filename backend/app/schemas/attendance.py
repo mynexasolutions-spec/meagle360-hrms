@@ -8,10 +8,11 @@ from pydantic import BaseModel
 class ClockInRequest(BaseModel):
     source: str = "web"
     location: str | None = None
+    summary: str | None = None
 
 
 class ClockOutRequest(BaseModel):
-    pass
+    summary: str | None = None
 
 
 class AttendanceRecordResponse(BaseModel):
@@ -21,6 +22,7 @@ class AttendanceRecordResponse(BaseModel):
     clock_out: datetime | None
     source: str
     location: str | None
+    summary: str | None = None
     created_at: datetime
 
     class Config:
@@ -50,6 +52,7 @@ class TimesheetSession(BaseModel):
     clock_out: datetime | None
     duration_minutes: float | None
     source: str
+    summary: str | None = None
 
 
 class TimesheetDay(BaseModel):

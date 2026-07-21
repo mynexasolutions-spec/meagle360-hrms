@@ -1,9 +1,13 @@
-import { useEffect, useState } from 'react';
-import { Plus, UserPlus, Ban, CheckCircle2, Copy, Users, Pencil, Trash2 } from 'lucide-react';
+import { useEffect, useMemo, useState } from 'react';
+import {
+  Plus, UserPlus, Ban, CheckCircle2, Copy, Check, Users, Pencil, Trash2,
+  Building2, Clock3, Search, ShieldAlert, RefreshCw, Mail,
+} from 'lucide-react';
 import Modal from '../components/Modal';
+import StatCard from '../components/StatCard';
 import {
   listCompanies, createCompany, updateCompanyStatus, inviteCompanyAdmin,
-  listCompanyUsers, updateCompany, deleteCompany,
+  listCompanyUsers, updateCompany, deleteCompany, resendCompanyAdminInvite,
 } from '../api/platform';
 
 const STATUS_BADGE = {
@@ -12,6 +16,40 @@ const STATUS_BADGE = {
   suspended: 'badge-rejected',
   cancelled: 'badge-inactive',
 };
+
+const STATUS_DOT = {
+  active: '#10b981',
+  pending_setup: '#f59e0b',
+  suspended: '#ef4444',
+  cancelled: '#94a3b8',
+};
+
+const PLAN_STYLES = {
+  standard: { color: '#2563eb', bg: '#eff6ff' },
+  pro: { color: '#7c3aed', bg: '#f5f3ff' },
+  enterprise: { color: '#d97706', bg: '#fffbeb' },
+};
+
+const AVATAR_GRADIENTS = [
+  'linear-gradient(135deg, #6366f1, #8b5cf6)',
+  'linear-gradient(135deg, #059669, #10b981)',
+  'linear-gradient(135deg, #d97706, #f59e0b)',
+  'linear-gradient(135deg, #db2777, #ec4899)',
+  'linear-gradient(135deg, #0891b2, #06b6d4)',
+];
+
+function companyInitials(name) {
+  return (name || '?')
+    .split(' ')
+    .filter(Boolean)
+    .slice(0, 2)
+    .map((w) => w[0].toUpperCase())
+    .join('');
+}
+
+function avatarGradient(id) {
+  return AVATAR_GRADIENTS[id % AVATAR_GRADIENTS.length];
+}
 
 export default function PlatformDashboard() {
   const [companies, setCompanies] = useState([]);
@@ -26,10 +64,14 @@ export default function PlatformDashboard() {
   const [inviteForm, setInviteForm] = useState({ email: '', full_name: '', employee_code: 'EMP001' });
   const [inviting, setInviting] = useState(false);
   const [inviteResult, setInviteResult] = useState(null);
+  const [linkCopied, setLinkCopied] = useState(false);
 
   const [usersFor, setUsersFor] = useState(null); // company object
   const [users, setUsers] = useState([]);
   const [usersLoading, setUsersLoading] = useState(false);
+  const [resendingId, setResendingId] = useState(null);
+  const [resendResult, setResendResult] = useState(null); // { userAccountId, email, link }
+  const [resendLinkCopied, setResendLinkCopied] = useState(false);
 
   const [editFor, setEditFor] = useState(null); // company object
   const [editForm, setEditForm] = useState({ name: '', country: '', plan_tier: 'standard', seat_limit: '' });
@@ -37,6 +79,23 @@ export default function PlatformDashboard() {
 
   const [deleteFor, setDeleteFor] = useState(null); // company object
   const [deleting, setDeleting] = useState(false);
+
+  const [search, setSearch] = useState('');
+
+  const stats = useMemo(() => ({
+    total: companies.length,
+    active: companies.filter((c) => c.status === 'active').length,
+    pending: companies.filter((c) => c.status === 'pending_setup').length,
+    suspended: companies.filter((c) => c.status === 'suspended').length,
+  }), [companies]);
+
+  const filteredCompanies = useMemo(() => {
+    const q = search.trim().toLowerCase();
+    if (!q) return companies;
+    return companies.filter((c) =>
+      c.name.toLowerCase().includes(q) || (c.country || '').toLowerCase().includes(q)
+    );
+  }, [companies, search]);
 
   const loadCompanies = () => {
     setLoading(true);
@@ -50,6 +109,7 @@ export default function PlatformDashboard() {
 
   const handleCreate = async (e) => {
     e.preventDefault();
+    setError('');
     setCreating(true);
     try {
       await createCompany({
@@ -70,6 +130,7 @@ export default function PlatformDashboard() {
 
   const handleToggleStatus = async (company) => {
     const nextStatus = company.status === 'suspended' ? 'active' : 'suspended';
+    setError('');
     try {
       await updateCompanyStatus(company.id, nextStatus);
       loadCompanies();
@@ -82,10 +143,18 @@ export default function PlatformDashboard() {
     setInviteFor(company);
     setInviteForm({ email: '', full_name: '', employee_code: 'EMP001' });
     setInviteResult(null);
+    setLinkCopied(false);
+  };
+
+  const handleCopyLink = () => {
+    navigator.clipboard.writeText(setupLink);
+    setLinkCopied(true);
+    setTimeout(() => setLinkCopied(false), 1800);
   };
 
   const handleInvite = async (e) => {
     e.preventDefault();
+    setError('');
     setInviting(true);
     try {
       const res = await inviteCompanyAdmin(inviteFor.id, inviteForm);
@@ -106,10 +175,37 @@ export default function PlatformDashboard() {
     setUsersFor(company);
     setUsers([]);
     setUsersLoading(true);
+    setResendResult(null);
     listCompanyUsers(company.id)
       .then((res) => setUsers(res.data))
       .catch((err) => setError(err.response?.data?.detail || 'Failed to load users'))
       .finally(() => setUsersLoading(false));
+  };
+
+  const handleResendInvite = async (user) => {
+    setError('');
+    setResendingId(user.user_account_id);
+    setResendResult(null);
+    setResendLinkCopied(false);
+    try {
+      const res = await resendCompanyAdminInvite(usersFor.id, user.user_account_id);
+      setResendResult({
+        userAccountId: user.user_account_id,
+        email: res.data.email,
+        emailSent: res.data.email_sent,
+        link: `${window.location.origin}/set-password?token=${res.data.invite_token}`,
+      });
+    } catch (err) {
+      setError(err.response?.data?.detail || 'Failed to resend invite');
+    } finally {
+      setResendingId(null);
+    }
+  };
+
+  const handleCopyResendLink = () => {
+    navigator.clipboard.writeText(resendResult.link);
+    setResendLinkCopied(true);
+    setTimeout(() => setResendLinkCopied(false), 1800);
   };
 
   const openEdit = (company) => {
@@ -124,6 +220,7 @@ export default function PlatformDashboard() {
 
   const handleEdit = async (e) => {
     e.preventDefault();
+    setError('');
     setEditing(true);
     try {
       await updateCompany(editFor.id, {
@@ -142,6 +239,7 @@ export default function PlatformDashboard() {
   };
 
   const handleDelete = async () => {
+    setError('');
     setDeleting(true);
     try {
       await deleteCompany(deleteFor.id);
@@ -156,10 +254,10 @@ export default function PlatformDashboard() {
 
   return (
     <div className="animate-fade-in">
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 24 }}>
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 24, flexWrap: 'wrap', gap: 12 }}>
         <div>
-          <h1 style={{ fontSize: '1.375rem', fontWeight: 700 }}>Tenants</h1>
-          <p style={{ color: 'var(--text-muted)', fontSize: '0.875rem' }}>
+          <h1 style={{ fontSize: '1.5rem', fontWeight: 800, color: '#0f172a', letterSpacing: '-0.01em' }}>Tenants</h1>
+          <p style={{ color: 'var(--text-muted)', fontSize: '0.875rem', marginTop: 2 }}>
             Companies provisioned on the Meagle360 HRMS platform
           </p>
         </div>
@@ -171,6 +269,7 @@ export default function PlatformDashboard() {
       {error && (
         <div
           style={{
+            display: 'flex', alignItems: 'center', gap: 8,
             padding: '10px 14px',
             borderRadius: 'var(--radius-md)',
             background: 'var(--accent-rose-light)',
@@ -179,69 +278,129 @@ export default function PlatformDashboard() {
             marginBottom: 16,
           }}
         >
-          {error}
+          <ShieldAlert size={15} style={{ flexShrink: 0 }} /> {error}
         </div>
       )}
 
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: 16, marginBottom: 24 }}>
+        <StatCard icon={Building2} label="Total Companies" value={stats.total} bgColor="#eff6ff" color="#2563eb" />
+        <StatCard icon={CheckCircle2} label="Active" value={stats.active} bgColor="#ecfdf5" color="#059669" />
+        <StatCard icon={Clock3} label="Pending Setup" value={stats.pending} bgColor="#fffbeb" color="#d97706" />
+        <StatCard icon={Ban} label="Suspended" value={stats.suspended} bgColor="#fef2f2" color="#dc2626" />
+      </div>
+
       <div className="glass-card" style={{ padding: 0, overflow: 'hidden' }}>
+        <div
+          style={{
+            display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12,
+            padding: '16px 20px', borderBottom: '1px solid var(--border-color)', flexWrap: 'wrap',
+          }}
+        >
+          <span style={{ fontSize: '0.875rem', fontWeight: 700, color: '#0f172a' }}>
+            {filteredCompanies.length} {filteredCompanies.length === 1 ? 'Company' : 'Companies'}
+          </span>
+          <div style={{ position: 'relative', width: 260, maxWidth: '100%' }}>
+            <Search size={15} style={{ position: 'absolute', left: 12, top: '50%', transform: 'translateY(-50%)', color: 'var(--text-muted)' }} />
+            <input
+              className="input-field"
+              style={{ paddingLeft: 34, fontSize: '0.8125rem' }}
+              placeholder="Search by name or country..."
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
+            />
+          </div>
+        </div>
+
         {loading ? (
-          <div style={{ padding: 24, color: 'var(--text-muted)' }}>Loading...</div>
-        ) : companies.length === 0 ? (
-          <div style={{ padding: 24, color: 'var(--text-muted)' }}>No companies yet. Create the first one.</div>
+          <div style={{ padding: 40, textAlign: 'center', color: 'var(--text-muted)', fontSize: '0.875rem' }}>Loading tenants...</div>
+        ) : filteredCompanies.length === 0 ? (
+          <div style={{ padding: 40, textAlign: 'center', color: 'var(--text-muted)', fontSize: '0.875rem' }}>
+            {companies.length === 0 ? 'No companies yet. Create the first one.' : 'No companies match your search.'}
+          </div>
         ) : (
-          <table style={{ width: '100%', borderCollapse: 'collapse' }}>
-            <thead>
-              <tr style={{ textAlign: 'left', borderBottom: '1px solid var(--border-color)' }}>
-                <th style={{ padding: '12px 16px', fontSize: '0.75rem', color: 'var(--text-muted)' }}>Name</th>
-                <th style={{ padding: '12px 16px', fontSize: '0.75rem', color: 'var(--text-muted)' }}>Status</th>
-                <th style={{ padding: '12px 16px', fontSize: '0.75rem', color: 'var(--text-muted)' }}>Plan</th>
-                <th style={{ padding: '12px 16px', fontSize: '0.75rem', color: 'var(--text-muted)' }}>Country</th>
-                <th style={{ padding: '12px 16px', fontSize: '0.75rem', color: 'var(--text-muted)' }}>Actions</th>
-              </tr>
-            </thead>
-            <tbody>
-              {companies.map((c) => (
-                <tr key={c.id} style={{ borderBottom: '1px solid var(--border-color)' }}>
-                  <td style={{ padding: '12px 16px', fontWeight: 600, fontSize: '0.875rem' }}>{c.name}</td>
-                  <td style={{ padding: '12px 16px' }}>
-                    <span className={`badge ${STATUS_BADGE[c.status] || 'badge-info'}`}>{c.status}</span>
-                  </td>
-                  <td style={{ padding: '12px 16px', fontSize: '0.8125rem' }}>{c.plan_tier}</td>
-                  <td style={{ padding: '12px 16px', fontSize: '0.8125rem' }}>{c.country || '—'}</td>
-                  <td style={{ padding: '12px 16px' }}>
-                    <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
-                      <button className="btn btn-secondary" style={{ padding: '6px 10px' }} onClick={() => openUsers(c)}>
-                        <Users size={14} /> Users
-                      </button>
-                      <button className="btn btn-secondary" style={{ padding: '6px 10px' }} onClick={() => openInvite(c)}>
-                        <UserPlus size={14} /> Invite Admin
-                      </button>
-                      <button
-                        className="btn btn-secondary"
-                        style={{ padding: '6px 10px' }}
-                        onClick={() => handleToggleStatus(c)}
-                        disabled={c.status === 'pending_setup'}
-                        title={c.status === 'pending_setup' ? 'Awaiting admin setup' : ''}
-                      >
-                        {c.status === 'suspended' ? <CheckCircle2 size={14} /> : <Ban size={14} />}
-                        {c.status === 'suspended' ? 'Reactivate' : 'Suspend'}
-                      </button>
-                      <button className="btn btn-secondary" style={{ padding: '6px 10px' }} onClick={() => openEdit(c)}>
-                        <Pencil size={14} /> Edit
-                      </button>
-                      <button
-                        className="btn btn-secondary"
-                        style={{ padding: '6px 10px', color: 'var(--accent-rose)' }}
-                        onClick={() => setDeleteFor(c)}
-                      >
-                        <Trash2 size={14} /> Delete
-                      </button>
-                    </div>
-                  </td>
+          <div style={{ overflowX: 'auto' }}>
+            <table className="data-table">
+              <thead>
+                <tr>
+                  <th>Company</th>
+                  <th>Status</th>
+                  <th>Plan</th>
+                  <th>Country</th>
+                  <th style={{ textAlign: 'right' }}>Actions</th>
                 </tr>
-              ))}
-            </tbody>
-          </table>
+              </thead>
+              <tbody>
+                {filteredCompanies.map((c, i) => {
+                  const plan = PLAN_STYLES[c.plan_tier] || PLAN_STYLES.standard;
+                  return (
+                    <tr key={c.id}>
+                      <td style={{ whiteSpace: 'nowrap' }}>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+                          <div
+                            style={{
+                              width: 36, height: 36, borderRadius: 'var(--radius-md)', flexShrink: 0,
+                              background: avatarGradient(i), display: 'flex', alignItems: 'center',
+                              justifyContent: 'center', color: 'white', fontSize: '0.75rem', fontWeight: 700,
+                            }}
+                          >
+                            {companyInitials(c.name)}
+                          </div>
+                          <span style={{ fontWeight: 700, color: '#0f172a' }}>{c.name}</span>
+                        </div>
+                      </td>
+                      <td style={{ whiteSpace: 'nowrap' }}>
+                        <span style={{ display: 'inline-flex', alignItems: 'center', gap: 6 }}>
+                          <span style={{ width: 7, height: 7, borderRadius: '50%', background: STATUS_DOT[c.status] || '#94a3b8', flexShrink: 0 }} />
+                          <span className={`badge ${STATUS_BADGE[c.status] || 'badge-info'}`}>{c.status.replace('_', ' ')}</span>
+                        </span>
+                      </td>
+                      <td style={{ whiteSpace: 'nowrap' }}>
+                        <span
+                          style={{
+                            fontSize: '0.75rem', fontWeight: 700, textTransform: 'capitalize',
+                            color: plan.color, background: plan.bg, padding: '3px 10px', borderRadius: 'var(--radius-full)',
+                            whiteSpace: 'nowrap',
+                          }}
+                        >
+                          {c.plan_tier}
+                        </span>
+                      </td>
+                      <td style={{ color: 'var(--text-secondary)', whiteSpace: 'nowrap' }}>{c.country || '—'}</td>
+                      <td style={{ whiteSpace: 'nowrap' }}>
+                        <div className="platform-actions" style={{ display: 'flex', gap: 6, justifyContent: 'flex-end', flexWrap: 'nowrap' }}>
+                          <button className="btn btn-secondary btn-sm" onClick={() => openUsers(c)}>
+                            <Users size={14} /> <span className="platform-action-label">Users</span>
+                          </button>
+                          <button className="btn btn-secondary btn-sm" onClick={() => openInvite(c)}>
+                            <UserPlus size={14} /> <span className="platform-action-label">Invite</span>
+                          </button>
+                          <button
+                            className="btn btn-secondary btn-sm"
+                            onClick={() => handleToggleStatus(c)}
+                            disabled={c.status === 'pending_setup'}
+                            title={c.status === 'pending_setup' ? 'Awaiting admin setup' : ''}
+                          >
+                            {c.status === 'suspended' ? <CheckCircle2 size={14} /> : <Ban size={14} />}
+                            <span className="platform-action-label">{c.status === 'suspended' ? 'Reactivate' : 'Suspend'}</span>
+                          </button>
+                          <button className="btn btn-secondary btn-sm" onClick={() => openEdit(c)}>
+                            <Pencil size={14} /> <span className="platform-action-label">Edit</span>
+                          </button>
+                          <button
+                            className="btn btn-secondary btn-sm"
+                            style={{ color: 'var(--accent-rose)' }}
+                            onClick={() => setDeleteFor(c)}
+                          >
+                            <Trash2 size={14} /> <span className="platform-action-label">Delete</span>
+                          </button>
+                        </div>
+                      </td>
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
+          </div>
         )}
       </div>
 
@@ -331,9 +490,26 @@ export default function PlatformDashboard() {
             </form>
           ) : (
             <div>
-              <p style={{ fontSize: '0.875rem', color: 'var(--text-secondary)', marginBottom: 12 }}>
-                Admin account created for <strong>{inviteResult.email}</strong>. In production this
-                link is emailed automatically — for now, share it manually. It expires in 48 hours.
+              {inviteResult.email_sent ? (
+                <div
+                  style={{
+                    display: 'flex', alignItems: 'center', gap: 8,
+                    padding: '10px 14px', borderRadius: 'var(--radius-md)',
+                    background: 'var(--accent-emerald-light)', color: 'var(--accent-emerald)',
+                    fontSize: '0.8125rem', fontWeight: 600, marginBottom: 12,
+                  }}
+                >
+                  <Mail size={15} style={{ flexShrink: 0 }} />
+                  Setup email sent to {inviteResult.email}
+                </div>
+              ) : (
+                <p style={{ fontSize: '0.875rem', color: 'var(--text-secondary)', marginBottom: 12 }}>
+                  Admin account created for <strong>{inviteResult.email}</strong>, but the setup
+                  email couldn't be sent automatically — share this link with them manually instead.
+                </p>
+              )}
+              <p style={{ fontSize: '0.8125rem', color: 'var(--text-muted)', marginBottom: 12 }}>
+                This link expires in 48 hours{inviteResult.email_sent ? ' — you can also share it directly as a backup' : ''}.
               </p>
               <div
                 style={{
@@ -348,16 +524,26 @@ export default function PlatformDashboard() {
                   wordBreak: 'break-all',
                 }}
               >
-                <span style={{ flex: 1 }}>{setupLink}</span>
+                <span style={{ flex: 1, minWidth: 0 }}>{setupLink}</span>
                 <button
                   type="button"
                   className="btn-icon btn-ghost"
-                  onClick={() => navigator.clipboard.writeText(setupLink)}
-                  title="Copy link"
+                  style={{
+                    flexShrink: 0,
+                    color: linkCopied ? 'var(--accent-emerald)' : undefined,
+                    background: linkCopied ? 'var(--accent-emerald-light)' : undefined,
+                  }}
+                  onClick={handleCopyLink}
+                  title={linkCopied ? 'Copied!' : 'Copy link'}
                 >
-                  <Copy size={14} />
+                  {linkCopied ? <Check size={14} /> : <Copy size={14} />}
                 </button>
               </div>
+              {linkCopied && (
+                <div style={{ fontSize: '0.75rem', color: 'var(--accent-emerald)', fontWeight: 600, marginTop: 6 }}>
+                  Copied to clipboard
+                </div>
+              )}
               <button className="btn btn-secondary" style={{ width: '100%', justifyContent: 'center', marginTop: 16 }} onClick={() => setInviteFor(null)}>
                 Done
               </button>
@@ -375,26 +561,100 @@ export default function PlatformDashboard() {
               No users yet — invite the first admin to get started.
             </div>
           ) : (
-            <table style={{ width: '100%', borderCollapse: 'collapse' }}>
-              <thead>
-                <tr style={{ textAlign: 'left', borderBottom: '1px solid var(--border-color)' }}>
-                  <th style={{ padding: '8px', fontSize: '0.75rem', color: 'var(--text-muted)' }}>Name</th>
-                  <th style={{ padding: '8px', fontSize: '0.75rem', color: 'var(--text-muted)' }}>Email</th>
-                  <th style={{ padding: '8px', fontSize: '0.75rem', color: 'var(--text-muted)' }}>Role(s)</th>
-                </tr>
-              </thead>
-              <tbody>
-                {users.map((u) => (
-                  <tr key={u.user_account_id} style={{ borderBottom: '1px solid var(--border-color)' }}>
-                    <td style={{ padding: '8px', fontSize: '0.8125rem', fontWeight: 500 }}>{u.full_name}</td>
-                    <td style={{ padding: '8px', fontSize: '0.8125rem' }}>{u.email}</td>
-                    <td style={{ padding: '8px', fontSize: '0.8125rem' }}>
-                      {u.role_names.length > 0 ? u.role_names.join(', ') : '—'}
-                    </td>
+            <div style={{ overflowX: 'auto' }}>
+              <table style={{ width: '100%', borderCollapse: 'collapse' }}>
+                <thead>
+                  <tr style={{ textAlign: 'left', borderBottom: '1px solid var(--border-color)' }}>
+                    <th style={{ padding: '8px', fontSize: '0.75rem', color: 'var(--text-muted)', whiteSpace: 'nowrap' }}>Name</th>
+                    <th style={{ padding: '8px', fontSize: '0.75rem', color: 'var(--text-muted)', whiteSpace: 'nowrap' }}>Email</th>
+                    <th style={{ padding: '8px', fontSize: '0.75rem', color: 'var(--text-muted)', whiteSpace: 'nowrap' }}>Role(s)</th>
+                    <th style={{ padding: '8px', fontSize: '0.75rem', color: 'var(--text-muted)', whiteSpace: 'nowrap' }}>Status</th>
+                    <th style={{ padding: '8px', fontSize: '0.75rem', color: 'var(--text-muted)', whiteSpace: 'nowrap' }}></th>
                   </tr>
-                ))}
-              </tbody>
-            </table>
+                </thead>
+                <tbody>
+                  {users.map((u) => {
+                    const isPending = !u.invite_accepted_at;
+                    return (
+                      <tr key={u.user_account_id} style={{ borderBottom: '1px solid var(--border-color)' }}>
+                        <td style={{ padding: '8px', fontSize: '0.8125rem', fontWeight: 500, whiteSpace: 'nowrap' }}>{u.full_name}</td>
+                        <td style={{ padding: '8px', fontSize: '0.8125rem', whiteSpace: 'nowrap' }}>{u.email}</td>
+                        <td style={{ padding: '8px', fontSize: '0.8125rem', whiteSpace: 'nowrap' }}>
+                          {u.role_names.length > 0 ? u.role_names.join(', ') : '—'}
+                        </td>
+                        <td style={{ padding: '8px', whiteSpace: 'nowrap' }}>
+                          <span className={`badge ${isPending ? 'badge-pending' : 'badge-active'}`}>
+                            {isPending ? 'Invited' : 'Active'}
+                          </span>
+                        </td>
+                        <td style={{ padding: '8px', whiteSpace: 'nowrap' }}>
+                          {isPending && (
+                            <button
+                              className="btn btn-secondary btn-sm"
+                              onClick={() => handleResendInvite(u)}
+                              disabled={resendingId === u.user_account_id}
+                            >
+                              <RefreshCw size={13} /> {resendingId === u.user_account_id ? 'Sending...' : 'Resend Invite'}
+                            </button>
+                          )}
+                        </td>
+                      </tr>
+                    );
+                  })}
+                </tbody>
+              </table>
+            </div>
+          )}
+
+          {resendResult && (
+            <div style={{ marginTop: 16 }}>
+              {resendResult.emailSent ? (
+                <div
+                  style={{
+                    display: 'flex', alignItems: 'center', gap: 8,
+                    padding: '10px 14px', borderRadius: 'var(--radius-md)',
+                    background: 'var(--accent-emerald-light)', color: 'var(--accent-emerald)',
+                    fontSize: '0.8125rem', fontWeight: 600, marginBottom: 8,
+                  }}
+                >
+                  <Mail size={15} style={{ flexShrink: 0 }} />
+                  New setup email sent to {resendResult.email}
+                </div>
+              ) : (
+                <p style={{ fontSize: '0.8125rem', color: 'var(--text-secondary)', marginBottom: 8 }}>
+                  New invite link generated for <strong>{resendResult.email}</strong>, but the email
+                  couldn't be sent automatically — share this link manually instead.
+                </p>
+              )}
+              <div
+                style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: 8,
+                  padding: '10px 12px',
+                  borderRadius: 'var(--radius-md)',
+                  background: 'var(--bg-secondary)',
+                  border: '1px solid var(--border-color)',
+                  fontSize: '0.75rem',
+                  wordBreak: 'break-all',
+                }}
+              >
+                <span style={{ flex: 1, minWidth: 0 }}>{resendResult.link}</span>
+                <button
+                  type="button"
+                  className="btn-icon btn-ghost"
+                  style={{
+                    flexShrink: 0,
+                    color: resendLinkCopied ? 'var(--accent-emerald)' : undefined,
+                    background: resendLinkCopied ? 'var(--accent-emerald-light)' : undefined,
+                  }}
+                  onClick={handleCopyResendLink}
+                  title={resendLinkCopied ? 'Copied!' : 'Copy link'}
+                >
+                  {resendLinkCopied ? <Check size={14} /> : <Copy size={14} />}
+                </button>
+              </div>
+            </div>
           )}
         </Modal>
       )}

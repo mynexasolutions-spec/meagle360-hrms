@@ -68,6 +68,9 @@ export const inviteCompanyAdmin = (companyId, data) =>
 export const listCompanyUsers = (companyId) =>
   platformClient.get(`/platform/companies/${companyId}/users`);
 
+export const resendCompanyAdminInvite = (companyId, userAccountId) =>
+  platformClient.post(`/platform/companies/${companyId}/users/${userAccountId}/resend-invite`);
+
 export const updateCompany = (companyId, data) =>
   platformClient.patch(`/platform/companies/${companyId}`, data);
 

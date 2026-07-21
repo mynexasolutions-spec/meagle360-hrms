@@ -73,12 +73,12 @@ export default function TopBar({ onToggleSidebar }) {
         <Menu size={20} />
       </button>
 
-      <form onSubmit={handleSearchSubmit} style={{ flex: 1, maxWidth: 420, position: 'relative' }}>
-        <Search size={16} style={{ position: 'absolute', left: 12, top: '50%', transform: 'translateY(-50%)', color: 'var(--text-muted)' }} />
+      <form onSubmit={handleSearchSubmit} className="topbar-search topbar-search-form" style={{ flex: 1, maxWidth: 420 }}>
+        <Search size={16} style={{ position: 'absolute', left: 14, top: '50%', transform: 'translateY(-50%)', color: 'var(--text-muted)' }} />
         <input
           type="text"
           className="input-field"
-          style={{ paddingLeft: 36, background: 'var(--bg-input)' }}
+          style={{ paddingLeft: 38, background: 'var(--bg-input)' }}
           placeholder="Search employees, documents, policies..."
           value={search}
           onChange={(e) => setSearch(e.target.value)}
@@ -88,7 +88,7 @@ export default function TopBar({ onToggleSidebar }) {
       <div style={{ flex: 1 }} />
 
       <button
-        className="btn-icon btn-ghost"
+        className="btn-icon btn-ghost topbar-icon-btn"
         style={{ position: 'relative' }}
         title="Notifications"
         onClick={() => canApprove && navigate('/leave')}
@@ -96,6 +96,7 @@ export default function TopBar({ onToggleSidebar }) {
         <Bell size={20} />
         {pendingCount > 0 && (
           <span
+            className="topbar-notif-dot"
             style={{
               position: 'absolute',
               top: 2,
@@ -111,6 +112,7 @@ export default function TopBar({ onToggleSidebar }) {
               alignItems: 'center',
               justifyContent: 'center',
               padding: '0 3px',
+              boxShadow: '0 0 0 2px var(--bg-secondary)',
             }}
           >
             {pendingCount}
@@ -118,13 +120,14 @@ export default function TopBar({ onToggleSidebar }) {
         )}
       </button>
 
-      <button className="btn-icon btn-ghost" title="Help">
+      <button className="btn-icon btn-ghost topbar-help topbar-icon-btn" title="Help">
         <HelpCircle size={20} />
       </button>
 
       <div ref={menuRef} style={{ position: 'relative' }}>
         <button
           onClick={() => setMenuOpen((v) => !v)}
+          className={`topbar-profile-trigger${menuOpen ? ' open' : ''}`}
           style={{
             display: 'flex',
             alignItems: 'center',
@@ -132,20 +135,20 @@ export default function TopBar({ onToggleSidebar }) {
             background: 'none',
             border: 'none',
             cursor: 'pointer',
-            padding: '6px 8px',
-            borderRadius: 'var(--radius-md)',
+            padding: '6px 10px',
+            borderRadius: 'var(--radius-full)',
           }}
         >
           <div className="avatar" style={{ background: 'var(--gradient-primary)', fontSize: '0.8rem' }}>
             {initials}
           </div>
-          <div style={{ textAlign: 'left' }}>
+          <div className="topbar-profile-text" style={{ textAlign: 'left' }}>
             <div style={{ fontSize: '0.8125rem', fontWeight: 600, color: 'var(--text-primary)' }}>
               {company?.name || 'Company'}
             </div>
             <div style={{ fontSize: '0.6875rem', color: 'var(--text-muted)' }}>{user?.role_name}</div>
           </div>
-          <ChevronDown size={14} style={{ color: 'var(--text-muted)' }} />
+          <ChevronDown size={14} className="topbar-profile-text topbar-chevron" style={{ color: 'var(--text-muted)' }} />
         </button>
 
         {menuOpen && (
@@ -155,26 +158,45 @@ export default function TopBar({ onToggleSidebar }) {
               position: 'absolute',
               right: 0,
               top: '110%',
-              minWidth: 180,
+              minWidth: 220,
               padding: 6,
               zIndex: 100,
+              boxShadow: '0 12px 32px -8px rgba(15, 23, 42, 0.18)',
             }}
           >
+            <div style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '8px 10px 12px' }}>
+              <div className="avatar" style={{ width: 38, height: 38, background: 'var(--gradient-primary)', fontSize: '0.85rem', flexShrink: 0 }}>
+                {initials}
+              </div>
+              <div style={{ minWidth: 0 }}>
+                <div className="truncate" style={{ fontSize: '0.8125rem', fontWeight: 800, color: 'var(--text-primary)' }}>
+                  {user?.full_name || 'User'}
+                </div>
+                <div className="truncate" style={{ fontSize: '0.6875rem', fontWeight: 600, color: 'var(--text-muted)' }}>
+                  {user?.role_name || 'Employee'}
+                </div>
+              </div>
+            </div>
+            <div style={{ height: 1, background: 'var(--border-color)', margin: '0 6px 6px' }} />
             <button
+              className="topbar-menu-item"
               onClick={() => { setMenuOpen(false); navigate('/profile'); }}
-              style={{ display: 'flex', alignItems: 'center', gap: 10, width: '100%', padding: '8px 12px', background: 'none', border: 'none', cursor: 'pointer', borderRadius: 'var(--radius-sm)', fontSize: '0.8125rem', color: 'var(--text-primary)', fontFamily: 'inherit' }}
-              onMouseEnter={(e) => (e.currentTarget.style.background = 'var(--bg-hover)')}
-              onMouseLeave={(e) => (e.currentTarget.style.background = 'none')}
+              style={{ display: 'flex', alignItems: 'center', gap: 10, width: '100%', padding: '8px 10px', background: 'none', border: 'none', cursor: 'pointer', borderRadius: 'var(--radius-sm)', fontSize: '0.8125rem', color: 'var(--text-primary)', fontFamily: 'inherit', fontWeight: 500 }}
             >
-              <User size={15} /> My Profile
+              <span className="topbar-menu-icon" style={{ background: 'var(--accent-blue-light)' }}>
+                <User size={14} style={{ color: 'var(--accent-blue)' }} />
+              </span>
+              My Profile
             </button>
             <button
+              className="topbar-menu-item danger"
               onClick={handleLogout}
-              style={{ display: 'flex', alignItems: 'center', gap: 10, width: '100%', padding: '8px 12px', background: 'none', border: 'none', cursor: 'pointer', borderRadius: 'var(--radius-sm)', fontSize: '0.8125rem', color: 'var(--accent-rose)', fontFamily: 'inherit' }}
-              onMouseEnter={(e) => (e.currentTarget.style.background = 'var(--accent-rose-light)')}
-              onMouseLeave={(e) => (e.currentTarget.style.background = 'none')}
+              style={{ display: 'flex', alignItems: 'center', gap: 10, width: '100%', padding: '8px 10px', background: 'none', border: 'none', cursor: 'pointer', borderRadius: 'var(--radius-sm)', fontSize: '0.8125rem', color: 'var(--accent-rose)', fontFamily: 'inherit', fontWeight: 500 }}
             >
-              <LogOut size={15} /> Logout
+              <span className="topbar-menu-icon" style={{ background: 'var(--accent-rose-light)' }}>
+                <LogOut size={14} style={{ color: 'var(--accent-rose)' }} />
+              </span>
+              Logout
             </button>
           </div>
         )}

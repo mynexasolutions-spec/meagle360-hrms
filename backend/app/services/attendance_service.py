@@ -21,7 +21,7 @@ class AttendanceService:
         self.company_id = company_id
 
     def clock_in(
-        self, employee_id: UUID, source: str = "web", location: str | None = None
+        self, employee_id: UUID, source: str = "web", location: str | None = None, summary: str | None = None
     ) -> AttendanceRecord:
         """Clock in — create a new open attendance record."""
         # Check for existing open record
@@ -35,19 +35,38 @@ class AttendanceService:
             clock_in=datetime.now(timezone.utc),
             source=source,
             location=location,
+            summary=summary,
         )
         self.db.add(record)
         self.db.commit()
         self.db.refresh(record)
         return record
 
-    def clock_out(self, employee_id: UUID) -> AttendanceRecord:
+    def clock_out(self, employee_id: UUID, summary: str | None = None) -> AttendanceRecord:
         """Clock out — close the open attendance record."""
         record = self.repo.get_open_record(employee_id)
         if not record:
             raise ValueError("No open clock-in found.")
 
-        record.clock_out = datetime.now(timezone.utc)
+        now = datetime.now(timezone.utc)
+        # Ensure clock_in is offset-aware for comparison
+        clock_in_time = record.clock_in
+        if clock_in_time.tzinfo is None:
+            clock_in_time = clock_in_time.replace(tzinfo=timezone.utc)
+
+        elapsed_seconds = (now - clock_in_time).total_seconds()
+        min_required_seconds = 10 * 60  # 10 minutes
+
+        if elapsed_seconds < min_required_seconds:
+            remaining_seconds = int(min_required_seconds - elapsed_seconds)
+            remaining_minutes = (remaining_seconds // 60) + 1
+            raise ValueError(
+                f"You must wait at least 10 minutes after clocking in before clocking out. Please wait ~{remaining_minutes} more minute(s)."
+            )
+
+        record.clock_out = now
+        if summary:
+            record.summary = summary
         self.db.commit()
         self.db.refresh(record)
         return record
@@ -65,6 +84,31 @@ class AttendanceService:
 
     # ── Regularization requests ──────────────────────────
     def request_regularization(self, employee_id: UUID, data: dict) -> AttendanceRegularization:
+        # Enforce Monthly Limit: Max 5 regularization requests per month
+        req_date = data["record_date"]
+        start_of_month = req_date.replace(day=1)
+        # Next month start
+        if req_date.month == 12:
+            end_of_month = req_date.replace(year=req_date.year + 1, month=1, day=1)
+        else:
+            end_of_month = req_date.replace(month=req_date.month + 1, day=1)
+
+        monthly_count = (
+            self.db.query(AttendanceRegularization)
+            .filter(
+                AttendanceRegularization.company_id == self.company_id,
+                AttendanceRegularization.employee_id == employee_id,
+                AttendanceRegularization.record_date >= start_of_month,
+                AttendanceRegularization.record_date < end_of_month,
+                AttendanceRegularization.status.in_(["pending", "approved"]),
+            )
+            .count()
+        )
+
+        MAX_MONTHLY_LIMIT = 5
+        if monthly_count >= MAX_MONTHLY_LIMIT:
+            raise ValueError(f"Monthly regularization limit reached ({MAX_MONTHLY_LIMIT} requests per month allowed).")
+
         req = AttendanceRegularization(
             company_id=self.company_id,
             employee_id=employee_id,
@@ -153,6 +197,7 @@ class AttendanceService:
                     "clock_out": rec.clock_out,
                     "duration_minutes": round(duration, 1) if duration is not None else None,
                     "source": rec.source,
+                    "summary": rec.summary,
                 })
 
                 if duration is not None:
@@ -233,6 +278,19 @@ class AttendanceService:
                 "reason": ot.reason,
             })
 
+        from app.repositories.shift_repo import EmployeeShiftRepository
+        emp_shifts = EmployeeShiftRepository(self.db, self.company_id).get_by_employee(employee_id)
+        active_shift = emp_shifts[0].shift if emp_shifts and emp_shifts[0].shift else None
+        shift_start = active_shift.start_time if active_shift else None
+
+        shift_info = None
+        if active_shift:
+            shift_info = {
+                "shift_type": active_shift.shift_type,
+                "start_time": active_shift.start_time.strftime("%H:%M") if active_shift.start_time else None,
+                "end_time": active_shift.end_time.strftime("%H:%M") if active_shift.end_time else None,
+            }
+
         days = []
         month_total_minutes = 0.0
 
@@ -249,11 +307,31 @@ class AttendanceService:
                     duration = None
                     all_complete = False
 
+                # Convert UTC clock_in to local time (or target timezone) for accurate clock_in time matching
+                # Assuming Indian Standard Time (+5:30) or local offset for comparison
+                local_clock_in = rec.clock_in + timedelta(hours=5, minutes=30)
+                rec_time = local_clock_in.time()
+                rec_mins = rec_time.hour * 60 + rec_time.minute
+
+                punctuality = "On Time"
+                if shift_start:
+                    shift_mins = shift_start.hour * 60 + shift_start.minute
+                    if rec_mins > shift_mins + 15:
+                        punctuality = "Late"
+                    elif rec_mins < shift_mins - 15:
+                        punctuality = "Early"
+                else:
+                    # Default shift threshold: 9:15 AM
+                    if rec_mins > 9 * 60 + 15:
+                        punctuality = "Late"
+
                 sessions.append({
                     "clock_in": rec.clock_in,
                     "clock_out": rec.clock_out,
                     "duration_minutes": round(duration, 1) if duration is not None else None,
                     "source": rec.source,
+                    "summary": rec.summary,
+                    "punctuality_status": punctuality,
                 })
                 if duration is not None:
                     day_total_minutes += duration
@@ -277,5 +355,6 @@ class AttendanceService:
             "year": year,
             "month": month,
             "month_total_hours": round(month_total_minutes / 60.0, 2),
+            "shift_info": shift_info,
             "days": days,
         }

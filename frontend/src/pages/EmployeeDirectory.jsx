@@ -1,8 +1,9 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { Link } from 'react-router-dom';
 import { getDirectory, inviteEmployee, getDepartments, getRoles, getSites } from '../api/employees';
-import { Users, Search, Plus, Copy } from 'lucide-react';
+import { Users, Search, Plus, Copy, Check, LayoutGrid, List, Mail, UserCheck, UserX } from 'lucide-react';
 import Modal from '../components/Modal';
+import StatCard from '../components/StatCard';
 import { useAuth } from '../context/AuthContext';
 
 const ACCOUNT_STATUS_LABEL = {
@@ -18,11 +19,11 @@ const ACCOUNT_STATUS_COLOR = {
 };
 
 const AVATAR_COLORS = [
-  'linear-gradient(135deg, #3b82f6, #8b5cf6)',
-  'linear-gradient(135deg, #10b981, #06b6d4)',
-  'linear-gradient(135deg, #f59e0b, #ef4444)',
-  'linear-gradient(135deg, #ec4899, #8b5cf6)',
-  'linear-gradient(135deg, #06b6d4, #3b82f6)',
+  'linear-gradient(135deg, #3b82f6, #1d4ed8)',
+  'linear-gradient(135deg, #10b981, #059669)',
+  'linear-gradient(135deg, #f59e0b, #d97706)',
+  'linear-gradient(135deg, #8b5cf6, #7c3aed)',
+  'linear-gradient(135deg, #06b6d4, #0284c7)',
 ];
 
 const EMPTY_FORM = {
@@ -44,18 +45,20 @@ export default function EmployeeDirectory() {
   const [sites, setSites] = useState([]);
   const [roles, setRoles] = useState([]);
   const [search, setSearch] = useState('');
+  const [viewMode, setViewMode] = useState('table'); // 'table' or 'grid'
   const [showInvite, setShowInvite] = useState(false);
   const [form, setForm] = useState(EMPTY_FORM);
   const [inviting, setInviting] = useState(false);
   const [inviteResult, setInviteResult] = useState(null);
   const [error, setError] = useState('');
+  const [linkCopied, setLinkCopied] = useState(false);
 
   useEffect(() => {
     loadEmployees();
-    getDepartments().then((res) => setDepartments(res.data)).catch(() => {});
-    getSites().then((res) => setSites(res.data)).catch(() => {});
+    getDepartments().then((res) => setDepartments(res.data)).catch(() => { });
+    getSites().then((res) => setSites(res.data)).catch(() => { });
     if (canInvite) {
-      getRoles().then((res) => setRoles(res.data)).catch(() => {});
+      getRoles().then((res) => setRoles(res.data)).catch(() => { });
     }
   }, []);
 
@@ -68,6 +71,13 @@ export default function EmployeeDirectory() {
     }
   };
 
+  const stats = useMemo(() => ({
+    total: employees.length,
+    active: employees.filter((e) => e.account_status === 'active').length,
+    invited: employees.filter((e) => e.account_status === 'invited').length,
+    noLogin: employees.filter((e) => e.account_status === 'no_login').length,
+  }), [employees]);
+
   const filtered = employees.filter(
     (e) =>
       e.full_name.toLowerCase().includes(search.toLowerCase()) ||
@@ -79,7 +89,34 @@ export default function EmployeeDirectory() {
     setForm(EMPTY_FORM);
     setInviteResult(null);
     setError('');
+    setLinkCopied(false);
     setShowInvite(true);
+  };
+
+  const handleCopyLink = async () => {
+    try {
+      if (navigator.clipboard?.writeText) {
+        await navigator.clipboard.writeText(setupLink);
+      } else {
+        throw new Error('Clipboard API unavailable');
+      }
+    } catch {
+      // Fallback for browsers/contexts that block navigator.clipboard
+      const textarea = document.createElement('textarea');
+      textarea.value = setupLink;
+      textarea.style.position = 'fixed';
+      textarea.style.opacity = '0';
+      document.body.appendChild(textarea);
+      textarea.select();
+      try {
+        document.execCommand('copy');
+      } catch {
+        // give up silently — the link is still visible to select/copy manually
+      }
+      document.body.removeChild(textarea);
+    }
+    setLinkCopied(true);
+    setTimeout(() => setLinkCopied(false), 1800);
   };
 
   const closeInvite = () => {
@@ -114,9 +151,20 @@ export default function EmployeeDirectory() {
   return (
     <div className="animate-fade-in">
       <div className="page-header">
-        <div>
-          <h1>Employee Directory</h1>
-          <p>{employees.length} employees in your organization</p>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 14 }}>
+          <div
+            style={{
+              width: 48, height: 48, borderRadius: 16, flexShrink: 0,
+              background: '#eff6ff', display: 'flex', alignItems: 'center', justifyContent: 'center',
+              boxShadow: '0 4px 14px rgba(37, 99, 235, 0.13)',
+            }}
+          >
+            <Users size={22} style={{ color: '#2563eb' }} />
+          </div>
+          <div>
+            <h1>Employee Directory</h1>
+            <p>{employees.length} employees in your organization</p>
+          </div>
         </div>
         {canInvite && (
           <button className="btn btn-primary" onClick={openInvite}>
@@ -125,97 +173,266 @@ export default function EmployeeDirectory() {
         )}
       </div>
 
-      {/* Search */}
-      <div style={{ marginBottom: 20, position: 'relative', maxWidth: 400 }}>
-        <Search
-          size={16}
-          style={{
-            position: 'absolute', left: 12, top: '50%',
-            transform: 'translateY(-50%)', color: 'var(--text-muted)',
-          }}
-        />
-        <input
-          className="input-field"
-          style={{ paddingLeft: 36 }}
-          placeholder="Search by name, code, or department..."
-          value={search}
-          onChange={(e) => setSearch(e.target.value)}
-        />
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: 16, marginBottom: 24 }}>
+        <StatCard icon={Users} label="Total Employees" value={stats.total} bgColor="#eff6ff" color="#2563eb" />
+        <StatCard icon={UserCheck} label="Active Accounts" value={stats.active} bgColor="#ecfdf5" color="#059669" />
+        <StatCard icon={Mail} label="Invited" value={stats.invited} bgColor="#fffbeb" color="#d97706" />
+        <StatCard icon={UserX} label="No Login Access" value={stats.noLogin} bgColor="#f8fafc" color="#64748b" />
       </div>
 
-      {/* Table */}
-      <div className="section-card" style={{ overflow: 'auto' }}>
-        <table className="data-table">
-          <thead>
-            <tr>
-              <th>Employee</th>
-              <th>Code</th>
-              <th>Department</th>
-              <th>Site</th>
-              <th>Role</th>
-              <th>Hire Date</th>
-              <th>Status</th>
-              <th>Account</th>
-            </tr>
-          </thead>
-          <tbody>
-            {filtered.map((emp, i) => (
-              <tr key={emp.id}>
-                <td>
-                  <Link
-                    to={`/employees/${emp.id}`}
-                    style={{ display: 'flex', alignItems: 'center', gap: 12, color: 'inherit', textDecoration: 'none' }}
-                  >
-                    {emp.photo_url ? (
-                      <img
-                        src={emp.photo_url}
-                        alt={emp.full_name}
-                        className="avatar"
-                        style={{ objectFit: 'cover' }}
-                      />
-                    ) : (
-                      <div
-                        className="avatar"
-                        style={{ background: AVATAR_COLORS[i % AVATAR_COLORS.length] }}
-                      >
-                        {emp.full_name.split(' ').map((n) => n[0]).join('').toUpperCase()}
-                      </div>
-                    )}
-                    <span style={{ fontWeight: 500 }}>{emp.full_name}</span>
-                  </Link>
-                </td>
-                <td style={{ color: 'var(--text-secondary)' }}>{emp.employee_code}</td>
-                <td>
-                  {emp.department_name && (
-                    <span className="badge badge-info">{emp.department_name}</span>
-                  )}
-                </td>
-                <td style={{ color: 'var(--text-secondary)' }}>{emp.site_name || '—'}</td>
-                <td style={{ color: 'var(--text-secondary)' }}>
-                  {(emp.role_names || []).join(', ') || '—'}
-                </td>
-                <td style={{ color: 'var(--text-secondary)' }}>{emp.date_of_hire}</td>
-                <td>
-                  <span className={`badge badge-${emp.employment_status}`}>
-                    {emp.employment_status}
-                  </span>
-                </td>
-                <td>
-                  <span className={`badge ${ACCOUNT_STATUS_COLOR[emp.account_status] || 'badge-inactive'}`}>
-                    {ACCOUNT_STATUS_LABEL[emp.account_status] || emp.account_status}
-                  </span>
-                </td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
-        {filtered.length === 0 && (
-          <div className="empty-state">
-            <Users size={48} />
-            <p>No employees found</p>
-          </div>
-        )}
+      {/* Search & View Switcher Bar */}
+      <div style={{ marginBottom: 24, display: 'flex', justifyContent: 'space-between', gap: 16, alignItems: 'center', flexWrap: 'wrap' }}>
+        <div style={{ position: 'relative', flex: 1, maxWidth: 420 }}>
+          <Search
+            size={18}
+            style={{
+              position: 'absolute', left: 14, top: '50%',
+              transform: 'translateY(-50%)', color: '#94a3b8',
+            }}
+          />
+          <input
+            className="input-field"
+            style={{
+              paddingLeft: 42,
+              borderRadius: 12,
+              border: '1px solid #cbd5e1',
+              fontSize: '0.9rem',
+              boxShadow: '0 2px 8px rgba(0,0,0,0.02)',
+              background: '#ffffff',
+            }}
+            placeholder="Search by name, code, or department..."
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
+          />
+        </div>
+
+        {/* View Mode Toggle Switcher */}
+        <div style={{ display: 'flex', background: '#f1f5f9', padding: 4, borderRadius: 12, border: '1px solid #e2e8f0' }}>
+          <button
+            onClick={() => setViewMode('table')}
+            style={{
+              display: 'flex',
+              alignItems: 'center',
+              gap: 6,
+              padding: '6px 14px',
+              borderRadius: 8,
+              border: 'none',
+              fontSize: '0.8125rem',
+              fontWeight: 600,
+              background: viewMode === 'table' ? '#ffffff' : 'transparent',
+              color: viewMode === 'table' ? '#0f172a' : '#64748b',
+              boxShadow: viewMode === 'table' ? '0 2px 6px rgba(0,0,0,0.06)' : 'none',
+              cursor: 'pointer',
+              transition: 'all 0.15s ease',
+            }}
+          >
+            <List size={15} /> <span className="view-toggle-label">Table List</span>
+          </button>
+          <button
+            onClick={() => setViewMode('grid')}
+            style={{
+              display: 'flex',
+              alignItems: 'center',
+              gap: 6,
+              padding: '6px 14px',
+              borderRadius: 8,
+              border: 'none',
+              fontSize: '0.8125rem',
+              fontWeight: 600,
+              background: viewMode === 'grid' ? '#ffffff' : 'transparent',
+              color: viewMode === 'grid' ? '#0f172a' : '#64748b',
+              boxShadow: viewMode === 'grid' ? '0 2px 6px rgba(0,0,0,0.06)' : 'none',
+              cursor: 'pointer',
+              transition: 'all 0.15s ease',
+            }}
+          >
+            <LayoutGrid size={15} /> <span className="view-toggle-label">Grid Cards</span>
+          </button>
+        </div>
       </div>
+
+      {/* Grid Mode */}
+      {viewMode === 'grid' ? (
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(270px, 1fr))', gap: 20 }}>
+          {filtered.map((emp, i) => (
+            <Link
+              key={emp.id}
+              to={`/employees/${emp.id}`}
+              className="employee-card"
+              style={{
+                textDecoration: 'none',
+                background: '#ffffff',
+                borderRadius: 20,
+                border: '1px solid #e2e8f0',
+                padding: '24px 20px',
+                display: 'flex',
+                flexDirection: 'column',
+                alignItems: 'center',
+                textAlign: 'center',
+                position: 'relative',
+                boxShadow: '0 4px 18px rgba(0,0,0,0.02)',
+              }}
+            >
+              {/* Account Badge */}
+              <span
+                style={{
+                  position: 'absolute',
+                  top: 14,
+                  right: 14,
+                  fontSize: '0.7rem',
+                  fontWeight: 700,
+                  padding: '3px 10px',
+                  borderRadius: 10,
+                  background: emp.account_status === 'active' ? '#dcfce7' : emp.account_status === 'invited' ? '#fef3c7' : '#f1f5f9',
+                  color: emp.account_status === 'active' ? '#15803d' : emp.account_status === 'invited' ? '#b45309' : '#64748b',
+                }}
+              >
+                {ACCOUNT_STATUS_LABEL[emp.account_status] || emp.account_status}
+              </span>
+
+              {/* Avatar */}
+              {emp.photo_url ? (
+                <img
+                  src={emp.photo_url}
+                  alt={emp.full_name}
+                  style={{ width: 64, height: 64, borderRadius: 20, objectFit: 'cover', marginBottom: 14, boxShadow: '0 4px 12px rgba(0,0,0,0.08)' }}
+                />
+              ) : (
+                <div
+                  style={{
+                    width: 64,
+                    height: 64,
+                    borderRadius: 20,
+                    background: AVATAR_COLORS[i % AVATAR_COLORS.length],
+                    color: '#ffffff',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    fontWeight: 800,
+                    fontSize: '1.25rem',
+                    marginBottom: 14,
+                    boxShadow: '0 6px 16px rgba(0,0,0,0.12)',
+                  }}
+                >
+                  {emp.full_name.split(' ').map((n) => n[0]).join('').toUpperCase()}
+                </div>
+              )}
+
+              <h3 style={{ margin: '0 0 4px 0', fontSize: '1.05rem', fontWeight: 800, color: '#0f172a' }}>{emp.full_name}</h3>
+              <div style={{ fontSize: '0.78125rem', color: '#64748b', marginBottom: 12 }}>{emp.work_email || emp.email || '—'}</div>
+
+              {/* Department Tag */}
+              {emp.department_name && (
+                <span style={{ fontSize: '0.78125rem', fontWeight: 600, padding: '4px 14px', borderRadius: 10, background: '#eff6ff', color: '#2563eb', marginBottom: 16 }}>
+                  {emp.department_name}
+                </span>
+              )}
+
+              <div style={{ width: '100%', borderTop: '1px solid #f1f5f9', paddingTop: 14, display: 'flex', justifyContent: 'space-between', fontSize: '0.78125rem', color: '#64748b' }}>
+                <span>Code: <strong style={{ color: '#334155' }}>{emp.employee_code}</strong></span>
+                <span>Site: <strong style={{ color: '#334155' }}>{emp.site_name || 'Main Office'}</strong></span>
+              </div>
+            </Link>
+          ))}
+        </div>
+      ) : (
+        /* Table Mode */
+        <div
+          style={{
+            background: '#ffffff',
+            borderRadius: 20,
+            border: '1px solid #e2e8f0',
+            borderTop: '3px solid #2563eb',
+            boxShadow: '0 4px 20px -2px rgba(0,0,0,0.03)',
+            overflow: 'hidden',
+          }}
+        >
+          <div style={{ overflowX: 'auto' }}>
+          <table className="data-table" style={{ width: '100%', borderCollapse: 'collapse' }}>
+            <thead>
+              <tr style={{ background: '#f8fafc', borderBottom: '1px solid #e2e8f0' }}>
+                <th style={{ padding: '16px 20px', textAlign: 'left', fontSize: '0.75rem', fontWeight: 700, color: '#64748b', textTransform: 'uppercase', whiteSpace: 'nowrap' }}>Employee</th>
+                <th style={{ padding: '16px 20px', textAlign: 'left', fontSize: '0.75rem', fontWeight: 700, color: '#64748b', textTransform: 'uppercase', whiteSpace: 'nowrap' }}>Code</th>
+                <th style={{ padding: '16px 20px', textAlign: 'left', fontSize: '0.75rem', fontWeight: 700, color: '#64748b', textTransform: 'uppercase', whiteSpace: 'nowrap' }}>Department</th>
+                <th style={{ padding: '16px 20px', textAlign: 'left', fontSize: '0.75rem', fontWeight: 700, color: '#64748b', textTransform: 'uppercase', whiteSpace: 'nowrap' }}>Location / Site</th>
+                <th style={{ padding: '16px 20px', textAlign: 'left', fontSize: '0.75rem', fontWeight: 700, color: '#64748b', textTransform: 'uppercase', whiteSpace: 'nowrap' }}>Role</th>
+                <th style={{ padding: '16px 20px', textAlign: 'left', fontSize: '0.75rem', fontWeight: 700, color: '#64748b', textTransform: 'uppercase', whiteSpace: 'nowrap' }}>Account Status</th>
+              </tr>
+            </thead>
+            <tbody>
+              {filtered.map((emp, i) => (
+                <tr key={emp.id} style={{ borderBottom: '1px solid #f1f5f9' }}>
+                  <td style={{ padding: '14px 20px', whiteSpace: 'nowrap' }}>
+                    <Link
+                      to={`/employees/${emp.id}`}
+                      style={{ display: 'flex', alignItems: 'center', gap: 14, color: 'inherit', textDecoration: 'none' }}
+                    >
+                      {emp.photo_url ? (
+                        <img
+                          src={emp.photo_url}
+                          alt={emp.full_name}
+                          style={{ width: 40, height: 40, borderRadius: 12, objectFit: 'cover', flexShrink: 0 }}
+                        />
+                      ) : (
+                        <div
+                          style={{
+                            width: 40,
+                            height: 40,
+                            borderRadius: 12,
+                            flexShrink: 0,
+                            background: AVATAR_COLORS[i % AVATAR_COLORS.length],
+                            color: '#ffffff',
+                            display: 'flex',
+                            alignItems: 'center',
+                            justifyContent: 'center',
+                            fontWeight: 700,
+                            fontSize: '0.9rem',
+                          }}
+                        >
+                          {emp.full_name.split(' ').map((n) => n[0]).join('').toUpperCase()}
+                        </div>
+                      )}
+                      <div>
+                        <div style={{ fontWeight: 700, fontSize: '0.925rem', color: '#0f172a' }}>{emp.full_name}</div>
+                        <div style={{ fontSize: '0.78125rem', color: '#64748b' }}>{emp.work_email || emp.email || '—'}</div>
+                      </div>
+                    </Link>
+                  </td>
+                  <td style={{ padding: '14px 20px', color: '#334155', fontWeight: 600, fontSize: '0.85rem', whiteSpace: 'nowrap' }}>{emp.employee_code}</td>
+                  <td style={{ padding: '14px 20px', whiteSpace: 'nowrap' }}>
+                    {emp.department_name ? (
+                      <span style={{ padding: '4px 12px', borderRadius: 8, background: '#eff6ff', color: '#2563eb', fontWeight: 600, fontSize: '0.8125rem' }}>
+                        {emp.department_name}
+                      </span>
+                    ) : (
+                      <span style={{ color: '#94a3b8' }}>—</span>
+                    )}
+                  </td>
+                  <td style={{ padding: '14px 20px', color: '#475569', fontSize: '0.85rem', whiteSpace: 'nowrap' }}>{emp.site_name || 'Main Office'}</td>
+                  <td style={{ padding: '14px 20px', color: '#475569', fontWeight: 500, fontSize: '0.85rem', whiteSpace: 'nowrap' }}>
+                    {(emp.role_names || []).join(', ') || 'Employee'}
+                  </td>
+                  <td style={{ padding: '14px 20px', whiteSpace: 'nowrap' }}>
+                    <span
+                      style={{
+                        padding: '4px 12px',
+                        borderRadius: 10,
+                        fontWeight: 700,
+                        fontSize: '0.78125rem',
+                        background: emp.account_status === 'active' ? '#dcfce7' : emp.account_status === 'invited' ? '#fef3c7' : '#f1f5f9',
+                        color: emp.account_status === 'active' ? '#15803d' : emp.account_status === 'invited' ? '#b45309' : '#64748b',
+                      }}
+                    >
+                      {ACCOUNT_STATUS_LABEL[emp.account_status] || emp.account_status}
+                    </span>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+          </div>
+        </div>
+      )}
 
       {/* Invite Employee Modal */}
       {showInvite && (
@@ -324,9 +541,26 @@ export default function EmployeeDirectory() {
             </form>
           ) : (
             <div>
-              <p style={{ fontSize: '0.875rem', color: 'var(--text-secondary)', marginBottom: 12 }}>
-                Account created for <strong>{inviteResult.email}</strong>. In production this
-                link is emailed automatically — for now, share it manually. It expires in 48 hours.
+              {inviteResult.email_sent ? (
+                <div
+                  style={{
+                    display: 'flex', alignItems: 'center', gap: 8,
+                    padding: '10px 14px', borderRadius: 'var(--radius-md)',
+                    background: 'var(--accent-emerald-light)', color: 'var(--accent-emerald)',
+                    fontSize: '0.8125rem', fontWeight: 600, marginBottom: 12,
+                  }}
+                >
+                  <Mail size={15} style={{ flexShrink: 0 }} />
+                  Setup email sent to {inviteResult.email}
+                </div>
+              ) : (
+                <p style={{ fontSize: '0.875rem', color: 'var(--text-secondary)', marginBottom: 12 }}>
+                  Account created for <strong>{inviteResult.email}</strong>, but the setup email
+                  couldn't be sent automatically — share this link with them manually instead.
+                </p>
+              )}
+              <p style={{ fontSize: '0.8125rem', color: 'var(--text-muted)', marginBottom: 12 }}>
+                This link expires in 48 hours{inviteResult.email_sent ? ' — you can also share it directly as a backup' : ''}.
               </p>
               <div
                 style={{
@@ -341,16 +575,26 @@ export default function EmployeeDirectory() {
                   wordBreak: 'break-all',
                 }}
               >
-                <span style={{ flex: 1 }}>{setupLink}</span>
+                <span style={{ flex: 1, minWidth: 0 }}>{setupLink}</span>
                 <button
                   type="button"
                   className="btn-icon btn-ghost"
-                  onClick={() => navigator.clipboard.writeText(setupLink)}
-                  title="Copy link"
+                  style={{
+                    flexShrink: 0,
+                    color: linkCopied ? 'var(--accent-emerald)' : undefined,
+                    background: linkCopied ? 'var(--accent-emerald-light)' : undefined,
+                  }}
+                  onClick={handleCopyLink}
+                  title={linkCopied ? 'Copied!' : 'Copy link'}
                 >
-                  <Copy size={14} />
+                  {linkCopied ? <Check size={14} /> : <Copy size={14} />}
                 </button>
               </div>
+              {linkCopied && (
+                <div style={{ fontSize: '0.75rem', color: 'var(--accent-emerald)', fontWeight: 600, marginTop: 6 }}>
+                  Copied to clipboard
+                </div>
+              )}
               <button className="btn btn-secondary" style={{ width: '100%', justifyContent: 'center', marginTop: 16 }} onClick={closeInvite}>
                 Done
               </button>

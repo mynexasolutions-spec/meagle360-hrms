@@ -4,12 +4,12 @@ import { useAuth } from '../context/AuthContext';
 import { getDashboardSummary, getAttendanceOverview, getLeaveSummary, getLiveStatus, getLeaveInsight } from '../api/dashboard';
 import { getAnnouncements, createAnnouncement } from '../api/announcements';
 import { getLeaveBalance, getPendingRequests } from '../api/leave';
-import { getHolidays, clockIn, clockOut } from '../api/attendance';
+import { getHolidays, clockIn, clockOut, getEmployeeOverview } from '../api/attendance';
 import {
   Users, CheckCircle, Umbrella, FileClock, Megaphone, CalendarHeart,
   Clock, CalendarPlus, Upload, ArrowUpRight, Wifi, Plus,
   Palmtree, Heart, Ticket, Sparkles, Baby, Gift,
-  CheckCircle2, AlertTriangle, Info,
+  CheckCircle2, AlertTriangle, Info, Sun, Sunset, Moon,
 } from 'lucide-react';
 import {
   ResponsiveContainer, LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend,
@@ -80,29 +80,44 @@ export default function Dashboard() {
   const [balances, setBalances] = useState([]);
   const [pending, setPending] = useState([]);
   const [holidays, setHolidays] = useState([]);
-  const [liveStatus, setLiveStatus] = useState([]);
   const [clockedIn, setClockedIn] = useState(false);
   const [clockLoading, setClockLoading] = useState(false);
-  const [showNewAnnouncement, setShowNewAnnouncement] = useState(false);
+  const [todayClockInTime, setTodayClockInTime] = useState(null);
+  const [todayPunctuality, setTodayPunctuality] = useState('On Time');
+  const [shiftInfo, setShiftInfo] = useState(null);
+  const [liveStatus, setLiveStatus] = useState([]);
   const [whosOnlineExpanded, setWhosOnlineExpanded] = useState(false);
   const [announcementLimit, setAnnouncementLimit] = useState(5);
+  const [showNewAnnouncement, setShowNewAnnouncement] = useState(false);
 
-  const loadAnnouncements = (limit = announcementLimit) => getAnnouncements(limit).then((r) => setAnnouncements(r.data)).catch(() => {});
+  const loadAnnouncements = (limit = announcementLimit) => getAnnouncements(limit).then((r) => setAnnouncements(r.data)).catch(() => { });
 
   useEffect(() => {
-    getDashboardSummary().then((r) => setSummary(r.data)).catch(() => {});
-    getAttendanceOverview(7).then((r) => setAttendanceOverview(r.data)).catch(() => {});
-    getLeaveSummary().then((r) => setLeaveSummary(r.data)).catch(() => {});
-    getLeaveInsight().then((r) => setLeaveInsight(r.data)).catch(() => {});
-    getLeaveBalance().then((r) => setBalances(r.data)).catch(() => {});
-    getHolidays().then((r) => setHolidays(r.data)).catch(() => {});
-    if (canApprove) {
-      getPendingRequests().then((r) => setPending(r.data)).catch(() => {});
+    getDashboardSummary().then((r) => setSummary(r.data)).catch(() => { });
+    getAttendanceOverview(7).then((r) => setAttendanceOverview(r.data)).catch(() => { });
+    getLeaveSummary().then((r) => setLeaveSummary(r.data)).catch(() => { });
+    getLeaveInsight().then((r) => setLeaveInsight(r.data)).catch(() => { });
+    getLeaveBalance().then((r) => setBalances(r.data)).catch(() => { });
+    getHolidays().then((r) => setHolidays(r.data)).catch(() => { });
+    if (user?.employee_id) {
+      const now = new Date();
+      getEmployeeOverview({ employee_id: user.employee_id, year: now.getFullYear(), month: now.getMonth() + 1 })
+        .then((r) => {
+          setShiftInfo(r.data?.shift_info || null);
+          const today = now.toISOString().slice(0, 10);
+          const todayRow = r.data?.days?.find((d) => d.date === today);
+          const open = todayRow?.sessions?.some((s) => !s.clock_out);
+          setClockedIn(!!open);
+          if (todayRow?.sessions?.length > 0) {
+            setTodayClockInTime(todayRow.sessions[0].clock_in);
+            setTodayPunctuality(todayRow.sessions[0].punctuality_status || 'On Time');
+          } else {
+            setTodayPunctuality('Not Clocked In');
+          }
+        })
+        .catch(() => { });
     }
-    if (canSeeLiveStatus) {
-      getLiveStatus().then((r) => setLiveStatus(r.data)).catch(() => {});
-    }
-  }, [canApprove, canSeeLiveStatus]);
+  }, [user]);
 
   useEffect(() => {
     loadAnnouncements(announcementLimit);
@@ -110,24 +125,20 @@ export default function Dashboard() {
 
   const handleCreateAnnouncement = async (title, body) => {
     await createAnnouncement({ title, body });
+    await loadAnnouncements(announcementLimit);
     setShowNewAnnouncement(false);
-    loadAnnouncements();
   };
 
   const handleClock = async () => {
     setClockLoading(true);
     try {
       if (clockedIn) {
-        await clockOut();
+        await clockOut({});
         setClockedIn(false);
       } else {
         await clockIn({ source: 'web' });
         setClockedIn(true);
       }
-    } catch (e) {
-      const msg = e.response?.data?.detail || '';
-      if (msg.includes('already clocked in')) setClockedIn(true);
-      else if (msg.includes('No open')) setClockedIn(false);
     } finally {
       setClockLoading(false);
     }
@@ -140,71 +151,146 @@ export default function Dashboard() {
     return 'Good evening';
   };
 
+  const greetingStyle = (() => {
+    const hour = new Date().getHours();
+    if (hour < 12) return { icon: Sun, color: '#f59e0b', bg: '#fffbeb' };
+    if (hour < 17) return { icon: Sunset, color: '#2563eb', bg: '#eff6ff' };
+    return { icon: Moon, color: '#7c3aed', bg: '#f5f3ff' };
+  })();
+
   const today = new Date();
   const upcomingHolidays = holidays
     .filter((h) => new Date(h.holiday_date) >= new Date(today.toDateString()))
     .slice(0, 3);
-
   const totalLeaveDays = leaveSummary.reduce((sum, l) => sum + l.days, 0);
-
   const quickActions = [
-    { label: clockedIn ? 'Clock Out' : 'Clock In', icon: Clock, onClick: handleClock, color: 'var(--accent-blue)', bg: 'var(--accent-blue-light)' },
-    { label: 'Apply Leave', icon: CalendarPlus, path: '/leave', color: 'var(--accent-emerald)', bg: 'var(--accent-emerald-light)' },
-    { label: 'Upload Document', icon: Upload, path: '/documents', color: 'var(--accent-violet)', bg: 'var(--accent-violet-light)' },
+    { label: clockedIn ? 'Clock Out' : 'Clock In', icon: Clock, onClick: handleClock, color: '#2563eb', bg: '#eff6ff' },
+    { label: 'Apply Leave', icon: CalendarPlus, path: '/leave', color: '#059669', bg: '#ecfdf5' },
+    { label: 'Upload Document', icon: Upload, path: '/documents', color: '#7c3aed', bg: '#f5f3ff' },
   ];
 
   return (
-    <div className="animate-fade-in">
-      {/* Header */}
-      <div className="page-header">
-        <div>
-          <h1>{greeting()}, {user?.full_name?.split(' ')[0] || 'there'} 👋</h1>
-          <p>Here's what's happening in your organization today.</p>
+    <div className="animate-fade-in" style={{ maxWidth: 1200, margin: '0 auto' }}>
+      <div className="page-header" style={{ marginBottom: 24 }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 14 }}>
+          <div
+            style={{
+              width: 48, height: 48, borderRadius: 16, flexShrink: 0,
+              background: greetingStyle.bg, display: 'flex', alignItems: 'center', justifyContent: 'center',
+              boxShadow: `0 4px 14px ${greetingStyle.color}22`,
+            }}
+          >
+            <greetingStyle.icon size={22} style={{ color: greetingStyle.color }} />
+          </div>
+          <div>
+            <h1
+              style={{
+                fontSize: 'clamp(1.25rem, 4.5vw, 1.75rem)', fontWeight: 800,
+                background: 'linear-gradient(135deg, #0f172a, #2563eb)',
+                WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent', backgroundClip: 'text',
+              }}
+            >
+              {greeting()}, {user?.full_name?.split(' ')[0] || 'there'}
+            </h1>
+            <p style={{ color: '#64748b', fontSize: '0.875rem' }}>Here's what's happening in your organization today.</p>
+          </div>
         </div>
-        <div style={{ textAlign: 'right' }}>
-          <div style={{ fontSize: '0.875rem', fontWeight: 600 }}>
+        <div className="dashboard-date-block" style={{ textAlign: 'right', padding: '10px 16px', borderRadius: 14, background: '#ffffff', border: '1px solid #e2e8f0' }}>
+          <div style={{ fontSize: '0.95rem', fontWeight: 700, color: '#0f172a' }}>
             {today.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
           </div>
-          <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>
+          <div style={{ fontSize: '0.8125rem', color: '#64748b', marginTop: 2 }}>
             {today.toLocaleDateString(undefined, { day: '2-digit', month: 'long', year: 'numeric', weekday: 'long' })}
           </div>
         </div>
       </div>
 
-      {/* Stats */}
-      <div className="stats-grid stagger-children">
-        <StatCard icon={Users} label="Total Employees" value={summary?.total_employees ?? '—'} color="var(--accent-blue)" bgColor="var(--accent-blue-light)" />
-        <StatCard icon={CheckCircle} label="Present Today" value={summary?.present_today ?? '—'} color="var(--accent-emerald)" bgColor="var(--accent-emerald-light)" />
-        <StatCard icon={Umbrella} label="On Leave Today" value={summary?.on_leave_today ?? '—'} color="var(--accent-amber)" bgColor="var(--accent-amber-light)" />
-        <StatCard icon={FileClock} label="Pending Approvals" value={summary?.pending_approvals ?? '—'} color="var(--accent-violet)" bgColor="var(--accent-violet-light)" />
+      <div className="clock-strip" style={{ background: '#ffffff', borderRadius: 24, padding: '18px 28px', marginBottom: 28, boxShadow: '0 4px 20px rgba(0, 0, 0, 0.03)', border: '1px solid #e2e8f0' }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 20, flexWrap: 'wrap' }}>
+          <div
+            style={{
+              width: 44, height: 44, borderRadius: 14, flexShrink: 0,
+              background: todayClockInTime ? 'linear-gradient(135deg, #10b981, #059669)' : 'linear-gradient(135deg, #94a3b8, #64748b)',
+              display: 'flex', alignItems: 'center', justifyContent: 'center',
+              boxShadow: todayClockInTime ? '0 4px 14px rgba(16, 185, 129, 0.3)' : '0 4px 14px rgba(100, 116, 139, 0.2)',
+            }}
+          >
+            <Clock size={20} color="#ffffff" />
+          </div>
+          <div style={{ fontSize: '1.35rem', fontWeight: 700, color: '#0f172a', letterSpacing: '-0.01em', whiteSpace: 'nowrap' }}>
+            {todayClockInTime ? new Date(todayClockInTime).toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' }) : '--:-- --'}
+          </div>
+          <div style={{ height: 28, width: 1, backgroundColor: '#e2e8f0', flexShrink: 0 }} />
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 2, whiteSpace: 'nowrap' }}>
+            <span style={{ fontSize: '0.75rem', fontWeight: 600, color: '#94a3b8', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Shift Timing</span>
+            <span style={{ fontSize: '0.85rem', fontWeight: 600, color: '#334155' }}>
+              {shiftInfo?.start_time ? `${shiftInfo.start_time} - ${shiftInfo.end_time}` : '09:00 AM - 06:00 PM (Default)'}
+            </span>
+          </div>
+          {todayClockInTime && (
+            <span style={{ fontSize: '0.8125rem', fontWeight: 600, padding: '4px 14px', borderRadius: 12, backgroundColor: todayPunctuality === 'Late' ? '#fee2e2' : '#e0f2fe', color: todayPunctuality === 'Late' ? '#dc2626' : '#0369a1' }}>
+              {todayPunctuality}
+            </span>
+          )}
+        </div>
+        <div className="clock-strip-badge" style={{ marginLeft: 'auto' }}>
+          <div style={{ display: 'inline-flex', alignItems: 'center', gap: 6, background: todayClockInTime ? '#dcfce7' : '#f8fafc', color: todayClockInTime ? '#15803d' : '#64748b', border: `1px solid ${todayClockInTime ? '#bbf7d0' : '#e2e8f0'}`, borderRadius: 20, padding: '6px 16px', fontSize: '0.85rem', fontWeight: 600, whiteSpace: 'nowrap' }}>
+            <CheckCircle2 size={15} />
+            <span>{todayClockInTime ? 'Attendance Marked' : 'Pending Clock In'}</span>
+          </div>
+        </div>
       </div>
 
-      <div style={{ display: 'grid', gridTemplateColumns: 'minmax(0, 2.4fr) minmax(280px, 1fr)', gap: 20 }}>
-        {/* Main column */}
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(240px, 1fr))', gap: 20, marginBottom: 28 }}>
+        <StatCard icon={Users} label="Total Employees" value={summary?.total_employees ?? '—'} bgColor="#eff6ff" color="#2563eb" />
+        <StatCard icon={CheckCircle} label="Present Today" value={summary?.present_today ?? '—'} bgColor="#ecfdf5" color="#059669" />
+        <StatCard icon={Umbrella} label="On Leave Today" value={summary?.on_leave_today ?? '—'} bgColor="#fffbeb" color="#d97706" />
+        <StatCard icon={FileClock} label="Pending Approvals" value={summary?.pending_approvals ?? '—'} bgColor="#f5f3ff" color="#7c3aed" />
+      </div>
+
+      <div className="dashboard-columns">
         <div style={{ display: 'grid', gap: 20 }}>
           <div className="content-grid">
-            <div className="section-card">
-              <h3>Attendance Overview (Last 7 Days)</h3>
+            <div
+              style={{
+                background: '#ffffff',
+                borderRadius: 20,
+                padding: '24px',
+                border: '1px solid #e2e8f0',
+                borderTop: '3px solid #059669',
+                boxShadow: '0 4px 20px -2px rgba(0, 0, 0, 0.03)',
+              }}
+            >
+              <h3 style={{ fontSize: '1.05rem', fontWeight: 800, color: '#0f172a', marginBottom: 16 }}>Attendance Overview (Last 7 Days)</h3>
               <ResponsiveContainer width="100%" height={240}>
                 <LineChart data={attendanceOverview}>
-                  <CartesianGrid strokeDasharray="3 3" stroke="var(--border-color)" />
-                  <XAxis dataKey="date" tick={{ fontSize: 11, fill: 'var(--text-muted)' }} tickFormatter={(d) => d.slice(5)} />
-                  <YAxis tick={{ fontSize: 11, fill: 'var(--text-muted)' }} />
-                  <Tooltip contentStyle={{ background: 'var(--bg-secondary)', border: '1px solid var(--border-color)', borderRadius: 8, fontSize: 12 }} />
-                  <Legend wrapperStyle={{ fontSize: 12 }} />
-                  <Line type="monotone" dataKey="present" stroke="var(--accent-emerald)" strokeWidth={2} dot={{ r: 3 }} name="Present" />
-                  <Line type="monotone" dataKey="absent" stroke="var(--accent-rose)" strokeWidth={2} dot={{ r: 3 }} name="Absent" />
-                  <Line type="monotone" dataKey="on_leave" stroke="var(--accent-blue)" strokeWidth={2} dot={{ r: 3 }} name="On Leave" />
+                  <CartesianGrid strokeDasharray="3 3" stroke="#f1f5f9" vertical={false} />
+                  <XAxis dataKey="date" tick={{ fontSize: 11, fill: '#64748b' }} tickFormatter={(d) => d.slice(5)} />
+                  <YAxis tick={{ fontSize: 11, fill: '#64748b' }} axisLine={false} tickLine={false} />
+                  <Tooltip contentStyle={{ background: '#ffffff', border: '1px solid #e2e8f0', borderRadius: 12, fontSize: 12, boxShadow: '0 4px 14px rgba(0,0,0,0.05)' }} />
+                  <Legend wrapperStyle={{ fontSize: 12, paddingTop: 8 }} />
+                  <Line type="monotone" dataKey="present" stroke="#059669" strokeWidth={2.5} dot={{ r: 4, fill: '#059669' }} name="Present" />
+                  <Line type="monotone" dataKey="absent" stroke="#ef4444" strokeWidth={2.5} dot={{ r: 4, fill: '#ef4444' }} name="Absent" />
+                  <Line type="monotone" dataKey="on_leave" stroke="#2563eb" strokeWidth={2.5} dot={{ r: 4, fill: '#2563eb' }} name="On Leave" />
                 </LineChart>
               </ResponsiveContainer>
             </div>
 
-            <div className="section-card">
-              <h3>Leave Summary</h3>
+            <div
+              style={{
+                background: '#ffffff',
+                borderRadius: 20,
+                padding: '24px',
+                border: '1px solid #e2e8f0',
+                borderTop: '3px solid #7c3aed',
+                boxShadow: '0 4px 20px -2px rgba(0, 0, 0, 0.03)',
+              }}
+            >
+              <h3 style={{ fontSize: '1.05rem', fontWeight: 800, color: '#0f172a', marginBottom: 16 }}>Leave Summary</h3>
               {leaveSummary.length === 0 ? (
                 <div className="empty-state"><Umbrella /><p>No approved leave this year yet</p></div>
               ) : (
-                <div style={{ display: 'flex', alignItems: 'center', gap: 16 }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 16, flexWrap: 'wrap' }}>
                   <div style={{ position: 'relative', width: 160, height: 160, flexShrink: 0 }}>
                     <ResponsiveContainer width="100%" height="100%">
                       <PieChart>
@@ -220,12 +306,12 @@ export default function Dashboard() {
                       <div style={{ fontSize: '0.6875rem', color: 'var(--text-muted)' }}>Total Leaves</div>
                     </div>
                   </div>
-                  <div style={{ display: 'grid', gap: 8, flex: 1 }}>
+                  <div style={{ display: 'grid', gap: 8, flex: 1, minWidth: 140 }}>
                     {leaveSummary.map((l, i) => (
                       <div key={l.leave_type} style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: '0.8125rem' }}>
-                        <span style={{ width: 8, height: 8, borderRadius: '50%', background: DONUT_COLORS[i % DONUT_COLORS.length] }} />
-                        <span style={{ flex: 1 }}>{l.leave_type}</span>
-                        <span style={{ color: 'var(--text-muted)' }}>{l.percentage}% ({l.days})</span>
+                        <span style={{ width: 8, height: 8, borderRadius: '50%', background: DONUT_COLORS[i % DONUT_COLORS.length], flexShrink: 0 }} />
+                        <span className="truncate" style={{ flex: 1, minWidth: 0 }}>{l.leave_type}</span>
+                        <span style={{ color: 'var(--text-muted)', whiteSpace: 'nowrap' }}>{l.percentage}% ({l.days})</span>
                       </div>
                     ))}
                   </div>
@@ -360,6 +446,7 @@ export default function Dashboard() {
                 <a
                   key={action.label}
                   href={action.path || '#'}
+                  className="quick-action-row"
                   onClick={(e) => {
                     if (action.onClick) {
                       e.preventDefault();
@@ -371,6 +458,7 @@ export default function Dashboard() {
                     padding: '10px 14px', borderRadius: 'var(--radius-md)',
                     background: action.bg, border: '1px solid transparent',
                     color: 'var(--text-primary)', textDecoration: 'none', fontSize: '0.8125rem',
+                    fontWeight: 500,
                   }}
                 >
                   <span style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
@@ -383,7 +471,7 @@ export default function Dashboard() {
           </div>
 
           {canSeeLiveStatus && (() => {
-            const online = liveStatus.filter((e) => e.status === 'online');
+            const online = (typeof liveStatus !== 'undefined' && Array.isArray(liveStatus)) ? liveStatus.filter((e) => e.status === 'online') : [];
             const shown = online.slice(0, 5);
             const overflow = online.length - shown.length;
             return (

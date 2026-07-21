@@ -1,21 +1,55 @@
-import { useState } from 'react';
-import { Outlet } from 'react-router-dom';
+import { useState, useEffect } from 'react';
+import { Outlet, useLocation, Link } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import Sidebar from '../components/Sidebar';
 import TopBar from '../components/TopBar';
 import { ChevronRight } from 'lucide-react';
 
+import logoImg from '../assets/logo.jpg';
+
+const MOBILE_QUERY = '(max-width: 768px)';
+
 export default function DashboardLayout() {
   const { user } = useAuth();
+  const location = useLocation();
   const [sidebarOpen, setSidebarOpen] = useState(true);
+  const [isMobile, setIsMobile] = useState(() => window.matchMedia(MOBILE_QUERY).matches);
+  const [mobileOpen, setMobileOpen] = useState(false);
+
+  useEffect(() => {
+    const mql = window.matchMedia(MOBILE_QUERY);
+    const handleChange = (e) => setIsMobile(e.matches);
+    mql.addEventListener('change', handleChange);
+    return () => mql.removeEventListener('change', handleChange);
+  }, []);
+
+  useEffect(() => {
+    setMobileOpen(false);
+  }, [location.pathname]);
+
+  const handleToggleSidebar = () => {
+    if (isMobile) {
+      setMobileOpen((v) => !v);
+    } else {
+      setSidebarOpen((v) => !v);
+    }
+  };
+
+  const showLabels = isMobile ? true : sidebarOpen;
 
   return (
     <div style={{ display: 'flex', minHeight: '100vh' }}>
+      {isMobile && (
+        <div
+          className={`sidebar-backdrop ${mobileOpen ? 'visible' : ''}`}
+          onClick={() => setMobileOpen(false)}
+        />
+      )}
       {/* Sidebar */}
       <aside
-        className="glass-card"
+        className={`glass-card app-sidebar ${!isMobile && !sidebarOpen ? 'collapsed' : ''} ${isMobile && mobileOpen ? 'mobile-open' : ''}`}
         style={{
-          width: sidebarOpen ? 'var(--sidebar-width)' : '72px',
+          width: isMobile ? undefined : (sidebarOpen ? 'var(--sidebar-width)' : '72px'),
           position: 'fixed',
           top: 0,
           left: 0,
@@ -23,7 +57,7 @@ export default function DashboardLayout() {
           zIndex: 100,
           display: 'flex',
           flexDirection: 'column',
-          transition: 'width var(--transition-slow)',
+          transition: isMobile ? undefined : 'width var(--transition-slow)',
           borderRadius: 0,
           borderRight: '1px solid var(--border-color)',
           borderTop: 'none',
@@ -32,75 +66,86 @@ export default function DashboardLayout() {
           overflow: 'hidden',
         }}
       >
-        {/* Logo */}
+        {/* Logo Header */}
         <div
           style={{
-            padding: '20px 16px',
+            padding: '18px 16px',
             display: 'flex',
             alignItems: 'center',
             gap: '12px',
-            borderBottom: '1px solid var(--border-color)',
+            borderBottom: '1px solid #f1f5f9',
             minHeight: 'var(--topbar-height)',
           }}
         >
-          <div
+          <img
+            src={logoImg}
+            alt="Meagle360 Logo"
             style={{
-              width: 36,
-              height: 36,
-              borderRadius: 'var(--radius-md)',
-              background: 'var(--gradient-primary)',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
+              width: showLabels ? 60 : 36,
+              height: showLabels ? 60 : 36,
+              borderRadius: '12px',
+              objectFit: 'cover',
               flexShrink: 0,
-              fontSize: '1.1rem',
-              fontWeight: 800,
-              color: 'white',
+              boxShadow: '0 2px 8px rgba(0,0,0,0.06)',
+              transition: 'width var(--transition-slow), height var(--transition-slow)',
             }}
-          >
-            M
-          </div>
-          {sidebarOpen && (
+          />
+          {showLabels && (
             <div className="animate-fade-in">
-              <div style={{ fontSize: '0.9375rem', fontWeight: 700 }}>HRMS</div>
-              <div style={{ fontSize: '0.6875rem', color: 'var(--text-muted)' }}>Meagle360</div>
+              <div style={{ fontSize: '0.975rem', fontWeight: 800, color: '#0f172a', letterSpacing: '-0.01em' }}>HRMS Portal</div>
+              <div style={{ fontSize: '0.6875rem', fontWeight: 700, color: '#2563eb' }}>MEAGLE360</div>
             </div>
           )}
         </div>
 
-        <Sidebar sidebarOpen={sidebarOpen} permissions={user?.permissions} />
+        <Sidebar sidebarOpen={showLabels} permissions={user?.permissions} />
 
         {/* User Profile */}
-        <div style={{ padding: '12px', borderTop: '1px solid var(--border-color)' }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '10px', padding: '8px', borderRadius: 'var(--radius-md)' }}>
-            <div className="avatar" style={{ background: 'var(--gradient-primary)', fontSize: '0.8rem' }}>
+        <div style={{ padding: '12px', borderTop: '1px solid #f1f5f9', background: '#f8fafc' }}>
+          <Link to="/profile" className="sidebar-user-block">
+            <div
+              className="avatar"
+              style={{
+                width: 36,
+                height: 36,
+                borderRadius: 12,
+                background: 'linear-gradient(135deg, #2563eb, #1d4ed8)',
+                color: '#ffffff',
+                fontWeight: 800,
+                fontSize: '0.85rem',
+                flexShrink: 0,
+              }}
+            >
               {user?.full_name
                 ?.split(' ')
                 .map((n) => n[0])
                 .join('')
                 .toUpperCase() || 'U'}
             </div>
-            {sidebarOpen && (
+            {showLabels && (
               <div style={{ flex: 1, minWidth: 0 }} className="animate-fade-in">
-                <div className="truncate" style={{ fontSize: '0.8125rem', fontWeight: 600 }}>
+                <div className="truncate" style={{ fontSize: '0.8125rem', fontWeight: 800, color: '#0f172a' }}>
                   {user?.full_name || 'User'}
                 </div>
-                <div className="truncate" style={{ fontSize: '0.6875rem', color: 'var(--text-muted)' }}>
+                <div className="truncate" style={{ fontSize: '0.6875rem', fontWeight: 600, color: '#64748b' }}>
                   {user?.role_name || 'Employee'}
                 </div>
               </div>
             )}
-          </div>
+          </Link>
         </div>
 
-        {/* Toggle */}
+      </aside>
+
+      {/* Toggle — sits outside <aside> so its half-overflow isn't clipped by the sidebar's overflow:hidden */}
+      {!isMobile && (
         <button
           onClick={() => setSidebarOpen(!sidebarOpen)}
           className="btn-ghost"
           style={{
-            position: 'absolute',
+            position: 'fixed',
             top: '20px',
-            right: '-14px',
+            left: `calc(${sidebarOpen ? 'var(--sidebar-width)' : '72px'} - 14px)`,
             width: 28,
             height: 28,
             borderRadius: '50%',
@@ -110,7 +155,8 @@ export default function DashboardLayout() {
             alignItems: 'center',
             justifyContent: 'center',
             cursor: 'pointer',
-            zIndex: 10,
+            transition: 'left var(--transition-slow)',
+            zIndex: 101,
           }}
         >
           <ChevronRight
@@ -121,21 +167,23 @@ export default function DashboardLayout() {
             }}
           />
         </button>
-      </aside>
+      )}
 
       {/* Main Content */}
       <div
+        className="app-main"
         style={{
           flex: 1,
-          marginLeft: sidebarOpen ? 'var(--sidebar-width)' : '72px',
+          marginLeft: isMobile ? 0 : (sidebarOpen ? 'var(--sidebar-width)' : '72px'),
           transition: 'margin-left var(--transition-slow)',
           minHeight: '100vh',
           display: 'flex',
           flexDirection: 'column',
+          minWidth: 0,
         }}
       >
-        <TopBar onToggleSidebar={() => setSidebarOpen(!sidebarOpen)} />
-        <main style={{ flex: 1, padding: '24px' }}>
+        <TopBar onToggleSidebar={handleToggleSidebar} />
+        <main className="app-content" style={{ flex: 1, padding: '24px' }}>
           <Outlet />
         </main>
       </div>

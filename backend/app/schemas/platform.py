@@ -46,7 +46,8 @@ class CompanyAdminInviteRequest(BaseModel):
 class CompanyAdminInviteResponse(BaseModel):
     user_account_id: UUID
     email: str
-    invite_token: str  # in production this is emailed, not returned in the response
+    invite_token: str  # returned as a fallback in case the email below failed to send
+    email_sent: bool = False
 
 
 class SetPasswordRequest(BaseModel):
@@ -84,6 +85,7 @@ class CompanyUserResponse(BaseModel):
     employee_code: str
     role_names: list[str]
     mfa_enabled: bool
+    invite_accepted_at: datetime | None = None
     created_at: datetime
 
     class Config:

@@ -26,6 +26,7 @@ export default function LeaveManagement() {
   const [showAdjustBalance, setShowAdjustBalance] = useState(false);
   const [accruing, setAccruing] = useState(false);
   const [form, setForm] = useState({ leave_type_id: '', start_date: '', end_date: '' });
+  const [applyBtnHover, setApplyBtnHover] = useState(false);
 
   useEffect(() => {
     loadData();
@@ -104,99 +105,219 @@ export default function LeaveManagement() {
   };
 
   return (
-    <div className="animate-fade-in">
-      <div className="page-header">
-        <div>
-          <h1>Leave Management</h1>
-          <p>{isAdmin ? 'Review and manage leave approvals' : 'Track balances, request leave, and manage approvals'}</p>
+    <div className="animate-fade-in" style={{ maxWidth: 1200, margin: '0 auto' }}>
+      {/* Page Header */}
+      <div className="page-header" style={{ marginBottom: 24 }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 14 }}>
+          <div
+            style={{
+              width: 48, height: 48, borderRadius: 16, flexShrink: 0,
+              background: '#eff6ff', display: 'flex', alignItems: 'center', justifyContent: 'center',
+              boxShadow: '0 4px 14px rgba(37, 99, 235, 0.13)',
+            }}
+          >
+            <CalendarDays size={22} style={{ color: '#2563eb' }} />
+          </div>
+          <div>
+            <h1 style={{ fontSize: 'clamp(1.25rem, 4.5vw, 1.75rem)', fontWeight: 800, color: '#0f172a' }}>Leave Management</h1>
+            <p style={{ color: '#64748b', fontSize: '0.875rem' }}>
+              {isAdmin ? 'Review and manage employee leave approvals' : 'Track leave balances, apply for time off & monitor requests'}
+            </p>
+          </div>
         </div>
-        {!isAdmin && (
-          <button className="btn btn-primary" onClick={() => setShowRequest(true)}>
-            <Plus size={16} /> Request Leave
-          </button>
-        )}
       </div>
 
-      {/* Balance Cards */}
-      {!isAdmin && (
-        <div className="stats-grid stagger-children" style={{ marginBottom: 24 }}>
-          {balances.map((b) => (
-            <div key={b.id} className="glass-card" style={{ padding: 20, position: 'relative' }}>
-              {canManageBalances && (
-                <button
-                  className="btn-icon btn-ghost"
-                  title="Edit balance"
-                  onClick={() => setEditBalance(b)}
-                  style={{ position: 'absolute', top: 12, right: 12 }}
-                >
-                  <Pencil size={14} />
-                </button>
+      {/* Modern Dashboard Layout: Card on Left, Requests & Actions on Right */}
+      <div className={isAdmin ? '' : 'leave-layout'} style={{ marginBottom: 24 }}>
+        {/* Left Widget: Screenshot-styled Leave Card */}
+        {!isAdmin && (
+          <div
+            className="leave-balance-card"
+            style={{
+              background: '#ffffff',
+              borderRadius: 24,
+              padding: '24px',
+              border: '1px solid #e2e8f0',
+              borderTop: '3px solid #2563eb',
+              boxShadow: '0 4px 20px -2px rgba(0, 0, 0, 0.03)',
+              fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif',
+            }}
+          >
+            {/* Header */}
+            <div className="leave-balance-header" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 20, flexWrap: 'wrap', gap: 10 }}>
+              <h2 style={{ fontSize: '1.3rem', fontWeight: 800, margin: 0, color: '#0f172a', letterSpacing: '-0.02em' }}>
+                Leave Balances
+              </h2>
+              <button
+                onClick={() => setShowRequest(true)}
+                onMouseEnter={() => setApplyBtnHover(true)}
+                onMouseLeave={() => setApplyBtnHover(false)}
+                style={{
+                  border: 'none',
+                  borderRadius: 12,
+                  padding: '10px 16px',
+                  fontSize: '0.8125rem',
+                  fontWeight: 700,
+                  color: '#ffffff',
+                  background: 'linear-gradient(135deg, #2563eb, #1d4ed8)',
+                  cursor: 'pointer',
+                  boxShadow: applyBtnHover ? '0 8px 20px rgba(37, 99, 235, 0.35)' : '0 4px 12px rgba(37, 99, 235, 0.25)',
+                  transform: applyBtnHover ? 'translateY(-1px)' : 'translateY(0)',
+                  transition: 'all 0.15s ease',
+                }}
+              >
+                + Apply Leave
+              </button>
+            </div>
+
+            {/* Leave Rows */}
+            <div style={{ display: 'flex', flexDirection: 'column' }}>
+              {balances.map((b, idx) => {
+                const total = b.total_entitlement || 11;
+                const used = Math.min(total, Math.max(0, total - Number(b.balance)));
+                const usedInt = Math.round(used);
+                const totalInt = Math.round(total);
+
+                const colors = [
+                  '#2563eb', // Blue
+                  '#10b981', // Green
+                  '#f97316', // Orange
+                  '#8b5cf6', // Purple
+                ];
+                const activeColor = colors[idx % colors.length];
+
+                return (
+                  <div
+                    key={b.id}
+                    style={{
+                      paddingTop: idx === 0 ? 0 : 16,
+                      paddingBottom: 16,
+                      borderBottom: idx === balances.length - 1 ? 'none' : '1px solid #f1f5f9',
+                    }}
+                  >
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 10 }}>
+                      <span style={{ fontSize: '0.925rem', fontWeight: 700, color: '#0f172a' }}>
+                        {b.leave_type_name || 'Leave'}
+                      </span>
+                      <span style={{ fontSize: '0.8125rem', fontWeight: 600, color: '#64748b' }}>
+                        {usedInt} / {totalInt} Used
+                      </span>
+                    </div>
+
+                    {/* Segmented Block Progress Bar */}
+                    <div className="leave-progress-segments" style={{ display: 'flex', gap: 5, width: '100%' }}>
+                      {Array.from({ length: totalInt }).map((_, i) => (
+                        <div
+                          key={i}
+                          style={{
+                            flex: 1,
+                            height: 10,
+                            borderRadius: 4,
+                            backgroundColor: i < usedInt ? activeColor : '#f1f5f9',
+                          }}
+                        />
+                      ))}
+                    </div>
+                  </div>
+                );
+              })}
+
+              {balances.length === 0 && (
+                <div style={{ color: '#94a3b8', fontSize: '0.875rem', textAlign: 'center', padding: '16px 0' }}>
+                  No leave balances configured yet
+                </div>
               )}
-              <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)', marginBottom: 8 }}>
-                {b.leave_type_name || 'Leave'}
-              </div>
-              <div style={{ fontSize: '1.75rem', fontWeight: 700, color: 'var(--accent-blue)' }}>
-                {Number(b.balance).toFixed(1)}
-              </div>
-              <div style={{ fontSize: '0.6875rem', color: 'var(--text-muted)', marginTop: 4 }}>
-                days remaining ({b.year})
-              </div>
             </div>
-          ))}
-          {balances.length === 0 && (
-            <div className="glass-card" style={{ padding: 20, gridColumn: '1 / -1' }}>
-              <div style={{ color: 'var(--text-muted)', fontSize: '0.875rem' }}>
-                No leave balances configured yet
-              </div>
-            </div>
-          )}
-        </div>
-      )}
+          </div>
+        )}
 
-      {/* Tabs */}
-      <div className="tabs">
-        {!isAdmin && (
-          <button className={`tab ${tab === 'my-leave' ? 'active' : ''}`} onClick={() => setTab('my-leave')}>
-            My Requests
-          </button>
-        )}
-        {(canApprove || isAdmin) && (
-          <button className={`tab ${tab === 'approvals' ? 'active' : ''}`} onClick={() => setTab('approvals')}>
-            Approval Queue ({pending.length})
-          </button>
-        )}
-        {canManageBalances && (
-          <button className={`tab ${tab === 'leave-types' ? 'active' : ''}`} onClick={() => setTab('leave-types')}>
-            Leave Types
-          </button>
-        )}
-      </div>
+        {/* Right Main Content Area: Tabs + Data Tables */}
+        <div>
+          {/* Modern Pill Tabs */}
+          <div className="leave-tabs" style={{ display: 'flex', gap: 10, marginBottom: 20, flexWrap: 'wrap' }}>
+            {!isAdmin && (
+              <button
+                onClick={() => setTab('my-leave')}
+                style={{
+                  padding: '9px 18px',
+                  borderRadius: 12,
+                  fontSize: '0.85rem',
+                  fontWeight: 700,
+                  border: tab === 'my-leave' ? 'none' : '1px solid #cbd5e1',
+                  background: tab === 'my-leave' ? '#0f172a' : '#ffffff',
+                  color: tab === 'my-leave' ? '#ffffff' : '#64748b',
+                  cursor: 'pointer',
+                  boxShadow: tab === 'my-leave' ? '0 4px 12px rgba(15, 23, 42, 0.15)' : 'none',
+                }}
+              >
+                My Requests
+              </button>
+            )}
+            {(canApprove || isAdmin) && (
+              <button
+                onClick={() => setTab('approvals')}
+                style={{
+                  padding: '9px 18px',
+                  borderRadius: 12,
+                  fontSize: '0.85rem',
+                  fontWeight: 700,
+                  border: tab === 'approvals' ? 'none' : '1px solid #cbd5e1',
+                  background: tab === 'approvals' ? '#0f172a' : '#ffffff',
+                  color: tab === 'approvals' ? '#ffffff' : '#64748b',
+                  cursor: 'pointer',
+                  boxShadow: tab === 'approvals' ? '0 4px 12px rgba(15, 23, 42, 0.15)' : 'none',
+                }}
+              >
+                Approval Queue ({pending.length})
+              </button>
+            )}
+            {canManageBalances && (
+              <button
+                onClick={() => setTab('leave-types')}
+                style={{
+                  padding: '9px 18px',
+                  borderRadius: 12,
+                  fontSize: '0.85rem',
+                  fontWeight: 700,
+                  border: tab === 'leave-types' ? 'none' : '1px solid #cbd5e1',
+                  background: tab === 'leave-types' ? '#0f172a' : '#ffffff',
+                  color: tab === 'leave-types' ? '#ffffff' : '#64748b',
+                  cursor: 'pointer',
+                  boxShadow: tab === 'leave-types' ? '0 4px 12px rgba(15, 23, 42, 0.15)' : 'none',
+                }}
+              >
+                Leave Types
+              </button>
+            )}
+          </div>
 
       {/* My Requests */}
       {!isAdmin && tab === 'my-leave' && (
-        <div className="section-card">
+        <div className="section-card" style={{ borderTop: '3px solid #2563eb' }}>
+          <div style={{ overflowX: 'auto' }}>
           <table className="data-table">
             <thead>
               <tr>
-                <th>Type</th>
-                <th>From</th>
-                <th>To</th>
-                <th>Days</th>
-                <th>Status</th>
+                <th style={{ whiteSpace: 'nowrap' }}>Type</th>
+                <th style={{ whiteSpace: 'nowrap' }}>From</th>
+                <th style={{ whiteSpace: 'nowrap' }}>To</th>
+                <th style={{ whiteSpace: 'nowrap' }}>Days</th>
+                <th style={{ whiteSpace: 'nowrap' }}>Status</th>
               </tr>
             </thead>
             <tbody>
               {myRequests.map((r) => (
                 <tr key={r.id}>
-                  <td style={{ fontWeight: 500 }}>{r.leave_type_name || '—'}</td>
-                  <td>{r.start_date}</td>
-                  <td>{r.end_date}</td>
-                  <td>{(new Date(r.end_date) - new Date(r.start_date)) / 86400000 + 1}</td>
-                  <td><span className={`badge badge-${r.status}`}>{r.status}</span></td>
+                  <td style={{ fontWeight: 500, whiteSpace: 'nowrap' }}>{r.leave_type_name || '—'}</td>
+                  <td style={{ whiteSpace: 'nowrap' }}>{r.start_date}</td>
+                  <td style={{ whiteSpace: 'nowrap' }}>{r.end_date}</td>
+                  <td style={{ whiteSpace: 'nowrap' }}>{(new Date(r.end_date) - new Date(r.start_date)) / 86400000 + 1}</td>
+                  <td style={{ whiteSpace: 'nowrap' }}><span className={`badge badge-${r.status}`}>{r.status}</span></td>
                 </tr>
               ))}
             </tbody>
           </table>
+          </div>
           {myRequests.length === 0 && (
             <div className="empty-state">
               <CalendarDays size={48} />
@@ -208,26 +329,27 @@ export default function LeaveManagement() {
 
       {/* Approval Queue */}
       {tab === 'approvals' && (
-        <div className="section-card">
+        <div className="section-card" style={{ borderTop: '3px solid #d97706' }}>
+          <div style={{ overflowX: 'auto' }}>
           <table className="data-table">
             <thead>
               <tr>
-                <th>Type</th>
-                <th>From</th>
-                <th>To</th>
-                <th>Status</th>
-                <th>Actions</th>
+                <th style={{ whiteSpace: 'nowrap' }}>Type</th>
+                <th style={{ whiteSpace: 'nowrap' }}>From</th>
+                <th style={{ whiteSpace: 'nowrap' }}>To</th>
+                <th style={{ whiteSpace: 'nowrap' }}>Status</th>
+                <th style={{ whiteSpace: 'nowrap' }}>Actions</th>
               </tr>
             </thead>
             <tbody>
               {pending.map((r) => (
                 <tr key={r.id}>
-                  <td style={{ fontWeight: 500 }}>{r.leave_type_name || '—'}</td>
-                  <td>{r.start_date}</td>
-                  <td>{r.end_date}</td>
-                  <td><span className="badge badge-pending">{r.status}</span></td>
+                  <td style={{ fontWeight: 500, whiteSpace: 'nowrap' }}>{r.leave_type_name || '—'}</td>
+                  <td style={{ whiteSpace: 'nowrap' }}>{r.start_date}</td>
+                  <td style={{ whiteSpace: 'nowrap' }}>{r.end_date}</td>
+                  <td style={{ whiteSpace: 'nowrap' }}><span className="badge badge-pending">{r.status}</span></td>
                   <td>
-                    <div style={{ display: 'flex', gap: 6 }}>
+                    <div className="leave-row-actions" style={{ display: 'flex', gap: 6 }}>
                       <button className="btn btn-success btn-sm" onClick={() => handleApproval(r.id, 'approved')}>
                         <Check size={14} /> Approve
                       </button>
@@ -240,6 +362,7 @@ export default function LeaveManagement() {
               ))}
             </tbody>
           </table>
+          </div>
           {pending.length === 0 && (
             <div className="empty-state">
               <Clock size={48} />
@@ -249,56 +372,60 @@ export default function LeaveManagement() {
         </div>
       )}
 
-      {/* Leave Types (Admin) */}
-      {tab === 'leave-types' && canManageBalances && (
-        <div className="section-card">
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 }}>
-            <h3 style={{ marginBottom: 0 }}><Layers size={18} style={{ color: 'var(--accent-violet)' }} /> Leave Types</h3>
-            <div style={{ display: 'flex', gap: 8 }}>
-              <button className="btn btn-secondary btn-sm" onClick={() => setShowAdjustBalance(true)}>
-                <SlidersHorizontal size={14} /> Adjust Employee Balance
-              </button>
-              <button className="btn btn-secondary btn-sm" onClick={handleAccrueMonthly} disabled={accruing}>
-                <RefreshCw size={14} /> {accruing ? 'Running...' : 'Run Monthly Accrual'}
-              </button>
-              <button className="btn btn-primary btn-sm" onClick={() => setShowLeaveTypeModal({ mode: 'add' })}>+ Add</button>
+          {/* Leave Types (Admin) */}
+          {tab === 'leave-types' && canManageBalances && (
+            <div className="section-card" style={{ borderTop: '3px solid #7c3aed' }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16, flexWrap: 'wrap', gap: 10 }}>
+                <h3 style={{ marginBottom: 0 }}><Layers size={18} style={{ color: 'var(--accent-violet)' }} /> Leave Types</h3>
+                <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
+                  <button className="btn btn-secondary btn-sm" onClick={() => setShowAdjustBalance(true)}>
+                    <SlidersHorizontal size={14} /> Adjust Employee Balance
+                  </button>
+                  <button className="btn btn-secondary btn-sm" onClick={handleAccrueMonthly} disabled={accruing}>
+                    <RefreshCw size={14} /> {accruing ? 'Running...' : 'Run Monthly Accrual'}
+                  </button>
+                  <button className="btn btn-primary btn-sm" onClick={() => setShowLeaveTypeModal({ mode: 'add' })}>+ Add</button>
+                </div>
+              </div>
+              <p style={{ fontSize: '0.8125rem', color: 'var(--text-muted)', marginBottom: 16 }}>
+                Accrual Rate is how many days each employee earns per month for that leave type — raise it here to
+                increase everyone's future entitlement, then "Run Monthly Accrual" to credit it to balances. Safe to
+                click more than once; a type already accrued for the current month is skipped.
+              </p>
+              <div style={{ overflowX: 'auto' }}>
+              <table className="data-table">
+                <thead><tr><th style={{ whiteSpace: 'nowrap' }}>Name</th><th style={{ whiteSpace: 'nowrap' }}>Accrual Rate</th><th style={{ whiteSpace: 'nowrap' }}>Payroll Effect</th><th style={{ whiteSpace: 'nowrap' }}>Last Accrued</th><th style={{ whiteSpace: 'nowrap' }}>Actions</th></tr></thead>
+                <tbody>
+                  {types.map((lt) => (
+                    <tr key={lt.id}>
+                      <td style={{ fontWeight: 500, whiteSpace: 'nowrap' }}>{lt.name}</td>
+                      <td style={{ whiteSpace: 'nowrap' }}>{Number(lt.accrual_rate).toFixed(2)} days/month</td>
+                      <td style={{ whiteSpace: 'nowrap' }}>
+                        <span className={`badge ${lt.is_paid ? 'badge-active' : 'badge-rejected'}`}>
+                          {lt.is_paid ? 'Paid' : 'Unpaid (Loss of Pay)'}
+                        </span>
+                      </td>
+                      <td style={{ color: 'var(--text-muted)', fontSize: '0.8125rem', whiteSpace: 'nowrap' }}>{lt.last_accrued_period || '—'}</td>
+                      <td>
+                        <div className="leave-row-actions" style={{ display: 'flex', gap: 6 }}>
+                          <button className="btn btn-secondary btn-sm" onClick={() => setShowLeaveTypeModal({ mode: 'edit', leaveType: lt })}>
+                            Edit
+                          </button>
+                          <button className="btn btn-secondary btn-sm" onClick={() => toggleLeaveTypePaid(lt)}>
+                            Mark as {lt.is_paid ? 'Unpaid' : 'Paid'}
+                          </button>
+                        </div>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+              </div>
+              {types.length === 0 && <div className="empty-state"><p>No leave types configured</p></div>}
             </div>
-          </div>
-          <p style={{ fontSize: '0.8125rem', color: 'var(--text-muted)', marginBottom: 16 }}>
-            Accrual Rate is how many days each employee earns per month for that leave type — raise it here to
-            increase everyone's future entitlement, then "Run Monthly Accrual" to credit it to balances. Safe to
-            click more than once; a type already accrued for the current month is skipped.
-          </p>
-          <table className="data-table">
-            <thead><tr><th>Name</th><th>Accrual Rate</th><th>Payroll Effect</th><th>Last Accrued</th><th>Actions</th></tr></thead>
-            <tbody>
-              {types.map((lt) => (
-                <tr key={lt.id}>
-                  <td style={{ fontWeight: 500 }}>{lt.name}</td>
-                  <td>{Number(lt.accrual_rate).toFixed(2)} days/month</td>
-                  <td>
-                    <span className={`badge ${lt.is_paid ? 'badge-active' : 'badge-rejected'}`}>
-                      {lt.is_paid ? 'Paid' : 'Unpaid (Loss of Pay)'}
-                    </span>
-                  </td>
-                  <td style={{ color: 'var(--text-muted)', fontSize: '0.8125rem' }}>{lt.last_accrued_period || '—'}</td>
-                  <td>
-                    <div style={{ display: 'flex', gap: 6 }}>
-                      <button className="btn btn-secondary btn-sm" onClick={() => setShowLeaveTypeModal({ mode: 'edit', leaveType: lt })}>
-                        Edit
-                      </button>
-                      <button className="btn btn-secondary btn-sm" onClick={() => toggleLeaveTypePaid(lt)}>
-                        Mark as {lt.is_paid ? 'Unpaid' : 'Paid'}
-                      </button>
-                    </div>
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-          {types.length === 0 && <div className="empty-state"><p>No leave types configured</p></div>}
+          )}
         </div>
-      )}
+      </div>
 
       {/* Request Modal */}
       {showRequest && (

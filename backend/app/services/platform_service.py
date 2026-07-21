@@ -22,6 +22,7 @@ from app.models.expense_category import ExpenseCategory
 from app.models.leave_type import LeaveType
 from app.models.salary_component import SalaryComponent
 from app.services.auth_service import hash_password, create_invite_token
+from app.services.email_service import try_send_invite_email
 
 DEFAULT_EXPENSE_CATEGORIES = ["Travel", "Meals & Entertainment", "Office Supplies", "Transportation", "Other"]
 
@@ -137,7 +138,7 @@ def invite_company_admin(
     email: str,
     full_name: str,
     employee_code: str,
-) -> tuple[UserAccount, str]:
+) -> tuple[UserAccount, str, bool]:
     """Create the first Admin employee + user account for a company and
     return an invite token for them to set their own password."""
     admin_role = (
@@ -147,6 +148,10 @@ def invite_company_admin(
     )
     if not admin_role:
         raise ValueError("Company has no Admin role — was it created via create_company()?")
+
+    existing = db.query(UserAccount).filter(UserAccount.email == email).first()
+    if existing:
+        raise ValueError(f"A user with email {email} already exists")
 
     employee = Employee(
         id=uuid.uuid4(),
@@ -175,4 +180,26 @@ def invite_company_admin(
     db.refresh(user)
 
     invite_token = create_invite_token(user.id)
-    return user, invite_token
+    email_sent = try_send_invite_email(user.email, full_name, invite_token)
+    return user, invite_token, email_sent
+
+
+def resend_company_admin_invite(db: Session, company_id: UUID, user_account_id: UUID) -> tuple[UserAccount, str, bool]:
+    """Regenerate an invite token for a company admin whose account hasn't
+    redeemed its original invite yet. Mirrors employee_service.resend_invite()
+    at the platform level — lets you re-issue a link for the same account
+    instead of hitting the "email already exists" wall on a fresh invite."""
+    user = (
+        db.query(UserAccount)
+        .filter(UserAccount.id == user_account_id, UserAccount.company_id == company_id)
+        .first()
+    )
+    if not user:
+        raise ValueError("User not found for this company")
+    if user.invite_accepted_at:
+        raise ValueError("This account has already set its password — nothing to resend")
+
+    invite_token = create_invite_token(user.id)
+    full_name = user.employee.full_name if user.employee else user.email
+    email_sent = try_send_invite_email(user.email, full_name, invite_token)
+    return user, invite_token, email_sent

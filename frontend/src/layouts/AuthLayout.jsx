@@ -11,6 +11,7 @@ export default function AuthLayout() {
         background: 'var(--gradient-bg)',
         position: 'relative',
         overflow: 'hidden',
+        padding: 20,
       }}
     >
       {/* Background orbs */}

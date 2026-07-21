@@ -12,7 +12,10 @@ import {
   updateEmployeeRoles,
 } from '../api/employees';
 import { getGratuityStatus, getFnfForEmployee, initiateFnf, processFnf } from '../api/payroll';
-import { ArrowLeft, Copy, Pencil, UserX, UserCheck, Mail, FileText, Upload, Shield, LogOut, Award } from 'lucide-react';
+import {
+  ArrowLeft, Copy, Pencil, UserX, UserCheck, Mail, FileText, Upload, Shield, LogOut, Award,
+  Briefcase, KeyRound, User, Wallet, ExternalLink,
+} from 'lucide-react';
 import Modal from '../components/Modal';
 import { useAuth } from '../context/AuthContext';
 
@@ -241,76 +244,98 @@ export default function EmployeeProfile() {
   if (loading) return <div className="animate-fade-in">Loading...</div>;
   if (!employee) return <div className="animate-fade-in">Employee not found.</div>;
 
+  const initials = employee.full_name.split(' ').map((n) => n[0]).join('').toUpperCase();
+
   return (
     <div className="animate-fade-in">
-      <div className="page-header">
-        <div>
-          <button className="btn btn-secondary" style={{ marginBottom: 12 }} onClick={() => navigate('/employees')}>
-            <ArrowLeft size={16} /> Back to Directory
-          </button>
-          <div style={{ display: 'flex', alignItems: 'center', gap: 14 }}>
-            {employee.photo_url ? (
-              <img src={employee.photo_url} alt={employee.full_name} className="avatar" style={{ width: 56, height: 56, objectFit: 'cover' }} />
-            ) : (
-              <div className="avatar" style={{ width: 56, height: 56, fontSize: '1.25rem', background: 'var(--gradient-primary)' }}>
-                {employee.full_name.split(' ').map((n) => n[0]).join('').toUpperCase()}
-              </div>
-            )}
-            <div>
-              <h1>{employee.full_name}</h1>
-              <p>
-                {employee.employee_code}
-                {employee.department_name ? ` · ${employee.department_name}` : ''}
-                {employee.site_name ? ` · ${employee.site_name}` : ''}
-              </p>
+      <button
+        className="btn-ghost"
+        style={{ display: 'inline-flex', alignItems: 'center', gap: 6, padding: '6px 10px', borderRadius: 'var(--radius-md)', border: 'none', background: 'none', cursor: 'pointer', fontSize: '0.8125rem', fontWeight: 600, color: 'var(--text-secondary)', marginBottom: 16 }}
+        onClick={() => navigate('/employees')}
+      >
+        <ArrowLeft size={15} /> Back to Directory
+      </button>
+
+      <div className="profile-hero">
+        <div className="profile-hero-cover" />
+        <div className="profile-hero-body">
+          {employee.photo_url ? (
+            <img
+              className="profile-hero-avatar"
+              src={employee.photo_url}
+              alt={employee.full_name}
+              style={{ width: 88, height: 88, borderRadius: 20, objectFit: 'cover', border: '4px solid var(--bg-card)', boxShadow: '0 4px 14px rgba(0,0,0,0.12)', flexShrink: 0 }}
+            />
+          ) : (
+            <div
+              className="profile-hero-avatar"
+              style={{
+                width: 88, height: 88, borderRadius: 20, flexShrink: 0,
+                background: 'var(--gradient-primary)', color: '#fff', fontSize: '1.75rem', fontWeight: 800,
+                display: 'flex', alignItems: 'center', justifyContent: 'center',
+                border: '4px solid var(--bg-card)', boxShadow: '0 4px 14px rgba(0,0,0,0.12)',
+              }}
+            >
+              {initials}
+            </div>
+          )}
+          <div style={{ flex: 1, minWidth: 200 }}>
+            <h1 style={{ fontSize: '1.4rem', fontWeight: 800, color: 'var(--text-primary)', display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap' }}>
+              {employee.full_name}
+              <span className={`badge badge-${employee.employment_status}`}>{employee.employment_status}</span>
+            </h1>
+            <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', marginTop: 6, fontSize: '0.8125rem', color: 'var(--text-muted)' }}>
+              <span style={{ fontWeight: 600 }}>{employee.employee_code}</span>
+              {employee.department_name && <><span>·</span><span>{employee.department_name}</span></>}
+              {employee.site_name && <><span>·</span><span>{employee.site_name}</span></>}
             </div>
           </div>
+          {canManage && (
+            <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap' }}>
+              <button className="btn btn-secondary" onClick={() => setShowEdit(true)}>
+                <Pencil size={16} /> Edit
+              </button>
+              <button className="btn btn-secondary" onClick={toggleStatus}>
+                {employee.employment_status === 'active' ? (
+                  <><UserX size={16} /> Deactivate</>
+                ) : (
+                  <><UserCheck size={16} /> Reactivate</>
+                )}
+              </button>
+            </div>
+          )}
         </div>
-        {canManage && (
-          <div style={{ display: 'flex', gap: 10 }}>
-            <button className="btn btn-secondary" onClick={() => setShowEdit(true)}>
-              <Pencil size={16} /> Edit
-            </button>
-            <button className="btn btn-secondary" onClick={toggleStatus}>
-              {employee.employment_status === 'active' ? (
-                <><UserX size={16} /> Deactivate</>
-              ) : (
-                <><UserCheck size={16} /> Reactivate</>
-              )}
-            </button>
-          </div>
-        )}
       </div>
 
       {error && (
         <div style={{ marginBottom: 16, color: 'var(--accent-rose)', fontSize: '0.875rem' }}>{error}</div>
       )}
 
-      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 20 }}>
-        <div className="section-card">
-          <h3 style={{ marginBottom: 16 }}>Employment Details</h3>
-          <dl style={{ display: 'grid', gridTemplateColumns: '140px 1fr', rowGap: 12, fontSize: '0.875rem' }}>
-            <dt style={{ color: 'var(--text-muted)' }}>Status</dt>
+      <div className="content-grid">
+        <div className="section-card" style={{ borderTop: '3px solid #2563eb' }}>
+          <h3 style={{ marginBottom: 16 }}><Briefcase size={17} style={{ color: '#2563eb' }} /> Employment Details</h3>
+          <dl className="info-dl">
+            <dt>Status</dt>
             <dd><span className={`badge badge-${employee.employment_status}`}>{employee.employment_status}</span></dd>
-            <dt style={{ color: 'var(--text-muted)' }}>Department</dt>
+            <dt>Department</dt>
             <dd>{employee.department_name || '—'}</dd>
-            <dt style={{ color: 'var(--text-muted)' }}>Site</dt>
+            <dt>Site</dt>
             <dd>{employee.site_name || '—'}</dd>
-            <dt style={{ color: 'var(--text-muted)' }}>Manager</dt>
+            <dt>Manager</dt>
             <dd>{employee.manager_name || '—'}</dd>
-            <dt style={{ color: 'var(--text-muted)' }}>Hire Date</dt>
+            <dt>Hire Date</dt>
             <dd>{employee.date_of_hire}</dd>
           </dl>
         </div>
 
-        <div className="section-card">
-          <h3 style={{ marginBottom: 16 }}>Account & Access</h3>
-          <dl style={{ display: 'grid', gridTemplateColumns: '140px 1fr', rowGap: 12, fontSize: '0.875rem' }}>
-            <dt style={{ color: 'var(--text-muted)' }}>Login Email</dt>
-            <dd>{employee.email || '—'}</dd>
-            <dt style={{ color: 'var(--text-muted)' }}>Role(s)</dt>
+        <div className="section-card" style={{ borderTop: '3px solid #7c3aed' }}>
+          <h3 style={{ marginBottom: 16 }}><KeyRound size={17} style={{ color: '#7c3aed' }} /> Account & Access</h3>
+          <dl className="info-dl">
+            <dt>Login Email</dt>
+            <dd style={{ fontWeight: 500 }}>{employee.email || '—'}</dd>
+            <dt>Role(s)</dt>
             <dd>{(employee.role_names || []).join(', ') || '—'}</dd>
-            <dt style={{ color: 'var(--text-muted)' }}>Account</dt>
+            <dt>Account</dt>
             <dd>
               <span className={`badge ${ACCOUNT_STATUS_COLOR[employee.account_status] || 'badge-inactive'}`}>
                 {ACCOUNT_STATUS_LABEL[employee.account_status] || employee.account_status}
@@ -346,57 +371,57 @@ export default function EmployeeProfile() {
           )}
         </div>
 
-        <div className="section-card" style={{ gridColumn: '1 / -1' }}>
-          <h3 style={{ marginBottom: 16 }}>Personal Information</h3>
-          <dl style={{ display: 'grid', gridTemplateColumns: '160px 1fr 160px 1fr', rowGap: 12, columnGap: 16, fontSize: '0.875rem' }}>
-            <dt style={{ color: 'var(--text-muted)' }}>Personal Email</dt>
+        <div className="section-card" style={{ gridColumn: '1 / -1', borderTop: '3px solid #059669' }}>
+          <h3 style={{ marginBottom: 16 }}><User size={17} style={{ color: '#059669' }} /> Personal Information</h3>
+          <dl className="info-dl-wide">
+            <dt>Personal Email</dt>
             <dd>{employee.personal_email || '—'}</dd>
-            <dt style={{ color: 'var(--text-muted)' }}>Phone</dt>
+            <dt>Phone</dt>
             <dd>{employee.phone || '—'}</dd>
-            <dt style={{ color: 'var(--text-muted)' }}>Date of Birth</dt>
+            <dt>Date of Birth</dt>
             <dd>{employee.date_of_birth || '—'}</dd>
-            <dt style={{ color: 'var(--text-muted)' }}>Gender</dt>
+            <dt>Gender</dt>
             <dd>{employee.gender || '—'}</dd>
-            <dt style={{ color: 'var(--text-muted)' }}>Address</dt>
+            <dt>Address</dt>
             <dd style={{ gridColumn: 'span 3' }}>{employee.address || '—'}</dd>
-            <dt style={{ color: 'var(--text-muted)' }}>Emergency Contact</dt>
+            <dt>Emergency Contact</dt>
             <dd>{employee.emergency_contact_name || '—'}</dd>
-            <dt style={{ color: 'var(--text-muted)' }}>Emergency Phone</dt>
+            <dt>Emergency Phone</dt>
             <dd>{employee.emergency_contact_phone || '—'}</dd>
           </dl>
         </div>
 
         {canViewPayroll && (
-          <div className="section-card" style={{ gridColumn: '1 / -1' }}>
-            <h3 style={{ marginBottom: 16 }}>Statutory & Payroll Details</h3>
-            <dl style={{ display: 'grid', gridTemplateColumns: '160px 1fr 160px 1fr', rowGap: 12, columnGap: 16, fontSize: '0.875rem' }}>
-              <dt style={{ color: 'var(--text-muted)' }}>Employment Type</dt>
+          <div className="section-card" style={{ gridColumn: '1 / -1', borderTop: '3px solid #d97706' }}>
+            <h3 style={{ marginBottom: 16 }}><Wallet size={17} style={{ color: '#d97706' }} /> Statutory & Payroll Details</h3>
+            <dl className="info-dl-wide">
+              <dt>Employment Type</dt>
               <dd style={{ textTransform: 'capitalize' }}>{(employee.employment_type || 'full_time').replace('_', ' ')}</dd>
-              <dt style={{ color: 'var(--text-muted)' }}>PAN</dt>
+              <dt>PAN</dt>
               <dd>{employee.pan_number || '—'}</dd>
-              <dt style={{ color: 'var(--text-muted)' }}>UAN</dt>
+              <dt>UAN</dt>
               <dd>{employee.uan_number || '—'}</dd>
-              <dt style={{ color: 'var(--text-muted)' }}>Bank Account</dt>
+              <dt>Bank Account</dt>
               <dd>{employee.bank_account_number ? `${employee.bank_account_number} (${employee.bank_ifsc || 'no IFSC'})` : '—'}</dd>
-              <dt style={{ color: 'var(--text-muted)' }}>ESI Number</dt>
+              <dt>ESI Number</dt>
               <dd>{employee.esi_number || '—'}</dd>
-              <dt style={{ color: 'var(--text-muted)' }}>ESI Registered</dt>
+              <dt>ESI Registered</dt>
               <dd>{employee.esi_registered_date || '—'}</dd>
-              <dt style={{ color: 'var(--text-muted)' }}>EPF Applicable</dt>
+              <dt>EPF Applicable</dt>
               <dd>{employee.epf_applicable === null || employee.epf_applicable === undefined ? 'Auto (company policy)' : employee.epf_applicable ? 'Yes' : 'No'}</dd>
-              <dt style={{ color: 'var(--text-muted)' }}>ESI Applicable</dt>
+              <dt>ESI Applicable</dt>
               <dd>{employee.esi_applicable === null || employee.esi_applicable === undefined ? 'Auto (headcount/ceiling)' : employee.esi_applicable ? 'Yes' : 'No'}</dd>
-              <dt style={{ color: 'var(--text-muted)' }}>Tax Regime</dt>
+              <dt>Tax Regime</dt>
               <dd style={{ textTransform: 'capitalize' }}>{employee.tax_regime || 'New (default)'}</dd>
-              <dt style={{ color: 'var(--text-muted)' }}>Declared Investments</dt>
-              <dd>₹{money(employee.declared_investments)} <span style={{ color: 'var(--text-muted)' }}>(old regime only)</span></dd>
+              <dt>Declared Investments</dt>
+              <dd>₹{money(employee.declared_investments)} <span style={{ color: 'var(--text-muted)', fontWeight: 400 }}>(old regime only)</span></dd>
             </dl>
           </div>
         )}
 
         {canViewPayroll && (
-          <div className="section-card" style={{ gridColumn: '1 / -1' }}>
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 }}>
+          <div className="section-card" style={{ gridColumn: '1 / -1', borderTop: '3px solid #f59e0b' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16, flexWrap: 'wrap', gap: 10 }}>
               <h3 style={{ marginBottom: 0 }}><Award size={18} style={{ color: 'var(--accent-amber)' }} /> Gratuity & Exit</h3>
               {canManagePayroll && !fnf && employee.employment_status === 'active' && (
                 <button className="btn btn-secondary btn-sm" onClick={() => setShowFnf(true)}>
@@ -405,32 +430,32 @@ export default function EmployeeProfile() {
               )}
             </div>
             {gratuity && (
-              <dl style={{ display: 'grid', gridTemplateColumns: '160px 1fr 160px 1fr', rowGap: 12, columnGap: 16, fontSize: '0.875rem', marginBottom: fnf ? 20 : 0 }}>
-                <dt style={{ color: 'var(--text-muted)' }}>Gratuity Eligible</dt>
+              <dl className="info-dl-wide" style={{ marginBottom: fnf ? 20 : 0 }}>
+                <dt>Gratuity Eligible</dt>
                 <dd>{gratuity.eligible ? 'Yes' : 'Not yet'}</dd>
-                <dt style={{ color: 'var(--text-muted)' }}>Years of Service</dt>
+                <dt>Years of Service</dt>
                 <dd>{gratuity.years_of_service} (needs {gratuity.years_required})</dd>
-                <dt style={{ color: 'var(--text-muted)' }}>Headcount Requirement Met</dt>
+                <dt>Headcount Requirement Met</dt>
                 <dd>{gratuity.headcount_met ? 'Yes' : 'No'}</dd>
-                <dt style={{ color: 'var(--text-muted)' }}>Estimated Gratuity</dt>
+                <dt>Estimated Gratuity</dt>
                 <dd>₹{money(gratuity.estimated_amount)}</dd>
               </dl>
             )}
             {fnf && (
               <div style={{ borderTop: gratuity ? '1px solid var(--border-color)' : 'none', paddingTop: gratuity ? 16 : 0 }}>
                 <h4 style={{ marginBottom: 12, fontSize: '0.9375rem' }}>Full & Final Settlement — Exit Date: {fnf.exit_date}</h4>
-                <dl style={{ display: 'grid', gridTemplateColumns: '160px 1fr 160px 1fr', rowGap: 12, columnGap: 16, fontSize: '0.875rem' }}>
-                  <dt style={{ color: 'var(--text-muted)' }}>Pending Salary</dt>
+                <dl className="info-dl-wide">
+                  <dt>Pending Salary</dt>
                   <dd>₹{money(fnf.pending_salary_amount)}</dd>
-                  <dt style={{ color: 'var(--text-muted)' }}>Leave Encashment</dt>
+                  <dt>Leave Encashment</dt>
                   <dd>{fnf.leave_encashment_days} days = ₹{money(fnf.leave_encashment_amount)}</dd>
-                  <dt style={{ color: 'var(--text-muted)' }}>Gratuity</dt>
+                  <dt>Gratuity</dt>
                   <dd>{fnf.gratuity_eligible ? `₹${money(fnf.gratuity_amount)}` : 'Not eligible'}</dd>
-                  <dt style={{ color: 'var(--text-muted)' }}>Outstanding Deductions</dt>
+                  <dt>Outstanding Deductions</dt>
                   <dd>-₹{money(fnf.outstanding_deductions)}</dd>
-                  <dt style={{ color: 'var(--text-muted)' }}>Net Payable</dt>
-                  <dd style={{ fontWeight: 700 }}>₹{money(fnf.net_payable)}</dd>
-                  <dt style={{ color: 'var(--text-muted)' }}>Status</dt>
+                  <dt>Net Payable</dt>
+                  <dd style={{ fontWeight: 800 }}>₹{money(fnf.net_payable)}</dd>
+                  <dt>Status</dt>
                   <dd><span className={`badge ${fnf.status === 'processed' ? 'badge-active' : 'badge-pending'}`}>{fnf.status}</span></dd>
                 </dl>
                 {canApprovePayroll && fnf.status === 'pending' && (
@@ -441,9 +466,9 @@ export default function EmployeeProfile() {
           </div>
         )}
 
-        <div className="section-card" style={{ gridColumn: '1 / -1' }}>
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 }}>
-            <h3 style={{ marginBottom: 0 }}>Documents</h3>
+        <div className="section-card" style={{ gridColumn: '1 / -1', borderTop: '3px solid #64748b' }}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16, flexWrap: 'wrap', gap: 10 }}>
+            <h3 style={{ marginBottom: 0 }}><FileText size={17} style={{ color: '#64748b' }} /> Documents</h3>
             {canManage && (
               <button className="btn btn-secondary btn-sm" onClick={() => setShowUploadDoc(true)}>
                 <Upload size={14} /> Upload Document
@@ -456,24 +481,33 @@ export default function EmployeeProfile() {
               <p>No documents on file</p>
             </div>
           ) : (
-            <table className="data-table">
-              <thead>
-                <tr>
-                  <th>Type</th>
-                  <th>File</th>
-                  <th>e-Signed</th>
-                </tr>
-              </thead>
-              <tbody>
-                {documents.map((doc) => (
-                  <tr key={doc.id}>
-                    <td>{doc.doc_type}</td>
-                    <td><a href={doc.file_url} target="_blank" rel="noreferrer">{doc.file_url}</a></td>
-                    <td>{doc.e_signed ? 'Yes' : 'No'}</td>
+            <div style={{ overflowX: 'auto' }}>
+              <table className="data-table">
+                <thead>
+                  <tr>
+                    <th style={{ whiteSpace: 'nowrap' }}>Type</th>
+                    <th style={{ whiteSpace: 'nowrap' }}>File</th>
+                    <th style={{ whiteSpace: 'nowrap' }}>e-Signed</th>
                   </tr>
-                ))}
-              </tbody>
-            </table>
+                </thead>
+                <tbody>
+                  {documents.map((doc) => (
+                    <tr key={doc.id}>
+                      <td style={{ whiteSpace: 'nowrap', fontWeight: 600 }}>{doc.doc_type}</td>
+                      <td style={{ whiteSpace: 'nowrap' }}>
+                        <a href={doc.file_url} target="_blank" rel="noreferrer" style={{ display: 'inline-flex', alignItems: 'center', gap: 4, maxWidth: 320 }}>
+                          <span className="truncate" style={{ maxWidth: 280 }}>{doc.file_url}</span>
+                          <ExternalLink size={12} style={{ flexShrink: 0 }} />
+                        </a>
+                      </td>
+                      <td style={{ whiteSpace: 'nowrap' }}>
+                        <span className={`badge ${doc.e_signed ? 'badge-active' : 'badge-inactive'}`}>{doc.e_signed ? 'Yes' : 'No'}</span>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
           )}
         </div>
       </div>

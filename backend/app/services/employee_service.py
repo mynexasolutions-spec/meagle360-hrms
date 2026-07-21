@@ -11,6 +11,7 @@ from app.models.user_account import UserAccount
 from app.repositories.employee_repo import EmployeeRepository
 from app.services.audit_service import log_action
 from app.services.auth_service import hash_password, create_invite_token
+from app.services.email_service import try_send_invite_email
 
 
 def _account_status(user_account: UserAccount | None) -> str:
@@ -167,7 +168,7 @@ class EmployeeService:
     def count(self) -> int:
         return self.repo.count()
 
-    def invite_employee(self, data: dict, actor_employee_id: UUID | None = None) -> tuple[Employee, UserAccount, str]:
+    def invite_employee(self, data: dict, actor_employee_id: UUID | None = None) -> tuple[Employee, UserAccount, str, bool]:
         """Create an employee + user account with an assigned role and return
         an invite token for them to set their own password. Mirrors
         platform_service.invite_company_admin()'s pattern at the tenant level."""
@@ -179,13 +180,20 @@ class EmployeeService:
         if not role:
             raise ValueError("Role not found for this company")
 
-        existing_email = (
-            self.db.query(UserAccount)
-            .filter(UserAccount.company_id == self.company_id, UserAccount.email == data["email"])
+        # UserAccount.email is unique platform-wide, not just within this company —
+        # scoping this check to company_id would miss a collision with another
+        # tenant's user and let the insert below crash on the DB constraint instead.
+        existing_email = self.db.query(UserAccount).filter(UserAccount.email == data["email"]).first()
+        if existing_email:
+            raise ValueError("A user with this email already exists")
+
+        existing_code = (
+            self.db.query(Employee)
+            .filter(Employee.company_id == self.company_id, Employee.employee_code == data["employee_code"])
             .first()
         )
-        if existing_email:
-            raise ValueError("A user with this email already exists in your organization")
+        if existing_code:
+            raise ValueError("An employee with this employee code already exists in your organization")
 
         employee = self.repo.create({
             "full_name": data["full_name"],
@@ -213,9 +221,10 @@ class EmployeeService:
         self.db.refresh(user)
 
         invite_token = create_invite_token(user.id)
-        return employee, user, invite_token
+        email_sent = try_send_invite_email(user.email, employee.full_name, invite_token)
+        return employee, user, invite_token, email_sent
 
-    def resend_invite(self, employee_id: UUID, actor_employee_id: UUID | None = None) -> str:
+    def resend_invite(self, employee_id: UUID, actor_employee_id: UUID | None = None) -> tuple[str, bool]:
         """Regenerate an invite token for an employee whose account hasn't
         redeemed its original invite yet."""
         employee = self.repo.get_with_relations(employee_id)
@@ -226,4 +235,7 @@ class EmployeeService:
 
         log_action(self.db, self.company_id, actor_employee_id, "employee.invite_resent", "employee", employee_id)
         self.db.commit()
-        return create_invite_token(employee.user_account.id)
+
+        invite_token = create_invite_token(employee.user_account.id)
+        email_sent = try_send_invite_email(employee.user_account.email, employee.full_name, invite_token)
+        return invite_token, email_sent
