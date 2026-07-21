@@ -26,7 +26,8 @@ class Settings(BaseSettings):
     SMTP_PASSWORD: str = ""
     SMTP_FROM_EMAIL: str = ""
     SMTP_FROM_NAME: str = "Meagle360 HRMS"
-    APP_BASE_URL: str = "http://localhost:5173"
+    APP_BASE_URL: str = ""
+    ALLOWED_ORIGINS: str = ""
 
     model_config = {
         "env_file": ".env",

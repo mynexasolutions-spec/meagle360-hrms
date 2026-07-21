@@ -23,10 +23,28 @@ app = FastAPI(
     redoc_url="/api/redoc",
 )
 
-# ── CORS — allow React dev server & production frontend ────────────────────────
+# ── Dynamic CORS Configuration ──────────────────────────────────────────
+def get_allowed_origins() -> list[str]:
+    origins = set()
+
+    if settings.APP_BASE_URL:
+        clean_url = settings.APP_BASE_URL.strip().rstrip("/")
+        if clean_url:
+            origins.add(clean_url)
+
+    if settings.ALLOWED_ORIGINS:
+        for item in settings.ALLOWED_ORIGINS.split(","):
+            clean = item.strip().rstrip("/")
+            if clean:
+                origins.add(clean)
+
+    return list(origins)
+
+allowed_origins = get_allowed_origins()
+
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],  # Allows Vercel frontend & local dev
+    allow_origins=allowed_origins,
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],

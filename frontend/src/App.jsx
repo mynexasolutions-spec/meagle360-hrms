@@ -24,23 +24,25 @@ import ReportsAnalytics from './pages/ReportsAnalytics';
 import MyProfile from './pages/MyProfile';
 import ActionTracker from './pages/ActionTracker';
 
+import LoadingScreen from './components/LoadingScreen';
+
 function ProtectedRoute({ children }) {
   const { user, loading } = useAuth();
-  if (loading) return <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', minHeight: '100vh', color: 'var(--text-muted)' }}>Loading...</div>;
+  if (loading) return <LoadingScreen subtitle="Verifying authentication..." />;
   if (!user) return <Navigate to="/login" replace />;
   return children;
 }
 
 function PublicRoute({ children }) {
   const { user, loading } = useAuth();
-  if (loading) return null;
+  if (loading) return <LoadingScreen subtitle="Checking session..." />;
   if (user) return <Navigate to="/" replace />;
   return children;
 }
 
 function ProtectedPlatformRoute({ children }) {
   const { admin, loading } = usePlatformAuth();
-  if (loading) return <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', minHeight: '100vh', color: 'var(--text-muted)' }}>Loading...</div>;
+  if (loading) return <LoadingScreen title="Nexa Platform Console" subtitle="Loading admin workspace..." />;
   if (!admin) return <Navigate to="/platform/login" replace />;
   return children;
 }

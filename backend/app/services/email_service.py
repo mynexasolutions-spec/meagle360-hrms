@@ -52,7 +52,8 @@ def send_email(to_email: str, subject: str, text_body: str, html_body: str) -> N
 
 def send_invite_email(to_email: str, full_name: str, invite_token: str) -> None:
     """Send a new-account setup link to a newly invited employee or company admin."""
-    setup_link = f"{settings.APP_BASE_URL}/set-password?token={invite_token}"
+    base_url = (settings.APP_BASE_URL or "http://localhost:5173").rstrip("/")
+    setup_link = f"{base_url}/set-password?token={invite_token}"
     monogram = "".join(w[0] for w in settings.SMTP_FROM_NAME.split()[:2]).upper() or "M"
 
     text_body = (
