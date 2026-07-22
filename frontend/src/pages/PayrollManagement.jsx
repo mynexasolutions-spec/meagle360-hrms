@@ -109,7 +109,7 @@ function ComponentsTab() {
   const [editing, setEditing] = useState(null);
 
   useEffect(() => { load(); }, []);
-  const load = () => getSalaryComponents().then((r) => setComponents(r.data)).catch(() => {});
+  const load = () => getSalaryComponents().then((r) => setComponents(r.data)).catch(() => { });
 
   const openCreate = () => { setEditing(null); setShowModal(true); };
   const openEdit = (c) => { setEditing(c); setShowModal(true); };
@@ -319,8 +319,8 @@ function StructuresTab() {
 
   useEffect(() => { load(); }, []);
   const load = () => {
-    getSalaryStructures().then((r) => setStructures(r.data)).catch(() => {});
-    getSalaryComponents().then((r) => setComponents(r.data)).catch(() => {});
+    getSalaryStructures().then((r) => setStructures(r.data)).catch(() => { });
+    getSalaryComponents().then((r) => setComponents(r.data)).catch(() => { });
   };
 
   const handleDelete = async (s) => {
@@ -462,8 +462,8 @@ function AssignmentsTab() {
   const [showModal, setShowModal] = useState(false);
 
   useEffect(() => {
-    getDirectory().then((r) => setEmployees(r.data)).catch(() => {});
-    getSalaryStructures().then((r) => setStructures(r.data)).catch(() => {});
+    getDirectory().then((r) => setEmployees(r.data)).catch(() => { });
+    getSalaryStructures().then((r) => setStructures(r.data)).catch(() => { });
   }, []);
 
   useEffect(() => {
@@ -595,7 +595,7 @@ function RunsTab() {
   const [showAdjustModal, setShowAdjustModal] = useState(null);
 
   useEffect(() => { loadRuns(); }, []);
-  const loadRuns = () => getPayrollRuns().then((r) => setRuns(r.data)).catch(() => {});
+  const loadRuns = () => getPayrollRuns().then((r) => setRuns(r.data)).catch(() => { });
 
   const openRun = async (run) => {
     setSelectedRun(run);
@@ -724,7 +724,7 @@ function RunsTab() {
                                   flexShrink: 0,
                                   color: line.component_type === 'earning' ? 'var(--accent-emerald)'
                                     : line.component_type === 'employer_cost' ? 'var(--text-muted)'
-                                    : 'var(--accent-rose)',
+                                      : 'var(--accent-rose)',
                                 }}>
                                   {line.component_type === 'deduction' ? '-' : line.component_type === 'earning' ? '+' : ''}{money(line.amount)}
                                 </span>
@@ -840,7 +840,7 @@ function TaxSlabsTab() {
   const [showModal, setShowModal] = useState(false);
 
   useEffect(() => { load(); }, []);
-  const load = () => getTaxSlabs().then((r) => setSlabs(r.data)).catch(() => {});
+  const load = () => getTaxSlabs().then((r) => setSlabs(r.data)).catch(() => { });
 
   const handleDelete = async (s) => {
     if (!confirm('Delete this tax slab?')) return;
@@ -948,7 +948,7 @@ function PtSlabsTab() {
   const [showModal, setShowModal] = useState(false);
 
   useEffect(() => { load(); }, []);
-  const load = () => getPtSlabs().then((r) => setSlabs(r.data)).catch(() => {});
+  const load = () => getPtSlabs().then((r) => setSlabs(r.data)).catch(() => { });
 
   const handleDelete = async (s) => {
     if (!confirm('Delete this PT slab?')) return;
@@ -1055,7 +1055,7 @@ function LoansTab() {
   const [showModal, setShowModal] = useState(false);
 
   useEffect(() => {
-    getDirectory().then((r) => setEmployees(r.data)).catch(() => {});
+    getDirectory().then((r) => setEmployees(r.data)).catch(() => { });
   }, []);
 
   useEffect(() => {
@@ -1195,7 +1195,7 @@ function PolicyTab() {
   const [saved, setSaved] = useState(false);
 
   useEffect(() => {
-    getPayrollPolicy().then((r) => setPolicy(r.data)).catch(() => {});
+    getPayrollPolicy().then((r) => setPolicy(r.data)).catch(() => { });
   }, []);
 
   const handleSave = async (e) => {

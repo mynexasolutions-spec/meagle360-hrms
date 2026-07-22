@@ -455,25 +455,6 @@ class PayrollService:
         structure_earnings_total = fixed_earning_total + balancing_amount
         gross = basic_pay + structure_earnings_total  # what's actually paid, before deductions
 
-        esi_eligible = self._resolve_esi_eligibility(employee, company, gross, date(year, month, calendar.monthrange(year, month)[1]))
-
-        deduction_lines = []
-        deduction_total = Decimal(0)
-        for c in deduction_components:
-            if c.statutory_type == "epf":
-                amount = base_amount(c, basic_pay) if epf_eligible else Decimal(0)
-            elif c.statutory_type == "esi":
-                amount = base_amount(c, gross) if esi_eligible else Decimal(0)
-            elif c.statutory_type == "pt":
-                amount = self._lookup_pt_amount(employee, gross)
-            elif c.statutory_type == "tds":
-                amount = self._compute_tds(employee, gross, company)
-            else:
-                amount = base_amount(c, gross)
-            if amount != 0:
-                deduction_lines.append((c.name, "deduction", amount))
-            deduction_total += amount
-
         # Overtime, reimbursements, loans.
         working_days, lop_days = self._get_month_lop_summary(employee.id, year, month)
         overtime_pay, overtime_hours = self._get_overtime_pay(employee.id, year, month, gross, working_days, company)
@@ -482,14 +463,38 @@ class PayrollService:
         loan_total, loan_details = self._get_loan_deduction_preview(employee.id)
 
         _, last_day = calendar.monthrange(year, month)
-        per_day_rate = (gross / last_day) if last_day else Decimal(0)
-        lop_amount = round(per_day_rate * lop_days, 2)
+        per_day_rate = (gross / Decimal(working_days)) if working_days > 0 else ((gross / Decimal(last_day)) if last_day else Decimal(0))
+        lop_amount = min(gross, round(per_day_rate * lop_days, 2))
 
-        total_earnings = structure_earnings_total + overtime_pay + reimbursement_total
-        total_deductions = deduction_total + loan_total
-        net_pay = basic_pay + total_earnings - total_deductions - lop_amount
+        # Actual earned salary after LOP for prorating statutory deductions
+        earned_ratio = (Decimal(working_days - lop_days) / Decimal(working_days)) if working_days > 0 else Decimal(1)
+        earned_basic = max(Decimal(0), round(basic_pay * earned_ratio, 2))
+        earned_gross = max(Decimal(0), gross - lop_amount)
 
-        extra_lines = list(earning_lines)
+        esi_eligible = self._resolve_esi_eligibility(employee, company, earned_gross, date(year, month, calendar.monthrange(year, month)[1]))
+
+        deduction_lines = []
+        deduction_total = Decimal(0)
+        for c in deduction_components:
+            if c.statutory_type == "epf":
+                amount = base_amount(c, earned_basic) if epf_eligible else Decimal(0)
+            elif c.statutory_type == "esi":
+                amount = base_amount(c, earned_gross) if esi_eligible else Decimal(0)
+            elif c.statutory_type == "pt":
+                amount = self._lookup_pt_amount(employee, earned_gross)
+            elif c.statutory_type == "tds":
+                amount = self._compute_tds(employee, earned_gross, company)
+            else:
+                amount = base_amount(c, earned_gross)
+            if amount != 0:
+                deduction_lines.append((c.name, "deduction", amount))
+            deduction_total += amount
+
+        total_earnings = basic_pay + structure_earnings_total + overtime_pay + reimbursement_total
+        total_deductions = deduction_total + loan_total + lop_amount
+        net_pay = max(Decimal(0), total_earnings - total_deductions)
+
+        extra_lines = [("Basic Pay", "earning", basic_pay)] + list(earning_lines)
         if overtime_pay > 0:
             extra_lines.append((f"Overtime Pay ({overtime_hours}h)", "earning", overtime_pay))
         for claim in reimbursable_claims:
@@ -638,8 +643,7 @@ class PayrollService:
             payslip.gross_earnings += amount
         else:
             payslip.gross_deductions += amount
-        gross = payslip.basic_pay + payslip.gross_earnings
-        payslip.net_pay = gross - payslip.gross_deductions - payslip.lop_amount
+        payslip.net_pay = payslip.gross_earnings - payslip.gross_deductions
 
         log_action(self.db, self.company_id, actor_employee_id, "payroll.adjustment_added", "payslip", payslip.id)
         self.db.commit()
