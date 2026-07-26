@@ -1,6 +1,6 @@
 import axios from 'axios';
 
-const API_BASE = 'http://localhost:8015/api';
+const API_BASE = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8015/api';
 
 // Separate axios instance + token from the tenant client: a platform admin
 // and a tenant user can be logged in side by side without clobbering
