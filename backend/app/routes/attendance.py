@@ -48,6 +48,19 @@ def clock_in(
         raise HTTPException(status_code=400, detail=str(e))
 
 
+@router.get("/status")
+def get_status(
+    db: Session = Depends(get_db),
+    company_id: UUID = Depends(get_company_id),
+    current_user: UserAccount = Depends(get_current_user),
+):
+    """Whether the current user is clocked in right now — based on any open
+    record, not just today's, so the Clock In/Out button reflects reality
+    even if a previous session was never closed."""
+    svc = AttendanceService(db, company_id)
+    return svc.get_status(current_user.employee_id)
+
+
 @router.post("/clock-out", response_model=AttendanceRecordResponse)
 def clock_out(
     data: ClockOutRequest | None = None,

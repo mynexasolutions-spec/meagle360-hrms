@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useAuth } from '../context/AuthContext';
-import { getEmployeeOverview, clockIn, clockOut } from '../api/attendance';
+import { getEmployeeOverview, clockIn, clockOut, getClockStatus } from '../api/attendance';
 import {
   requestRegularization, getMyRegularizations, getPendingRegularizations, approveRegularization,
 } from '../api/attendance';
@@ -175,12 +175,11 @@ export default function Attendance() {
 
   const loadRecords = async () => {
     try {
+      getClockStatus().then((r) => setClockedIn(!!r.data?.clocked_in)).catch(() => {});
       const res = await getEmployeeOverview({ employee_id: user?.employee_id, year: now.getFullYear(), month: now.getMonth() + 1 });
       setShiftInfo(res.data?.shift_info || null);
       const today = now.toISOString().slice(0, 10);
       const todayRow = res.data?.days?.find((d) => d.date === today);
-      const open = todayRow?.sessions?.some((s) => !s.clock_out);
-      setClockedIn(!!open);
       if (todayRow?.sessions?.length > 0) {
         setTodayClockInTime(todayRow.sessions[0].clock_in);
         setTodayPunctuality(todayRow.sessions[0].punctuality_status || 'On Time');

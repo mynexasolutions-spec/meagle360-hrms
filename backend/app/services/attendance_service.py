@@ -29,10 +29,27 @@ class AttendanceService:
         if open_record:
             raise ValueError("Employee already clocked in. Please clock out first.")
 
+        now = datetime.now(timezone.utc)
+        last_closed = self.repo.get_last_closed_record(employee_id)
+        if last_closed:
+            clock_out_time = last_closed.clock_out
+            if clock_out_time.tzinfo is None:
+                clock_out_time = clock_out_time.replace(tzinfo=timezone.utc)
+
+            elapsed_seconds = (now - clock_out_time).total_seconds()
+            min_required_seconds = 5 * 60  # 5 minutes
+
+            if elapsed_seconds < min_required_seconds:
+                remaining_seconds = int(min_required_seconds - elapsed_seconds)
+                remaining_minutes = (remaining_seconds // 60) + 1
+                raise ValueError(
+                    f"You must wait at least 5 minutes after clocking out before clocking in again. Please wait ~{remaining_minutes} more minute(s)."
+                )
+
         record = AttendanceRecord(
             company_id=self.company_id,
             employee_id=employee_id,
-            clock_in=datetime.now(timezone.utc),
+            clock_in=now,
             source=source,
             location=location,
             summary=summary,
@@ -55,13 +72,13 @@ class AttendanceService:
             clock_in_time = clock_in_time.replace(tzinfo=timezone.utc)
 
         elapsed_seconds = (now - clock_in_time).total_seconds()
-        min_required_seconds = 10 * 60  # 10 minutes
+        min_required_seconds = 5 * 60  # 5 minutes
 
         if elapsed_seconds < min_required_seconds:
             remaining_seconds = int(min_required_seconds - elapsed_seconds)
             remaining_minutes = (remaining_seconds // 60) + 1
             raise ValueError(
-                f"You must wait at least 10 minutes after clocking in before clocking out. Please wait ~{remaining_minutes} more minute(s)."
+                f"You must wait at least 5 minutes after clocking in before clocking out. Please wait ~{remaining_minutes} more minute(s)."
             )
 
         record.clock_out = now
@@ -70,6 +87,18 @@ class AttendanceService:
         self.db.commit()
         self.db.refresh(record)
         return record
+
+    def get_status(self, employee_id: UUID) -> dict:
+        """Whether the employee currently has an open clock-in — checked
+        against any open record, not just today's, so a session left open
+        across a day boundary (a missed clock-out, a stale/orphaned record)
+        still correctly shows as "clocked in" instead of silently letting
+        the UI offer a fresh Clock In that the backend then rejects."""
+        record = self.repo.get_open_record(employee_id)
+        return {
+            "clocked_in": record is not None,
+            "clock_in": record.clock_in if record else None,
+        }
 
     def get_records(self, employee_id: UUID | None = None, skip: int = 0, limit: int = 50):
         if employee_id:

@@ -4,7 +4,7 @@ import { useAuth } from '../context/AuthContext';
 import { getDashboardSummary, getAttendanceOverview, getLeaveSummary, getLiveStatus, getLeaveInsight } from '../api/dashboard';
 import { getAnnouncements, createAnnouncement } from '../api/announcements';
 import { getLeaveBalance, getPendingRequests } from '../api/leave';
-import { getHolidays, clockIn, clockOut, getEmployeeOverview } from '../api/attendance';
+import { getHolidays, clockIn, clockOut, getEmployeeOverview, getClockStatus } from '../api/attendance';
 import {
   Users, CheckCircle, Umbrella, FileClock, Megaphone, CalendarHeart,
   Clock, CalendarPlus, Upload, ArrowUpRight, Wifi, Plus,
@@ -101,13 +101,12 @@ export default function Dashboard() {
     getHolidays().then((r) => setHolidays(r.data)).catch(() => { });
     if (user?.employee_id) {
       const now = new Date();
+      getClockStatus().then((r) => setClockedIn(!!r.data?.clocked_in)).catch(() => { });
       getEmployeeOverview({ employee_id: user.employee_id, year: now.getFullYear(), month: now.getMonth() + 1 })
         .then((r) => {
           setShiftInfo(r.data?.shift_info || null);
           const today = now.toISOString().slice(0, 10);
           const todayRow = r.data?.days?.find((d) => d.date === today);
-          const open = todayRow?.sessions?.some((s) => !s.clock_out);
-          setClockedIn(!!open);
           if (todayRow?.sessions?.length > 0) {
             setTodayClockInTime(todayRow.sessions[0].clock_in);
             setTodayPunctuality(todayRow.sessions[0].punctuality_status || 'On Time');
@@ -139,6 +138,8 @@ export default function Dashboard() {
         await clockIn({ source: 'web' });
         setClockedIn(true);
       }
+    } catch (e) {
+      alert(e.response?.data?.detail || `Failed to clock ${clockedIn ? 'out' : 'in'}`);
     } finally {
       setClockLoading(false);
     }

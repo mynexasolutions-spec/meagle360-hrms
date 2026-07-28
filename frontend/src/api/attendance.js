@@ -4,6 +4,8 @@ export const clockIn = (data = {}) => client.post('/attendance/clock-in', data);
 
 export const clockOut = (data = {}) => client.post('/attendance/clock-out', data);
 
+export const getClockStatus = () => client.get('/attendance/status');
+
 export const getAttendanceRecords = (params = {}) =>
   client.get('/attendance/records', { params });
 
