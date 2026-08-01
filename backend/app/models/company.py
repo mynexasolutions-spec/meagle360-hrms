@@ -30,6 +30,10 @@ class Company(Base, TimestampMixin):
     # Python date.weekday() convention: Monday=0 ... Sunday=6. Used to tell
     # a weekly off apart from an unpaid absence when computing payroll LOP.
     weekly_off_days: Mapped[list[int]] = mapped_column(JSON, default=lambda: [5, 6])
+    # Cap on how many attendance regularization requests (pending + approved)
+    # an employee can submit in a calendar month — admin-configurable so it
+    # isn't a hardcoded constant.
+    max_monthly_regularizations: Mapped[int] = mapped_column(Integer, nullable=False, default=5)
 
     # ── Statutory policy (India Labour Codes, 2025) — every threshold and
     # rate here is a company-level setting, not hardcoded, since the rollout

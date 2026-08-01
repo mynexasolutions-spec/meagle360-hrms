@@ -97,3 +97,41 @@ class LeaveRequestRepository(BaseRepository[LeaveRequest]):
             .filter(LeaveRequest.status == "pending")
             .count()
         )
+
+    def get_history(
+        self,
+        year: int | None = None,
+        month: int | None = None,
+        employee_id: UUID | None = None,
+        status: str | None = None,
+        skip: int = 0,
+        limit: int = 200,
+    ) -> list[LeaveRequest]:
+        """Company-wide leave request history for Admin/Manager review — every
+        status (pending, approved, rejected), optionally narrowed to one
+        employee and/or one month, since the Approval Queue only ever shows
+        pending requests and loses everything the moment it's actioned."""
+        q = self._scoped_query().options(
+            joinedload(LeaveRequest.leave_type),
+            joinedload(LeaveRequest.employee),
+        )
+        if employee_id:
+            q = q.filter(LeaveRequest.employee_id == employee_id)
+        if status:
+            q = q.filter(LeaveRequest.status == status)
+        if year and month:
+            from datetime import date
+            import calendar
+            start = date(year, month, 1)
+            end = date(year, month, calendar.monthrange(year, month)[1])
+            q = q.filter(LeaveRequest.start_date <= end, LeaveRequest.end_date >= start)
+        elif year:
+            from sqlalchemy import extract
+            q = q.filter(extract("year", LeaveRequest.start_date) == year)
+
+        return (
+            q.order_by(LeaveRequest.start_date.desc())
+            .offset(skip)
+            .limit(limit)
+            .all()
+        )

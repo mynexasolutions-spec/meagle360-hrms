@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { GitBranch, Plus, Clock, Users } from 'lucide-react';
+import { GitBranch, Plus, Clock, Users, Pencil, Trash2 } from 'lucide-react';
 import client from '../api/client';
 import Modal from '../components/Modal';
 
@@ -15,6 +15,7 @@ export default function ShiftManagement() {
   const [tab, setTab] = useState('shifts');
   const [showAdd, setShowAdd] = useState(false);
   const [form, setForm] = useState({ shift_type: '', start_time: '', end_time: '' });
+  const [editingShift, setEditingShift] = useState(null);
 
   const [employees, setEmployees] = useState([]);
   const [showAssign, setShowAssign] = useState(false);
@@ -55,6 +56,28 @@ export default function ShiftManagement() {
       loadData();
     } catch (err) {
       alert(err.response?.data?.detail || 'Failed');
+    }
+  };
+
+  const handleUpdate = async (e) => {
+    e.preventDefault();
+    try {
+      await client.put(`/shifts/${editingShift.id}`, form);
+      setEditingShift(null);
+      setForm({ shift_type: '', start_time: '', end_time: '' });
+      loadData();
+    } catch (err) {
+      alert(err.response?.data?.detail || 'Failed to update shift');
+    }
+  };
+
+  const handleDeleteShift = async (shift) => {
+    if (!confirm(`Delete the "${shift.shift_type}" shift template?`)) return;
+    try {
+      await client.delete(`/shifts/${shift.id}`);
+      loadData();
+    } catch (err) {
+      alert(err.response?.data?.detail || 'Failed to delete shift');
     }
   };
 
@@ -107,7 +130,10 @@ export default function ShiftManagement() {
             </button>
             <button
               className="btn btn-primary"
-              onClick={() => setShowAdd(true)}
+              onClick={() => {
+                setForm({ shift_type: '', start_time: '', end_time: '' });
+                setShowAdd(true);
+              }}
               style={{ background: 'linear-gradient(135deg, #2563eb, #1d4ed8)' }}
             >
               <Plus size={18} /> New Shift Template
@@ -161,25 +187,45 @@ export default function ShiftManagement() {
               className="shift-card"
             >
               <div>
-                <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 16 }}>
-                  <div
-                    style={{
-                      width: 44,
-                      height: 44,
-                      borderRadius: 14,
-                      background: '#f5f3ff',
-                      color: '#7c3aed',
-                      display: 'flex',
-                      alignItems: 'center',
-                      justifyContent: 'center',
-                    }}
-                  >
-                    <Clock size={22} />
+                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12, marginBottom: 16 }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 12, minWidth: 0 }}>
+                    <div
+                      style={{
+                        width: 44,
+                        height: 44,
+                        borderRadius: 14,
+                        background: '#f5f3ff',
+                        color: '#7c3aed',
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        flexShrink: 0,
+                      }}
+                    >
+                      <Clock size={22} />
+                    </div>
+                    <div style={{ minWidth: 0 }}>
+                      <div style={{ fontWeight: 800, fontSize: '1.05rem', color: '#0f172a' }}>{s.shift_type}</div>
+                      <span style={{ fontSize: '0.75rem', fontWeight: 600, color: '#64748b' }}>Shift Template</span>
+                    </div>
                   </div>
-                  <div>
-                    <div style={{ fontWeight: 800, fontSize: '1.05rem', color: '#0f172a' }}>{s.shift_type}</div>
-                    <span style={{ fontSize: '0.75rem', fontWeight: 600, color: '#64748b' }}>Shift Template</span>
-                  </div>
+                  {isAdmin && (
+                    <div style={{ display: 'flex', gap: 6, flexShrink: 0 }}>
+                      <button
+                        className="btn-icon btn-ghost"
+                        title="Edit shift"
+                        onClick={() => {
+                          setEditingShift(s);
+                          setForm({ shift_type: s.shift_type, start_time: s.start_time, end_time: s.end_time });
+                        }}
+                      >
+                        <Pencil size={14} />
+                      </button>
+                      <button className="btn-icon btn-ghost" title="Delete shift" onClick={() => handleDeleteShift(s)}>
+                        <Trash2 size={14} />
+                      </button>
+                    </div>
+                  )}
                 </div>
 
                 <div
@@ -294,6 +340,47 @@ export default function ShiftManagement() {
             <div style={{ display: 'flex', gap: 10, justifyContent: 'flex-end', marginTop: 20 }}>
               <button type="button" className="btn btn-secondary" onClick={() => setShowAdd(false)}>Cancel</button>
               <button type="submit" className="btn btn-primary">Create</button>
+            </div>
+          </form>
+        </Modal>
+      )}
+
+      {editingShift && (
+        <Modal title="Edit Shift" onClose={() => setEditingShift(null)}>
+          <form onSubmit={handleUpdate}>
+            <div className="input-group">
+              <label className="input-label">Shift Type</label>
+              <input
+                className="input-field"
+                placeholder="e.g., Morning, Evening, Night"
+                value={form.shift_type}
+                onChange={(e) => setForm({ ...form, shift_type: e.target.value })}
+                required
+              />
+            </div>
+            <div className="input-group">
+              <label className="input-label">Start Time</label>
+              <input
+                type="time"
+                className="input-field"
+                value={form.start_time}
+                onChange={(e) => setForm({ ...form, start_time: e.target.value })}
+                required
+              />
+            </div>
+            <div className="input-group">
+              <label className="input-label">End Time</label>
+              <input
+                type="time"
+                className="input-field"
+                value={form.end_time}
+                onChange={(e) => setForm({ ...form, end_time: e.target.value })}
+                required
+              />
+            </div>
+            <div style={{ display: 'flex', gap: 10, justifyContent: 'flex-end', marginTop: 20 }}>
+              <button type="button" className="btn btn-secondary" onClick={() => setEditingShift(null)}>Cancel</button>
+              <button type="submit" className="btn btn-primary">Save</button>
             </div>
           </form>
         </Modal>

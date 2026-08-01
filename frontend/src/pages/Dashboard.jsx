@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
-import { getDashboardSummary, getAttendanceOverview, getLeaveSummary, getLiveStatus, getLeaveInsight } from '../api/dashboard';
+import { getDashboardSummary, getAttendanceOverview, getLeaveSummary, getLiveStatus, getLeaveInsight, getOnLeaveToday } from '../api/dashboard';
 import { getAnnouncements, createAnnouncement } from '../api/announcements';
 import { getLeaveBalance, getPendingRequests } from '../api/leave';
 import { getHolidays, clockIn, clockOut, getEmployeeOverview, getClockStatus } from '../api/attendance';
@@ -86,6 +86,7 @@ export default function Dashboard() {
   const [todayPunctuality, setTodayPunctuality] = useState('On Time');
   const [shiftInfo, setShiftInfo] = useState(null);
   const [liveStatus, setLiveStatus] = useState([]);
+  const [onLeaveToday, setOnLeaveToday] = useState([]);
   const [whosOnlineExpanded, setWhosOnlineExpanded] = useState(false);
   const [announcementLimit, setAnnouncementLimit] = useState(5);
   const [showNewAnnouncement, setShowNewAnnouncement] = useState(false);
@@ -99,6 +100,13 @@ export default function Dashboard() {
     getLeaveInsight().then((r) => setLeaveInsight(r.data)).catch(() => { });
     getLeaveBalance().then((r) => setBalances(r.data)).catch(() => { });
     getHolidays().then((r) => setHolidays(r.data)).catch(() => { });
+    if (canApprove) {
+      getPendingRequests().then((r) => setPending(r.data)).catch(() => { });
+    }
+    if (canSeeLiveStatus) {
+      getLiveStatus().then((r) => setLiveStatus(r.data)).catch(() => { });
+      getOnLeaveToday().then((r) => setOnLeaveToday(r.data)).catch(() => { });
+    }
     if (user?.employee_id) {
       const now = new Date();
       getClockStatus().then((r) => setClockedIn(!!r.data?.clocked_in)).catch(() => { });
@@ -472,14 +480,15 @@ export default function Dashboard() {
           </div>
 
           {canSeeLiveStatus && (() => {
-            const online = (typeof liveStatus !== 'undefined' && Array.isArray(liveStatus)) ? liveStatus.filter((e) => e.status === 'online') : [];
-            const shown = online.slice(0, 5);
-            const overflow = online.length - shown.length;
+            const statusColor = { online: 'var(--accent-emerald)', present: 'var(--accent-amber)', offline: 'var(--text-muted)' };
+            const present = (typeof liveStatus !== 'undefined' && Array.isArray(liveStatus)) ? liveStatus.filter((e) => e.status !== 'offline') : [];
+            const shown = present.slice(0, 5);
+            const overflow = present.length - shown.length;
             return (
               <div className="section-card">
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 4 }}>
                   <h3 style={{ marginBottom: 0 }}>
-                    <Wifi size={18} style={{ color: 'var(--accent-emerald)' }} /> Who's Online
+                    <Wifi size={18} style={{ color: 'var(--accent-emerald)' }} /> Present Today
                   </h3>
                   <button
                     onClick={() => setWhosOnlineExpanded((v) => !v)}
@@ -496,7 +505,7 @@ export default function Dashboard() {
                       {shown.map((e, i) => (
                         <div
                           key={e.employee_id}
-                          title={e.full_name}
+                          title={`${e.full_name} — ${e.status === 'online' ? 'clocked in' : 'present, clocked out'}`}
                           style={{
                             position: 'relative', width: 36, height: 36, borderRadius: '50%', flexShrink: 0,
                             marginLeft: i === 0 ? 0 : -10,
@@ -510,7 +519,7 @@ export default function Dashboard() {
                           <span
                             style={{
                               position: 'absolute', bottom: -1, right: -1, width: 10, height: 10, borderRadius: '50%',
-                              background: 'var(--accent-emerald)', border: '2px solid var(--bg-secondary)',
+                              background: statusColor[e.status], border: '2px solid var(--bg-secondary)',
                             }}
                           />
                         </div>
@@ -529,7 +538,7 @@ export default function Dashboard() {
                       )}
                     </div>
                     <div style={{ fontSize: '0.8125rem', color: 'var(--text-muted)', marginTop: 10 }}>
-                      {online.length} of {liveStatus.length} employees online
+                      {present.length} of {liveStatus.length} employees present today
                     </div>
                   </>
                 ) : (
@@ -539,14 +548,14 @@ export default function Dashboard() {
                         <span
                           style={{
                             width: 8, height: 8, borderRadius: '50%', flexShrink: 0,
-                            background: e.status === 'online' ? 'var(--accent-emerald)' : 'var(--text-muted)',
+                            background: statusColor[e.status],
                           }}
                         />
                         <span style={{ flex: 1, fontWeight: 500 }}>{e.full_name}</span>
                         <span style={{ color: 'var(--text-muted)', fontSize: '0.75rem' }}>
-                          {e.status === 'online'
-                            ? `Since ${new Date(e.online_since).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}`
-                            : 'Offline'}
+                          {e.status === 'online' && `Since ${new Date(e.online_since).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}`}
+                          {e.status === 'present' && 'Clocked out'}
+                          {e.status === 'offline' && 'Offline'}
                         </span>
                       </div>
                     ))}
@@ -564,12 +573,49 @@ export default function Dashboard() {
               ) : (
                 <div style={{ display: 'grid', gap: 10 }}>
                   {pending.slice(0, 4).map((r) => (
-                    <div key={r.id} style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.8125rem' }}>
-                      <span>{r.leave_type_name}</span>
-                      <span style={{ color: 'var(--text-muted)' }}>{r.start_date}</span>
+                    <div key={r.id} style={{ display: 'flex', flexDirection: 'column', gap: 2, fontSize: '0.8125rem' }}>
+                      <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+                        <span style={{ fontWeight: 600 }}>{r.employee_name || 'Unknown employee'}</span>
+                        <span style={{ color: 'var(--text-muted)' }}>{r.start_date}</span>
+                      </div>
+                      <span style={{ color: 'var(--text-muted)', fontSize: '0.75rem' }}>{r.leave_type_name}</span>
                     </div>
                   ))}
                   <a href="/leave" style={{ fontSize: '0.8125rem', color: 'var(--accent-blue)' }}>View all approvals</a>
+                </div>
+              )}
+            </div>
+          )}
+
+          {canSeeLiveStatus && (
+            <div className="section-card">
+              <h3>
+                <Umbrella size={18} style={{ color: 'var(--accent-amber)' }} /> On Leave Today
+                {onLeaveToday.length > 0 && <span className="badge badge-pending">{onLeaveToday.length}</span>}
+              </h3>
+              {onLeaveToday.length === 0 ? (
+                <div style={{ fontSize: '0.8125rem', color: 'var(--text-muted)' }}>No one is on leave today</div>
+              ) : (
+                <div style={{ display: 'grid', gap: 10 }}>
+                  {onLeaveToday.map((e) => (
+                    <div key={e.employee_id} style={{ display: 'flex', alignItems: 'center', gap: 10, fontSize: '0.8125rem' }}>
+                      <div
+                        style={{
+                          width: 32, height: 32, borderRadius: '50%', flexShrink: 0,
+                          display: 'flex', alignItems: 'center', justifyContent: 'center',
+                          background: e.photo_url ? `center/cover no-repeat url(${e.photo_url})` : 'var(--accent-amber-light)',
+                          color: 'var(--accent-amber)', fontSize: '0.6875rem', fontWeight: 600,
+                        }}
+                      >
+                        {!e.photo_url && initials(e.full_name)}
+                      </div>
+                      <div style={{ flex: 1, minWidth: 0 }}>
+                        <div style={{ fontWeight: 500 }}>{e.full_name}</div>
+                        <div style={{ color: 'var(--text-muted)', fontSize: '0.75rem' }}>{e.department_name || '—'}</div>
+                      </div>
+                      <span style={{ color: 'var(--text-muted)', fontSize: '0.75rem', textAlign: 'right' }}>{e.leave_type_name}</span>
+                    </div>
+                  ))}
                 </div>
               )}
             </div>

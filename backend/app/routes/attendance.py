@@ -6,7 +6,7 @@ from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
 
 from app.database import get_db
-from app.dependencies import get_company_id, get_current_user, require_permissions
+from app.dependencies import get_company_id, get_current_user, require_permissions, require_admin_role
 from app.models.user_account import UserAccount
 from app.models.holiday_calendar import HolidayCalendar
 from app.services.attendance_service import AttendanceService
@@ -153,7 +153,10 @@ def request_regularization(
     current_user: UserAccount = Depends(get_current_user),
 ):
     svc = AttendanceService(db, company_id)
-    req = svc.request_regularization(current_user.employee_id, data.model_dump())
+    try:
+        req = svc.request_regularization(current_user.employee_id, data.model_dump())
+    except ValueError as e:
+        raise HTTPException(status_code=400, detail=str(e))
     return RegularizationResponse(
         id=req.id, employee_id=req.employee_id, employee_name=None,
         record_date=req.record_date, requested_clock_in=req.requested_clock_in,
@@ -188,10 +191,38 @@ def pending_regularization_requests(
     limit: int = 50,
     db: Session = Depends(get_db),
     company_id: UUID = Depends(get_company_id),
-    _: UserAccount = Depends(require_permissions("attendance:approve")),
+    _: UserAccount = Depends(require_admin_role()),
 ):
     svc = AttendanceService(db, company_id)
     reqs = svc.get_pending_regularizations(skip, limit)
+    return [
+        RegularizationResponse(
+            id=r.id, employee_id=r.employee_id,
+            employee_name=r.employee.full_name if r.employee else None,
+            record_date=r.record_date, requested_clock_in=r.requested_clock_in,
+            requested_clock_out=r.requested_clock_out, reason=r.reason,
+            status=r.status, created_at=r.created_at,
+        ) for r in reqs
+    ]
+
+
+@router.get("/regularization-requests/history", response_model=list[RegularizationResponse])
+def regularization_history(
+    year: int | None = None,
+    month: int | None = None,
+    employee_id: UUID | None = None,
+    status: str | None = None,
+    skip: int = 0,
+    limit: int = 200,
+    db: Session = Depends(get_db),
+    company_id: UUID = Depends(get_company_id),
+    _: UserAccount = Depends(require_admin_role()),
+):
+    """Every regularization request (pending, approved, rejected), optionally
+    filtered to one employee/month/status — unlike /pending, approved and
+    rejected requests don't disappear from this view."""
+    svc = AttendanceService(db, company_id)
+    reqs = svc.get_regularization_history(year, month, employee_id, status, skip, limit)
     return [
         RegularizationResponse(
             id=r.id, employee_id=r.employee_id,
@@ -209,7 +240,7 @@ def approve_regularization_request(
     data: RegularizationApproval,
     db: Session = Depends(get_db),
     company_id: UUID = Depends(get_company_id),
-    current_user: UserAccount = Depends(require_permissions("attendance:approve")),
+    current_user: UserAccount = Depends(require_admin_role()),
 ):
     svc = AttendanceService(db, company_id)
     try:

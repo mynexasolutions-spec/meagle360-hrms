@@ -17,8 +17,14 @@ export default function Settings() {
   const [auditLogs, setAuditLogs] = useState([]);
   const [company, setCompany] = useState(null);
   const [showAdd, setShowAdd] = useState(false);
+  const [regLimitInput, setRegLimitInput] = useState('');
+  const [savingRegLimit, setSavingRegLimit] = useState(false);
 
   useEffect(() => { loadAll(); }, []);
+
+  useEffect(() => {
+    if (company) setRegLimitInput(String(company.max_monthly_regularizations));
+  }, [company?.max_monthly_regularizations]);
 
   const loadAll = async () => {
     try {
@@ -47,6 +53,23 @@ export default function Settings() {
       setCompany(res.data);
     } catch (err) {
       alert(err.response?.data?.detail || 'Failed to update weekly off days');
+    }
+  };
+
+  const handleSaveRegLimit = async () => {
+    const value = Number(regLimitInput);
+    if (!Number.isInteger(value) || value < 0) {
+      alert('Please enter a whole number of 0 or more');
+      return;
+    }
+    setSavingRegLimit(true);
+    try {
+      const res = await updateMyCompany({ max_monthly_regularizations: value });
+      setCompany(res.data);
+    } catch (err) {
+      alert(err.response?.data?.detail || 'Failed to update regularization limit');
+    } finally {
+      setSavingRegLimit(false);
     }
   };
 
@@ -220,28 +243,57 @@ export default function Settings() {
 
       {/* Payroll Policy */}
       {tab === 'payroll-policy' && (
-        <div className="section-card" style={{ borderTop: '3px solid #7c3aed' }}>
-          <h3 style={{ marginBottom: 8 }}><Wallet size={18} style={{ color: 'var(--accent-emerald)' }} /> Weekly Off Days</h3>
-          <p style={{ fontSize: '0.8125rem', color: 'var(--text-muted)', marginBottom: 16 }}>
-            Used by Payroll to tell a weekly off apart from an unpaid absence when calculating Loss of Pay.
-          </p>
-          {company && (
-            <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap' }}>
-              {WEEKDAY_LABELS.map((label, i) => {
-                const isOff = (company.weekly_off_days || []).includes(i);
-                return (
-                  <button
-                    key={i}
-                    type="button"
-                    className={`btn ${isOff ? 'btn-primary' : 'btn-secondary'} btn-sm`}
-                    onClick={() => toggleWeeklyOff(i)}
-                  >
-                    {label}
-                  </button>
-                );
-              })}
-            </div>
-          )}
+        <div style={{ display: 'grid', gap: 20 }}>
+          <div className="section-card" style={{ borderTop: '3px solid #7c3aed' }}>
+            <h3 style={{ marginBottom: 8 }}><Wallet size={18} style={{ color: 'var(--accent-emerald)' }} /> Weekly Off Days</h3>
+            <p style={{ fontSize: '0.8125rem', color: 'var(--text-muted)', marginBottom: 16 }}>
+              Used by Payroll to tell a weekly off apart from an unpaid absence when calculating Loss of Pay.
+            </p>
+            {company && (
+              <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap' }}>
+                {WEEKDAY_LABELS.map((label, i) => {
+                  const isOff = (company.weekly_off_days || []).includes(i);
+                  return (
+                    <button
+                      key={i}
+                      type="button"
+                      className={`btn ${isOff ? 'btn-primary' : 'btn-secondary'} btn-sm`}
+                      onClick={() => toggleWeeklyOff(i)}
+                    >
+                      {label}
+                    </button>
+                  );
+                })}
+              </div>
+            )}
+          </div>
+
+          <div className="section-card" style={{ borderTop: '3px solid #d97706' }}>
+            <h3 style={{ marginBottom: 8 }}><Calendar size={18} style={{ color: 'var(--accent-amber)' }} /> Monthly Regularization Limit</h3>
+            <p style={{ fontSize: '0.8125rem', color: 'var(--text-muted)', marginBottom: 16 }}>
+              Maximum number of attendance regularization requests (pending + approved) an employee can submit per calendar month.
+            </p>
+            {company && (
+              <div style={{ display: 'flex', gap: 10, alignItems: 'center' }}>
+                <input
+                  type="number"
+                  min="0"
+                  step="1"
+                  className="input-field"
+                  style={{ maxWidth: 120 }}
+                  value={regLimitInput}
+                  onChange={(e) => setRegLimitInput(e.target.value)}
+                />
+                <button
+                  className="btn btn-primary btn-sm"
+                  onClick={handleSaveRegLimit}
+                  disabled={savingRegLimit || Number(regLimitInput) === company.max_monthly_regularizations}
+                >
+                  {savingRegLimit ? 'Saving...' : 'Save'}
+                </button>
+              </div>
+            )}
+          </div>
         </div>
       )}
 

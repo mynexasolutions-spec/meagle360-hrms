@@ -10,5 +10,7 @@ export const getLeaveSummary = (year) =>
 
 export const getLiveStatus = () => client.get('/dashboard/live-status');
 
+export const getOnLeaveToday = () => client.get('/dashboard/on-leave-today');
+
 export const getLeaveInsight = (year) =>
   client.get('/dashboard/leave-insight', { params: { year } });

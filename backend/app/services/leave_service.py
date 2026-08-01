@@ -73,6 +73,17 @@ class LeaveService:
     def get_pending_requests(self, skip=0, limit=50):
         return self.request_repo.get_pending(skip, limit)
 
+    def get_history(
+        self,
+        year: int | None = None,
+        month: int | None = None,
+        employee_id: UUID | None = None,
+        status: str | None = None,
+        skip: int = 0,
+        limit: int = 200,
+    ):
+        return self.request_repo.get_history(year, month, employee_id, status, skip, limit)
+
     def approve_reject(self, request_id: UUID, status: str, reviewer_employee_id: UUID) -> LeaveRequest | None:
         """Approve or reject a leave request and update balance."""
         leave_req = self.request_repo.get_by_id(request_id)

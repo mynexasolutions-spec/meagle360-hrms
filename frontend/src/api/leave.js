@@ -12,6 +12,8 @@ export const getMyRequests = () => client.get('/leave/my-requests');
 
 export const getPendingRequests = () => client.get('/leave/pending');
 
+export const getLeaveHistory = (params = {}) => client.get('/leave/history', { params });
+
 export const approveReject = (id, status) =>
   client.put(`/leave/approve/${id}`, { status });
 

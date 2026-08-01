@@ -142,6 +142,11 @@ a:hover {
 .btn:active {
   transform: scale(0.97);
 }
+.btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+  transform: none;
+}
 
 .btn-primary {
   background: var(--gradient-primary);

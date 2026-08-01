@@ -35,10 +35,15 @@ class AttendanceRepository(BaseRepository[AttendanceRecord]):
     def get_by_date_range(
         self, start: date, end: date, employee_id: UUID | None = None
     ) -> list[AttendanceRecord]:
-        from datetime import datetime, time, timezone
-        start_dt = datetime.combine(start, time.min).replace(tzinfo=timezone.utc)
-        end_dt = datetime.combine(end, time.max).replace(tzinfo=timezone.utc)
-        
+        # `start`/`end` are IST-local calendar dates; clock_in is stored in
+        # UTC, so the query bounds must shift by the IST offset first — a
+        # UTC midnight boundary would clip records near either edge of the
+        # range (e.g. a 4 AM IST clock-in is still "yesterday" in UTC).
+        from datetime import datetime, time, timezone, timedelta
+        ist_offset = timedelta(hours=5, minutes=30)
+        start_dt = (datetime.combine(start, time.min) - ist_offset).replace(tzinfo=timezone.utc)
+        end_dt = (datetime.combine(end, time.max) - ist_offset).replace(tzinfo=timezone.utc)
+
         q = self._scoped_query().filter(
             AttendanceRecord.clock_in >= start_dt,
             AttendanceRecord.clock_in <= end_dt,
@@ -77,24 +82,16 @@ class AttendanceRepository(BaseRepository[AttendanceRecord]):
             .first()
         )
 
-    def get_open_records(self) -> list[AttendanceRecord]:
-        """All currently-open (not clocked-out) *recent* records company-wide
-        — used to derive who's online right now. Same staleness cutoff as
-        get_open_record so a forgotten clock-out from days ago doesn't show
-        someone as perpetually "online"."""
-        cutoff = datetime.now(timezone.utc) - timedelta(hours=STALE_SESSION_HOURS)
-        return (
-            self._scoped_query()
-            .filter(AttendanceRecord.clock_out.is_(None), AttendanceRecord.clock_in >= cutoff)
-            .all()
-        )
-
     def count_present_today(self) -> int:
-        from datetime import datetime, time, timezone, date
-        today = date.today()
-        start_dt = datetime.combine(today, time.min).replace(tzinfo=timezone.utc)
-        end_dt = datetime.combine(today, time.max).replace(tzinfo=timezone.utc)
-        
+        # Company operates in IST — clock_in is stored in UTC, so a clock-in
+        # at 4 AM IST is still "yesterday" in UTC. date.today()'s UTC
+        # midnight boundaries would miss it; shift by the IST offset first.
+        ist_offset = timedelta(hours=5, minutes=30)
+        now_utc = datetime.now(timezone.utc)
+        today_local = (now_utc + ist_offset).date()
+        start_dt = (datetime.combine(today_local, datetime.min.time()) - ist_offset).replace(tzinfo=timezone.utc)
+        end_dt = start_dt + timedelta(days=1) - timedelta(microseconds=1)
+
         return (
             self._scoped_query()
             .filter(

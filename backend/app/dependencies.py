@@ -91,6 +91,23 @@ def get_company_id(
     return current_user.company_id
 
 
+def require_admin_role():
+    """Dependency — unlike require_permissions (any role holding a
+    permission flag), this checks the user's actual role name is "Admin",
+    for actions explicitly restricted to Admins only (e.g. attendance
+    regularization approval), regardless of what permission flags a
+    Manager/HR Manager role happens to carry."""
+    def _check(current_user: UserAccount = Depends(get_current_user)):
+        if not any(r.name == "Admin" for r in current_user.all_roles):
+            raise HTTPException(
+                status_code=status.HTTP_403_FORBIDDEN,
+                detail="Admin only",
+            )
+        return current_user
+
+    return _check
+
+
 def require_permissions(*permissions: str):
     """
     Dependency factory — checks that the current user has all

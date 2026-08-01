@@ -10,6 +10,7 @@ class CompanyUpdate(BaseModel):
     country: str | None = None
     multi_entity: bool | None = None
     weekly_off_days: list[int] | None = None  # 0=Monday ... 6=Sunday
+    max_monthly_regularizations: int | None = None
 
 
 class CompanyResponse(BaseModel):
@@ -20,6 +21,7 @@ class CompanyResponse(BaseModel):
     status: str
     plan_tier: str
     weekly_off_days: list[int]
+    max_monthly_regularizations: int
     created_at: datetime
     updated_at: datetime
 

@@ -30,3 +30,35 @@ class AttendanceRegularizationRepository(BaseRepository[AttendanceRegularization
 
     def count_pending(self) -> int:
         return self._scoped_query().filter(AttendanceRegularization.status == "pending").count()
+
+    def get_history(
+        self,
+        year: int | None = None,
+        month: int | None = None,
+        employee_id: UUID | None = None,
+        status: str | None = None,
+        skip: int = 0,
+        limit: int = 200,
+    ):
+        """Every regularization request company-wide (pending, approved,
+        rejected), optionally narrowed to one employee/month/status — unlike
+        get_pending, approved/rejected requests don't disappear from this."""
+        q = self._scoped_query().options(joinedload(AttendanceRegularization.employee))
+        if employee_id:
+            q = q.filter(AttendanceRegularization.employee_id == employee_id)
+        if status:
+            q = q.filter(AttendanceRegularization.status == status)
+        if year and month:
+            import calendar
+            from datetime import date
+            start = date(year, month, 1)
+            end = date(year, month, calendar.monthrange(year, month)[1])
+            q = q.filter(AttendanceRegularization.record_date >= start, AttendanceRegularization.record_date <= end)
+        elif year:
+            from sqlalchemy import extract
+            q = q.filter(extract("year", AttendanceRegularization.record_date) == year)
+
+        return (
+            q.order_by(AttendanceRegularization.record_date.desc())
+            .offset(skip).limit(limit).all()
+        )

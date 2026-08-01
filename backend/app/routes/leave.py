@@ -94,6 +94,7 @@ def my_requests(
             status=r.status,
             created_at=r.created_at,
             leave_type_name=r.leave_type.name if r.leave_type else None,
+            employee_name=r.employee.full_name if r.employee else None,
         )
         for r in requests
     ]
@@ -119,6 +120,40 @@ def pending_requests(
             status=r.status,
             created_at=r.created_at,
             leave_type_name=r.leave_type.name if r.leave_type else None,
+            employee_name=r.employee.full_name if r.employee else None,
+        )
+        for r in requests
+    ]
+
+
+@router.get("/history", response_model=list[LeaveRequestResponse])
+def leave_history(
+    year: int | None = None,
+    month: int | None = None,
+    employee_id: UUID | None = None,
+    status: str | None = None,
+    skip: int = 0,
+    limit: int = 200,
+    db: Session = Depends(get_db),
+    company_id: UUID = Depends(get_company_id),
+    _: UserAccount = Depends(require_permissions("leave:approve")),
+):
+    """Every leave request company-wide (pending, approved, rejected),
+    optionally filtered to one employee and/or one month — unlike /pending,
+    approved/rejected requests don't disappear from this view."""
+    svc = LeaveService(db, company_id)
+    requests = svc.get_history(year, month, employee_id, status, skip, limit)
+    return [
+        LeaveRequestResponse(
+            id=r.id,
+            employee_id=r.employee_id,
+            leave_type_id=r.leave_type_id,
+            start_date=r.start_date,
+            end_date=r.end_date,
+            status=r.status,
+            created_at=r.created_at,
+            leave_type_name=r.leave_type.name if r.leave_type else None,
+            employee_name=r.employee.full_name if r.employee else None,
         )
         for r in requests
     ]
@@ -137,7 +172,17 @@ def approve_reject(
         result = svc.approve_reject(request_id, data.status, current_user.employee_id)
         if not result:
             raise HTTPException(status_code=404, detail="Leave request not found")
-        return result
+        return LeaveRequestResponse(
+            id=result.id,
+            employee_id=result.employee_id,
+            leave_type_id=result.leave_type_id,
+            start_date=result.start_date,
+            end_date=result.end_date,
+            status=result.status,
+            created_at=result.created_at,
+            leave_type_name=result.leave_type.name if result.leave_type else None,
+            employee_name=result.employee.full_name if result.employee else None,
+        )
     except ValueError as e:
         raise HTTPException(status_code=400, detail=str(e))
 

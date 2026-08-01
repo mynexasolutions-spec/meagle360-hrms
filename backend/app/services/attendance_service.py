@@ -8,9 +8,23 @@ from sqlalchemy.orm import Session
 
 from app.models.attendance_record import AttendanceRecord
 from app.models.attendance_regularization import AttendanceRegularization
+from app.models.company import Company
 from app.repositories.attendance_repo import AttendanceRepository
 from app.repositories.attendance_regularization_repo import AttendanceRegularizationRepository
 from app.services.audit_service import log_action
+
+# Company operates in IST; clock_in is stored in UTC. A clock-in at 4 AM IST
+# is still "yesterday" in UTC, so grouping attendance records by calendar
+# day must shift to IST first — otherwise a late-night/early-morning
+# clock-in silently lands under the wrong day (and, e.g., wouldn't line up
+# with that day's approved-leave suppression).
+IST_OFFSET = timedelta(hours=5, minutes=30)
+
+
+def _local_date(dt) -> date:
+    if isinstance(dt, datetime):
+        return (dt + IST_OFFSET).date()
+    return dt
 
 
 class AttendanceService:
@@ -113,7 +127,7 @@ class AttendanceService:
 
     # ── Regularization requests ──────────────────────────
     def request_regularization(self, employee_id: UUID, data: dict) -> AttendanceRegularization:
-        # Enforce Monthly Limit: Max 5 regularization requests per month
+        # Enforce the admin-configurable monthly limit (Company.max_monthly_regularizations)
         req_date = data["record_date"]
         start_of_month = req_date.replace(day=1)
         # Next month start
@@ -134,9 +148,10 @@ class AttendanceService:
             .count()
         )
 
-        MAX_MONTHLY_LIMIT = 5
-        if monthly_count >= MAX_MONTHLY_LIMIT:
-            raise ValueError(f"Monthly regularization limit reached ({MAX_MONTHLY_LIMIT} requests per month allowed).")
+        company = self.db.query(Company).filter(Company.id == self.company_id).first()
+        max_monthly_limit = company.max_monthly_regularizations if company else 5
+        if monthly_count >= max_monthly_limit:
+            raise ValueError(f"Monthly regularization limit reached ({max_monthly_limit} requests per month allowed).")
 
         req = AttendanceRegularization(
             company_id=self.company_id,
@@ -157,6 +172,17 @@ class AttendanceService:
 
     def get_pending_regularizations(self, skip=0, limit=50):
         return self.regularization_repo.get_pending(skip, limit)
+
+    def get_regularization_history(
+        self,
+        year: int | None = None,
+        month: int | None = None,
+        employee_id: UUID | None = None,
+        status: str | None = None,
+        skip: int = 0,
+        limit: int = 200,
+    ):
+        return self.regularization_repo.get_history(year, month, employee_id, status, skip, limit)
 
     def count_pending_regularizations(self) -> int:
         return self.regularization_repo.count_pending()
@@ -203,8 +229,7 @@ class AttendanceService:
         # Group records by date
         by_date: dict[date, list] = defaultdict(list)
         for rec in records:
-            rec_date = rec.clock_in.date() if isinstance(rec.clock_in, datetime) else rec.clock_in
-            by_date[rec_date].append(rec)
+            by_date[_local_date(rec.clock_in)].append(rec)
 
         days = []
         month_total_minutes = 0.0
@@ -268,8 +293,7 @@ class AttendanceService:
         records = self.repo.get_by_date_range(start, end, employee_id)
         by_date: dict[date, list] = defaultdict(list)
         for rec in records:
-            rec_date = rec.clock_in.date() if isinstance(rec.clock_in, datetime) else rec.clock_in
-            by_date[rec_date].append(rec)
+            by_date[_local_date(rec.clock_in)].append(rec)
 
         leave_requests = LeaveRequestRepository(self.db, self.company_id).get_by_employee_and_date_range(
             employee_id, start, end
@@ -329,16 +353,20 @@ class AttendanceService:
             day_total_minutes = 0.0
             all_complete = True
 
-            for rec in sorted(by_date.get(d, []), key=lambda r: r.clock_in):
+            # An approved leave day overrides attendance entirely — any
+            # clock-in/out that date is noise (an accidental tap, a stale
+            # session) rather than real work, so it's excluded from both the
+            # timesheet display and the day's hours total.
+            day_records = [] if leave_by_date.get(d, {}).get("status") == "approved" else by_date.get(d, [])
+
+            for rec in sorted(day_records, key=lambda r: r.clock_in):
                 if rec.clock_out:
                     duration = (rec.clock_out - rec.clock_in).total_seconds() / 60.0
                 else:
                     duration = None
                     all_complete = False
 
-                # Convert UTC clock_in to local time (or target timezone) for accurate clock_in time matching
-                # Assuming Indian Standard Time (+5:30) or local offset for comparison
-                local_clock_in = rec.clock_in + timedelta(hours=5, minutes=30)
+                local_clock_in = rec.clock_in + IST_OFFSET
                 rec_time = local_clock_in.time()
                 rec_mins = rec_time.hour * 60 + rec_time.minute
 

@@ -212,9 +212,13 @@ class PayrollService:
     # ── LOP (loss-of-pay) calculation ─────────────────────
     def _get_month_lop_summary(self, employee_id: UUID, year: int, month: int) -> tuple[int, Decimal]:
         """Walks every day of the month and classifies it as working/off,
-        returning (working_days, lop_days). A working day counts as LOP
-        unless the employee has an attendance session that day or an
-        *approved* leave request whose leave type is marked paid."""
+        returning (working_days, lop_days). An *approved* leave request
+        governs the day outright — its leave type's paid/unpaid flag decides
+        LOP, and any attendance clock-in/out that date is ignored entirely
+        (an employee accidentally clocking in on an approved-leave day
+        shouldn't turn an unpaid leave day into a paid one, or vice versa).
+        Only on days with no approved leave does attendance presence decide
+        LOP."""
         company = self._get_company()
         weekly_off = set((company.weekly_off_days if company else None) or [5, 6])
 
@@ -230,10 +234,14 @@ class PayrollService:
             ).all()
         }
 
+        # Company operates in IST; clock_in is stored in UTC, so a 4 AM IST
+        # clock-in must land on the IST calendar day, not the UTC one — same
+        # convention as attendance_service._local_date.
+        ist_offset = timedelta(hours=5, minutes=30)
         records = AttendanceRepository(self.db, self.company_id).get_by_date_range(start, end, employee_id)
         present_dates = set()
         for rec in records:
-            d = rec.clock_in.date() if isinstance(rec.clock_in, datetime) else rec.clock_in
+            d = (rec.clock_in + ist_offset).date() if isinstance(rec.clock_in, datetime) else rec.clock_in
             present_dates.add(d)
 
         leave_requests = LeaveRequestRepository(self.db, self.company_id).get_by_employee_and_date_range(
@@ -258,9 +266,11 @@ class PayrollService:
                 d += timedelta(days=1)
                 continue
             working_days += 1
-            if d not in present_dates:
-                if d not in leave_is_paid_by_date or not leave_is_paid_by_date[d]:
+            if d in leave_is_paid_by_date:
+                if not leave_is_paid_by_date[d]:
                     lop_days += 1
+            elif d not in present_dates:
+                lop_days += 1
             d += timedelta(days=1)
 
         return working_days, lop_days

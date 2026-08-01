@@ -46,6 +46,7 @@ class LeaveRequestResponse(BaseModel):
     status: str
     created_at: datetime
     leave_type_name: str | None = None
+    employee_name: str | None = None
 
     class Config:
         from_attributes = True

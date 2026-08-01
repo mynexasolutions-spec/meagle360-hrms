@@ -3,12 +3,15 @@ import { useAuth } from '../context/AuthContext';
 import { getEmployeeOverview, clockIn, clockOut, getClockStatus } from '../api/attendance';
 import {
   requestRegularization, getMyRegularizations, getPendingRegularizations, approveRegularization,
+  getRegularizationHistory,
 } from '../api/attendance';
 import { requestOvertime, getMyOvertimeRequests, getPendingOvertimeRequests, approveOvertime } from '../api/overtime';
 import { getDirectory, getDepartments, getSites } from '../api/employees';
+import { getLiveStatus } from '../api/dashboard';
+import { getMyCompany, updateMyCompany } from '../api/company';
 import {
   Clock, CheckCircle2, Plus, Check, X, CalendarClock, Timer,
-  ChevronLeft, ChevronRight, Users, Search, FileText,
+  ChevronLeft, ChevronRight, Users, Search, FileText, SlidersHorizontal, Pencil,
 } from 'lucide-react';
 import Modal from '../components/Modal';
 
@@ -113,6 +116,7 @@ function MonthOverviewTable({ data }) {
 export default function Attendance() {
   const { user } = useAuth();
   const canApprove = !!user?.permissions?.['attendance:approve'];
+  const isAdmin = user?.role_name === 'Admin';
   const [tab, setTab] = useState('log');
 
   const [clockedIn, setClockedIn] = useState(false);
@@ -132,6 +136,8 @@ export default function Attendance() {
   const [erDeptFilter, setErDeptFilter] = useState('');
   const [erSiteFilter, setErSiteFilter] = useState('');
   const [erStatusFilter, setErStatusFilter] = useState('active');
+  const [erOnlineFilter, setErOnlineFilter] = useState('');
+  const [erLiveStatus, setErLiveStatus] = useState([]);
   const [erEmployeeId, setErEmployeeId] = useState('');
   const [erYear, setErYear] = useState(now.getFullYear());
   const [erMonth, setErMonth] = useState(now.getMonth() + 1);
@@ -141,6 +147,20 @@ export default function Attendance() {
   const [pendingRegularizations, setPendingRegularizations] = useState([]);
   const [showRegularize, setShowRegularize] = useState(false);
   const [regForm, setRegForm] = useState({ record_date: '', requested_clock_in: '', requested_clock_out: '', reason: '' });
+
+  // Regularization: admin-only limit control + history
+  const [company, setCompany] = useState(null);
+  const [regLimitInput, setRegLimitInput] = useState('');
+  const [savingRegLimit, setSavingRegLimit] = useState(false);
+  const [regLimitSaved, setRegLimitSaved] = useState(false);
+  const [editingRegLimit, setEditingRegLimit] = useState(false);
+  const [regHistory, setRegHistory] = useState([]);
+  const [regHistoryFilters, setRegHistoryFilters] = useState({
+    year: now.getFullYear(),
+    month: now.getMonth() + 1,
+    employee_id: '',
+    status: '',
+  });
 
   const [myOvertime, setMyOvertime] = useState([]);
   const [pendingOvertime, setPendingOvertime] = useState([]);
@@ -158,6 +178,10 @@ export default function Attendance() {
       getDirectory().then((res) => setErEmployees(res.data)).catch(() => {});
       getDepartments().then((res) => setErDepartments(res.data)).catch(() => {});
       getSites().then((res) => setErSites(res.data)).catch(() => {});
+      getLiveStatus().then((res) => setErLiveStatus(res.data)).catch(() => {});
+    }
+    if (isAdmin) {
+      getMyCompany().then((res) => setCompany(res.data)).catch(() => {});
     }
   }, [user?.employee_id]);
 
@@ -168,6 +192,50 @@ export default function Attendance() {
   useEffect(() => {
     if (erEmployeeId) loadErData();
   }, [erEmployeeId, erYear, erMonth]);
+
+  useEffect(() => {
+    if (company) setRegLimitInput(String(company.max_monthly_regularizations));
+  }, [company?.max_monthly_regularizations]);
+
+  useEffect(() => {
+    if (tab === 'regularization' && isAdmin) loadRegHistory();
+  }, [tab, regHistoryFilters]);
+
+  const loadRegHistory = async () => {
+    try {
+      const params = {
+        year: regHistoryFilters.year,
+        month: regHistoryFilters.month,
+        employee_id: regHistoryFilters.employee_id || undefined,
+        status: regHistoryFilters.status || undefined,
+      };
+      const res = await getRegularizationHistory(params);
+      setRegHistory(res.data);
+    } catch (e) {
+      console.error(e);
+    }
+  };
+
+  const handleSaveRegLimit = async () => {
+    const value = Number(regLimitInput);
+    if (!Number.isInteger(value) || value < 0) {
+      alert('Please enter a whole number of 0 or more');
+      return;
+    }
+    setSavingRegLimit(true);
+    setRegLimitSaved(false);
+    try {
+      const res = await updateMyCompany({ max_monthly_regularizations: value });
+      setCompany(res.data);
+      setEditingRegLimit(false);
+      setRegLimitSaved(true);
+      setTimeout(() => setRegLimitSaved(false), 2500);
+    } catch (err) {
+      alert(err.response?.data?.detail || 'Failed to update regularization limit');
+    } finally {
+      setSavingRegLimit(false);
+    }
+  };
 
   const [todayClockInTime, setTodayClockInTime] = useState(null);
   const [todayPunctuality, setTodayPunctuality] = useState('On Time');
@@ -211,6 +279,11 @@ export default function Attendance() {
     }
   };
 
+  const erLiveStatusMap = erLiveStatus.reduce((acc, s) => {
+    acc[s.employee_id] = s.status;
+    return acc;
+  }, {});
+
   const filteredErEmployees = erEmployees.filter((e) => {
     const matchesSearch =
       e.full_name.toLowerCase().includes(erSearch.toLowerCase()) ||
@@ -218,7 +291,8 @@ export default function Attendance() {
     const matchesDept = !erDeptFilter || e.department_name === erDeptFilter;
     const matchesSite = !erSiteFilter || e.site_name === erSiteFilter;
     const matchesStatus = erStatusFilter === 'all' || e.employment_status === erStatusFilter;
-    return matchesSearch && matchesDept && matchesSite && matchesStatus;
+    const matchesOnline = !erOnlineFilter || (erLiveStatusMap[e.id] || 'offline') === erOnlineFilter;
+    return matchesSearch && matchesDept && matchesSite && matchesStatus && matchesOnline;
   });
 
   const goToPrevMonth = (setYear, setMonth, year, month) => {
@@ -230,11 +304,12 @@ export default function Attendance() {
 
   const loadRegularizations = async () => {
     try {
-      const mine = await getMyRegularizations();
-      setMyRegularizations(mine.data);
-      if (canApprove) {
+      if (isAdmin) {
         const pending = await getPendingRegularizations();
         setPendingRegularizations(pending.data);
+      } else {
+        const mine = await getMyRegularizations();
+        setMyRegularizations(mine.data);
       }
     } catch (e) {
       console.error(e);
@@ -457,7 +532,7 @@ export default function Attendance() {
       <div style={{ display: 'flex', gap: 10, marginBottom: 24, flexWrap: 'wrap' }}>
         {[
           { key: 'log', label: 'My Timesheet', icon: Clock },
-          { key: 'regularization', label: `Regularization ${canApprove && pendingRegularizations.length > 0 ? `(${pendingRegularizations.length})` : ''}`, icon: CalendarClock },
+          { key: 'regularization', label: `Regularization ${isAdmin && pendingRegularizations.length > 0 ? `(${pendingRegularizations.length})` : ''}`, icon: CalendarClock },
           { key: 'overtime', label: `Overtime ${canApprove && pendingOvertime.length > 0 ? `(${pendingOvertime.length})` : ''}`, icon: Timer },
           ...(canApprove ? [{ key: 'employee-records', label: 'Employee Records', icon: Users }] : []),
         ].map((item) => (
@@ -543,6 +618,12 @@ export default function Attendance() {
                 <option value="all">All Statuses</option>
                 <option value="inactive">Inactive Only</option>
               </select>
+              <select className="input-field" style={{ flex: '1 1 160px', minWidth: 0 }} value={erOnlineFilter} onChange={(e) => setErOnlineFilter(e.target.value)}>
+                <option value="">Any Online Status</option>
+                <option value="online">Online (clocked in)</option>
+                <option value="present">Present (clocked out)</option>
+                <option value="offline">Offline (not seen today)</option>
+              </select>
             </div>
 
             {/* Employee + month selection */}
@@ -556,9 +637,14 @@ export default function Attendance() {
                 <option value="">
                   {filteredErEmployees.length === 0 ? 'No employees match filters' : `Select an employee... (${filteredErEmployees.length})`}
                 </option>
-                {filteredErEmployees.map((e) => (
-                  <option key={e.id} value={e.id}>{e.full_name} ({e.employee_code})</option>
-                ))}
+                {filteredErEmployees.map((e) => {
+                  const statusLabel = { online: '🟢 Online', present: '🟡 Present', offline: '' }[erLiveStatusMap[e.id] || 'offline'];
+                  return (
+                    <option key={e.id} value={e.id}>
+                      {e.full_name} ({e.employee_code}){statusLabel ? ` — ${statusLabel}` : ''}
+                    </option>
+                  );
+                })}
               </select>
               <div className="timesheet-month-nav">
                 <button className="nav-btn" onClick={() => goToPrevMonth(setErYear, setErMonth, erYear, erMonth)}><ChevronLeft size={16} /></button>
@@ -591,31 +677,88 @@ export default function Attendance() {
       {/* Regularization */}
       {tab === 'regularization' && (
         <div style={{ display: 'grid', gap: 20 }}>
-          <div className="section-card" style={{ borderTop: '3px solid #2563eb' }}>
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16, flexWrap: 'wrap', gap: 10 }}>
-              <h3 style={{ marginBottom: 0 }}><CalendarClock size={18} style={{ color: 'var(--accent-blue)' }} /> My Regularization Requests</h3>
-              <button className="btn btn-primary btn-sm" onClick={() => setShowRegularize(true)}><Plus size={14} /> New Request</button>
+          {!isAdmin && (
+            <div className="section-card" style={{ borderTop: '3px solid #2563eb' }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16, flexWrap: 'wrap', gap: 10 }}>
+                <h3 style={{ marginBottom: 0 }}><CalendarClock size={18} style={{ color: 'var(--accent-blue)' }} /> My Regularization Requests</h3>
+                <button className="btn btn-primary btn-sm" onClick={() => setShowRegularize(true)}><Plus size={14} /> New Request</button>
+              </div>
+              <div style={{ overflowX: 'auto' }}>
+              <table className="data-table">
+                <thead><tr><th style={{ whiteSpace: 'nowrap' }}>Date</th><th style={{ whiteSpace: 'nowrap' }}>Requested In</th><th style={{ whiteSpace: 'nowrap' }}>Requested Out</th><th style={{ whiteSpace: 'nowrap' }}>Reason</th><th style={{ whiteSpace: 'nowrap' }}>Status</th></tr></thead>
+                <tbody>
+                  {myRegularizations.map((r) => (
+                    <tr key={r.id}>
+                      <td style={{ whiteSpace: 'nowrap' }}>{r.record_date}</td>
+                      <td style={{ whiteSpace: 'nowrap' }}>{formatTime(r.requested_clock_in)}</td>
+                      <td style={{ whiteSpace: 'nowrap' }}>{formatTime(r.requested_clock_out)}</td>
+                      <td>{r.reason}</td>
+                      <td style={{ whiteSpace: 'nowrap' }}><span className={`badge badge-${r.status}`}>{r.status}</span></td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+              </div>
+              {myRegularizations.length === 0 && <div className="empty-state"><CalendarClock size={48} /><p>No regularization requests yet</p></div>}
             </div>
-            <div style={{ overflowX: 'auto' }}>
-            <table className="data-table">
-              <thead><tr><th style={{ whiteSpace: 'nowrap' }}>Date</th><th style={{ whiteSpace: 'nowrap' }}>Requested In</th><th style={{ whiteSpace: 'nowrap' }}>Requested Out</th><th style={{ whiteSpace: 'nowrap' }}>Reason</th><th style={{ whiteSpace: 'nowrap' }}>Status</th></tr></thead>
-              <tbody>
-                {myRegularizations.map((r) => (
-                  <tr key={r.id}>
-                    <td style={{ whiteSpace: 'nowrap' }}>{r.record_date}</td>
-                    <td style={{ whiteSpace: 'nowrap' }}>{formatTime(r.requested_clock_in)}</td>
-                    <td style={{ whiteSpace: 'nowrap' }}>{formatTime(r.requested_clock_out)}</td>
-                    <td>{r.reason}</td>
-                    <td style={{ whiteSpace: 'nowrap' }}><span className={`badge badge-${r.status}`}>{r.status}</span></td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-            </div>
-            {myRegularizations.length === 0 && <div className="empty-state"><CalendarClock size={48} /><p>No regularization requests yet</p></div>}
-          </div>
+          )}
 
-          {canApprove && (
+          {isAdmin && (
+            <div className="section-card" style={{ borderTop: '3px solid #7c3aed' }}>
+              <h3 style={{ marginBottom: 8 }}><SlidersHorizontal size={18} style={{ color: 'var(--accent-violet)' }} /> Monthly Regularization Limit</h3>
+              <p style={{ fontSize: '0.8125rem', color: 'var(--text-muted)', marginBottom: 16 }}>
+                Maximum number of regularization requests (pending + approved) an employee can submit per calendar month.
+              </p>
+              {company && !editingRegLimit && (
+                <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+                  <span style={{ fontSize: '0.95rem', color: 'var(--text-primary)' }}>
+                    Current limit: <strong>{company.max_monthly_regularizations}</strong> request{company.max_monthly_regularizations === 1 ? '' : 's'} / month
+                  </span>
+                  <button
+                    className="btn-icon btn-ghost"
+                    title="Edit limit"
+                    onClick={() => {
+                      setRegLimitInput(String(company.max_monthly_regularizations));
+                      setEditingRegLimit(true);
+                    }}
+                  >
+                    <Pencil size={14} />
+                  </button>
+                  {regLimitSaved && (
+                    <span style={{ display: 'inline-flex', alignItems: 'center', gap: 4, color: 'var(--accent-emerald)', fontSize: '0.8125rem', fontWeight: 600 }}>
+                      <CheckCircle2 size={15} /> Saved
+                    </span>
+                  )}
+                </div>
+              )}
+              {company && editingRegLimit && (
+                <div style={{ display: 'flex', gap: 10, alignItems: 'center' }}>
+                  <input
+                    type="number"
+                    min="0"
+                    step="1"
+                    className="input-field"
+                    style={{ maxWidth: 120 }}
+                    autoFocus
+                    value={regLimitInput}
+                    onChange={(e) => setRegLimitInput(e.target.value)}
+                  />
+                  <button
+                    className="btn btn-primary btn-sm"
+                    onClick={handleSaveRegLimit}
+                    disabled={savingRegLimit || Number(regLimitInput) === company.max_monthly_regularizations}
+                  >
+                    {savingRegLimit ? 'Saving...' : 'Save'}
+                  </button>
+                  <button className="btn btn-secondary btn-sm" onClick={() => setEditingRegLimit(false)}>
+                    Cancel
+                  </button>
+                </div>
+              )}
+            </div>
+          )}
+
+          {isAdmin && (
             <div className="section-card" style={{ borderTop: '3px solid #d97706' }}>
               <h3><CalendarClock size={18} style={{ color: 'var(--accent-amber)' }} /> Approval Queue</h3>
               <div style={{ overflowX: 'auto' }}>
@@ -641,6 +784,86 @@ export default function Attendance() {
               </table>
               </div>
               {pendingRegularizations.length === 0 && <div className="empty-state"><Clock size={48} /><p>No pending requests</p></div>}
+            </div>
+          )}
+
+          {isAdmin && (
+            <div className="section-card" style={{ borderTop: '3px solid #64748b' }}>
+              <h3 style={{ marginBottom: 16 }}><CalendarClock size={18} style={{ color: 'var(--text-muted)' }} /> History</h3>
+
+              <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap', marginBottom: 16 }}>
+                <select
+                  className="input-field"
+                  style={{ flex: '1 1 160px', minWidth: 0 }}
+                  value={regHistoryFilters.employee_id}
+                  onChange={(e) => setRegHistoryFilters({ ...regHistoryFilters, employee_id: e.target.value })}
+                >
+                  <option value="">All Employees</option>
+                  {erEmployees.map((e) => (
+                    <option key={e.id} value={e.id}>{e.full_name}</option>
+                  ))}
+                </select>
+                <select
+                  className="input-field"
+                  style={{ flex: '1 1 130px', minWidth: 0 }}
+                  value={regHistoryFilters.month}
+                  onChange={(e) => setRegHistoryFilters({ ...regHistoryFilters, month: Number(e.target.value) })}
+                >
+                  {MONTH_NAMES.map((m, i) => (
+                    <option key={i} value={i + 1}>{m}</option>
+                  ))}
+                </select>
+                <select
+                  className="input-field"
+                  style={{ flex: '1 1 100px', minWidth: 0 }}
+                  value={regHistoryFilters.year}
+                  onChange={(e) => setRegHistoryFilters({ ...regHistoryFilters, year: Number(e.target.value) })}
+                >
+                  {Array.from({ length: 5 }).map((_, i) => {
+                    const y = now.getFullYear() - 2 + i;
+                    return <option key={y} value={y}>{y}</option>;
+                  })}
+                </select>
+                <select
+                  className="input-field"
+                  style={{ flex: '1 1 130px', minWidth: 0 }}
+                  value={regHistoryFilters.status}
+                  onChange={(e) => setRegHistoryFilters({ ...regHistoryFilters, status: e.target.value })}
+                >
+                  <option value="">All Statuses</option>
+                  <option value="pending">Pending</option>
+                  <option value="approved">Approved</option>
+                  <option value="rejected">Rejected</option>
+                </select>
+              </div>
+
+              <div style={{ overflowX: 'auto' }}>
+                <table className="data-table">
+                  <thead>
+                    <tr>
+                      <th style={{ whiteSpace: 'nowrap' }}>Employee</th>
+                      <th style={{ whiteSpace: 'nowrap' }}>Date</th>
+                      <th style={{ whiteSpace: 'nowrap' }}>Requested In</th>
+                      <th style={{ whiteSpace: 'nowrap' }}>Requested Out</th>
+                      <th style={{ whiteSpace: 'nowrap' }}>Reason</th>
+                      <th style={{ whiteSpace: 'nowrap' }}>Status</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {regHistory.map((r) => (
+                      <tr key={r.id}>
+                        <td style={{ fontWeight: 500, whiteSpace: 'nowrap' }}>{r.employee_name || '—'}</td>
+                        <td style={{ whiteSpace: 'nowrap' }}>{r.record_date}</td>
+                        <td style={{ whiteSpace: 'nowrap' }}>{formatTime(r.requested_clock_in)}</td>
+                        <td style={{ whiteSpace: 'nowrap' }}>{formatTime(r.requested_clock_out)}</td>
+                        <td>{r.reason}</td>
+                        <td style={{ whiteSpace: 'nowrap' }}><span className={`badge badge-${r.status}`}>{r.status}</span></td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+              {regHistory.length === 0 && <div className="empty-state"><CalendarClock size={48} /><p>No regularization requests match these filters</p></div>}
             </div>
           )}
         </div>

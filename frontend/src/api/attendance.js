@@ -33,5 +33,8 @@ export const getMyRegularizations = () =>
 export const getPendingRegularizations = () =>
   client.get('/attendance/regularization-requests/pending');
 
+export const getRegularizationHistory = (params = {}) =>
+  client.get('/attendance/regularization-requests/history', { params });
+
 export const approveRegularization = (id, status) =>
   client.put(`/attendance/regularization-requests/${id}/approve`, { status });

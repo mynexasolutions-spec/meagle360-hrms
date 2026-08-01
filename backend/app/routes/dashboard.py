@@ -39,6 +39,17 @@ def get_live_status(
     return DashboardService(db, company_id).get_live_status()
 
 
+@router.get("/on-leave-today")
+def get_on_leave_today(
+    db: Session = Depends(get_db),
+    company_id: UUID = Depends(get_company_id),
+    _=Depends(require_permissions("attendance:approve")),
+):
+    """Who's approved-on-leave today, by name — same visibility as
+    live-status (Admin/Manager/HR Manager)."""
+    return DashboardService(db, company_id).get_on_leave_today()
+
+
 @router.get("/leave-summary")
 def get_leave_summary(
     year: int | None = None,
