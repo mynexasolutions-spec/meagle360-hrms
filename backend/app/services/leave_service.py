@@ -41,18 +41,25 @@ class LeaveService:
 
     # ── Leave Requests ───────────────────────────────────
     def request_leave(self, employee_id: UUID, data: dict) -> LeaveRequest:
-        """Submit a new leave request after checking balance."""
+        """Submit a new leave request after checking balance. Unpaid (Loss
+        of Pay) leave types are exempt from the balance check entirely —
+        their whole purpose is to let someone take leave with no paid
+        entitlement remaining, so requiring a balance for them (which never
+        accrues, since accrual_rate stays 0 by design) would make it
+        impossible to ever actually use one."""
         year = data["start_date"].year
-        balance = self.balance_repo.get_specific(
-            employee_id, data["leave_type_id"], year
-        )
+        leave_type = self.type_repo.get_by_id(data["leave_type_id"])
 
         # Calculate days requested
         days = (data["end_date"] - data["start_date"]).days + 1
-        if balance and balance.balance < days:
-            raise ValueError(
-                f"Insufficient leave balance. Available: {balance.balance}, Requested: {days}"
+        if not leave_type or leave_type.is_paid:
+            balance = self.balance_repo.get_specific(
+                employee_id, data["leave_type_id"], year
             )
+            if balance and balance.balance < days:
+                raise ValueError(
+                    f"Insufficient leave balance. Available: {balance.balance}, Requested: {days}"
+                )
 
         request = LeaveRequest(
             company_id=self.company_id,
