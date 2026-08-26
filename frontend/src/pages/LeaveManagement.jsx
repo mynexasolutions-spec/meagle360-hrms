@@ -205,7 +205,7 @@ export default function LeaveManagement() {
             {/* Leave Rows */}
             <div style={{ display: 'flex', flexDirection: 'column' }}>
               {balances.map((b, idx) => {
-                const total = b.total_entitlement || 11;
+                const total = b.annual_entitlement || 11;
                 const used = Math.min(total, Math.max(0, total - Number(b.balance)));
                 const usedInt = Math.round(used);
                 const totalInt = Math.round(total);
