@@ -26,6 +26,7 @@ export default function LeaveManagement() {
   const [showAdjustBalance, setShowAdjustBalance] = useState(false);
   const [accruing, setAccruing] = useState(false);
   const [form, setForm] = useState({ leave_type_id: '', start_date: '', end_date: '' });
+  const [requestSaving, setRequestSaving] = useState(false);
   const [applyBtnHover, setApplyBtnHover] = useState(false);
 
   const now = new Date();
@@ -84,15 +85,18 @@ export default function LeaveManagement() {
       console.error(e);
     }
   };
-
   const handleRequest = async (e) => {
     e.preventDefault();
+    if (requestSaving) return;
+    setRequestSaving(true);
     try {
       await requestLeave(form);
       setShowRequest(false);
       loadData();
     } catch (err) {
       alert(err.response?.data?.detail || 'Failed');
+    } finally {
+      setRequestSaving(false);
     }
   };
 
@@ -616,7 +620,7 @@ export default function LeaveManagement() {
             </div>
             <div style={{ display: 'flex', gap: 10, justifyContent: 'flex-end', marginTop: 20 }}>
               <button type="button" className="btn btn-secondary" onClick={() => setShowRequest(false)}>Cancel</button>
-              <button type="submit" className="btn btn-primary">Submit</button>
+              <button type="submit" className="btn btn-primary" disabled={requestSaving}>{requestSaving ? 'Submitting...' : 'Submit'}</button>
             </div>
           </form>
         </Modal>
