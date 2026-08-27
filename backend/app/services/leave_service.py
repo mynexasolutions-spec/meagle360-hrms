@@ -67,7 +67,12 @@ class LeaveService:
             balance = self.balance_repo.get_specific(
                 employee_id, data["leave_type_id"], year
             )
-            if balance and balance.balance < days:
+            if not balance:
+                type_name = leave_type.name if leave_type else "this leave type"
+                raise ValueError(
+                    f"No leave balance record found for {type_name} in {year}. Please contact your admin."
+                )
+            if balance.balance < days:
                 raise ValueError(
                     f"Insufficient leave balance. Available: {balance.balance}, Requested: {days}"
                 )
