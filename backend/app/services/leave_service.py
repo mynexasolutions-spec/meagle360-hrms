@@ -47,7 +47,18 @@ class LeaveService:
         entitlement remaining, so requiring a balance for them (which never
         accrues, since accrual_rate stays 0 by design) would make it
         impossible to ever actually use one."""
+        if data["end_date"] < data["start_date"]:
+            raise ValueError("End date cannot be before start date.")
+        if data["start_date"] < date.today():
+            raise ValueError("Start date cannot be in the past.")
         year = data["start_date"].year
+        overlapping = self.request_repo.get_by_employee_and_date_range(
+            employee_id, data["start_date"], data["end_date"]
+        )
+        if overlapping:
+            raise ValueError(
+                "You already have a pending or approved leave request overlapping these dates."
+            )
         leave_type = self.type_repo.get_by_id(data["leave_type_id"])
 
         # Calculate days requested

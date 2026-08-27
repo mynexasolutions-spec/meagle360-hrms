@@ -47,6 +47,24 @@ class LeaveRequestRepository(BaseRepository[LeaveRequest]):
     def __init__(self, db: Session, company_id: UUID):
         super().__init__(LeaveRequest, db, company_id)
 
+    def get_approved_days_by_type(self, employee_id, leave_type_id, year: int) -> int:
+        """Sum of days across all approved leave requests for one employee 
+        + leave type + year — computed directly from actual approved requests, 
+        not derived by subtracting balance from entitlement (which breaks when 
+        balance exceeds entitlement, e.g. after a manual grant or carry-forward)."""
+        from sqlalchemy import func
+        requests = (
+            self._scoped_query()
+            .filter(
+                LeaveRequest.employee_id == employee_id,
+                LeaveRequest.leave_type_id == leave_type_id,
+                LeaveRequest.status == "approved",
+                func.extract("year", LeaveRequest.start_date) == year,
+            )
+            .all()
+        )
+        return sum((r.end_date - r.start_date).days + 1 for r in requests)
+
     def get_by_employee_and_date_range(self, employee_id: UUID, start, end):
         """Approved/pending leave requests overlapping [start, end] — used to
         overlay leave onto an attendance calendar. Rejected/cancelled

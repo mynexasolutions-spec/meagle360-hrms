@@ -88,6 +88,10 @@ export default function LeaveManagement() {
   const handleRequest = async (e) => {
     e.preventDefault();
     if (requestSaving) return;
+    if (form.end_date < form.start_date) {
+      alert("End date cannot be before start date.");
+      return;
+    }
     setRequestSaving(true);
     try {
       await requestLeave(form);
@@ -205,10 +209,10 @@ export default function LeaveManagement() {
             {/* Leave Rows */}
             <div style={{ display: 'flex', flexDirection: 'column' }}>
               {balances.map((b, idx) => {
-                const total = b.annual_entitlement || 11;
-                const used = Math.min(total, Math.max(0, total - Number(b.balance)));
-                const usedInt = Math.round(used);
-                const totalInt = Math.round(total);
+                const rawTotal = b.annual_entitlement || 11;
+                const balanceNum = Number(b.balance);
+                const usedInt = Math.round(Number(b.used_days) || 0);
+                const totalInt = Math.round(Math.max(rawTotal, balanceNum + usedInt));
 
                 const colors = [
                   '#2563eb', // Blue
@@ -604,7 +608,8 @@ export default function LeaveManagement() {
                 type="date"
                 className="input-field"
                 value={form.start_date}
-                onChange={(e) => setForm({ ...form, start_date: e.target.value })}
+                onChange={(e) => setForm({ ...form, start_date: e.target.value})}
+                min={new Date().toISOString().split("T")[0]}
                 required
               />
             </div>
@@ -614,6 +619,7 @@ export default function LeaveManagement() {
                 type="date"
                 className="input-field"
                 value={form.end_date}
+                min={form.start_date || undefined}
                 onChange={(e) => setForm({ ...form, end_date: e.target.value })}
                 required
               />

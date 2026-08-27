@@ -64,6 +64,7 @@ class LeaveBalanceResponse(BaseModel):
     year: int
     leave_type_name: str | None = None
     annual_entitlement: Decimal | None = None  # accrual_rate * 12, for "X / Y days" display
+    used_days: Decimal | None = None  # sum of approved leave days this year, computed directly (not derived from balance)
 
     class Config:
         from_attributes = True

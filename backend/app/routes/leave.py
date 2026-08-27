@@ -1,5 +1,6 @@
 """Leave routes — types, requests, approvals, balances."""
 
+from datetime import date
 from uuid import UUID
 from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
@@ -185,9 +186,6 @@ def approve_reject(
         )
     except ValueError as e:
         raise HTTPException(status_code=400, detail=str(e))
-
-
-# ── Balances ─────────────────────────────────────────────
 @router.get("/balance", response_model=list[LeaveBalanceResponse])
 def get_balance(
     year: int | None = None,
@@ -197,6 +195,7 @@ def get_balance(
 ):
     svc = LeaveService(db, company_id)
     balances = svc.get_balances(current_user.employee_id, year)
+    resolved_year = year or date.today().year
     return [
         LeaveBalanceResponse(
             id=b.id,
@@ -206,6 +205,7 @@ def get_balance(
             year=b.year,
             leave_type_name=b.leave_type.name if b.leave_type else None,
             annual_entitlement=(b.leave_type.accrual_rate * 12) if b.leave_type else None,
+            used_days=svc.request_repo.get_approved_days_by_type(current_user.employee_id, b.leave_type_id, resolved_year),
         )
         for b in balances
     ]
