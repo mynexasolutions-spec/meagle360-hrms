@@ -1,0 +1,124 @@
+<!DOCTYPE html>
+<html>
+<head>
+<style>
+  body { font-family: Helvetica, Arial, sans-serif; font-size: 10.5pt; color: #1a1a2e; margin: 0; padding: 0; line-height: 1.5; }
+  .header-table { width: 100%; border-collapse: collapse; }
+  .header-left { width: 60%; vertical-align: top; padding: 16px; }
+  .header-right { width: 40%; vertical-align: top; padding: 16px; text-align: right; font-size: 8.5pt; color: #555555; }
+  .company-name { font-size: 16pt; font-weight: bold; color: #1e3a8a; }
+  .portal-name { font-size: 9pt; color: #444444; }
+  .rule { border: none; border-top: 2px solid #1e3a8a; margin: 0; }
+  .rule-thin { border: none; border-top: 1px solid #B08D57; margin: 0 0 16px 0; }
+  .title-block { text-align: center; margin: 18px 0; }
+  .title-block .label { font-size: 15pt; font-weight: bold; color: #1e3a8a; letter-spacing: 1px; }
+  .date-line { text-align: right; font-size: 9.5pt; color: #555555; margin-bottom: 14px; }
+  .recipient { margin-bottom: 14px; font-size: 10.5pt; }
+  .recipient .name { font-weight: bold; }
+  .subject { font-weight: bold; margin-bottom: 14px; padding-bottom: 6px; border-bottom: 1px solid #e5e8f0; }
+  .body-text { margin: 0 0 12px 0; text-align: justify; }
+  .terms-table { width: 100%; border-collapse: collapse; margin: 14px 0; background-color: #F4F6F8; }
+  .terms-table td { padding: 6px 12px; font-size: 9.5pt; border-bottom: 1px solid #e5e8f0; }
+  .terms-table .k { color: #555555; width: 40%; }
+  .terms-table .v { font-weight: bold; color: #1a1a2e; }
+  .terms-header { background-color: #1e3a8a; color: #ffffff; font-size: 9pt; font-weight: bold; padding: 6px 12px; text-transform: uppercase; letter-spacing: 0.5px; }
+  .extra-terms { margin: 14px 0; font-size: 10.3pt; }
+  .extra-terms ul { margin: 6px 0 0 0; padding-left: 18px; }
+  .extra-terms li { margin-bottom: 5px; }
+  .sign-table { width: 100%; margin-top: 40px; }
+  .sign-table td { width: 50%; vertical-align: top; font-size: 8.8pt; color: #555555; }
+  .sig-line { border-top: 1px solid #1a1a2e; padding-top: 4px; margin-top: 30px; }
+  .sig-name { font-weight: bold; font-size: 9.8pt; color: #1a1a2e; }
+  .footer-table { width: 100%; background-color: #1e3a8a; color: #ffffff; margin-top: 26px; }
+  .footer-table td { padding: 10px 14px; font-size: 8.5pt; text-align: center; }
+</style>
+</head>
+<body>
+
+<table class="header-table">
+  <tr>
+    <td class="header-left">
+      {% if company.logo_url %}<img src="{{ company.logo_url }}" height="40" /><br/>{% endif %}
+      <span class="company-name">{{ company.name }}</span><br/>
+      <span class="portal-name">HRMS Portal</span>
+    </td>
+    <td class="header-right">
+      {% if company.phone %}{{ company.phone }}<br/>{% endif %}
+      {% if company.email %}{{ company.email }}<br/>{% endif %}
+      {% if company.website %}{{ company.website }}{% endif %}
+    </td>
+  </tr>
+</table>
+<hr class="rule"><hr class="rule-thin">
+
+<div class="date-line">{{ issue_date }}</div>
+
+<div class="recipient">
+  <span class="name">{{ offer.candidate_name }}</span><br/>
+  {% if offer.candidate_address %}{{ offer.candidate_address }}{% endif %}
+</div>
+
+<div class="subject">Subject: Offer of Employment - {{ designation_title or "the offered position" }}</div>
+
+<p class="body-text">Dear {{ first_name }},</p>
+<p class="body-text">
+  We are pleased to offer you the position of <strong>{{ designation_title or "-" }}</strong> at
+  {{ company.name }}. We were impressed by your background and are confident you will be a
+  valuable addition to our team. This letter sets out the key terms of your offer.
+</p>
+
+<div class="terms-header">Key Terms</div>
+<table class="terms-table">
+  <tr><td class="k">Position</td><td class="v">{{ designation_title or "-" }}</td></tr>
+  <tr><td class="k">Department</td><td class="v">{{ department_name or "-" }}</td></tr>
+  <tr><td class="k">Start Date</td><td class="v">{{ start_date }}</td></tr>
+  {% if end_date %}<tr><td class="k">End Date</td><td class="v">{{ end_date }}</td></tr>{% endif %}
+  <tr><td class="k">Employment Type</td><td class="v">{{ offer.employment_type }}</td></tr>
+  {% if reporting_to_name %}<tr><td class="k">Reporting Manager</td><td class="v">{{ reporting_to_name }}</td></tr>{% endif %}
+  {% if site_name %}<tr><td class="k">Work Location</td><td class="v">{{ site_name }}</td></tr>{% endif %}
+  {% if offer.salary_amount %}<tr><td class="k">Compensation</td><td class="v">Rs. {{ "%.2f"|format(offer.salary_amount) }} ({{ offer.salary_frequency or "annual" }})</td></tr>{% endif %}
+</table>
+
+{% if offer.bonus_details %}
+<p class="body-text"><strong>Bonus / Incentives:</strong> {{ offer.bonus_details }}</p>
+{% endif %}
+{% if offer.other_benefits %}
+<p class="body-text"><strong>Other Benefits:</strong> {{ offer.other_benefits }}</p>
+{% endif %}
+
+<p class="body-text">
+  Your employment will be governed by {{ company.name }}'s standard policies, as communicated
+  to you separately and updated from time to time.
+</p>
+
+{% if offer.acceptance_deadline %}
+<p class="body-text">
+  Please confirm your acceptance of this offer by <strong>{{ acceptance_deadline }}</strong> by
+  signing and returning a copy of this letter.
+</p>
+{% endif %}
+
+<p class="body-text">We look forward to welcoming you to {{ company.name }}.</p>
+<p class="body-text">Warm regards,</p>
+
+<table class="sign-table">
+  <tr>
+    <td>
+      {% if company.signature_url %}<img src="{{ company.signature_url }}" height="35" /><br/>{% endif %}
+      <div class="sig-line">
+        <span class="sig-name">{{ offer.hr_contact_name or company.authorized_signatory_name or "HR Manager" }}</span><br/>
+        {{ company.name }}
+      </div>
+    </td>
+    <td>
+      <div class="sig-line">Candidate Signature &amp; Date</div>
+    </td>
+  </tr>
+</table>
+
+<table class="footer-table">
+  <tr><td>{{ company.name }} | {% if company.company_address %}{{ company.company_address }}{% endif %} {% if company.website %}| {{ company.website }}{% endif %}</td></tr>
+</table>
+
+</body>
+</html>

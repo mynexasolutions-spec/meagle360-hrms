@@ -1,0 +1,91 @@
+<!DOCTYPE html>
+<html>
+<head>
+<style>
+  body { font-family: Helvetica, Arial, sans-serif; font-size: 10.5pt; color: #1a1a2e; margin: 0; padding: 0; line-height: 1.5; }
+  .header-table { width: 100%; border-collapse: collapse; }
+  .header-left { width: 60%; vertical-align: top; padding: 16px; }
+  .header-right { width: 40%; vertical-align: top; padding: 16px; text-align: right; font-size: 8.5pt; color: #555555; }
+  .company-name { font-size: 16pt; font-weight: bold; color: #1e3a8a; }
+  .portal-name { font-size: 9pt; color: #444444; }
+  .rule { border: none; border-top: 2px solid #1e3a8a; margin: 0; }
+  .rule-thin { border: none; border-top: 1px solid #B08D57; margin: 0 0 16px 0; }
+  .date-line { text-align: right; font-size: 9.5pt; color: #555555; margin-bottom: 14px; }
+  .subject { text-align: center; font-weight: bold; text-transform: uppercase; letter-spacing: 1px; font-size: 12.5pt; margin-bottom: 20px; color: #1e3a8a; }
+  .body-text { margin: 0 0 12px 0; text-align: justify; }
+  .facts-table { width: 100%; border-collapse: collapse; margin: 14px 0; background-color: #F4F6F8; }
+  .facts-table td { padding: 6px 12px; font-size: 9.5pt; border-bottom: 1px solid #e5e8f0; }
+  .facts-table .k { color: #555555; width: 40%; }
+  .facts-table .v { font-weight: bold; color: #1a1a2e; }
+  .custom-note { margin: 14px 0; font-style: italic; color: #3A4B5C; padding: 10px 14px; border: 1px dashed #B08D57; }
+  .sign-block { margin-top: 40px; font-size: 8.8pt; color: #555555; }
+  .sig-line { border-top: 1px solid #1a1a2e; padding-top: 4px; width: 220px; }
+  .sig-name { font-weight: bold; font-size: 9.8pt; color: #1a1a2e; }
+  .footer-table { width: 100%; background-color: #1e3a8a; color: #ffffff; margin-top: 26px; }
+  .footer-table td { padding: 10px 14px; font-size: 8.5pt; text-align: center; }
+</style>
+</head>
+<body>
+
+<table class="header-table">
+  <tr>
+    <td class="header-left">
+      {% if company.logo_url %}<img src="{{ company.logo_url }}" height="40" /><br/>{% endif %}
+      <span class="company-name">{{ company.name }}</span><br/>
+      <span class="portal-name">HRMS Portal</span>
+    </td>
+    <td class="header-right">
+      {% if company.phone %}{{ company.phone }}<br/>{% endif %}
+      {% if company.email %}{{ company.email }}<br/>{% endif %}
+      {% if company.website %}{{ company.website }}{% endif %}
+    </td>
+  </tr>
+</table>
+<hr class="rule"><hr class="rule-thin">
+
+<div class="date-line">{{ issue_date }}</div>
+
+<div class="subject">Relieving Letter</div>
+
+<p class="body-text">Dear {{ first_name }},</p>
+<p class="body-text">
+  This is to certify that <strong>{{ employee.full_name }}</strong> (Employee ID:
+  {{ employee.employee_code }}) was employed with {{ company.name }} as
+  <strong>{{ designation_title or "-" }}</strong> from {{ date_of_joining }} to
+  <strong>{{ last_working_date }}</strong>.
+</p>
+<p class="body-text">
+  We confirm that {{ first_name }} has been relieved of all duties and responsibilities with
+  effect from {{ last_working_date }}, following completion of the exit formalities.
+</p>
+
+<table class="facts-table">
+  <tr><td class="k">Employee Name</td><td class="v">{{ employee.full_name }}</td></tr>
+  <tr><td class="k">Employee ID</td><td class="v">{{ employee.employee_code }}</td></tr>
+  <tr><td class="k">Designation</td><td class="v">{{ designation_title or "-" }}</td></tr>
+  <tr><td class="k">Department</td><td class="v">{{ department_name or "-" }}</td></tr>
+  <tr><td class="k">Date of Joining</td><td class="v">{{ date_of_joining }}</td></tr>
+  <tr><td class="k">Last Working Date</td><td class="v">{{ last_working_date }}</td></tr>
+</table>
+
+{% if relieving.custom_paragraph %}
+<div class="custom-note">{{ relieving.custom_paragraph }}</div>
+{% endif %}
+
+<p class="body-text">We wish {{ first_name }} success in all future endeavors.</p>
+<p class="body-text">Sincerely,</p>
+
+<div class="sign-block">
+  {% if company.signature_url %}<img src="{{ company.signature_url }}" height="35" /><br/>{% endif %}
+  <div class="sig-line">
+    <span class="sig-name">{{ company.authorized_signatory_name or "HR Manager" }}</span><br/>
+    {{ company.name }}
+  </div>
+</div>
+
+<table class="footer-table">
+  <tr><td>{{ company.name }} | {% if company.company_address %}{{ company.company_address }}{% endif %} {% if company.website %}| {{ company.website }}{% endif %}</td></tr>
+</table>
+
+</body>
+</html>

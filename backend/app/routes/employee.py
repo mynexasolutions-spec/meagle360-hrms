@@ -1,13 +1,18 @@
 """Employee routes — CRUD, directory, org chart, documents."""
 
 from uuid import UUID
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, Depends, HTTPException, Response
 from sqlalchemy.orm import Session
 
 from app.database import get_db
 from app.dependencies import get_company_id, get_current_user, require_permissions
 from app.models.user_account import UserAccount
 from app.services.employee_service import EmployeeService
+from app.services import document_service
+from app.repositories.offer_letter_repo import OfferLetterRepository
+from app.repositories.relieving_letter_repo import RelievingLetterRepository
+from app.schemas.offer_letter import OfferLetterCreate
+from app.schemas.relieving_letter import RelievingLetterCreate
 from app.schemas.employee import (
     EmployeeCreate,
     EmployeeUpdate,
@@ -214,3 +219,63 @@ def add_document(
     if not emp:
         raise HTTPException(status_code=404, detail="Employee not found")
     return svc.add_document(employee_id, data.model_dump())
+
+
+# ── Offer Letter ─────────────────────────────────────────────
+@router.post("/offer-letters", status_code=201)
+def create_offer_letter(
+    data: OfferLetterCreate,
+    db: Session = Depends(get_db), company_id: UUID = Depends(get_company_id),
+    current_user: UserAccount = Depends(require_permissions("employees:write")),
+):
+    repo = OfferLetterRepository(db, company_id)
+    payload = data.model_dump()
+    payload["generated_by_employee_id"] = current_user.employee_id
+    record = repo.create(payload)
+    return {"id": record.id}
+
+
+@router.get("/offer-letters/{offer_id}/pdf")
+def download_offer_letter_pdf(
+    offer_id: UUID,
+    db: Session = Depends(get_db), company_id: UUID = Depends(get_company_id),
+    _=Depends(require_permissions("employees:write")),
+):
+    pdf_bytes = document_service.generate_offer_letter_pdf(db, company_id, offer_id)
+    if not pdf_bytes:
+        raise HTTPException(status_code=404, detail="Offer letter record not found")
+    return Response(
+        content=pdf_bytes,
+        media_type="application/pdf",
+        headers={"Content-Disposition": f"inline; filename=offer_letter_{offer_id}.pdf"},
+    )
+
+
+# ── Relieving Letter ─────────────────────────────────────────
+@router.post("/relieving-letters", status_code=201)
+def create_relieving_letter(
+    data: RelievingLetterCreate,
+    db: Session = Depends(get_db), company_id: UUID = Depends(get_company_id),
+    current_user: UserAccount = Depends(require_permissions("employees:write")),
+):
+    repo = RelievingLetterRepository(db, company_id)
+    payload = data.model_dump()
+    payload["generated_by_employee_id"] = current_user.employee_id
+    record = repo.create(payload)
+    return {"id": record.id}
+
+
+@router.get("/relieving-letters/{relieving_id}/pdf")
+def download_relieving_letter_pdf(
+    relieving_id: UUID,
+    db: Session = Depends(get_db), company_id: UUID = Depends(get_company_id),
+    _=Depends(require_permissions("employees:write")),
+):
+    pdf_bytes = document_service.generate_relieving_letter_pdf(db, company_id, relieving_id)
+    if not pdf_bytes:
+        raise HTTPException(status_code=404, detail="Relieving letter record not found")
+    return Response(
+        content=pdf_bytes,
+        media_type="application/pdf",
+        headers={"Content-Disposition": f"inline; filename=relieving_letter_{relieving_id}.pdf"},
+    )
