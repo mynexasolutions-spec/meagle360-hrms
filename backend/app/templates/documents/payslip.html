@@ -1,0 +1,145 @@
+<!DOCTYPE html>
+<html>
+<head>
+<style>
+  body { font-family: Helvetica, Arial, sans-serif; font-size: 10pt; color: #1a1a2e; margin: 0; padding: 0; }
+  .header-table { width: 100%; border-collapse: collapse; }
+  .header-left { width: 55%; vertical-align: top; padding: 16px; }
+  .header-right { width: 45%; vertical-align: top; background-color: #1e3a8a; color: #ffffff; padding: 16px; }
+  .company-name { font-size: 16pt; font-weight: bold; color: #1e3a8a; }
+  .portal-name { font-size: 9pt; color: #444444; }
+  .payslip-title { font-size: 22pt; font-weight: bold; letter-spacing: 2px; }
+  .meta-row td { padding: 2px 0; font-size: 9pt; }
+  .meta-label { width: 90px; }
+  .section-title { background-color: #eef2ff; color: #1e3a8a; font-weight: bold; font-size: 10pt; padding: 6px 10px; margin-top: 14px; }
+  .info-table { width: 100%; border-collapse: collapse; margin-top: 4px; }
+  .info-table td { padding: 4px 10px; font-size: 9.5pt; width: 25%; }
+  .info-label { color: #555555; }
+  .info-value { font-weight: bold; }
+  .earn-ded-table { width: 100%; border-collapse: collapse; margin-top: 10px; }
+  .earn-ded-table td { vertical-align: top; width: 50%; padding: 0 6px; }
+  .line-table { width: 100%; border-collapse: collapse; border: 1px solid #d0d5e0; }
+  .line-table th { background-color: #1e3a8a; color: #ffffff; text-align: left; padding: 6px 8px; font-size: 9pt; }
+  .line-table th.amt, .line-table td.amt { text-align: right; }
+  .line-table td { padding: 5px 8px; font-size: 9pt; border-bottom: 1px solid #e5e8f0; }
+  .total-row td { font-weight: bold; background-color: #eef2ff; color: #1e3a8a; }
+  .netpay-table { width: 100%; background-color: #1e3a8a; color: #ffffff; margin-top: 14px; }
+  .netpay-table td { padding: 12px 16px; }
+  .netpay-label { font-size: 12pt; font-weight: bold; }
+  .netpay-amount { font-size: 18pt; font-weight: bold; text-align: right; }
+  .netpay-words { font-size: 8.5pt; text-align: center; padding-top: 0; }
+  .stats-table { width: 100%; border: 1px solid #d0d5e0; margin-top: 10px; }
+  .stats-table td { text-align: center; padding: 8px; font-size: 9pt; border-right: 1px solid #d0d5e0; }
+  .stats-value { font-size: 12pt; font-weight: bold; color: #1e3a8a; }
+  .signature-block { margin-top: 30px; text-align: center; font-size: 9pt; }
+  .footer-table { width: 100%; background-color: #1e3a8a; color: #ffffff; margin-top: 20px; }
+  .footer-table td { padding: 10px 14px; font-size: 8.5pt; }
+</style>
+</head>
+<body>
+
+<table class="header-table">
+  <tr>
+    <td class="header-left">
+      {% if company.logo_url %}<img src="{{ company.logo_url }}" height="40" /><br/>{% endif %}
+      <span class="company-name">{{ company.name }}</span><br/>
+      <span class="portal-name">HRMS Portal</span>
+    </td>
+    <td class="header-right">
+      <span class="payslip-title">PAYSLIP</span>
+      <table class="meta-row" style="margin-top: 10px;">
+        <tr><td class="meta-label">Pay Period</td><td>: {{ pay_period }}</td></tr>
+        <tr><td class="meta-label">Payslip No.</td><td>: {{ payslip.payslip_number or "-" }}</td></tr>
+        <tr><td class="meta-label">Pay Date</td><td>: {{ pay_date }}</td></tr>
+      </table>
+    </td>
+  </tr>
+</table>
+
+<div class="section-title">EMPLOYEE INFORMATION</div>
+<table class="info-table">
+  <tr>
+    <td><span class="info-label">Employee Name</span><br/><span class="info-value">{{ employee.full_name }}</span></td>
+    <td><span class="info-label">Employee ID</span><br/><span class="info-value">{{ employee.employee_code }}</span></td>
+    <td><span class="info-label">Date of Joining</span><br/><span class="info-value">{{ date_of_joining }}</span></td>
+    <td><span class="info-label">PAN</span><br/><span class="info-value">{{ employee.pan_number or "-" }}</span></td>
+  </tr>
+  <tr>
+    <td><span class="info-label">Designation</span><br/><span class="info-value">{{ designation_title or "-" }}</span></td>
+    <td><span class="info-label">Department</span><br/><span class="info-value">{{ department_name or "-" }}</span></td>
+    <td><span class="info-label">Bank Name</span><br/><span class="info-value">{{ employee.bank_name or "-" }}</span></td>
+    <td><span class="info-label">Bank Account No.</span><br/><span class="info-value">{{ masked_account_number }}</span></td>
+  </tr>
+</table>
+
+<table class="earn-ded-table">
+  <tr>
+    <td>
+      <table class="line-table">
+        <tr><th>EARNINGS</th><th class="amt">AMOUNT (Rs.)</th></tr>
+        {% for line in earnings %}
+        <tr><td>{{ line.component_name }}</td><td class="amt">{{ "%.2f"|format(line.amount) }}</td></tr>
+        {% endfor %}
+        <tr class="total-row"><td>GROSS EARNINGS</td><td class="amt">{{ "%.2f"|format(payslip.gross_earnings) }}</td></tr>
+      </table>
+    </td>
+    <td>
+      <table class="line-table">
+        <tr><th>DEDUCTIONS</th><th class="amt">AMOUNT (Rs.)</th></tr>
+        {% for line in deductions %}
+        <tr><td>{{ line.component_name }}</td><td class="amt">{{ "%.2f"|format(line.amount) }}</td></tr>
+        {% endfor %}
+        <tr class="total-row"><td>TOTAL DEDUCTIONS</td><td class="amt">{{ "%.2f"|format(payslip.gross_deductions) }}</td></tr>
+      </table>
+    </td>
+  </tr>
+</table>
+
+<table class="netpay-table">
+  <tr>
+    <td class="netpay-label">NET PAY</td>
+    <td class="netpay-amount">Rs. {{ "%.2f"|format(payslip.net_pay) }}</td>
+  </tr>
+  <tr>
+    <td colspan="2" class="netpay-words">({{ net_pay_in_words }})</td>
+  </tr>
+</table>
+
+<table class="stats-table">
+  <tr>
+    <td>WORKING DAYS<br/><span class="stats-value">{{ payslip.working_days }}</span></td>
+    <td>PAID DAYS<br/><span class="stats-value">{{ paid_days }}</span></td>
+    <td>LOP DAYS<br/><span class="stats-value">{{ payslip.lop_days }}</span></td>
+    <td style="border-right: none;">LOP AMOUNT<br/><span class="stats-value">{{ "%.2f"|format(payslip.lop_amount) }}</span></td>
+  </tr>
+</table>
+
+{% if employer_contributions %}
+<div class="section-title">EMPLOYER CONTRIBUTIONS</div>
+<table class="line-table">
+  <tr><th>Component</th><th class="amt">Amount (Rs.)</th></tr>
+  {% for line in employer_contributions %}
+  <tr><td>{{ line.component_name }}</td><td class="amt">{{ "%.2f"|format(line.amount) }}</td></tr>
+  {% endfor %}
+  <tr class="total-row"><td>TOTAL</td><td class="amt">{{ "%.2f"|format(employer_total) }}</td></tr>
+</table>
+{% endif %}
+
+<div class="signature-block">
+  This is a computer-generated payslip.<br/><br/>
+  {% if company.signature_url %}<img src="{{ company.signature_url }}" height="35" /><br/>{% endif %}
+  {% if company.authorized_signatory_name %}{{ company.authorized_signatory_name }}<br/>{% endif %}
+  AUTHORIZED SIGNATORY
+</div>
+
+<table class="footer-table">
+  <tr>
+    <td>{% if company.phone %}Tel: {{ company.phone }}{% endif %}</td>
+    <td>{% if company.email %}{{ company.email }}{% endif %}</td>
+    <td>{% if company.company_address %}{{ company.company_address }}{% endif %}</td>
+  </tr>
+  {% if company.footer_text %}<tr><td colspan="3" style="text-align:center;">{{ company.footer_text }}</td></tr>{% endif %}
+</table>
+
+</body>
+</html>

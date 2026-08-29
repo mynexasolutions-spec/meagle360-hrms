@@ -4,7 +4,7 @@ detail lives in PayslipLine; totals here are for quick listing/summary."""
 import uuid
 from decimal import Decimal
 
-from sqlalchemy import ForeignKey, Numeric, UniqueConstraint
+from sqlalchemy import ForeignKey, Numeric, String, UniqueConstraint
 from sqlalchemy.dialects.postgresql import UUID
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
@@ -15,6 +15,7 @@ class Payslip(Base, TimestampMixin):
     __tablename__ = "payslip"
     __table_args__ = (
         UniqueConstraint("payroll_run_id", "employee_id", name="uq_payslip_run_employee"),
+        UniqueConstraint("company_id", "payslip_number", name="uq_payslip_company_number"),
     )
 
     id: Mapped[uuid.UUID] = mapped_column(
@@ -39,6 +40,7 @@ class Payslip(Base, TimestampMixin):
     lop_days: Mapped[Decimal] = mapped_column(Numeric(5, 2), nullable=False, default=0)
     lop_amount: Mapped[Decimal] = mapped_column(Numeric(12, 2), nullable=False, default=0)
     net_pay: Mapped[Decimal] = mapped_column(Numeric(12, 2), nullable=False)
+    payslip_number: Mapped[str | None] = mapped_column(String(30), nullable=True)
 
     # ── Relationships ────────────────────────────────────
     payroll_run = relationship("PayrollRun", back_populates="payslips")

@@ -54,6 +54,7 @@ class EmployeeUpdate(BaseModel):
     uan_number: str | None = None
     bank_account_number: str | None = None
     bank_ifsc: str | None = None
+    bank_name: str | None = None
     esi_number: str | None = None
     esi_registered_date: date | None = None
     epf_applicable: bool | None = None
@@ -87,6 +88,7 @@ class EmployeeResponse(BaseModel):
     uan_number: str | None = None
     bank_account_number: str | None = None
     bank_ifsc: str | None = None
+    bank_name: str | None = None
     esi_number: str | None = None
     esi_registered_date: date | None = None
     epf_applicable: bool | None = None
@@ -128,6 +130,7 @@ class EmployeeProfileResponse(BaseModel):
     uan_number: str | None = None
     bank_account_number: str | None = None
     bank_ifsc: str | None = None
+    bank_name: str | None = None
     esi_number: str | None = None
     esi_registered_date: date | None = None
     epf_applicable: bool | None = None

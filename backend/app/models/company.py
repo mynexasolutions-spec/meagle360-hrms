@@ -54,8 +54,21 @@ class Company(Base, TimestampMixin):
     # registration works in practice.
     epf_registered: Mapped[bool] = mapped_column(Boolean, nullable=False, default=False)
 
+    # -- Document branding (Salary Slips, Offer/Relieving Letters) --
+    logo_url: Mapped[str | None] = mapped_column(String(1000), nullable=True)
+    signature_url: Mapped[str | None] = mapped_column(String(1000), nullable=True)
+    authorized_signatory_name: Mapped[str | None] = mapped_column(String(100), nullable=True)
+    company_address: Mapped[str | None] = mapped_column(String(500), nullable=True)
+    footer_text: Mapped[str | None] = mapped_column(String(500), nullable=True)
+    phone: Mapped[str | None] = mapped_column(String(100), nullable=True)
+    email: Mapped[str | None] = mapped_column(String(255), nullable=True)
+    website: Mapped[str | None] = mapped_column(String(255), nullable=True)
+    cin_number: Mapped[str | None] = mapped_column(String(30), nullable=True)
+    registered_address: Mapped[str | None] = mapped_column(String(500), nullable=True)
+
     # ── Relationships ────────────────────────────────────
     departments = relationship("Department", back_populates="company", cascade="all, delete-orphan")
+    designations = relationship("Designation", back_populates="company", cascade="all, delete-orphan")
     employees = relationship("Employee", back_populates="company", cascade="all, delete-orphan")
     roles = relationship("Role", back_populates="company", cascade="all, delete-orphan")
     shifts = relationship("Shift", back_populates="company", cascade="all, delete-orphan")

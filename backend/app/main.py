@@ -11,7 +11,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 
 from app.config import get_settings
-from app.routes import auth, company, department, employee, attendance, leave, shift, platform, dashboard, announcement, overtime, audit, role, expense, site, payroll, action_tracker
+from app.routes import auth, company, department, designation, employee, attendance, leave, shift, platform, dashboard, announcement, overtime, audit, role, expense, site, payroll, action_tracker
 
 settings = get_settings()
 
@@ -55,6 +55,7 @@ app.include_router(platform.router)
 app.include_router(auth.router)
 app.include_router(company.router)
 app.include_router(department.router)
+app.include_router(designation.router)
 app.include_router(site.router)
 app.include_router(employee.router)
 app.include_router(role.router)

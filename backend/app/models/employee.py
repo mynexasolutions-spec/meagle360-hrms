@@ -34,6 +34,11 @@ class Employee(Base, TimestampMixin):
         ForeignKey("department.id", ondelete="SET NULL"),
         nullable=True,
     )
+    designation_id: Mapped[uuid.UUID | None] = mapped_column(
+        UUID(as_uuid=True),
+        ForeignKey("designation.id", ondelete="SET NULL"),
+        nullable=True,
+    )
     manager_id: Mapped[uuid.UUID | None] = mapped_column(
         UUID(as_uuid=True),
         ForeignKey("employee.id", ondelete="SET NULL"),
@@ -73,6 +78,7 @@ class Employee(Base, TimestampMixin):
     uan_number: Mapped[str | None] = mapped_column(String(20), nullable=True)
     bank_account_number: Mapped[str | None] = mapped_column(String(40), nullable=True)
     bank_ifsc: Mapped[str | None] = mapped_column(String(20), nullable=True)
+    bank_name: Mapped[str | None] = mapped_column(String(150), nullable=True)
 
     # EPF/ESI applicability is recomputed automatically each payroll run
     # (headcount thresholds + ESI wage ceiling), but persisted here so
@@ -90,6 +96,7 @@ class Employee(Base, TimestampMixin):
     # ── Relationships ────────────────────────────────────
     company = relationship("Company", back_populates="employees")
     department = relationship("Department", back_populates="employees")
+    designation = relationship("Designation", back_populates="employees")
     site = relationship("Site", back_populates="employees")
     manager = relationship("Employee", remote_side="Employee.id", back_populates="direct_reports")
     direct_reports = relationship("Employee", back_populates="manager")

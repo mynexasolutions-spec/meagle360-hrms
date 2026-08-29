@@ -134,6 +134,7 @@ class PayslipResponse(BaseModel):
     run_year: int | None = None
     run_month: int | None = None
     run_status: str | None = None
+    payslip_number: str | None = None
 
     class Config:
         from_attributes = True

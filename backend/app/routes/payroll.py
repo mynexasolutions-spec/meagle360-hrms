@@ -8,13 +8,14 @@ access without touching that person's primary role.
 
 from uuid import UUID
 from decimal import Decimal
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, Depends, HTTPException, Response
 from sqlalchemy.orm import Session
 
 from app.database import get_db
 from app.dependencies import get_company_id, get_current_user, require_permissions
 from app.models.user_account import UserAccount
 from app.services.payroll_service import PayrollService
+from app.services import document_service
 from app.schemas.payroll import (
     SalaryComponentCreate, SalaryComponentUpdate, SalaryComponentResponse,
     SalaryStructureCreate, SalaryStructureUpdate, SalaryStructureResponse,
@@ -82,7 +83,7 @@ def _payslip_to_response(p) -> PayslipResponse:
         basic_pay=p.basic_pay, gross_earnings=p.gross_earnings, gross_deductions=p.gross_deductions,
         working_days=p.working_days, lop_days=p.lop_days, lop_amount=p.lop_amount, net_pay=p.net_pay,
         lines=p.lines, run_year=run.year if run else None, run_month=run.month if run else None,
-        run_status=run.status if run else None,
+        run_status=run.status if run else None, payslip_number=p.payslip_number,
     )
 
 
@@ -491,3 +492,20 @@ def process_fnf(
     if not settlement:
         raise HTTPException(status_code=404, detail="Settlement not found")
     return _fnf_to_response(settlement)
+
+
+# ── Document Generation ─────────────────────────────────────
+@router.get("/payslips/{payslip_id}/pdf")
+def download_payslip_pdf(
+    payslip_id: UUID,
+    db: Session = Depends(get_db), company_id: UUID = Depends(get_company_id),
+    _=Depends(require_permissions("payroll:read")),
+):
+    pdf_bytes = document_service.generate_payslip_pdf(db, company_id, payslip_id)
+    if not pdf_bytes:
+        raise HTTPException(status_code=404, detail="Payslip not found")
+    return Response(
+        content=pdf_bytes,
+        media_type="application/pdf",
+        headers={"Content-Disposition": f"inline; filename=payslip_{payslip_id}.pdf"},
+    )

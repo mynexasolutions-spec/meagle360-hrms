@@ -551,7 +551,7 @@ class PayrollService:
         self.db.add(run)
         self.db.flush()
 
-        for assignment in assignments:
+        for seq, assignment in enumerate(assignments, start=1):
             employee = assignment.employee
             result = self._compute_payslip_for_employee(employee, assignment, year, month, company)
 
@@ -561,6 +561,7 @@ class PayrollService:
                 gross_earnings=result["gross_earnings"], gross_deductions=result["gross_deductions"],
                 working_days=result["working_days"], lop_days=result["lop_days"],
                 lop_amount=result["lop_amount"], net_pay=result["net_pay"],
+                payslip_number=f"PS-{year}-{month:02d}-{seq:03d}",
             )
             self.db.add(payslip)
             self.db.flush()

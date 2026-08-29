@@ -8,6 +8,7 @@ Usage:
 from app.models.base import Base
 from app.models.company import Company
 from app.models.department import Department
+from app.models.designation import Designation
 from app.models.employee import Employee
 from app.models.role import Role
 from app.models.user_account import UserAccount
@@ -34,6 +35,8 @@ from app.models.salary_structure_component import SalaryStructureComponent
 from app.models.employee_salary_assignment import EmployeeSalaryAssignment
 from app.models.payroll_run import PayrollRun
 from app.models.payslip import Payslip
+from app.models.offer_letter_record import OfferLetterRecord
+from app.models.relieving_letter_record import RelievingLetterRecord
 from app.models.payslip_line import PayslipLine
 from app.models.tax_slab import TaxSlab
 from app.models.professional_tax_slab import ProfessionalTaxSlab
@@ -45,6 +48,7 @@ __all__ = [
     "Base",
     "Company",
     "Department",
+    "Designation",
     "Employee",
     "Role",
     "UserAccount",
@@ -71,6 +75,8 @@ __all__ = [
     "EmployeeSalaryAssignment",
     "PayrollRun",
     "Payslip",
+    "OfferLetterRecord",
+    "RelievingLetterRecord",
     "PayslipLine",
     "TaxSlab",
     "ProfessionalTaxSlab",
