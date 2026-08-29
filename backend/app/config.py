@@ -26,6 +26,11 @@ class Settings(BaseSettings):
     SMTP_PASSWORD: str = ""
     SMTP_FROM_EMAIL: str = ""
     SMTP_FROM_NAME: str = "Meagle360 HRMS"
+
+    # -- Cloudinary (logo/signature uploads) ------------------
+    CLOUDINARY_CLOUD_NAME: str = ""
+    CLOUDINARY_API_KEY: str = ""
+    CLOUDINARY_API_SECRET: str = ""
     APP_BASE_URL: str = ""
     ALLOWED_ORIGINS: str = ""
 
