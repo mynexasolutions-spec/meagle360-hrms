@@ -1,9 +1,11 @@
 import { useState, useEffect, useMemo } from 'react';
 import { Link } from 'react-router-dom';
 import { getDirectory, inviteEmployee, getDepartments, getRoles, getSites } from '../api/employees';
-import { Users, Search, Plus, Copy, Check, LayoutGrid, List, Mail, UserCheck, UserX } from 'lucide-react';
+import { Users, Search, Plus, Copy, Check, LayoutGrid, List, Mail, UserCheck, UserX, FileText, Award } from 'lucide-react';
 import Modal from '../components/Modal';
 import StatCard from '../components/StatCard';
+import OfferLetterModal from '../components/OfferLetterModal';
+import RelievingLetterModal from '../components/RelievingLetterModal';
 import { useAuth } from '../context/AuthContext';
 
 const ACCOUNT_STATUS_LABEL = {
@@ -47,6 +49,8 @@ export default function EmployeeDirectory() {
   const [search, setSearch] = useState('');
   const [viewMode, setViewMode] = useState('table'); // 'table' or 'grid'
   const [showInvite, setShowInvite] = useState(false);
+  const [showOfferModal, setShowOfferModal] = useState(false);
+  const [relievingEmployee, setRelievingEmployee] = useState(null);
   const [form, setForm] = useState(EMPTY_FORM);
   const [inviting, setInviting] = useState(false);
   const [inviteResult, setInviteResult] = useState(null);
@@ -167,9 +171,41 @@ export default function EmployeeDirectory() {
           </div>
         </div>
         {canInvite && (
-          <button className="btn btn-primary" onClick={openInvite}>
-            <Plus size={16} /> Invite Employee
-          </button>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap' }}>
+            <button
+              className="btn btn-secondary"
+              onClick={() => setShowOfferModal(true)}
+              style={{
+                display: 'flex',
+                alignItems: 'center',
+                gap: 6,
+                fontWeight: 700,
+                background: '#ffffff',
+                border: '1px solid #cbd5e1',
+                boxShadow: '0 2px 6px rgba(0,0,0,0.04)',
+              }}
+            >
+              <FileText size={16} style={{ color: '#2563eb' }} /> Offer Letter
+            </button>
+            <button
+              className="btn btn-secondary"
+              onClick={() => setRelievingEmployee({})}
+              style={{
+                display: 'flex',
+                alignItems: 'center',
+                gap: 6,
+                fontWeight: 700,
+                background: '#ffffff',
+                border: '1px solid #cbd5e1',
+                boxShadow: '0 2px 6px rgba(0,0,0,0.04)',
+              }}
+            >
+              <Award size={16} style={{ color: '#059669' }} /> Relieving Letter
+            </button>
+            <button className="btn btn-primary" onClick={openInvite}>
+              <Plus size={16} /> Invite Employee
+            </button>
+          </div>
         )}
       </div>
 
@@ -357,6 +393,7 @@ export default function EmployeeDirectory() {
                 <th style={{ padding: '16px 20px', textAlign: 'left', fontSize: '0.75rem', fontWeight: 700, color: '#64748b', textTransform: 'uppercase', whiteSpace: 'nowrap' }}>Location / Site</th>
                 <th style={{ padding: '16px 20px', textAlign: 'left', fontSize: '0.75rem', fontWeight: 700, color: '#64748b', textTransform: 'uppercase', whiteSpace: 'nowrap' }}>Role</th>
                 <th style={{ padding: '16px 20px', textAlign: 'left', fontSize: '0.75rem', fontWeight: 700, color: '#64748b', textTransform: 'uppercase', whiteSpace: 'nowrap' }}>Account Status</th>
+                <th style={{ padding: '16px 20px', textAlign: 'right', fontSize: '0.75rem', fontWeight: 700, color: '#64748b', textTransform: 'uppercase', whiteSpace: 'nowrap' }}>Actions</th>
               </tr>
             </thead>
             <tbody>
@@ -425,6 +462,25 @@ export default function EmployeeDirectory() {
                     >
                       {ACCOUNT_STATUS_LABEL[emp.account_status] || emp.account_status}
                     </span>
+                  </td>
+                  <td style={{ padding: '14px 20px', textAlign: 'right', whiteSpace: 'nowrap' }}>
+                    {canInvite && (
+                      <button
+                        className="btn btn-secondary"
+                        style={{
+                          padding: '5px 10px',
+                          fontSize: '0.75rem',
+                          gap: 4,
+                          display: 'inline-flex',
+                          alignItems: 'center',
+                          borderRadius: 8,
+                        }}
+                        onClick={() => setRelievingEmployee(emp)}
+                        title="Generate Official Relieving Letter"
+                      >
+                        <Award size={14} style={{ color: '#059669' }} /> Relieving Letter
+                      </button>
+                    )}
                   </td>
                 </tr>
               ))}
@@ -601,6 +657,23 @@ export default function EmployeeDirectory() {
             </div>
           )}
         </Modal>
+      )}
+
+      {/* Offer Letter Generator Modal */}
+      {showOfferModal && (
+        <OfferLetterModal
+          onClose={() => setShowOfferModal(false)}
+          onSuccess={() => loadEmployees()}
+        />
+      )}
+
+      {/* Relieving Letter Generator Modal */}
+      {relievingEmployee && (
+        <RelievingLetterModal
+          employee={relievingEmployee.id ? relievingEmployee : null}
+          onClose={() => setRelievingEmployee(null)}
+          onSuccess={() => loadEmployees()}
+        />
       )}
     </div>
   );

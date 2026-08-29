@@ -29,6 +29,8 @@ export const addPayslipAdjustment = (payslipId, data) =>
 
 // ── Self-service ─────────────────────────────────────────────
 export const getMyPayslips = () => client.get('/payroll/my-payslips');
+export const downloadPayslipPdf = (payslipId) =>
+  client.get(`/payroll/payslips/${payslipId}/pdf`, { responseType: 'blob' });
 
 // ── Payroll Policy ───────────────────────────────────────────
 export const getPayrollPolicy = () => client.get('/payroll/policy');

@@ -1,16 +1,19 @@
 import { useState, useEffect } from 'react';
-import { Settings as SettingsIcon, Building, Shield, Calendar, ScrollText, MapPin, Wallet, Pencil, Trash2 } from 'lucide-react';
+import {
+  Settings as SettingsIcon, Building, Shield, Calendar, ScrollText, MapPin, Wallet, Pencil, Trash2,
+  Image as ImageIcon, FileSignature, UploadCloud, CheckCircle2, Building2, Phone, Mail, Globe
+} from 'lucide-react';
 import { getHolidays, createHoliday, updateHoliday, deleteHoliday } from '../api/attendance';
 import { getDepartments, createDepartment, getSites, createSite } from '../api/employees';
 import { getAuditLogs } from '../api/audit';
-import { getMyCompany, updateMyCompany } from '../api/company';
+import { getMyCompany, updateMyCompany, uploadCompanyBranding } from '../api/company';
 import client from '../api/client';
 import Modal from '../components/Modal';
 
 const WEEKDAY_LABELS = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'];
 
 export default function Settings() {
-  const [tab, setTab] = useState('holidays');
+  const [tab, setTab] = useState('branding');
   const [holidays, setHolidays] = useState([]);
   const [departments, setDepartments] = useState([]);
   const [sites, setSites] = useState([]);
@@ -20,11 +23,35 @@ export default function Settings() {
   const [regLimitInput, setRegLimitInput] = useState('');
   const [savingRegLimit, setSavingRegLimit] = useState(false);
 
+  // Branding states
+  const [brandingForm, setBrandingForm] = useState({
+    authorized_signatory_name: '',
+    phone: '',
+    email: '',
+    website: '',
+    company_address: '',
+    footer_text: '',
+  });
+  const [uploadingLogo, setUploadingLogo] = useState(false);
+  const [uploadingSignature, setUploadingSignature] = useState(false);
+  const [savingBranding, setSavingBranding] = useState(false);
+  const [brandingSuccess, setBrandingSuccess] = useState('');
+
   useEffect(() => { loadAll(); }, []);
 
   useEffect(() => {
-    if (company) setRegLimitInput(String(company.max_monthly_regularizations));
-  }, [company?.max_monthly_regularizations]);
+    if (company) {
+      setRegLimitInput(String(company.max_monthly_regularizations));
+      setBrandingForm({
+        authorized_signatory_name: company.authorized_signatory_name || '',
+        phone: company.phone || '',
+        email: company.email || '',
+        website: company.website || '',
+        company_address: company.company_address || '',
+        footer_text: company.footer_text || '',
+      });
+    }
+  }, [company]);
 
   const loadAll = async () => {
     try {
@@ -83,7 +110,58 @@ export default function Settings() {
     }
   };
 
+  const handleLogoUpload = async (e) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    setUploadingLogo(true);
+    setBrandingSuccess('');
+    try {
+      const res = await uploadCompanyBranding(file, 'logo');
+      setCompany(res.data);
+      setBrandingSuccess('Company logo uploaded to Cloudinary successfully!');
+      setTimeout(() => setBrandingSuccess(''), 4000);
+    } catch (err) {
+      alert(err.response?.data?.detail || 'Failed to upload company logo');
+    } finally {
+      setUploadingLogo(false);
+    }
+  };
+
+  const handleSignatureUpload = async (e) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    setUploadingSignature(true);
+    setBrandingSuccess('');
+    try {
+      const res = await uploadCompanyBranding(file, 'signature');
+      setCompany(res.data);
+      setBrandingSuccess('Authorized signature uploaded to Cloudinary successfully!');
+      setTimeout(() => setBrandingSuccess(''), 4000);
+    } catch (err) {
+      alert(err.response?.data?.detail || 'Failed to upload authorized signature');
+    } finally {
+      setUploadingSignature(false);
+    }
+  };
+
+  const handleSaveBrandingDetails = async (e) => {
+    e.preventDefault();
+    setSavingBranding(true);
+    setBrandingSuccess('');
+    try {
+      const res = await updateMyCompany(brandingForm);
+      setCompany(res.data);
+      setBrandingSuccess('Company branding details saved successfully!');
+      setTimeout(() => setBrandingSuccess(''), 4000);
+    } catch (err) {
+      alert(err.response?.data?.detail || 'Failed to update branding details');
+    } finally {
+      setSavingBranding(false);
+    }
+  };
+
   const tabs = [
+    { id: 'branding', label: 'Company Branding', icon: ImageIcon },
     { id: 'holidays', label: 'Holidays', icon: Calendar },
     { id: 'departments', label: 'Departments', icon: Building },
     { id: 'sites', label: 'Sites', icon: MapPin },
@@ -107,7 +185,7 @@ export default function Settings() {
           </div>
           <div style={{ minWidth: 0 }}>
             <h1 style={{ fontSize: 'clamp(1.25rem, 4.5vw, 1.75rem)', fontWeight: 800, color: '#0f172a' }}>Settings</h1>
-            <p style={{ color: '#64748b', fontSize: '0.875rem' }}>Configure company policies, holiday calendars, work sites &amp; system audit logs</p>
+            <p style={{ color: '#64748b', fontSize: '0.875rem' }}>Configure company branding, policies, holiday calendars, work sites &amp; system audit logs</p>
           </div>
         </div>
       </div>
@@ -139,6 +217,273 @@ export default function Settings() {
           </button>
         ))}
       </div>
+
+      {/* Branding Tab */}
+      {tab === 'branding' && (
+        <div style={{ display: 'grid', gap: 24 }}>
+          {brandingSuccess && (
+            <div
+              style={{
+                background: '#ecfdf5',
+                border: '1px solid #a7f3d0',
+                color: '#065f46',
+                padding: '12px 18px',
+                borderRadius: 12,
+                display: 'flex',
+                alignItems: 'center',
+                gap: 10,
+                fontWeight: 600,
+                fontSize: '0.875rem',
+              }}
+            >
+              <CheckCircle2 size={18} style={{ color: '#059669' }} />
+              <span>{brandingSuccess}</span>
+            </div>
+          )}
+
+          {/* Top 2 Cards: Logo & Signature Uploads */}
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(320px, 1fr))', gap: 20 }}>
+            {/* Card 1: Company Logo */}
+            <div className="section-card" style={{ borderTop: '3px solid #2563eb', display: 'flex', flexDirection: 'column', justifyContent: 'space-between' }}>
+              <div>
+                <h3 style={{ display: 'flex', alignItems: 'center', gap: 8, margin: '0 0 8px 0' }}>
+                  <ImageIcon size={18} style={{ color: '#2563eb' }} /> Company Logo
+                </h3>
+                <p style={{ fontSize: '0.8125rem', color: '#64748b', margin: '0 0 16px 0' }}>
+                  Uploaded logo will appear on all employee payslips, offer letters, and system headers.
+                </p>
+
+                <div style={{ display: 'flex', alignItems: 'center', gap: 16, marginBottom: 16 }}>
+                  <div
+                    style={{
+                      width: 90,
+                      height: 90,
+                      borderRadius: 12,
+                      border: '1.5px dashed #cbd5e1',
+                      background: '#f8fafc',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      overflow: 'hidden',
+                      flexShrink: 0,
+                    }}
+                  >
+                    {company?.logo_url ? (
+                      <img src={company.logo_url} alt="Logo" style={{ width: '100%', height: '100%', objectFit: 'contain' }} />
+                    ) : (
+                      <Building2 size={36} style={{ color: '#94a3b8' }} />
+                    )}
+                  </div>
+                  <div>
+                    <div style={{ fontSize: '0.875rem', fontWeight: 600, color: '#0f172a' }}>
+                      {company?.logo_url ? 'Active Logo' : 'No Logo Uploaded'}
+                    </div>
+                    <div style={{ fontSize: '0.75rem', color: '#64748b', marginTop: 2 }}>
+                      PNG, JPG or SVG (Max 5MB)
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              <div>
+                <label
+                  style={{
+                    display: 'inline-flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    gap: 8,
+                    width: '100%',
+                    padding: '10px 16px',
+                    borderRadius: 10,
+                    background: uploadingLogo ? '#94a3b8' : '#2563eb',
+                    color: '#ffffff',
+                    fontWeight: 600,
+                    fontSize: '0.85rem',
+                    cursor: uploadingLogo ? 'not-allowed' : 'pointer',
+                    textAlign: 'center',
+                    boxShadow: '0 2px 8px rgba(37, 99, 235, 0.2)',
+                  }}
+                >
+                  <UploadCloud size={16} />
+                  <span>{uploadingLogo ? 'Uploading to Cloudinary...' : 'Choose & Upload Logo'}</span>
+                  <input
+                    type="file"
+                    accept="image/*"
+                    onChange={handleLogoUpload}
+                    disabled={uploadingLogo}
+                    style={{ display: 'none' }}
+                  />
+                </label>
+              </div>
+            </div>
+
+            {/* Card 2: Authorized Signature */}
+            <div className="section-card" style={{ borderTop: '3px solid #0056d6', display: 'flex', flexDirection: 'column', justifyContent: 'space-between' }}>
+              <div>
+                <h3 style={{ display: 'flex', alignItems: 'center', gap: 8, margin: '0 0 8px 0' }}>
+                  <FileSignature size={18} style={{ color: '#0056d6' }} /> Authorized Signature
+                </h3>
+                <p style={{ fontSize: '0.8125rem', color: '#64748b', margin: '0 0 16px 0' }}>
+                  Official digital signature used for salary slip approval and legal letters.
+                </p>
+
+                <div style={{ display: 'flex', alignItems: 'center', gap: 16, marginBottom: 16 }}>
+                  <div
+                    style={{
+                      width: 140,
+                      height: 90,
+                      borderRadius: 12,
+                      border: '1.5px dashed #cbd5e1',
+                      background: '#f8fafc',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      overflow: 'hidden',
+                      flexShrink: 0,
+                    }}
+                  >
+                    {company?.signature_url ? (
+                      <img src={company.signature_url} alt="Signature" style={{ width: '100%', height: '100%', objectFit: 'contain', padding: 4 }} />
+                    ) : (
+                      <span style={{ fontSize: '0.75rem', color: '#94a3b8', fontStyle: 'italic' }}>No Signature</span>
+                    )}
+                  </div>
+                  <div>
+                    <div style={{ fontSize: '0.875rem', fontWeight: 600, color: '#0f172a' }}>
+                      {company?.signature_url ? 'Active Signature' : 'No Signature Uploaded'}
+                    </div>
+                    <div style={{ fontSize: '0.75rem', color: '#64748b', marginTop: 2 }}>
+                      Transparent PNG recommended (Max 5MB)
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              <div>
+                <label
+                  style={{
+                    display: 'inline-flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    gap: 8,
+                    width: '100%',
+                    padding: '10px 16px',
+                    borderRadius: 10,
+                    background: uploadingSignature ? '#94a3b8' : '#0056d6',
+                    color: '#ffffff',
+                    fontWeight: 600,
+                    fontSize: '0.85rem',
+                    cursor: uploadingSignature ? 'not-allowed' : 'pointer',
+                    textAlign: 'center',
+                    boxShadow: '0 2px 8px rgba(0, 86, 214, 0.2)',
+                  }}
+                >
+                  <UploadCloud size={16} />
+                  <span>{uploadingSignature ? 'Uploading to Cloudinary...' : 'Choose & Upload Signature'}</span>
+                  <input
+                    type="file"
+                    accept="image/*"
+                    onChange={handleSignatureUpload}
+                    disabled={uploadingSignature}
+                    style={{ display: 'none' }}
+                  />
+                </label>
+              </div>
+            </div>
+          </div>
+
+          {/* Card 3: Signatory & Corporate Details Form */}
+          <div className="section-card" style={{ borderTop: '3px solid #10b981' }}>
+            <h3 style={{ margin: '0 0 16px 0', fontSize: '1rem', fontWeight: 700, color: '#0f172a' }}>
+              Signatory &amp; Document Footer Information
+            </h3>
+            <form onSubmit={handleSaveBrandingDetails} style={{ display: 'grid', gap: 16 }}>
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: 16 }}>
+                <div className="input-group">
+                  <label className="input-label">Authorized Signatory Name / Title</label>
+                  <input
+                    className="input-field"
+                    placeholder="e.g. Rahul Sharma (HR Department)"
+                    value={brandingForm.authorized_signatory_name}
+                    onChange={(e) => setBrandingForm({ ...brandingForm, authorized_signatory_name: e.target.value })}
+                  />
+                </div>
+                <div className="input-group">
+                  <label className="input-label">Official Phone Number</label>
+                  <input
+                    className="input-field"
+                    placeholder="e.g. +91 98765 43210"
+                    value={brandingForm.phone}
+                    onChange={(e) => setBrandingForm({ ...brandingForm, phone: e.target.value })}
+                  />
+                </div>
+              </div>
+
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: 16 }}>
+                <div className="input-group">
+                  <label className="input-label">Official Email</label>
+                  <input
+                    type="email"
+                    className="input-field"
+                    placeholder="e.g. hr@company.com"
+                    value={brandingForm.email}
+                    onChange={(e) => setBrandingForm({ ...brandingForm, email: e.target.value })}
+                  />
+                </div>
+                <div className="input-group">
+                  <label className="input-label">Official Website</label>
+                  <input
+                    className="input-field"
+                    placeholder="e.g. www.company.com"
+                    value={brandingForm.website}
+                    onChange={(e) => setBrandingForm({ ...brandingForm, website: e.target.value })}
+                  />
+                </div>
+              </div>
+
+              <div className="input-group">
+                <label className="input-label">Company Official Address</label>
+                <input
+                  className="input-field"
+                  placeholder="e.g. Plot 45, Sector 62, Noida, UP - 201301"
+                  value={brandingForm.company_address}
+                  onChange={(e) => setBrandingForm({ ...brandingForm, company_address: e.target.value })}
+                />
+              </div>
+
+              <div className="input-group">
+                <label className="input-label">Payslip Footer Note / Disclaimer</label>
+                <input
+                  className="input-field"
+                  placeholder="e.g. This is a computer-generated salary slip. We appreciate your hard work."
+                  value={brandingForm.footer_text}
+                  onChange={(e) => setBrandingForm({ ...brandingForm, footer_text: e.target.value })}
+                />
+              </div>
+
+              <div style={{ display: 'flex', justifyContent: 'flex-end', marginTop: 8 }}>
+                <button
+                  type="submit"
+                  disabled={savingBranding}
+                  style={{
+                    padding: '10px 24px',
+                    borderRadius: 10,
+                    border: 'none',
+                    background: '#10b981',
+                    color: '#ffffff',
+                    fontWeight: 700,
+                    fontSize: '0.875rem',
+                    cursor: savingBranding ? 'not-allowed' : 'pointer',
+                    boxShadow: '0 2px 8px rgba(16, 185, 129, 0.25)',
+                  }}
+                >
+                  {savingBranding ? 'Saving Details...' : 'Save Branding Details'}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
 
       {/* Holidays Tab */}
       {tab === 'holidays' && (

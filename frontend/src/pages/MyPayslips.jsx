@@ -1,6 +1,28 @@
 import { useState, useEffect } from 'react';
-import { getMyPayslips } from '../api/payroll';
-import { Wallet, ChevronDown, ChevronUp, Download, Printer, Building2, CheckCircle2 } from 'lucide-react';
+import { getMyPayslips, downloadPayslipPdf } from '../api/payroll';
+import { getEmployee } from '../api/employees';
+import { getMyCompany } from '../api/company';
+import { useAuth } from '../context/AuthContext';
+import {
+  Wallet,
+  ChevronDown,
+  ChevronUp,
+  Download,
+  Printer,
+  User,
+  PlusCircle,
+  MinusCircle,
+  Calendar,
+  CalendarCheck,
+  CalendarX,
+  IndianRupee,
+  Building2,
+  FileText,
+  Phone,
+  Mail,
+  MapPin,
+  CheckCircle2,
+} from 'lucide-react';
 
 import logoImg from '../assets/logo.jpg';
 
@@ -10,73 +32,206 @@ const MONTH_NAMES = [
 ];
 
 function money(n) {
-  return Number(n ?? 0).toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+  return Number(n ?? 0).toLocaleString('en-IN', {
+    minimumFractionDigits: 2,
+    maximumFractionDigits: 2,
+  });
+}
+
+function numberToWordsIndian(num) {
+  const n = Math.round(Number(num || 0));
+  if (n === 0) return 'Rupees Zero Only';
+
+  const a = [
+    '', 'One', 'Two', 'Three', 'Four', 'Five', 'Six', 'Seven', 'Eight', 'Nine',
+    'Ten', 'Eleven', 'Twelve', 'Thirteen', 'Fourteen', 'Fifteen', 'Sixteen',
+    'Seventeen', 'Eighteen', 'Nineteen',
+  ];
+  const b = ['', '', 'Twenty', 'Thirty', 'Forty', 'Fifty', 'Sixty', 'Seventy', 'Eighty', 'Ninety'];
+
+  function convertTwoDigits(v) {
+    if (v < 20) return a[v];
+    return (b[Math.floor(v / 10)] + ' ' + a[v % 10]).trim();
+  }
+
+  function convertThreeDigits(v) {
+    let str = '';
+    if (Math.floor(v / 100) > 0) {
+      str += a[Math.floor(v / 100)] + ' Hundred ';
+    }
+    const rem = v % 100;
+    if (rem > 0) {
+      str += convertTwoDigits(rem);
+    }
+    return str.trim();
+  }
+
+  let words = '';
+  const crore = Math.floor(n / 10000000);
+  let rem = n % 10000000;
+  const lakh = Math.floor(rem / 100000);
+  rem = rem % 100000;
+  const thousand = Math.floor(rem / 1000);
+  const hundreds = rem % 1000;
+
+  if (crore > 0) words += convertThreeDigits(crore) + ' Crore ';
+  if (lakh > 0) words += convertTwoDigits(lakh) + ' Lakh ';
+  if (thousand > 0) words += convertTwoDigits(thousand) + ' Thousand ';
+  if (hundreds > 0) words += convertThreeDigits(hundreds) + ' ';
+
+  return `(Rupees ${words.trim()} Only)`;
+}
+
+function maskAccountNumber(acc) {
+  if (!acc) return '—';
+  const str = String(acc).trim();
+  if (str.length <= 4) return str;
+  const last4 = str.slice(-4);
+  return `**** **** ${last4}`;
+}
+
+function formatJoinDate(d) {
+  if (!d) return '15 Jan 2022';
+  try {
+    const dt = new Date(d);
+    if (isNaN(dt.getTime())) return d;
+    return dt.toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' });
+  } catch {
+    return d;
+  }
+}
+
+function formatPayPeriod(month, year) {
+  const m = Number(month || 1);
+  const y = Number(year || new Date().getFullYear());
+  const monthShort = MONTH_NAMES[m - 1]?.slice(0, 3) || 'Jan';
+  const lastDay = new Date(y, m, 0).getDate();
+  return `01 ${monthShort} ${y} - ${lastDay} ${monthShort} ${y}`;
+}
+
+function formatPayDate(month, year) {
+  const m = Number(month || 1);
+  const y = Number(year || new Date().getFullYear());
+  const monthShort = MONTH_NAMES[m - 1]?.slice(0, 3) || 'Jan';
+  const lastDay = new Date(y, m, 0).getDate();
+  return `${lastDay} ${monthShort} ${y}`;
 }
 
 export default function MyPayslips() {
+  const { user } = useAuth();
   const [payslips, setPayslips] = useState([]);
+  const [employee, setEmployee] = useState(null);
+  const [company, setCompany] = useState(null);
   const [expandedId, setExpandedId] = useState(null);
+  const [downloadingId, setDownloadingId] = useState(null);
 
   useEffect(() => {
     getMyPayslips()
       .then((r) => {
-        setPayslips(r.data);
+        setPayslips(r.data || []);
         if (r.data?.length > 0) {
           setExpandedId(r.data[0].id); // Auto expand latest payslip
         }
       })
-      .catch(() => {});
+      .catch(() => { });
+
+    getMyCompany()
+      .then((r) => setCompany(r.data))
+      .catch(() => { });
   }, []);
 
-  const handlePrint = (payslipId) => {
-    window.print();
-  };
+  useEffect(() => {
+    if (user?.employee_id) {
+      getEmployee(user.employee_id)
+        .then((r) => setEmployee(r.data))
+        .catch(() => { });
+    }
+  }, [user?.employee_id]);
 
-  const handleDownloadPDF = (p) => {
-    const element = document.getElementById(`payslip-container-${p.id}`);
-    if (!element) return;
-
-    // Load html2pdf from CDN dynamically if not available
-    const opt = {
-      margin: 0.3,
-      filename: `Payslip_${MONTH_NAMES[p.run_month - 1]}_${p.run_year}.pdf`,
-      image: { type: 'jpeg', quality: 0.98 },
-      html2canvas: { scale: 2, useCORS: true },
-      jsPDF: { unit: 'in', format: 'letter', orientation: 'portrait' }
-    };
-
-    if (window.html2pdf) {
-      window.html2pdf().set(opt).from(element).save();
-    } else {
-      const script = document.createElement('script');
-      script.src = 'https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js';
-      script.onload = () => {
-        window.html2pdf().set(opt).from(element).save();
-      };
-      script.onerror = () => {
-        // Fallback to native print to PDF if script fails
+  const handleDownloadPDF = async (p) => {
+    setDownloadingId(p.id);
+    try {
+      const element = document.getElementById(`payslip-container-${p.id}`);
+      if (!element) {
         window.print();
+        return;
+      }
+
+      const opt = {
+        margin: [5, 5, 5, 5],
+        filename: `Payslip_${MONTH_NAMES[p.run_month - 1]}_${p.run_year}.pdf`,
+        image: { type: 'jpeg', quality: 0.98 },
+        html2canvas: {
+          scale: 2,
+          useCORS: true,
+          logging: false,
+          scrollY: 0,
+          scrollX: 0,
+        },
+        jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' },
+        pagebreak: { mode: ['avoid-all', 'css', 'legacy'] },
       };
-      document.body.appendChild(script);
+
+      const generate = () => {
+        return window.html2pdf().set(opt).from(element).save();
+      };
+
+      if (window.html2pdf) {
+        await generate();
+      } else {
+        await new Promise((resolve, reject) => {
+          const script = document.createElement('script');
+          script.src = 'https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js';
+          script.onload = async () => {
+            try {
+              await generate();
+              resolve();
+            } catch (e) {
+              reject(e);
+            }
+          };
+          script.onerror = () => {
+            window.print();
+            resolve();
+          };
+          document.body.appendChild(script);
+        });
+      }
+    } catch (err) {
+      console.error('Error generating PDF:', err);
+      window.print();
+    } finally {
+      setDownloadingId(null);
     }
   };
 
   return (
     <div className="animate-fade-in" style={{ maxWidth: 1200, margin: '0 auto' }}>
+      {/* Page Header */}
       <div className="page-header" style={{ marginBottom: 24 }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: 14 }}>
           <div
             style={{
-              width: 48, height: 48, borderRadius: 16, flexShrink: 0,
-              background: '#eff6ff', display: 'flex', alignItems: 'center', justifyContent: 'center',
+              width: 48,
+              height: 48,
+              borderRadius: 16,
+              flexShrink: 0,
+              background: '#eff6ff',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
               boxShadow: '0 4px 14px rgba(37, 99, 235, 0.13)',
             }}
           >
             <Wallet size={22} style={{ color: '#2563eb' }} />
           </div>
           <div style={{ minWidth: 0 }}>
-            <h1 style={{ fontSize: 'clamp(1.25rem, 4.5vw, 1.75rem)', fontWeight: 800, color: '#0f172a' }}>My Payslips</h1>
-            <p style={{ color: '#64748b', fontSize: '0.875rem' }}>View &amp; download your official monthly salary statements</p>
+            <h1 style={{ fontSize: 'clamp(1.25rem, 4.5vw, 1.75rem)', fontWeight: 800, color: '#0f172a' }}>
+              My Payslips
+            </h1>
+            <p style={{ color: '#64748b', fontSize: '0.875rem' }}>
+              View &amp; download your official monthly salary statements
+            </p>
           </div>
         </div>
       </div>
@@ -84,8 +239,29 @@ export default function MyPayslips() {
       <div style={{ display: 'grid', gap: 20 }}>
         {payslips.map((p) => {
           const isOpen = expandedId === p.id;
-          const earnings = p.lines?.filter((l) => l.component_type === 'earning') || [];
-          const deductions = p.lines?.filter((l) => l.component_type === 'deduction') || [];
+
+          // Defensive logic for employer contribution lines
+          const isEmployerLine = (l) =>
+            l.component_type === 'employer_cost' || l.is_employer_contribution === true;
+
+          const earnings = p.lines?.filter((l) => l.component_type === 'earning' && !isEmployerLine(l)) || [];
+          const deductions = p.lines?.filter((l) => l.component_type === 'deduction' && !isEmployerLine(l)) || [];
+          const employerLines = p.lines?.filter(isEmployerLine) || [];
+
+          // If no employerLines exist in lines, check if EPF/ESI are in salary structure/deductions or display sample breakdown
+          const totalEmployerCost = employerLines.reduce((sum, item) => sum + Number(item.amount || 0), 0);
+
+          const empName = employee?.full_name || p.employee_name || '—';
+          const empCode = employee?.employee_code || p.employee_code || '—';
+          const designation = employee?.designation?.title || employee?.designation || employee?.role?.name || '—';
+          const department = employee?.department?.name || employee?.department || '—';
+          const pan = employee?.pan_number || '—';
+          const bankName = employee?.bank_name || (employee?.bank_ifsc ? `${employee.bank_ifsc.slice(0, 4)} Bank` : '—');
+          const bankIfsc = employee?.bank_ifsc || '—';
+          const bankAccount = maskAccountNumber(employee?.bank_account_number);
+
+          const paidDays = Math.max(0, Number(p.working_days || 0) - Number(p.lop_days || 0));
+          const payslipNumber = `PS-${p.run_year}-${String(p.run_month).padStart(2, '0')}-${empCode}`;
 
           return (
             <div
@@ -96,7 +272,7 @@ export default function MyPayslips() {
                 transition: 'all 0.2s ease-in-out',
               }}
             >
-              {/* Header Bar */}
+              {/* Header Accordion Bar */}
               <div
                 className="payslip-header-bar"
                 style={{
@@ -111,12 +287,12 @@ export default function MyPayslips() {
                       width: 44,
                       height: 44,
                       borderRadius: 12,
-                      background: 'linear-gradient(135deg, #3b82f6, #1d4ed8)',
+                      background: 'linear-gradient(135deg, #0052cc, #1d4ed8)',
                       display: 'flex',
                       alignItems: 'center',
                       justifyContent: 'center',
                       color: '#ffffff',
-                      boxShadow: '0 4px 12px rgba(37, 99, 235, 0.25)',
+                      boxShadow: '0 4px 12px rgba(0, 82, 204, 0.25)',
                       flexShrink: 0,
                     }}
                   >
@@ -127,15 +303,31 @@ export default function MyPayslips() {
                       {MONTH_NAMES[p.run_month - 1]} {p.run_year} Payslip
                     </h3>
                     <span style={{ fontSize: '0.8125rem', color: '#64748b' }}>
-                      Working Days: <strong style={{ color: '#334155' }}>{p.working_days}</strong> | LOP: <strong style={{ color: '#ef4444' }}>{p.lop_days} days</strong>
+                      Working Days: <strong style={{ color: '#334155' }}>{p.working_days}</strong> | Paid Days:{' '}
+                      <strong style={{ color: '#16a34a' }}>{paidDays}</strong> | LOP:{' '}
+                      <strong style={{ color: Number(p.lop_days) > 0 ? '#ef4444' : '#64748b' }}>
+                        {p.lop_days} days
+                      </strong>
                     </span>
                   </div>
                 </div>
 
                 <div className="payslip-header-right">
                   <div style={{ textAlign: 'right' }}>
-                    <div style={{ fontSize: '0.75rem', fontWeight: 600, color: '#64748b', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Net Transfer</div>
-                    <div style={{ fontSize: 'clamp(1.05rem, 4vw, 1.25rem)', fontWeight: 800, color: '#16a34a' }}>₹{money(p.net_pay)}</div>
+                    <div
+                      style={{
+                        fontSize: '0.75rem',
+                        fontWeight: 600,
+                        color: '#64748b',
+                        textTransform: 'uppercase',
+                        letterSpacing: '0.05em',
+                      }}
+                    >
+                      Net Transfer
+                    </div>
+                    <div style={{ fontSize: 'clamp(1.05rem, 4vw, 1.25rem)', fontWeight: 800, color: '#0052cc' }}>
+                      ₹{money(p.net_pay)}
+                    </div>
                   </div>
                   <div style={{ color: '#94a3b8', flexShrink: 0 }}>
                     {isOpen ? <ChevronUp size={20} /> : <ChevronDown size={20} />}
@@ -143,149 +335,350 @@ export default function MyPayslips() {
                 </div>
               </div>
 
-              {/* Payslip Document Body */}
+              {/* Expanded Payslip Document Body */}
               {isOpen && (
                 <div id={`payslip-doc-${p.id}`} className="payslip-doc-body">
-
                   {/* Action Toolbar */}
-                  <div className="no-print" style={{ display: 'flex', justifyContent: 'flex-end', gap: 12, marginBottom: 24, flexWrap: 'wrap' }}>
+                  <div
+                    className="no-print"
+                    style={{ display: 'flex', justifyContent: 'flex-end', gap: 12, marginBottom: 20 }}
+                  >
                     <button
                       onClick={() => handleDownloadPDF(p)}
+                      disabled={downloadingId === p.id}
                       style={{
                         display: 'inline-flex',
                         alignItems: 'center',
                         justifyContent: 'center',
                         gap: 8,
                         padding: '9px 18px',
-                        borderRadius: 10,
+                        borderRadius: 8,
                         border: 'none',
-                        background: 'linear-gradient(135deg, #2563eb, #1d4ed8)',
+                        background: 'linear-gradient(135deg, #0052cc, #1d4ed8)',
                         fontSize: '0.875rem',
                         fontWeight: 600,
                         color: '#ffffff',
-                        cursor: 'pointer',
-                        boxShadow: '0 4px 12px rgba(37, 99, 235, 0.25)',
+                        cursor: downloadingId === p.id ? 'not-allowed' : 'pointer',
+                        boxShadow: '0 4px 12px rgba(0, 82, 204, 0.25)',
+                        opacity: downloadingId === p.id ? 0.75 : 1,
                       }}
                     >
-                      <Download size={16} /> Download PDF
+                      <Download size={16} /> {downloadingId === p.id ? 'Generating PDF...' : 'Download PDF'}
                     </button>
                   </div>
 
-                  {/* Salary Voucher Container */}
-                  <div
-                    id={`payslip-container-${p.id}`}
-                    className="payslip-voucher"
-                  >
-                    {/* Header Banner */}
+                  {/* Corporate Payslip Voucher Container */}
+                  <div id={`payslip-container-${p.id}`} className="payslip-voucher">
+                    {/* 1. Header Banner (Angled Blue Trapezoid) */}
                     <div className="payslip-banner-header">
-                      <div style={{ minWidth: 0 }}>
-                        <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 4, flexWrap: 'wrap' }}>
-                          <img src={logoImg} alt="Logo" style={{ height: 60, width: 'auto', objectFit: 'contain' }} />
-                          <h2 style={{ margin: 0, fontSize: 'clamp(1.05rem, 4vw, 1.35rem)', fontWeight: 800, color: '#0f172a', letterSpacing: '-0.02em' }}>
-                            MEAGLE360 CORP
-                          </h2>
+                      <div className="payslip-brand-left">
+                        <img
+                          src={company?.logo_url || logoImg}
+                          alt="Company Logo"
+                          className="logo-box"
+                          onError={(e) => {
+                            e.currentTarget.src = logoImg;
+                          }}
+                        />
+                        <div>
+                          <h2 className="payslip-brand-title">HRMS Portal</h2>
+                          <div className="payslip-brand-subtitle">{company?.name || 'MEAGLE360'}</div>
                         </div>
-                        <p style={{ margin: 0, fontSize: '0.8125rem', color: '#64748b' }}>Official Salary Statement &amp; Tax Voucher</p>
                       </div>
 
-                      <div style={{ textAlign: 'right', minWidth: 0 }}>
-                        <div style={{ fontSize: 'clamp(0.9375rem, 3.5vw, 1.15rem)', fontWeight: 800, color: '#0f172a', textTransform: 'uppercase' }}>
-                          PAYSLIP - {MONTH_NAMES[p.run_month - 1].toUpperCase()} {p.run_year}
+                      <div className="payslip-meta-right">
+                        <div className="payslip-meta-top-title">
+                          <h2>PAYSLIP</h2>
+                          <Wallet size={24} style={{ color: '#ffffff' }} />
                         </div>
-                        <div style={{ fontSize: '0.8125rem', color: '#64748b', marginTop: 4 }}>
-                          Generated Date: {new Date().toLocaleDateString('en-IN')}
+                        <div className="payslip-meta-rows">
+                          <div className="payslip-meta-row">
+                            <span className="payslip-meta-label">Pay Period</span>
+                            <span className="payslip-meta-val">: &nbsp;{formatPayPeriod(p.run_month, p.run_year)}</span>
+                          </div>
+                          <div className="payslip-meta-row">
+                            <span className="payslip-meta-label">Payslip No.</span>
+                            <span className="payslip-meta-val">: &nbsp;{payslipNumber}</span>
+                          </div>
+                          <div className="payslip-meta-row">
+                            <span className="payslip-meta-label">Pay Date</span>
+                            <span className="payslip-meta-val">: &nbsp;{formatPayDate(p.run_month, p.run_year)}</span>
+                          </div>
                         </div>
                       </div>
                     </div>
 
-                    {/* Employee & Payroll Overview Meta Grid */}
-                    <div className="payslip-meta-grid">
-                      <div>
-                        <span style={{ fontSize: '0.725rem', color: '#64748b', fontWeight: 600, textTransform: 'uppercase' }}>Working Days</span>
-                        <div style={{ fontSize: '0.95rem', fontWeight: 700, color: '#0f172a', marginTop: 2 }}>{p.working_days} Days</div>
+                    {/* Full Page Content Wrapper */}
+                    <div className="payslip-voucher-content">
+                      {/* 2. Employee Information Grid */}
+                      <div className="payslip-employee-info">
+                      <div className="payslip-section-heading">
+                        <User size={16} />
+                        <span>EMPLOYEE INFORMATION</span>
                       </div>
-                      <div>
-                        <span style={{ fontSize: '0.725rem', color: '#64748b', fontWeight: 600, textTransform: 'uppercase' }}>LOP Days</span>
-                        <div style={{ fontSize: '0.95rem', fontWeight: 700, color: p.lop_days > 0 ? '#ef4444' : '#0f172a', marginTop: 2 }}>{p.lop_days} Days</div>
-                      </div>
-                      <div>
-                        <span style={{ fontSize: '0.725rem', color: '#64748b', fontWeight: 600, textTransform: 'uppercase' }}>Basic Pay</span>
-                        <div style={{ fontSize: '0.95rem', fontWeight: 700, color: '#0f172a', marginTop: 2 }}>₹{money(p.basic_pay)}</div>
-                      </div>
-                      <div>
-                        <span style={{ fontSize: '0.725rem', color: '#64748b', fontWeight: 600, textTransform: 'uppercase' }}>LOP Amount Deduction</span>
-                        <div style={{ fontSize: '0.95rem', fontWeight: 700, color: p.lop_amount > 0 ? '#dc2626' : '#0f172a', marginTop: 2 }}>₹{money(p.lop_amount)}</div>
+                      <div className="payslip-emp-grid">
+                        <div>
+                          <div className="payslip-emp-row">
+                            <span className="payslip-emp-label">Employee Name</span>
+                            <span className="payslip-emp-colon">:</span>
+                            <span className="payslip-emp-val">{empName}</span>
+                          </div>
+                          <div className="payslip-emp-row">
+                            <span className="payslip-emp-label">Employee ID</span>
+                            <span className="payslip-emp-colon">:</span>
+                            <span className="payslip-emp-val">{empCode}</span>
+                          </div>
+                          <div className="payslip-emp-row">
+                            <span className="payslip-emp-label">Designation</span>
+                            <span className="payslip-emp-colon">:</span>
+                            <span className="payslip-emp-val">{designation}</span>
+                          </div>
+                          <div className="payslip-emp-row">
+                            <span className="payslip-emp-label">Department</span>
+                            <span className="payslip-emp-colon">:</span>
+                            <span className="payslip-emp-val">{department}</span>
+                          </div>
+                        </div>
+                        <div>
+                          <div className="payslip-emp-row">
+                            <span className="payslip-emp-label">PAN</span>
+                            <span className="payslip-emp-colon">:</span>
+                            <span className="payslip-emp-val">{pan}</span>
+                          </div>
+                          <div className="payslip-emp-row">
+                            <span className="payslip-emp-label">Bank Name</span>
+                            <span className="payslip-emp-colon">:</span>
+                            <span className="payslip-emp-val">{bankName}</span>
+                          </div>
+                          <div className="payslip-emp-row">
+                            <span className="payslip-emp-label">IFSC Code</span>
+                            <span className="payslip-emp-colon">:</span>
+                            <span className="payslip-emp-val">{bankIfsc}</span>
+                          </div>
+                          <div className="payslip-emp-row">
+                            <span className="payslip-emp-label">Bank Account No.</span>
+                            <span className="payslip-emp-colon">:</span>
+                            <span className="payslip-emp-val">{bankAccount}</span>
+                          </div>
+                        </div>
                       </div>
                     </div>
 
-                    {/* Earnings & Deductions Dual Table */}
+                    {/* 3. Dual Earnings & Deductions Tables */}
                     <div className="payslip-tables">
-
-                      {/* Earnings Table */}
-                      <div style={{ border: '1px solid #e2e8f0', borderRadius: 10, overflow: 'hidden' }}>
-                        <div style={{ background: '#f1f5f9', padding: '10px 16px', fontWeight: 700, fontSize: '0.875rem', color: '#0f172a', borderBottom: '1px solid #e2e8f0', display: 'flex', justifyContent: 'space-between' }}>
-                          <span>EARNINGS</span>
+                      {/* Left: Earnings */}
+                      <div className="payslip-table-box">
+                        <div className="payslip-table-header">
+                          <div className="table-title-with-icon">
+                            <PlusCircle size={15} />
+                            <span>EARNINGS</span>
+                          </div>
                           <span>AMOUNT (₹)</span>
                         </div>
-                        <div style={{ minHeight: 120 }}>
+                        <div className="payslip-table-body">
                           {earnings.map((line) => (
-                            <div key={line.id} style={{ display: 'flex', justifyContent: 'space-between', gap: 10, padding: '10px 16px', borderBottom: '1px dashed #f1f5f9', fontSize: '0.85rem' }}>
-                              <span style={{ color: '#334155', fontWeight: 500 }}>{line.component_name}</span>
-                              <span style={{ fontWeight: 600, color: '#0f172a', flexShrink: 0 }}>₹{money(line.amount)}</span>
+                            <div key={line.id} className="payslip-table-row">
+                              <span className="comp-name">{line.component_name}</span>
+                              <span className="comp-val">{money(line.amount)}</span>
                             </div>
                           ))}
-                        </div>
-                        <div style={{ background: '#f8fafc', padding: '12px 16px', fontWeight: 700, fontSize: '0.9rem', color: '#0f172a', borderTop: '2px solid #cbd5e1', display: 'flex', justifyContent: 'space-between' }}>
-                          <span>Gross Earnings</span>
-                          <span style={{ color: '#16a34a' }}>₹{money(p.gross_earnings)}</span>
-                        </div>
-                      </div>
-
-                      {/* Deductions Table */}
-                      <div style={{ border: '1px solid #e2e8f0', borderRadius: 10, overflow: 'hidden' }}>
-                        <div style={{ background: '#f1f5f9', padding: '10px 16px', fontWeight: 700, fontSize: '0.875rem', color: '#0f172a', borderBottom: '1px solid #e2e8f0', display: 'flex', justifyContent: 'space-between' }}>
-                          <span>DEDUCTIONS</span>
-                          <span>AMOUNT (₹)</span>
-                        </div>
-                        <div style={{ minHeight: 120 }}>
-                          {deductions.map((line) => (
-                            <div key={line.id} style={{ display: 'flex', justifyContent: 'space-between', gap: 10, padding: '10px 16px', borderBottom: '1px dashed #f1f5f9', fontSize: '0.85rem' }}>
-                              <span style={{ color: '#334155', fontWeight: 500 }}>{line.component_name}</span>
-                              <span style={{ fontWeight: 600, color: '#dc2626', flexShrink: 0 }}>₹{money(line.amount)}</span>
+                          {earnings.length === 0 && (
+                            <div className="payslip-table-row">
+                              <span className="comp-name">Basic Salary</span>
+                              <span className="comp-val">{money(p.basic_pay)}</span>
                             </div>
-                          ))}
-                          {deductions.length === 0 && (
-                            <div style={{ padding: 20, textAlign: 'center', color: '#94a3b8', fontSize: '0.8125rem' }}>No deductions for this period</div>
                           )}
                         </div>
-                        <div style={{ background: '#f8fafc', padding: '12px 16px', fontWeight: 700, fontSize: '0.9rem', color: '#0f172a', borderTop: '2px solid #cbd5e1', display: 'flex', justifyContent: 'space-between' }}>
-                          <span>Total Deductions</span>
-                          <span style={{ color: '#dc2626' }}>₹{money(p.gross_deductions)}</span>
+                        <div className="payslip-table-footer">
+                          <span>GROSS EARNINGS</span>
+                          <span>{money(p.gross_earnings)}</span>
                         </div>
                       </div>
 
+                      {/* Right: Deductions */}
+                      <div className="payslip-table-box">
+                        <div className="payslip-table-header">
+                          <div className="table-title-with-icon">
+                            <MinusCircle size={15} />
+                            <span>DEDUCTIONS</span>
+                          </div>
+                          <span>AMOUNT (₹)</span>
+                        </div>
+                        <div className="payslip-table-body">
+                          {deductions.map((line) => (
+                            <div key={line.id} className="payslip-table-row">
+                              <span className="comp-name">{line.component_name}</span>
+                              <span className="comp-val">{money(line.amount)}</span>
+                            </div>
+                          ))}
+                          {!deductions.some((d) => d.component_name?.toLowerCase().includes('loss of pay') || d.component_name?.toLowerCase().includes('lop')) && Number(p.lop_amount) > 0 && (
+                            <div className="payslip-table-row">
+                              <span className="comp-name">Loss of Pay ({p.lop_days} days)</span>
+                              <span className="comp-val">{money(p.lop_amount)}</span>
+                            </div>
+                          )}
+                          {deductions.length === 0 && Number(p.lop_amount) === 0 && (
+                            <div style={{ padding: 16, textAlign: 'center', color: '#94a3b8', fontSize: '0.78rem' }}>
+                              No deductions for this period
+                            </div>
+                          )}
+                        </div>
+                        <div className="payslip-table-footer">
+                          <span>TOTAL DEDUCTIONS</span>
+                          <span>{money(p.gross_deductions)}</span>
+                        </div>
+                      </div>
                     </div>
 
-                    {/* Net Pay Highlight Banner */}
+                    {/* 4. Net Pay Royal Blue Banner */}
                     <div className="payslip-net-banner">
-                      <div style={{ display: 'flex', alignItems: 'center', gap: 10, minWidth: 0 }}>
-                        <CheckCircle2 size={24} style={{ color: '#4ade80', flexShrink: 0 }} />
+                      <div className="payslip-net-wallet-circle">
+                        <Wallet size={24} />
+                      </div>
+                      <div className="payslip-net-content">
+                        <div className="payslip-net-title-row">
+                          <span className="payslip-net-title">NET PAY</span>
+                          <span className="payslip-net-divider">|</span>
+                          <span className="payslip-net-amount">₹ {money(p.net_pay)}</span>
+                        </div>
+                        <div className="payslip-net-words">{numberToWordsIndian(p.net_pay)}</div>
+                      </div>
+                    </div>
+
+                    {/* 5. Attendance Metrics (4 Cards) */}
+                    <div className="payslip-attendance">
+                      <div className="payslip-att-card">
+                        <div className="payslip-att-icon">
+                          <Calendar size={22} />
+                        </div>
                         <div>
-                          <div style={{ fontSize: '0.75rem', color: '#94a3b8', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Total Net Take Home Salary</div>
-                          <div style={{ fontSize: '0.85rem', color: '#cbd5e1' }}>Direct Bank Transfer Successful</div>
+                          <div className="payslip-att-label">WORKING DAYS</div>
+                          <div className="payslip-att-val">{p.working_days}</div>
                         </div>
                       </div>
 
-                      <div style={{ fontSize: 'clamp(1.35rem, 5vw, 1.65rem)', fontWeight: 800, color: '#4ade80', letterSpacing: '-0.02em' }}>
-                        ₹{money(p.net_pay)}
+                      <div className="payslip-att-card">
+                        <div className="payslip-att-icon">
+                          <CalendarCheck size={22} />
+                        </div>
+                        <div>
+                          <div className="payslip-att-label">PAID DAYS</div>
+                          <div className="payslip-att-val">{paidDays}</div>
+                        </div>
+                      </div>
+
+                      <div className="payslip-att-card">
+                        <div className="payslip-att-icon">
+                          <CalendarX size={22} />
+                        </div>
+                        <div>
+                          <div className="payslip-att-label">LEAVE / LOP DAYS</div>
+                          <div className="payslip-att-val">{p.lop_days}</div>
+                        </div>
+                      </div>
+
+                      <div className="payslip-att-card">
+                        <div className="payslip-att-icon">
+                          <IndianRupee size={22} />
+                        </div>
+                        <div>
+                          <div className="payslip-att-label">LOP AMOUNT</div>
+                          <div className="payslip-att-val">{money(p.lop_amount)}</div>
+                        </div>
                       </div>
                     </div>
 
-                    {/* Confidentiality Footer */}
-                    <div style={{ marginTop: 24, textAlign: 'center', fontSize: '0.725rem', color: '#94a3b8', borderTop: '1px solid #f1f5f9', paddingTop: 16 }}>
-                      This is a computer-generated salary slip and does not require a physical signature. Confidential &amp; Proprietary to Meagle360 Corp.
-                    </div>
+                    {/* 6. Lower Split: Employer Contributions & Signature */}
+                    <div className="payslip-bottom-split">
+                      {/* Left: Employer Contributions */}
+                      <div className="payslip-employer-box">
+                        <div className="payslip-section-heading" style={{ borderBottom: 'none', paddingBottom: 4 }}>
+                          <Building2 size={15} />
+                          <span>EMPLOYER CONTRIBUTIONS</span>
+                        </div>
+                        <div className="payslip-employer-table">
+                          <div className="payslip-employer-header">
+                            <span>Component</span>
+                            <span>Amount (₹)</span>
+                          </div>
+                          {employerLines.length > 0 ? (
+                            employerLines.map((l) => (
+                              <div key={l.id} className="payslip-employer-row">
+                                <span className="emp-comp">{l.component_name}</span>
+                                <span className="emp-val">{money(l.amount)}</span>
+                              </div>
+                            ))
+                          ) : (
+                            <div style={{ padding: 16, textAlign: 'center', color: '#94a3b8', fontSize: '0.78rem' }}>
+                              No employer contributions for this period
+                            </div>
+                          )}
+                          <div className="payslip-employer-footer">
+                            <span>TOTAL</span>
+                            <span>{money(totalEmployerCost)}</span>
+                          </div>
+                        </div>
+                      </div>
 
+                      {/* Right: Signature & Notice */}
+                      <div className="payslip-signature-box">
+                        <div>
+                          <div className="payslip-notice-header">
+                            <FileText size={16} style={{ flexShrink: 0, marginTop: 1 }} />
+                            <span>THIS IS A COMPUTER-GENERATED PAYSLIP.</span>
+                          </div>
+                          <div className="payslip-notice-sub">This does not require any signature.</div>
+                        </div>
+
+                        <div className="payslip-sig-container">
+                          {company?.signature_url ? (
+                            <img
+                              src={company.signature_url}
+                              alt="Signature"
+                              style={{ height: 38, objectFit: 'contain', marginBottom: 4 }}
+                            />
+                          ) : company?.authorized_signatory_name ? (
+                            <div className="payslip-sig-font">{company.authorized_signatory_name}</div>
+                          ) : null}
+                          <div className="payslip-sig-line"></div>
+                          <div className="payslip-sig-role">
+                            {company?.authorized_signatory_name || 'AUTHORIZED SIGNATORY'}
+                          </div>
+                          <div className="payslip-sig-dept">HR Department</div>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+
+                    {/* 7. Corporate Blue Footer */}
+                    <div className="payslip-footer">
+                      <div className="payslip-footer-contacts">
+                        <div className="payslip-footer-contact-item">
+                          <Phone size={15} />
+                          <div className="item-text">
+                            <span>{company?.phone || '—'}</span>
+                          </div>
+                        </div>
+                        <div className="payslip-footer-contact-item">
+                          <Mail size={15} />
+                          <div className="item-text">
+                            <span>{company?.email || '—'}</span>
+                            {company?.website && <span>{company.website}</span>}
+                          </div>
+                        </div>
+                        <div className="payslip-footer-contact-item">
+                          <MapPin size={15} />
+                          <div className="item-text">
+                            <span>{company?.company_address || company?.address || '—'}</span>
+                          </div>
+                        </div>
+                      </div>
+
+                      <div className="payslip-footer-thanks">
+                        <div className="thanks-title">THANK YOU!</div>
+                        <div className="thanks-sub">{company?.footer_text || 'We appreciate your hard work.'}</div>
+                      </div>
+                    </div>
                   </div>
                 </div>
               )}
@@ -305,8 +698,12 @@ export default function MyPayslips() {
             }}
           >
             <Wallet size={48} style={{ color: '#cbd5e1', marginBottom: 12 }} />
-            <h3 style={{ margin: 0, fontSize: '1.1rem', color: '#0f172a', fontWeight: 700 }}>No Payslips Available</h3>
-            <p style={{ margin: '4px 0 0 0', fontSize: '0.875rem' }}>Your monthly finalized salary statements will appear here once processed.</p>
+            <h3 style={{ margin: 0, fontSize: '1.1rem', color: '#0f172a', fontWeight: 700 }}>
+              No Payslips Available
+            </h3>
+            <p style={{ margin: '4px 0 0 0', fontSize: '0.875rem' }}>
+              Your monthly finalized salary statements will appear here once processed.
+            </p>
           </div>
         )}
       </div>

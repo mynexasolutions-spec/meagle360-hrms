@@ -44,3 +44,15 @@ export const getEmployeeDocuments = (employeeId) =>
 
 export const addEmployeeDocument = (employeeId, data) =>
   client.post(`/employees/${employeeId}/documents`, data);
+
+export const getDesignations = () => client.get('/designations/');
+
+export const createOfferLetter = (data) => client.post('/employees/offer-letters', data);
+
+export const downloadOfferLetterPdf = (offerId) =>
+  client.get(`/employees/offer-letters/${offerId}/pdf`, { responseType: 'blob' });
+
+export const createRelievingLetter = (data) => client.post('/employees/relieving-letters', data);
+
+export const downloadRelievingLetterPdf = (relievingId) =>
+  client.get(`/employees/relieving-letters/${relievingId}/pdf`, { responseType: 'blob' });

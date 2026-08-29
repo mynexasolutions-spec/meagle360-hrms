@@ -17,6 +17,7 @@ import {
   Briefcase, KeyRound, User, Wallet, ExternalLink,
 } from 'lucide-react';
 import Modal from '../components/Modal';
+import RelievingLetterModal from '../components/RelievingLetterModal';
 import { useAuth } from '../context/AuthContext';
 
 function money(n) {
@@ -84,6 +85,7 @@ export default function EmployeeProfile() {
   const [showRoles, setShowRoles] = useState(false);
   const [selectedRoleIds, setSelectedRoleIds] = useState([]);
   const [showFnf, setShowFnf] = useState(false);
+  const [showRelievingModal, setShowRelievingModal] = useState(false);
   const [inviteLink, setInviteLink] = useState('');
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(true);
@@ -292,6 +294,20 @@ export default function EmployeeProfile() {
           </div>
           {canManage && (
             <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap' }}>
+              <button
+                className="btn btn-secondary"
+                onClick={() => setShowRelievingModal(true)}
+                style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: 6,
+                  fontWeight: 600,
+                  background: '#ffffff',
+                  border: '1px solid #cbd5e1',
+                }}
+              >
+                <Award size={16} style={{ color: '#059669' }} /> Relieving Letter
+              </button>
               <button className="btn btn-secondary" onClick={() => setShowEdit(true)}>
                 <Pencil size={16} /> Edit
               </button>
@@ -759,6 +775,14 @@ export default function EmployeeProfile() {
             </div>
           </form>
         </Modal>
+      )}
+
+      {showRelievingModal && (
+        <RelievingLetterModal
+          employee={employee}
+          onClose={() => setShowRelievingModal(false)}
+          onSuccess={() => load()}
+        />
       )}
     </div>
   );

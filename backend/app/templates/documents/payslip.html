@@ -61,14 +61,14 @@
   <tr>
     <td><span class="info-label">Employee Name</span><br/><span class="info-value">{{ employee.full_name }}</span></td>
     <td><span class="info-label">Employee ID</span><br/><span class="info-value">{{ employee.employee_code }}</span></td>
-    <td><span class="info-label">Date of Joining</span><br/><span class="info-value">{{ date_of_joining }}</span></td>
     <td><span class="info-label">PAN</span><br/><span class="info-value">{{ employee.pan_number or "-" }}</span></td>
+    <td><span class="info-label">Bank Name</span><br/><span class="info-value">{{ employee.bank_name or "-" }}</span></td>
   </tr>
   <tr>
     <td><span class="info-label">Designation</span><br/><span class="info-value">{{ designation_title or "-" }}</span></td>
     <td><span class="info-label">Department</span><br/><span class="info-value">{{ department_name or "-" }}</span></td>
-    <td><span class="info-label">Bank Name</span><br/><span class="info-value">{{ employee.bank_name or "-" }}</span></td>
     <td><span class="info-label">Bank Account No.</span><br/><span class="info-value">{{ masked_account_number }}</span></td>
+    <td><span class="info-label">IFSC Code</span><br/><span class="info-value">{{ employee.bank_ifsc or "-" }}</span></td>
   </tr>
 </table>
 
@@ -134,7 +134,7 @@
 
 <table class="footer-table">
   <tr>
-    <td>{% if company.phone %}Tel: {{ company.phone }}{% endif %}</td>
+    <td>{% if company.phone %}Tel: {{ company.phone }}<br/>{% endif %}{% if company.website %}{{ company.website }}{% endif %}</td>
     <td>{% if company.email %}{{ company.email }}{% endif %}</td>
     <td>{% if company.company_address %}{{ company.company_address }}{% endif %}</td>
   </tr>
