@@ -5,151 +5,163 @@
 <style>
   @page {
     size: a4 portrait;
-    margin: 6mm 7mm;
+    margin: 3mm 5mm;
   }
   body {
     font-family: Helvetica, Arial, sans-serif;
-    font-size: 8.2pt;
+    font-size: 8pt;
     color: #1e293b;
     margin: 0;
     padding: 0;
-    line-height: 1.32;
+    line-height: 1.25;
   }
-  .outer-frame {
-    border: 2px solid #0052cc;
-    width: 100%;
+  /* Global border reset */
+  div, p, span, table, td, tr, th {
+    border: none;
   }
-  
-  /* Header */
-  .header-table {
+
+  .page-wrapper {
     width: 100%;
+    min-height: 100%;
+  }
+
+  /* ── Header ── */
+  .header-bar {
+    width: 100%;
+    background-color: #f1f5f9;
     border-collapse: collapse;
-    border-bottom: 2px solid #0052cc;
   }
   .header-left {
-    width: 48%;
+    width: 40%;
     vertical-align: middle;
-    padding: 8px 14px;
+    padding: 6px 14px;
   }
   .header-right {
-    width: 52%;
+    width: 60%;
     vertical-align: middle;
-    padding: 8px 14px;
+    padding: 6px 14px;
     text-align: right;
-    font-size: 7.2pt;
+    font-size: 8pt;
     color: #334155;
     line-height: 1.25;
   }
   .brand-title {
-    font-size: 13.5pt;
+    font-size: 13pt;
     font-weight: bold;
     color: #0f172a;
-    line-height: 1.1;
+    line-height: 1.0;
   }
   .brand-sub {
     font-size: 9.5pt;
     font-weight: bold;
     color: #0052cc;
-    letter-spacing: 0.5px;
+    letter-spacing: 0.8px;
     margin-top: 1px;
   }
   .contact-item {
-    margin-bottom: 1.5px;
-  }
-  .contact-icon {
-    color: #0052cc;
-    font-weight: bold;
-    margin-right: 2px;
+    margin-bottom: 0px;
+    font-size: 8pt;
+    color: #334155;
   }
 
-  /* Body Content */
-  .content-body {
-    padding: 8px 16px 6px;
+  /* Blue accent bar below header */
+  .accent-bar {
+    width: 100%;
+    height: 3px;
+    background-color: #0052cc;
   }
-  
-  /* Title Block */
+
+  /* ── Title ── */
   .title-block {
     text-align: center;
-    margin: 2px 0 6px;
+    padding: 6px 0 3px;
   }
   .title-text {
-    font-size: 16pt;
+    font-size: 14pt;
     font-weight: bold;
     color: #0052cc;
     letter-spacing: 0.5px;
   }
   .title-underline {
-    border-bottom: 1.5px solid #0052cc;
-    width: 120px;
+    width: 100px;
+    height: 1.5px;
+    background-color: #0052cc;
     margin: 2px auto 0;
   }
 
-  /* Recipient & Subject */
-  .recipient-block {
-    margin-bottom: 5px;
+  /* ── Body Content ── */
+  .content-body {
+    padding: 4px 16px 4px;
+  }
+
+  .company-info {
+    font-size: 7.5pt;
+    line-height: 1.2;
+    margin-bottom: 3px;
+  }
+  .date-text {
     font-size: 8pt;
-    line-height: 1.3;
+    color: #1e293b;
+    margin-bottom: 3px;
+  }
+  .recipient-block {
+    margin-bottom: 3px;
+    font-size: 8pt;
+    line-height: 1.2;
   }
   .recipient-name {
     font-weight: bold;
     color: #0f172a;
   }
-  .date-text {
-    color: #475569;
-    font-size: 7.8pt;
-    margin-bottom: 3px;
-  }
   .subject-line {
     font-weight: bold;
     color: #0f172a;
-    font-size: 8.4pt;
-    margin: 4px 0 5px;
+    font-size: 8pt;
+    margin: 3px 0 4px;
   }
-
   .salutation {
-    font-size: 8.2pt;
+    font-size: 8pt;
     font-weight: bold;
     color: #0f172a;
-    margin-bottom: 3px;
-  }
-  .intro-text {
-    font-size: 8pt;
-    color: #334155;
-    margin-bottom: 6px;
-    text-align: justify;
-  }
-
-  /* Structured Section Headings */
-  .section-block {
-    margin-bottom: 5px;
-  }
-  .section-header-table {
-    width: 100%;
     margin-bottom: 2px;
   }
+  .intro-text {
+    font-size: 7.8pt;
+    color: #334155;
+    margin-bottom: 5px;
+    text-align: justify;
+    line-height: 1.3;
+  }
+
+  /* ── Section Headings ── */
+  .section-block {
+    margin-bottom: 4px;
+    margin-left: 0;
+    padding-left: 0;
+  }
   .section-title {
-    font-size: 10pt;
+    font-size: 9pt;
     font-weight: bold;
     color: #0052cc;
-    vertical-align: middle;
-    margin-bottom: 4px;
-    padding-bottom: 3px;
-    border-bottom: 1px solid #dbeafe;
+    margin-bottom: 2px;
+    padding-bottom: 1px;
+    margin-left: 0;
+    padding-left: 0;
   }
   .bullet-table {
-    width: 100%;
+    width: 95%;
     border-collapse: collapse;
-    margin-left: 8px;
+    margin-left: 22px;
   }
   .bullet-table td {
-    padding: 1.2px 0;
-    font-size: 7.8pt;
+    padding: 1px 0;
+    font-size: 7.5pt;
     vertical-align: top;
   }
   .bullet-icon {
     width: 14px;
     color: #0052cc;
-    font-size: 8pt;
+    font-size: 7.5pt;
     font-weight: bold;
   }
   .bullet-label {
@@ -160,18 +172,19 @@
     color: #334155;
   }
 
-  /* Closing */
+  /* ── Closing ── */
   .closing-text {
-    font-size: 7.8pt;
+    font-size: 7.5pt;
     color: #334155;
-    margin: 4px 0;
+    margin: 3px 0;
     text-align: justify;
+    line-height: 1.3;
   }
-  
-  /* Signatures */
+
+  /* ── Signatures ── */
   .sign-section {
-    margin-top: 4px;
-    margin-bottom: 4px;
+    margin-top: 12px;
+    margin-bottom: 6px;
   }
   .sign-table {
     width: 100%;
@@ -180,25 +193,28 @@
   .sign-table td {
     width: 50%;
     vertical-align: top;
-    font-size: 7.6pt;
+    font-size: 8.5pt;
+    padding-top: 4px;
   }
   .sig-name {
     font-weight: bold;
     color: #0f172a;
-    font-size: 8.2pt;
+    font-size: 9pt;
+    margin-top: 2px;
   }
   .sig-role {
     color: #64748b;
-    font-size: 7.2pt;
+    font-size: 7.5pt;
+    margin-top: 1px;
   }
   .sig-line {
-    border-top: 1px solid #64748b;
-    width: 160px;
-    margin-top: 18px;
-    padding-top: 2px;
+    border-top: 1px solid #64748b !important;
+    width: 150px;
+    margin-top: 24px;
+    padding-top: 4px;
   }
 
-  /* Footer */
+  /* ── Footer ── */
   .footer-table {
     width: 100%;
     background-color: #0052cc;
@@ -206,8 +222,8 @@
     border-collapse: collapse;
   }
   .footer-table td {
-    padding: 5px 12px;
-    font-size: 6.8pt;
+    padding: 4px 10px;
+    font-size: 6.5pt;
     text-align: center;
     vertical-align: middle;
   }
@@ -215,16 +231,16 @@
 </head>
 <body>
 
-<div class="outer-frame">
-  <!-- 1. Header Banner -->
-  <table class="header-table">
+<div class="page-wrapper">
+  <!-- 1. Header Banner (Light Gray Background) -->
+  <table class="header-bar">
     <tr>
       <td class="header-left">
         <table style="border-collapse: collapse;">
           <tr>
             {% if company.logo_url %}
-            <td style="vertical-align: middle; padding-right: 8px;">
-              <img src="{{ company.logo_url }}" height="36" style="max-width: 65px;" />
+            <td style="vertical-align: middle; padding-right: 12px;">
+              <img src="{{ company.logo_url }}" height="36" style="max-width: 60px;" />
             </td>
             {% endif %}
             <td style="vertical-align: middle;">
@@ -235,39 +251,53 @@
         </table>
       </td>
       <td class="header-right">
-        <div class="contact-item"><img src="{{ icon_location }}" height="11" width="11" style="vertical-align: middle;"/> {{ company.company_address or company.address or '123 Business Park, Sector 62, Noida, Uttar Pradesh - 201309, INDIA' }}</div>
-        <div class="contact-item"><img src="{{ icon_globe }}" height="11" width="11" style="vertical-align: middle;"/> {{ company.website or 'www.meagle360.com' }}</div>
-        <div class="contact-item"><img src="{{ icon_envelope }}" height="11" width="11" style="vertical-align: middle;"/> {{ company.email or 'info@meagle360.com' }}</div>
-        <div class="contact-item"><img src="{{ icon_phone }}" height="11" width="11" style="vertical-align: middle;"/> {{ company.phone or '+91 12345 67890' }}</div>
+        <div class="contact-item"><img src="{{ icon_location }}" height="13" width="13" style="vertical-align: middle;"/> {{ company.company_address or company.address or '123 Business Park, Sector 62, Noida, Uttar Pradesh - 201309, INDIA' }}</div>
+        <div class="contact-item"><img src="{{ icon_globe }}" height="13" width="13" style="vertical-align: middle;"/> {{ company.website or 'www.meagle360.com' }}</div>
+        <div class="contact-item"><img src="{{ icon_envelope }}" height="13" width="13" style="vertical-align: middle;"/> {{ company.email or 'info@meagle360.com' }}</div>
+        <div class="contact-item"><img src="{{ icon_phone }}" height="13" width="13" style="vertical-align: middle;"/> {{ company.phone or '+91 12345 67890' }}</div>
       </td>
     </tr>
   </table>
 
+  <!-- Blue Accent Bar -->
+  <div class="accent-bar"></div>
+
+  <!-- 2. Document Title -->
+  <div class="title-block">
+    <div class="title-text">Job Offer Letter</div>
+    <div class="title-underline"></div>
+  </div>
+
+  <!-- 3. Body Content -->
   <div class="content-body">
-    <!-- 2. Document Title -->
-    <div class="title-block">
-      <div class="title-text">Offer Letter</div>
-      <div class="title-underline"></div>
+
+    <!-- Company Info -->
+    <div class="company-info">
+      <strong>{{ company.name or 'Your Company Name' }}</strong><br/>
+      {{ company.company_address or company.address or 'Company Address' }}<br/>
+      {{ company.email or 'info@meagle360.com' }} | {{ company.phone or '+91 12345 67890' }}
     </div>
 
-    <!-- 3. Date & Recipient Details -->
-    <div class="date-text"><strong>Date:</strong> {{ issue_date }}</div>
+    <!-- Date -->
+    <div class="date-text">{{ issue_date }}</div>
+
+    <!-- Candidate Info -->
     <div class="recipient-block">
       <div class="recipient-name">{{ offer.candidate_name }}</div>
       {% if offer.candidate_address %}<div>{{ offer.candidate_address }}</div>{% endif %}
     </div>
 
-    <!-- 4. Subject Line -->
+    <!-- Subject -->
     <div class="subject-line">Subject: Job Offer for {{ designation_title or "Offered Position" }}</div>
 
-    <!-- 5. Salutation & Opening -->
+    <!-- Salutation & Opening -->
     <div class="salutation">Dear {{ first_name or offer.candidate_name }},</div>
     <div class="intro-text">
       We are pleased to offer you the position of <strong>{{ designation_title or "-" }}</strong> at <strong>{{ company.name }}</strong>.
       After reviewing your qualifications and experience, we believe you will be a valuable addition to our team.
     </div>
 
-    <!-- 6. Position Details Section -->
+    <!-- Position Details -->
     <div class="section-block">
       <div class="section-title"><img src="{{ icon_briefcase }}" height="16" width="16" style="vertical-align: middle;"/> Position Details:</div>
       <table class="bullet-table">
@@ -298,7 +328,7 @@
       </table>
     </div>
 
-    <!-- 7. Compensation & Benefits Section -->
+    <!-- Compensation & Benefits -->
     <div class="section-block">
       <div class="section-title"><img src="{{ icon_moneybag }}" height="16" width="16" style="vertical-align: middle;"/> Compensation &amp; Benefits:</div>
       <table class="bullet-table">
@@ -317,7 +347,7 @@
       </table>
     </div>
 
-    <!-- 8. Terms & Conditions Section -->
+    <!-- Terms & Conditions -->
     <div class="section-block">
       <div class="section-title"><img src="{{ icon_document }}" height="16" width="16" style="vertical-align: middle;"/> Terms &amp; Conditions:</div>
       <table class="bullet-table">
@@ -336,7 +366,7 @@
       </table>
     </div>
 
-    <!-- 9. Acceptance & Closing -->
+    <!-- Acceptance & Closing -->
     <div class="closing-text">
       Please sign and return a copy of this letter by <strong>{{ acceptance_deadline or "the specified acceptance deadline" }}</strong> to confirm your acceptance of the offer.
       If you have any questions, feel free to reach out to <strong>{{ offer.hr_contact_name or company.authorized_signatory_name or "HR Department" }}</strong>{% if offer.hr_contact_email or company.email %} at {{ offer.hr_contact_email or company.email }}{% endif %}.
@@ -345,16 +375,16 @@
       We are excited to have you on board and look forward to working together!
     </div>
 
-    <!-- 10. Signatures -->
+    <!-- Signatures -->
     <div class="sign-section">
-      <div style="font-size: 7.8pt; margin-bottom: 2px;">Best regards,</div>
+      <div style="font-size: 9pt; margin-bottom: 6px;">Best regards,</div>
       <table class="sign-table">
         <tr>
           <td>
             {% if company.signature_url %}
-              <img src="{{ company.signature_url }}" height="28" style="margin-bottom: 2px;" /><br/>
+              <img src="{{ company.signature_url }}" height="34" style="margin-bottom: 4px;" /><br/>
             {% else %}
-              <div style="font-size: 11pt; font-weight: bold; color: #0f172a; margin-bottom: 2px;">{{ offer.hr_contact_name or company.authorized_signatory_name or "Authorized Signatory" }}</div>
+              <div style="margin-bottom: 16px;">&nbsp;</div>
             {% endif %}
             <div class="sig-name">{{ offer.hr_contact_name or company.authorized_signatory_name or "Authorized Signatory" }}</div>
             <div class="sig-role">HR Department | {{ company.name }}</div>
@@ -370,7 +400,7 @@
     </div>
   </div>
 
-  <!-- 11. Corporate Blue Footer -->
+  <!-- 4. Corporate Blue Footer -->
   <table class="footer-table">
     <tr>
       <td style="width: 33%;"><img src="{{ icon_phone }}" height="11" width="11" style="vertical-align: middle;"/> {{ company.phone or '+91 12345 67890' }}</td>
