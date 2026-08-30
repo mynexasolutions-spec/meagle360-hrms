@@ -16,7 +16,7 @@
     line-height: 1.38;
   }
   .outer-frame {
-    border: 2px solid #0052cc;
+    border: 1px solid #cbd5e1;
     width: 100%;
   }
   
@@ -79,9 +79,9 @@
     margin: 6px 0 12px;
   }
   .title-text {
-    font-size: 13.5pt;
+    font-size: 16pt;
     font-weight: bold;
-    color: #0f172a;
+    color: #0052cc;
     letter-spacing: 0.5px;
   }
 
@@ -205,8 +205,8 @@
       <td class="header-right">
         <div class="company-headline">{{ company.name or 'Meagle360 HRMS Pvt. Ltd.' }}</div>
         <div class="contact-item">{{ company.company_address or company.address or '123 Business Park, Sector 62, Noida, Uttar Pradesh - 201309, INDIA' }}</div>
-        <div class="contact-item"><span class="contact-icon">&#127760;</span> {{ company.website or 'www.meagle360.com' }} &nbsp;|&nbsp; <span class="contact-icon">&#9993;</span> {{ company.email or 'info@meagle360.com' }}</div>
-        <div class="contact-item"><span class="contact-icon">&#9742;</span> {{ company.phone or '+91 12345 67890' }}</div>
+        <div class="contact-item"><img src="{{ icon_globe }}" height="11" width="11" style="vertical-align: middle;"/> {{ company.website or 'www.meagle360.com' }} &nbsp;|&nbsp; <img src="{{ icon_envelope }}" height="11" width="11" style="vertical-align: middle;"/> {{ company.email or 'info@meagle360.com' }}</div>
+        <div class="contact-item"><img src="{{ icon_phone }}" height="11" width="11" style="vertical-align: middle;"/> {{ company.phone or '+91 12345 67890' }}</div>
       </td>
     </tr>
   </table>

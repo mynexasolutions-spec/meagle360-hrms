@@ -73,7 +73,7 @@
     margin: 2px 0 6px;
   }
   .title-text {
-    font-size: 13pt;
+    font-size: 16pt;
     font-weight: bold;
     color: #0052cc;
     letter-spacing: 0.5px;
@@ -128,10 +128,13 @@
     margin-bottom: 2px;
   }
   .section-title {
-    font-size: 8.5pt;
+    font-size: 10pt;
     font-weight: bold;
     color: #0052cc;
     vertical-align: middle;
+    margin-bottom: 4px;
+    padding-bottom: 3px;
+    border-bottom: 1px solid #dbeafe;
   }
   .bullet-table {
     width: 100%;
@@ -232,10 +235,10 @@
         </table>
       </td>
       <td class="header-right">
-        <div class="contact-item"><span class="contact-icon">&#9906;</span> {{ company.company_address or company.address or '123 Business Park, Sector 62, Noida, Uttar Pradesh - 201309, INDIA' }}</div>
-        <div class="contact-item"><span class="contact-icon">&#127760;</span> {{ company.website or 'www.meagle360.com' }}</div>
-        <div class="contact-item"><span class="contact-icon">&#9993;</span> {{ company.email or 'info@meagle360.com' }}</div>
-        <div class="contact-item"><span class="contact-icon">&#9742;</span> {{ company.phone or '+91 12345 67890' }}</div>
+        <div class="contact-item"><img src="{{ icon_location }}" height="11" width="11" style="vertical-align: middle;"/> {{ company.company_address or company.address or '123 Business Park, Sector 62, Noida, Uttar Pradesh - 201309, INDIA' }}</div>
+        <div class="contact-item"><img src="{{ icon_globe }}" height="11" width="11" style="vertical-align: middle;"/> {{ company.website or 'www.meagle360.com' }}</div>
+        <div class="contact-item"><img src="{{ icon_envelope }}" height="11" width="11" style="vertical-align: middle;"/> {{ company.email or 'info@meagle360.com' }}</div>
+        <div class="contact-item"><img src="{{ icon_phone }}" height="11" width="11" style="vertical-align: middle;"/> {{ company.phone or '+91 12345 67890' }}</div>
       </td>
     </tr>
   </table>
@@ -266,30 +269,30 @@
 
     <!-- 6. Position Details Section -->
     <div class="section-block">
-      <div class="section-title">&#128188; Position Details:</div>
+      <div class="section-title"><img src="{{ icon_briefcase }}" height="16" width="16" style="vertical-align: middle;"/> Position Details:</div>
       <table class="bullet-table">
         <tr>
-          <td class="bullet-icon">&#10070;</td>
+          <td class="bullet-icon"><img src="{{ icon_bullet }}" height="8" width="8"/></td>
           <td><span class="bullet-label">Job Title:</span> <span class="bullet-val">{{ designation_title or "-" }}</span></td>
         </tr>
         <tr>
-          <td class="bullet-icon">&#10070;</td>
+          <td class="bullet-icon"><img src="{{ icon_bullet }}" height="8" width="8"/></td>
           <td><span class="bullet-label">Department:</span> <span class="bullet-val">{{ department_name or "-" }}</span></td>
         </tr>
         <tr>
-          <td class="bullet-icon">&#10070;</td>
+          <td class="bullet-icon"><img src="{{ icon_bullet }}" height="8" width="8"/></td>
           <td><span class="bullet-label">Reporting To:</span> <span class="bullet-val">{{ reporting_to_name or "Reporting Manager" }}</span></td>
         </tr>
         <tr>
-          <td class="bullet-icon">&#10070;</td>
+          <td class="bullet-icon"><img src="{{ icon_bullet }}" height="8" width="8"/></td>
           <td><span class="bullet-label">Start Date:</span> <span class="bullet-val">{{ start_date }}</span>{% if end_date %} &nbsp;|&nbsp; <span class="bullet-label">End Date:</span> <span class="bullet-val">{{ end_date }}</span>{% endif %}</td>
         </tr>
         <tr>
-          <td class="bullet-icon">&#10070;</td>
+          <td class="bullet-icon"><img src="{{ icon_bullet }}" height="8" width="8"/></td>
           <td><span class="bullet-label">Employment Type:</span> <span class="bullet-val">{{ offer.employment_type|replace('_', ' ')|title }}</span></td>
         </tr>
         <tr>
-          <td class="bullet-icon">&#10070;</td>
+          <td class="bullet-icon"><img src="{{ icon_bullet }}" height="8" width="8"/></td>
           <td><span class="bullet-label">Work Location:</span> <span class="bullet-val">{{ site_name or "Office Location / Remote" }}</span></td>
         </tr>
       </table>
@@ -297,18 +300,18 @@
 
     <!-- 7. Compensation & Benefits Section -->
     <div class="section-block">
-      <div class="section-title">&#128176; Compensation &amp; Benefits:</div>
+      <div class="section-title"><img src="{{ icon_moneybag }}" height="16" width="16" style="vertical-align: middle;"/> Compensation &amp; Benefits:</div>
       <table class="bullet-table">
         <tr>
-          <td class="bullet-icon">&#10070;</td>
+          <td class="bullet-icon"><img src="{{ icon_bullet }}" height="8" width="8"/></td>
           <td><span class="bullet-label">Salary:</span> <span class="bullet-val">{% if offer.salary_amount %}Rs. {{ "%.2f"|format(offer.salary_amount) }} ({{ offer.salary_frequency or "annual" }}){% else %}As per agreed structure{% endif %}</span></td>
         </tr>
         <tr>
-          <td class="bullet-icon">&#10070;</td>
+          <td class="bullet-icon"><img src="{{ icon_bullet }}" height="8" width="8"/></td>
           <td><span class="bullet-label">Bonus/Incentives (if applicable):</span> <span class="bullet-val">{{ offer.bonus_details or "As per company performance policy" }}</span></td>
         </tr>
         <tr>
-          <td class="bullet-icon">&#10070;</td>
+          <td class="bullet-icon"><img src="{{ icon_bullet }}" height="8" width="8"/></td>
           <td><span class="bullet-label">Other Benefits:</span> <span class="bullet-val">{{ offer.other_benefits or "Health Insurance, Paid Leave, and Statutory Benefits as per company policy" }}</span></td>
         </tr>
       </table>
@@ -316,18 +319,18 @@
 
     <!-- 8. Terms & Conditions Section -->
     <div class="section-block">
-      <div class="section-title">&#128196; Terms &amp; Conditions:</div>
+      <div class="section-title"><img src="{{ icon_document }}" height="16" width="16" style="vertical-align: middle;"/> Terms &amp; Conditions:</div>
       <table class="bullet-table">
         <tr>
-          <td class="bullet-icon">&#10070;</td>
+          <td class="bullet-icon"><img src="{{ icon_bullet }}" height="8" width="8"/></td>
           <td><span class="bullet-val">Your employment will be subject to the terms outlined in the company's standard policies.</span></td>
         </tr>
         <tr>
-          <td class="bullet-icon">&#10070;</td>
+          <td class="bullet-icon"><img src="{{ icon_bullet }}" height="8" width="8"/></td>
           <td><span class="bullet-val">You may be required to sign a confidentiality agreement and/or a non-compete clause.</span></td>
         </tr>
         <tr>
-          <td class="bullet-icon">&#10070;</td>
+          <td class="bullet-icon"><img src="{{ icon_bullet }}" height="8" width="8"/></td>
           <td><span class="bullet-val">The employment is subject to standard company probationary and code-of-conduct guidelines.</span></td>
         </tr>
       </table>
@@ -370,9 +373,9 @@
   <!-- 11. Corporate Blue Footer -->
   <table class="footer-table">
     <tr>
-      <td style="width: 33%;"><span style="color: #ffffff;">&#9742;</span> {{ company.phone or '+91 12345 67890' }}</td>
-      <td style="width: 34%;"><span style="color: #ffffff;">&#9993;</span> {{ company.email or 'info@meagle360.com' }}</td>
-      <td style="width: 33%;"><span style="color: #ffffff;">&#127760;</span> {{ company.website or 'www.meagle360.com' }}</td>
+      <td style="width: 33%;"><img src="{{ icon_phone }}" height="11" width="11" style="vertical-align: middle;"/> {{ company.phone or '+91 12345 67890' }}</td>
+      <td style="width: 34%;"><img src="{{ icon_envelope }}" height="11" width="11" style="vertical-align: middle;"/> {{ company.email or 'info@meagle360.com' }}</td>
+      <td style="width: 33%;"><img src="{{ icon_globe }}" height="11" width="11" style="vertical-align: middle;"/> {{ company.website or 'www.meagle360.com' }}</td>
     </tr>
   </table>
 </div>

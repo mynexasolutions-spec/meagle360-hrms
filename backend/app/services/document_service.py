@@ -4,6 +4,7 @@ as a file; only the *_record models (for offer/relieving) store the input
 data, not the rendered PDF bytes."""
 
 import calendar
+import os
 from decimal import Decimal
 from io import BytesIO
 from uuid import UUID
@@ -17,6 +18,11 @@ from app.models.payslip import Payslip
 from app.repositories.base import BaseRepository
 
 _env = Environment(loader=FileSystemLoader("app/templates/documents"))
+
+_ICONS_DIR = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "static", "icons"))
+
+def _icon(name: str) -> str:
+    return os.path.join(_ICONS_DIR, f"{name}.png").replace("\\", "/")
 
 
 def _amount_in_words(amount: Decimal) -> str:
@@ -106,6 +112,14 @@ def generate_offer_letter_pdf(db: Session, company_id: UUID, offer_id: UUID) -> 
         "start_date": offer.start_date.strftime("%d %B %Y"),
         "end_date": offer.end_date.strftime("%d %B %Y") if offer.end_date else None,
         "acceptance_deadline": offer.acceptance_deadline.strftime("%d %B %Y") if offer.acceptance_deadline else None,
+        "icon_location": _icon("location"),
+        "icon_globe": _icon("globe"),
+        "icon_envelope": _icon("envelope"),
+        "icon_phone": _icon("phone"),
+        "icon_briefcase": _icon("briefcase"),
+        "icon_moneybag": _icon("moneybag"),
+        "icon_document": _icon("document"),
+        "icon_bullet": _icon("bullet"),
     }
     return _render_to_pdf("offer_letter.html", context)
 
@@ -132,5 +146,9 @@ def generate_relieving_letter_pdf(db: Session, company_id: UUID, relieving_id: U
         "department_name": employee.department.name if employee.department else None,
         "date_of_joining": employee.date_of_hire.strftime("%d %B %Y") if employee.date_of_hire else "-",
         "last_working_date": relieving.last_working_date.strftime("%d %B %Y"),
+        "icon_location": _icon("location"),
+        "icon_globe": _icon("globe"),
+        "icon_envelope": _icon("envelope"),
+        "icon_phone": _icon("phone"),
     }
     return _render_to_pdf("relieving_letter.html", context)
