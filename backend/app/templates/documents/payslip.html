@@ -5,15 +5,7 @@
 <style>
   @page {
     size: a4 portrait;
-    margin: 15mm 15mm 20mm 15mm; /* Reduced bottom margin to create space for footer */
-
-    @frame footer_frame {
-      -pdf-frame-content: footerContent;
-      bottom: 5mm; 
-      left: 15mm;
-      width: 180mm;
-      height: 15mm; 
-    }
+    margin: 15mm;
   }
   body {
     font-family: Helvetica, Arial, sans-serif;
@@ -387,11 +379,8 @@
         </td>
       </tr>
     </table>
-  </div> <!-- Correctly closing voucher-container -->
-
-  <!-- Corporate Footer (for xhtml2pdf) -->
-  <div id="footerContent">
-    <table class="footer-table" style="width: 100%; background-color: #0052cc; color: #ffffff;">
+<!-- Corporate Footer (for xhtml2pdf) -->
+  <table class="footer-table" style="width: 100%; background-color: #0052cc; color: #ffffff;">
       <tr>
         <td style="width: 33%; padding: 5px;">Tel: {{ company.phone or '+91 98451 78901' }}</td>
         <td style="width: 33%; padding: 5px;">
@@ -403,7 +392,7 @@
         </td>
       </tr>
     </table>
-  </div>
+  </div> <!-- Correctly closing voucher-container -->
 
 </body>
 </html>
