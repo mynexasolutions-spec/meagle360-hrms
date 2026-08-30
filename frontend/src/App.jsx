@@ -1,30 +1,32 @@
+import { lazy, Suspense } from 'react';
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 import { AuthProvider, useAuth } from './context/AuthContext';
 import { PlatformAuthProvider, usePlatformAuth } from './context/PlatformAuthContext';
 import DashboardLayout from './layouts/DashboardLayout';
 import AuthLayout from './layouts/AuthLayout';
 import PlatformLayout from './layouts/PlatformLayout';
-import Login from './pages/Login';
-import SetPassword from './pages/SetPassword';
-import PlatformLogin from './pages/PlatformLogin';
-import PlatformDashboard from './pages/PlatformDashboard';
-import Dashboard from './pages/Dashboard';
-import EmployeeDirectory from './pages/EmployeeDirectory';
-import EmployeeProfile from './pages/EmployeeProfile';
-import Attendance from './pages/Attendance';
-import LeaveManagement from './pages/LeaveManagement';
-import ExpenseManagement from './pages/ExpenseManagement';
-import PayrollManagement from './pages/PayrollManagement';
-import MyPayslips from './pages/MyPayslips';
-import ShiftManagement from './pages/ShiftManagement';
-import OrgChart from './pages/OrgChart';
-import Settings from './pages/Settings';
-import Documents from './pages/Documents';
-import ReportsAnalytics from './pages/ReportsAnalytics';
-import MyProfile from './pages/MyProfile';
-import ActionTracker from './pages/ActionTracker';
-
 import LoadingScreen from './components/LoadingScreen';
+
+// Lazy-loaded routes for code-splitting
+const Login = lazy(() => import('./pages/Login'));
+const SetPassword = lazy(() => import('./pages/SetPassword'));
+const PlatformLogin = lazy(() => import('./pages/PlatformLogin'));
+const PlatformDashboard = lazy(() => import('./pages/PlatformDashboard'));
+const Dashboard = lazy(() => import('./pages/Dashboard'));
+const EmployeeDirectory = lazy(() => import('./pages/EmployeeDirectory'));
+const EmployeeProfile = lazy(() => import('./pages/EmployeeProfile'));
+const Attendance = lazy(() => import('./pages/Attendance'));
+const LeaveManagement = lazy(() => import('./pages/LeaveManagement'));
+const ExpenseManagement = lazy(() => import('./pages/ExpenseManagement'));
+const PayrollManagement = lazy(() => import('./pages/PayrollManagement'));
+const MyPayslips = lazy(() => import('./pages/MyPayslips'));
+const ShiftManagement = lazy(() => import('./pages/ShiftManagement'));
+const OrgChart = lazy(() => import('./pages/OrgChart'));
+const Settings = lazy(() => import('./pages/Settings'));
+const Documents = lazy(() => import('./pages/Documents'));
+const ReportsAnalytics = lazy(() => import('./pages/ReportsAnalytics'));
+const MyProfile = lazy(() => import('./pages/MyProfile'));
+const ActionTracker = lazy(() => import('./pages/ActionTracker'));
 
 function ProtectedRoute({ children }) {
   const { user, loading } = useAuth();
@@ -67,80 +69,82 @@ function RequirePermission({ permission, children }) {
 
 function AppRoutes() {
   return (
-    <Routes>
-      {/* Tenant Auth Routes */}
-      <Route element={<PublicRoute><AuthLayout /></PublicRoute>}>
-        <Route path="/login" element={<Login />} />
-      </Route>
-      <Route element={<AuthLayout />}>
-        <Route path="/set-password" element={<SetPassword />} />
-      </Route>
+    <Suspense fallback={<LoadingScreen subtitle="Loading workspace..." />}>
+      <Routes>
+        {/* Tenant Auth Routes */}
+        <Route element={<PublicRoute><AuthLayout /></PublicRoute>}>
+          <Route path="/login" element={<Login />} />
+        </Route>
+        <Route element={<AuthLayout />}>
+          <Route path="/set-password" element={<SetPassword />} />
+        </Route>
 
-      {/* Platform (Nexa Solutions) Routes */}
-      <Route element={<PublicPlatformRoute><AuthLayout /></PublicPlatformRoute>}>
-        <Route path="/platform/login" element={<PlatformLogin />} />
-      </Route>
-      <Route element={<ProtectedPlatformRoute><PlatformLayout /></ProtectedPlatformRoute>}>
-        <Route path="/platform" element={<PlatformDashboard />} />
-      </Route>
+        {/* Platform (Nexa Solutions) Routes */}
+        <Route element={<PublicPlatformRoute><AuthLayout /></PublicPlatformRoute>}>
+          <Route path="/platform/login" element={<PlatformLogin />} />
+        </Route>
+        <Route element={<ProtectedPlatformRoute><PlatformLayout /></ProtectedPlatformRoute>}>
+          <Route path="/platform" element={<PlatformDashboard />} />
+        </Route>
 
-      {/* Dashboard Routes */}
-      <Route element={<ProtectedRoute><DashboardLayout /></ProtectedRoute>}>
-        <Route path="/" element={<Dashboard />} />
-        <Route path="/employees" element={<EmployeeDirectory />} />
-        <Route path="/employees/:id" element={<EmployeeProfile />} />
-        <Route path="/attendance" element={<Attendance />} />
-        <Route path="/leave" element={<LeaveManagement />} />
-        <Route
-          path="/expenses"
-          element={
-            <RequirePermission permission="expenses:read">
-              <ExpenseManagement />
-            </RequirePermission>
-          }
-        />
-        <Route
-          path="/shifts"
-          element={
-            <RequirePermission permission="shifts:read">
-              <ShiftManagement />
-            </RequirePermission>
-          }
-        />
-        <Route path="/org-chart" element={<OrgChart />} />
-        <Route path="/documents" element={<Documents />} />
-        <Route path="/profile" element={<MyProfile />} />
-        <Route path="/my-payslips" element={<MyPayslips />} />
-        <Route path="/action-tracker" element={<ActionTracker />} />
-        <Route
-          path="/payroll"
-          element={
-            <RequirePermission permission="payroll:read">
-              <PayrollManagement />
-            </RequirePermission>
-          }
-        />
-        <Route
-          path="/reports"
-          element={
-            <RequirePermission permission={['leave:approve', 'settings:write']}>
-              <ReportsAnalytics />
-            </RequirePermission>
-          }
-        />
-        <Route
-          path="/settings"
-          element={
-            <RequirePermission permission="settings:write">
-              <Settings />
-            </RequirePermission>
-          }
-        />
-      </Route>
+        {/* Dashboard Routes */}
+        <Route element={<ProtectedRoute><DashboardLayout /></ProtectedRoute>}>
+          <Route path="/" element={<Dashboard />} />
+          <Route path="/employees" element={<EmployeeDirectory />} />
+          <Route path="/employees/:id" element={<EmployeeProfile />} />
+          <Route path="/attendance" element={<Attendance />} />
+          <Route path="/leave" element={<LeaveManagement />} />
+          <Route
+            path="/expenses"
+            element={
+              <RequirePermission permission="expenses:read">
+                <ExpenseManagement />
+              </RequirePermission>
+            }
+          />
+          <Route
+            path="/shifts"
+            element={
+              <RequirePermission permission="shifts:read">
+                <ShiftManagement />
+              </RequirePermission>
+            }
+          />
+          <Route path="/org-chart" element={<OrgChart />} />
+          <Route path="/documents" element={<Documents />} />
+          <Route path="/profile" element={<MyProfile />} />
+          <Route path="/my-payslips" element={<MyPayslips />} />
+          <Route path="/action-tracker" element={<ActionTracker />} />
+          <Route
+            path="/payroll"
+            element={
+              <RequirePermission permission="payroll:read">
+                <PayrollManagement />
+              </RequirePermission>
+            }
+          />
+          <Route
+            path="/reports"
+            element={
+              <RequirePermission permission={['leave:approve', 'settings:write']}>
+                <ReportsAnalytics />
+              </RequirePermission>
+            }
+          />
+          <Route
+            path="/settings"
+            element={
+              <RequirePermission permission="settings:write">
+                <Settings />
+              </RequirePermission>
+            }
+          />
+        </Route>
 
-      {/* Catch-all */}
-      <Route path="*" element={<Navigate to="/" replace />} />
-    </Routes>
+        {/* Catch-all */}
+        <Route path="*" element={<Navigate to="/" replace />} />
+      </Routes>
+    </Suspense>
   );
 }
 
