@@ -5,264 +5,346 @@
 <style>
   @page {
     size: a4 portrait;
-    margin: 0mm;
+    margin: 8mm 12mm;
   }
   body {
     font-family: Helvetica, Arial, sans-serif;
-    font-size: 11pt;
-    color: #1e293b;
+    font-size: 8.5pt;
+    color: #334155;
     margin: 0;
     padding: 0;
-    line-height: 1.5;
-  }
-  /* Global border reset */
-  div, p, span, table, td, tr, th {
-    border: none;
-  }
-
-  .page-wrapper {
-    width: 100%;
-    min-height: 100%;
+    line-height: 1.4;
+    background-color: #ffffff;
   }
 
   /* ── Header ── */
   .header-table {
     width: 100%;
     border-collapse: collapse;
-    border-bottom: 3px solid #0052cc !important;
+    margin-bottom: 8px;
   }
   .header-left {
-    width: 45%;
+    width: 50%;
     vertical-align: middle;
-    padding: 18px 24px;
   }
   .header-right {
-    width: 55%;
+    width: 50%;
     vertical-align: middle;
-    padding: 18px 24px;
     text-align: right;
-    font-size: 9.5pt;
-    color: #334155;
-    line-height: 1.4;
+    font-size: 7.5pt;
+    color: #64748b;
+    line-height: 1.35;
   }
-  .brand-title {
-    font-size: 18pt;
+  .company-title {
+    font-size: 15pt;
     font-weight: bold;
     color: #0f172a;
     line-height: 1.1;
   }
-  .brand-sub {
-    font-size: 12pt;
+  .portal-subtitle {
+    font-size: 9pt;
     font-weight: bold;
-    color: #0052cc;
-    letter-spacing: 1px;
-    margin-top: 2px;
+    color: #2563eb;
+    letter-spacing: 0.5px;
+    margin-top: 1px;
   }
-  .company-headline {
-    font-size: 12pt;
-    font-weight: bold;
-    color: #0052cc;
-    margin-bottom: 3px;
-  }
-  .contact-item {
-    margin-bottom: 2px;
-    font-size: 9.5pt;
-    color: #334155;
+  .header-divider {
+    border-bottom: 2px solid #2563eb;
+    margin-bottom: 10px;
   }
 
-  /* ── Body Content ── */
-  .content-body {
-    padding: 28px 40px 20px;
-  }
-
-  .date-text {
-    font-size: 11pt;
-    color: #1e293b;
-    margin-bottom: 18px;
+  /* ── Letter Metadata ── */
+  .meta-date {
+    font-size: 8.5pt;
+    font-weight: bold;
+    color: #0f172a;
+    margin-bottom: 6px;
   }
   .recipient-block {
-    margin-bottom: 12px;
-    font-size: 11pt;
-    line-height: 1.5;
+    font-size: 8.5pt;
+    line-height: 1.35;
+    margin-bottom: 8px;
   }
   .recipient-name {
+    font-size: 9.5pt;
     font-weight: bold;
     color: #0f172a;
   }
 
-  /* Subject Title */
-  .subject-block {
-    text-align: center;
-    margin: 24px 0;
-  }
-  .subject-text {
-    font-size: 14pt;
+  /* ── Subject ── */
+  .subject-box {
+    background-color: #f8fafc;
+    border-left: 3px solid #2563eb;
+    padding: 5px 10px;
+    font-size: 8.5pt;
     font-weight: bold;
     color: #0f172a;
+    margin: 8px 0 10px 0;
   }
 
+  /* ── Body Text ── */
   .salutation {
-    font-size: 11pt;
-    color: #0f172a;
-    margin-bottom: 14px;
-  }
-  .body-text {
-    font-size: 11pt;
-    color: #1e293b;
-    margin: 0 0 14px 0;
-    text-align: justify;
-    line-height: 1.55;
-  }
-
-  /* ── Signature ── */
-  .sign-section {
-    margin-top: 28px;
-  }
-  .sign-closing {
-    font-size: 11pt;
-    color: #0f172a;
-    margin-bottom: 22px;
-  }
-  .sign-name {
-    font-size: 11pt;
+    font-size: 8.5pt;
     font-weight: bold;
     color: #0f172a;
-    line-height: 1.5;
+    margin-bottom: 5px;
   }
-  .sign-detail {
-    font-size: 10pt;
+  .body-p {
+    font-size: 8.2pt;
     color: #334155;
-    line-height: 1.5;
+    margin: 0 0 8px 0;
+    text-align: justify;
+    line-height: 1.38;
+  }
+
+  /* ── Service Summary Table (Corporate Executive Standard) ── */
+  .terms-table {
+    width: 100%;
+    border-collapse: collapse;
+    margin: 8px 0 10px 0;
+    border: 1px solid #e2e8f0;
+  }
+  .terms-head {
+    background-color: #1e3a8a;
+    color: #ffffff;
+    font-size: 7.8pt;
+    font-weight: bold;
+    text-transform: uppercase;
+    letter-spacing: 0.6px;
+    padding: 5px 10px;
+  }
+  .terms-table td {
+    padding: 4px 10px;
+    font-size: 8pt;
+    border-bottom: 1px solid #f1f5f9;
+    vertical-align: middle;
+  }
+  .terms-table tr:nth-child(even) {
+    background-color: #f8fafc;
+  }
+  .term-k {
+    width: 32%;
+    font-weight: bold;
+    color: #0f172a;
+  }
+  .term-v {
+    color: #334155;
+  }
+
+  /* ── Signatures ── */
+  .sign-section {
+    margin-top: 14px;
+    margin-bottom: 8px;
+  }
+  .sign-table {
+    width: 100%;
+    border-collapse: collapse;
+  }
+  .sign-label {
+    font-size: 8pt;
+    color: #64748b;
+    line-height: 1.3;
+  }
+  .sig-name {
+    font-weight: bold;
+    color: #0f172a;
+    font-size: 8.8pt;
+    margin-top: 1px;
+  }
+  .sig-role {
+    color: #64748b;
+    font-size: 7.5pt;
+    margin-top: 1px;
+  }
+  .sig-box {
+    height: 34px;
+  }
+  .sig-rule {
+    border-top: 1px solid #94a3b8;
+    width: 160px;
+    margin-top: 2px;
+    margin-bottom: 4px;
   }
 
   /* ── Footer ── */
-  .footer-cin {
+  .footer-table {
     width: 100%;
-    background-color: #0041a8;
+    background-color: #1e3a8a;
     color: #ffffff;
     border-collapse: collapse;
+    margin-top: 12px;
   }
-  .footer-cin td {
-    padding: 6px 12px;
-    font-size: 8pt;
-    font-weight: bold;
+  .footer-table td {
+    padding: 5px 12px;
+    font-size: 7pt;
     text-align: center;
-    letter-spacing: 0.5px;
-  }
-  .footer-reg {
-    width: 100%;
-    background-color: #70b5f9;
-    color: #0f172a;
-    border-collapse: collapse;
-  }
-  .footer-reg td {
-    padding: 6px 12px;
-    font-size: 8pt;
-    font-weight: 500;
-    text-align: center;
+    vertical-align: middle;
+    letter-spacing: 0.2px;
   }
 </style>
 </head>
 <body>
 
-<div class="page-wrapper">
-  <!-- 1. Header Banner -->
-  <table class="header-table">
+<!-- 1. Header Letterhead -->
+<table class="header-table">
+  <tr>
+    <td class="header-left">
+      <table style="border-collapse: collapse;">
+        <tr>
+          {% if company.logo_url %}
+          <td style="vertical-align: middle; padding-right: 12px;">
+            <img src="{{ company.logo_url }}" width="56" height="52" />
+          </td>
+          {% endif %}
+          <td style="vertical-align: middle;">
+            <div class="company-title">{{ company.name or "MEAGLE360" }}</div>
+            <div class="portal-subtitle">HRMS Portal &bull; Human Resources</div>
+          </td>
+        </tr>
+      </table>
+    </td>
+    <td class="header-right">
+      <div>{{ company.company_address or company.address or "123 Corporate Tower, Sector 62, Noida, India" }}</div>
+      <div>{{ company.email or "hr@meagle360.com" }} &nbsp;|&nbsp; {{ company.phone or "+91 12345 67890" }}</div>
+      {% if company.website %}<div>{{ company.website }}</div>{% endif %}
+    </td>
+  </tr>
+</table>
+
+<div class="header-divider"></div>
+
+<!-- 2. Date & Employee Details -->
+<div class="meta-date">Date: {{ issue_date }}</div>
+
+<div class="recipient-block">
+  <div>To,</div>
+  <div class="recipient-name">{{ employee.full_name }}</div>
+  {% if employee.employee_code %}<div>Employee Code: <strong>{{ employee.employee_code }}</strong></div>{% endif %}
+  {% if employee.current_address %}<div>{{ employee.current_address }}</div>{% endif %}
+</div>
+
+<!-- 3. Subject -->
+<div class="subject-box">
+  Subject: Relieving &amp; Service Experience Certificate &ndash; {{ employee.full_name }}
+</div>
+
+<!-- 4. Salutation & Opening -->
+<div class="salutation">Dear {{ first_name or employee.full_name }},</div>
+
+<p class="body-p">
+  This is to formally certify that <strong>{{ employee.full_name }}</strong>{% if employee.employee_code %} (Employee Code: <strong>{{ employee.employee_code }}</strong>){% endif %}
+  was employed with <strong>{{ company.name }}</strong> from <strong>{{ date_of_joining }}</strong>
+  to <strong>{{ last_working_date }}</strong>.
+</p>
+
+<!-- 5. Service Summary Table -->
+<table class="terms-table">
+  <tr>
+    <th colspan="2" class="terms-head">Summary of Service Record</th>
+  </tr>
+  <tr>
+    <td class="term-k">Employee Name</td>
+    <td class="term-v"><strong>{{ employee.full_name }}</strong></td>
+  </tr>
+  <tr>
+    <td class="term-k">Employee Code</td>
+    <td class="term-v">{{ employee.employee_code or "-" }}</td>
+  </tr>
+  <tr>
+    <td class="term-k">Designation</td>
+    <td class="term-v"><strong>{{ designation_title or "-" }}</strong></td>
+  </tr>
+  <tr>
+    <td class="term-k">Department</td>
+    <td class="term-v">{{ department_name or "-" }}</td>
+  </tr>
+  <tr>
+    <td class="term-k">Date of Joining</td>
+    <td class="term-v">{{ date_of_joining }}</td>
+  </tr>
+  <tr>
+    <td class="term-k">Last Working Date</td>
+    <td class="term-v">{{ last_working_date }}</td>
+  </tr>
+  <tr>
+    <td class="term-k">Clearance Status</td>
+    <td class="term-v">Full &amp; Final Settlement Cleared &bull; All Assets Returned</td>
+  </tr>
+</table>
+
+<!-- 6. Conduct & Appreciation -->
+<p class="body-p">
+  During their tenure with <strong>{{ company.name }}</strong>, {{ employee.full_name }} carried out their
+  duties and responsibilities with diligence, professional integrity, and dedication.
+</p>
+
+<p class="body-p">
+  All company properties, documents, assets, and project handovers assigned have been satisfactorily returned
+  and cleared as per company exit policies and protocols.
+</p>
+
+{% if relieving.custom_paragraph %}
+<p class="body-p" style="font-style: italic;">
+  {{ relieving.custom_paragraph }}
+</p>
+{% endif %}
+
+<p class="body-p" style="margin-bottom: 4px;">
+  We appreciate their valuable contributions and service to the organization and wish them all the best in their
+  future professional pursuits.
+</p>
+
+<!-- 7. Signatures -->
+<div class="sign-section">
+  <table class="sign-table">
     <tr>
-      <td class="header-left">
-        <table style="border-collapse: collapse;">
-          <tr>
-            {% if company.logo_url %}
-            <td style="vertical-align: middle; padding-right: 10px;">
-              <img src="{{ company.logo_url }}" height="48" style="max-width: 75px;" />
-            </td>
-            {% endif %}
-            <td style="vertical-align: middle;">
-              <div class="brand-title">HRMS Portal</div>
-              <div class="brand-sub">{{ company.name or 'MEAGLE360' }}</div>
-            </td>
-          </tr>
-        </table>
+      <td style="width: 45%; vertical-align: top;">
+        <div class="sig-label">Sincerely,</div>
+        <div class="sig-label" style="font-weight: bold; color: #0f172a; margin-bottom: 2px;">For {{ company.name }}</div>
+        
+        <div class="sig-box">
+          {% if company.signature_url %}
+            <img src="{{ company.signature_url }}" width="120" height="30" />
+          {% else %}
+            &nbsp;
+          {% endif %}
+        </div>
+        
+        <div class="sig-rule"></div>
+        <div class="sig-name">{{ company.authorized_signatory_name or "Authorized Signatory" }}</div>
+        <div class="sig-role">Authorized Signatory &bull; HR Department</div>
       </td>
-      <td class="header-right">
-        <div class="company-headline">{{ company.name or 'Meagle360 HRMS Pvt. Ltd.' }}</div>
-        <div class="contact-item">{{ company.company_address or company.address or '123 Business Park, Sector 62, Noida, Uttar Pradesh – 201309, INDIA' }}</div>
-        <br/>
-        <div class="contact-item"><img src="{{ icon_globe }}" height="12" width="12" style="vertical-align: middle;"/> {{ company.website or 'www.meagle360.com' }}</div>
-        <div class="contact-item"><img src="{{ icon_envelope }}" height="12" width="12" style="vertical-align: middle;"/> {{ company.email or 'info@meagle360.com' }}</div>
+      
+      <td style="width: 10%;">&nbsp;</td>
+      
+      <td style="width: 45%; vertical-align: top;">
+        <div class="sig-label">Acknowledged &amp; Received:</div>
+        <div class="sig-label" style="font-weight: bold; color: #0f172a; margin-bottom: 2px;">Employee Acknowledgment</div>
+        
+        <div class="sig-box">
+          &nbsp;
+        </div>
+        
+        <div class="sig-rule"></div>
+        <div class="sig-name">{{ employee.full_name }}</div>
+        <div class="sig-role">Employee Signature &amp; Date</div>
       </td>
-    </tr>
-  </table>
-
-  <!-- 2. Body Content -->
-  <div class="content-body">
-
-    <!-- Date -->
-    <div class="date-text">{{ issue_date }}</div>
-
-    <!-- Recipient -->
-    <div class="recipient-block">
-      <div class="recipient-name">{{ employee.full_name }}</div>
-      {% if employee.current_address %}<div>{{ employee.current_address }}</div>{% endif %}
-    </div>
-
-    <!-- Subject -->
-    <div class="subject-block">
-      <div class="subject-text">Subject: Relieving Letter</div>
-    </div>
-
-    <!-- Salutation -->
-    <div class="salutation">Dear {{ first_name or employee.full_name }},</div>
-
-    <!-- Body Paragraphs -->
-    <p class="body-text">
-      We are writing to confirm that <strong>{{ employee.full_name }}</strong>, employed with <strong>{{ company.name }}</strong> since <strong>{{ date_of_joining }}</strong>, has been relieved from their duties effective <strong>{{ last_working_date }}</strong>.
-    </p>
-
-    <p class="body-text">
-      During their tenure with us, <strong>{{ employee.full_name }}</strong> performed their duties diligently and responsibly. We appreciate their contributions to the company and wish them all the best in their future endeavors.
-    </p>
-
-    {% if relieving.custom_paragraph %}
-    <p class="body-text" style="font-style: italic;">{{ relieving.custom_paragraph }}</p>
-    {% endif %}
-
-    <p class="body-text">
-      Please feel free to contact us at <strong>{{ company.phone or '+91 12345 67890' }}</strong> or <strong>{{ company.email or 'info@meagle360.com' }}</strong> if you require any further information.
-    </p>
-
-    <p class="body-text">
-      Thank you for your cooperation.
-    </p>
-
-    <!-- Signature -->
-    <div class="sign-section">
-      <div class="sign-closing">Sincerely,</div>
-
-      {% if company.signature_url %}
-        <img src="{{ company.signature_url }}" height="36" style="margin-bottom: 4px;" /><br/>
-      {% endif %}
-
-      <div class="sign-name">{{ company.authorized_signatory_name or "Authorized Signatory" }}</div>
-      <div class="sign-detail">{{ designation_title or "HR Manager" }}</div>
-      <div class="sign-detail">{{ company.phone or '+91 12345 67890' }}</div>
-      <div class="sign-detail">{{ company.email or 'info@meagle360.com' }}</div>
-    </div>
-
-  </div>
-
-  <!-- 3. Footer Bars -->
-  <table class="footer-cin">
-    <tr>
-      <td>CIN NO: {{ company.cin_number or 'U74899DL2000PLC103438' }}</td>
-    </tr>
-  </table>
-  <table class="footer-reg">
-    <tr>
-      <td>Registered Address: {{ company.company_address or company.address or 'L-130/1, Gautam Nagar, New Delhi - 110049' }}</td>
     </tr>
   </table>
 </div>
+
+<!-- 8. Corporate Footer -->
+<table class="footer-table">
+  <tr>
+    <td>
+      {{ company.name }} &nbsp;&bull;&nbsp;
+      {{ company.company_address or company.address or "Corporate Headquarters" }} &nbsp;&bull;&nbsp;
+      {{ company.email or "hr@meagle360.com" }} &nbsp;&bull;&nbsp;
+      {{ company.website or "www.meagle360.com" }}
+      {% if company.cin_number %}&nbsp;&bull;&nbsp; CIN: {{ company.cin_number }}{% endif %}
+    </td>
+  </tr>
+</table>
 
 </body>
 </html>

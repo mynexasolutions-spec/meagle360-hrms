@@ -1335,7 +1335,7 @@ input[type="password"]::-ms-clear {
   overflow: hidden;
   width: 794px;
   max-width: 100%;
-  min-height: 1080px;
+  min-height: 1040px;
   box-sizing: border-box;
   margin: 0 auto;
   font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
@@ -1348,8 +1348,8 @@ input[type="password"]::-ms-clear {
   display: flex;
   flex-direction: column;
   justify-content: space-between;
-  padding: 16px 24px;
-  gap: 12px;
+  padding: 12px 24px;
+  gap: 10px;
   box-sizing: border-box;
 }
 
@@ -1359,7 +1359,7 @@ input[type="password"]::-ms-clear {
   justify-content: space-between;
   align-items: stretch;
   background: #ffffff;
-  min-height: 98px;
+  min-height: 96px;
   border-bottom: 3.5px solid #0052cc;
   border-top: 3.5px solid #0052cc;
   box-sizing: border-box;
@@ -1372,55 +1372,58 @@ input[type="password"]::-ms-clear {
   flex: 1;
 }
 .payslip-brand-left .logo-box {
-  min-width: 64px;
-  height: 60px;
-  border-radius: 10px;
-  border: 1.5px solid #e2e8f0;
-  padding: 4px 10px;
+  min-width: 62px;
+  height: 58px;
+  border-radius: 8px;
+  border: 1.5px solid #cbd5e1;
+  padding: 4px 8px;
   background: #ffffff;
   display: flex;
   align-items: center;
   justify-content: center;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.04);
+  box-sizing: border-box;
+  flex-shrink: 0;
 }
 .payslip-brand-left .logo-img {
-  max-height: 48px;
-  max-width: 100px;
+  max-height: 44px;
+  max-width: 72px;
   object-fit: contain;
 }
 .payslip-brand-title {
   font-size: 1.35rem;
   font-weight: 900;
   color: #0f172a;
-  line-height: 1.15;
+  line-height: 1.1;
   margin: 0;
   letter-spacing: -0.01em;
 }
 .payslip-brand-subtitle {
-  font-size: 0.92rem;
+  font-size: 0.85rem;
   font-weight: 800;
   color: #0052cc;
   margin-top: 2px;
   letter-spacing: 0.04em;
   text-transform: uppercase;
 }
+
+/* Angled Deep Blue Polygon on the Right */
 .payslip-meta-right {
   background: #0052cc;
-  clip-path: polygon(48px 0, 100% 0, 100% 100%, 0% 100%);
-  padding: 12px 28px 12px 64px;
+  clip-path: polygon(36px 0, 100% 0, 100% 100%, 0% 100%);
+  padding: 10px 24px 10px 48px;
   color: #ffffff;
   display: flex;
   flex-direction: column;
   justify-content: center;
-  min-width: 320px;
+  min-width: 290px;
   box-sizing: border-box;
 }
 .payslip-meta-top-title {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  gap: 10px;
-  margin-bottom: 6px;
+  gap: 8px;
+  margin-bottom: 4px;
 }
 .payslip-meta-top-title h2 {
   font-size: 1.5rem;
@@ -1430,53 +1433,53 @@ input[type="password"]::-ms-clear {
   margin: 0;
 }
 .payslip-meta-rows {
-  font-size: 0.76rem;
+  font-size: 0.74rem;
   display: flex;
   flex-direction: column;
-  gap: 3.5px;
+  gap: 3px;
 }
 .payslip-meta-row {
   display: flex;
   color: #ffffff;
 }
 .payslip-meta-label {
-  font-weight: 600;
+  font-weight: 700;
   opacity: 0.95;
   width: 85px;
 }
 .payslip-meta-val {
-  font-weight: 700;
+  font-weight: 600;
   letter-spacing: 0.01em;
 }
 
 /* Employee Information Section */
 .payslip-employee-info {
   border-bottom: 1.5px solid #0052cc;
-  padding-bottom: 8px;
+  padding-bottom: 6px;
 }
 .payslip-section-heading {
   display: flex;
   align-items: center;
-  gap: 8px;
-  font-size: 0.82rem;
+  gap: 6px;
+  font-size: 0.80rem;
   font-weight: 800;
   color: #0052cc;
   text-transform: uppercase;
-  letter-spacing: 0.05em;
-  margin-bottom: 8px;
+  letter-spacing: 0.04em;
+  margin-bottom: 6px;
 }
 .payslip-emp-grid {
   display: grid;
   grid-template-columns: 1fr 1fr;
-  column-gap: 36px;
-  row-gap: 5px;
-  font-size: 0.79rem;
+  column-gap: 32px;
+  row-gap: 4px;
+  font-size: 0.77rem;
 }
 .payslip-emp-row {
   display: grid;
   grid-template-columns: 125px 14px 1fr;
   align-items: center;
-  line-height: 1.4;
+  line-height: 1.35;
 }
 .payslip-emp-label {
   color: #0f172a;
@@ -1495,7 +1498,7 @@ input[type="password"]::-ms-clear {
 .payslip-tables {
   display: grid;
   grid-template-columns: 1fr 1fr;
-  gap: 14px;
+  gap: 12px;
 }
 .payslip-table-box {
   border: 1px solid #cbd5e1;
@@ -1522,7 +1525,7 @@ input[type="password"]::-ms-clear {
 }
 .payslip-table-body {
   flex: 1;
-  min-height: 120px;
+  min-height: 110px;
   background: #ffffff;
 }
 .payslip-table-row {
@@ -1562,7 +1565,7 @@ input[type="password"]::-ms-clear {
   background: #ffffff;
 }
 .payslip-att-card {
-  padding: 7px 12px;
+  padding: 6px 12px;
   display: flex;
   align-items: center;
   gap: 8px;
@@ -1732,6 +1735,8 @@ input[type="password"]::-ms-clear {
   border-top: 2px solid #0041a3;
   gap: 12px;
   box-sizing: border-box;
+  margin-top: auto;
+  width: 100%;
 }
 .payslip-footer-contacts {
   display: flex;
@@ -1757,6 +1762,7 @@ input[type="password"]::-ms-clear {
   flex-shrink: 0;
   border-left: 1px solid rgba(255, 255, 255, 0.35);
   padding-left: 14px;
+  max-width: 220px;
 }
 .payslip-footer-thanks .thanks-title {
   font-size: 0.86rem;
@@ -1765,10 +1771,12 @@ input[type="password"]::-ms-clear {
   line-height: 1.1;
 }
 .payslip-footer-thanks .thanks-sub {
-  font-size: 0.64rem;
+  font-size: 0.62rem;
   opacity: 0.92;
   margin-top: 1px;
-  white-space: nowrap;
+  white-space: normal;
+  word-break: break-word;
+  line-height: 1.2;
 }
 
 /* Responsive Media Queries */

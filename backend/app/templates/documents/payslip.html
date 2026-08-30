@@ -69,24 +69,24 @@
   }
   
   .content-padding {
-    padding: 10px 16px;
+    padding: 8px 14px;
   }
   .section-title {
     color: #0052cc;
     font-weight: bold;
     font-size: 8.5pt;
-    padding-bottom: 3px;
+    padding-bottom: 2px;
     border-bottom: 1.5px solid #0052cc;
-    margin-bottom: 6px;
+    margin-bottom: 4px;
     letter-spacing: 0.5px;
   }
   .info-table {
     width: 100%;
     border-collapse: collapse;
-    margin-bottom: 8px;
+    margin-bottom: 5px;
   }
   .info-table td {
-    padding: 2.5px 4px;
+    padding: 2px 4px;
     font-size: 8pt;
     vertical-align: top;
   }
@@ -107,7 +107,7 @@
   .earn-ded-table {
     width: 100%;
     border-collapse: collapse;
-    margin-bottom: 8px;
+    margin-bottom: 5px;
   }
   .earn-ded-table td {
     vertical-align: top;
@@ -122,7 +122,7 @@
     background-color: #0052cc;
     color: #ffffff;
     text-align: left;
-    padding: 5px 8px;
+    padding: 4px 8px;
     font-size: 8pt;
     font-weight: bold;
   }
@@ -130,7 +130,7 @@
     text-align: right;
   }
   .line-table td {
-    padding: 4px 8px;
+    padding: 2px 8px;
     font-size: 7.8pt;
     border-bottom: 1px solid #f1f5f9;
   }
@@ -146,11 +146,11 @@
     width: 100%;
     border: 1px solid #cbd5e1;
     border-collapse: collapse;
-    margin-bottom: 8px;
+    margin-bottom: 5px;
   }
   .stats-table td {
     text-align: center;
-    padding: 6px 4px;
+    padding: 5px 4px;
     font-size: 7pt;
     border-right: 1px solid #e2e8f0;
     width: 25%;
@@ -170,11 +170,11 @@
     width: 100%;
     background-color: #0052cc;
     color: #ffffff;
-    margin-bottom: 8px;
+    margin-bottom: 5px;
     border-collapse: collapse;
   }
   .netpay-table td {
-    padding: 6px 12px;
+    padding: 5px 12px;
   }
   .netpay-title {
     font-size: 11pt;
@@ -196,12 +196,12 @@
   .bottom-table {
     width: 100%;
     border-collapse: collapse;
-    margin-bottom: 4px;
+    margin-bottom: 2px;
   }
   .signature-card {
-    border: 1px solid #e2e8f0;
-    padding: 8px 12px;
-    width: 280px;
+    border: 1px solid #cbd5e1;
+    padding: 10px 16px;
+    width: 320px;
     float: right;
     text-align: center;
   }
@@ -219,21 +219,21 @@
   }
   .sig-line {
     border-bottom: 1px solid #64748b;
-    width: 170px;
-    margin: 4px auto;
+    width: 200px;
+    margin: 5px auto;
   }
   .sig-role {
-    font-size: 6.8pt;
+    font-size: 7.2pt;
     font-weight: bold;
     color: #0f172a;
     text-transform: uppercase;
   }
   .sig-dept {
-    font-size: 6.5pt;
+    font-size: 6.8pt;
     color: #64748b;
   }
   .signature-address {
-    font-size: 7.2pt;
+    font-size: 7.5pt;
     color: #334155;
     margin-bottom: 4px;
     line-height: 1.3;
@@ -368,9 +368,9 @@
           <div class="signature-card">
             <div class="signature-address">{{ company.company_address or company.address or '1 Infinite Loop, Cupertino, CA' }}</div>
             {% if company.signature_url %}
-              <img src="{{ company.signature_url }}" height="32" /><br/>
+              <img src="{{ company.signature_url }}" width="170" height="48" /><br/>
             {% else %}
-              <div style="font-size: 14pt; font-weight: bold; color: #0f172a; margin-bottom: 2px;">{{ company.authorized_signatory_name or 'Rhaunta' }}</div>
+              <div style="font-size: 16pt; font-weight: bold; color: #0f172a; margin-bottom: 2px;">{{ company.authorized_signatory_name or 'Rhaunta' }}</div>
             {% endif %}
             <div class="sig-line"></div>
             <div class="sig-role">AUTHORIZED SIGNATORY</div>

@@ -182,7 +182,7 @@ export default function MyPayslips() {
       }
 
       const opt = {
-        margin: 0,
+        margin: [0, 0, 0, 0],
         filename: filename,
         image: { type: 'jpeg', quality: 0.98 },
         html2canvas: {
@@ -190,8 +190,11 @@ export default function MyPayslips() {
           useCORS: true,
           allowTaint: true,
           logging: false,
+          scrollY: 0,
+          scrollX: 0,
         },
-        jsPDF: { unit: 'px', format: [794, 1123], orientation: 'portrait' },
+        jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' },
+        pagebreak: { mode: ['avoid-all'] },
       };
 
       const generate = () => {
