@@ -1,124 +1,381 @@
 <!DOCTYPE html>
 <html>
 <head>
+<meta charset="utf-8"/>
 <style>
-  body { font-family: Helvetica, Arial, sans-serif; font-size: 10.5pt; color: #1a1a2e; margin: 0; padding: 0; line-height: 1.5; }
-  .header-table { width: 100%; border-collapse: collapse; }
-  .header-left { width: 60%; vertical-align: top; padding: 16px; }
-  .header-right { width: 40%; vertical-align: top; padding: 16px; text-align: right; font-size: 8.5pt; color: #555555; }
-  .company-name { font-size: 16pt; font-weight: bold; color: #1e3a8a; }
-  .portal-name { font-size: 9pt; color: #444444; }
-  .rule { border: none; border-top: 2px solid #1e3a8a; margin: 0; }
-  .rule-thin { border: none; border-top: 1px solid #B08D57; margin: 0 0 16px 0; }
-  .title-block { text-align: center; margin: 18px 0; }
-  .title-block .label { font-size: 15pt; font-weight: bold; color: #1e3a8a; letter-spacing: 1px; }
-  .date-line { text-align: right; font-size: 9.5pt; color: #555555; margin-bottom: 14px; }
-  .recipient { margin-bottom: 14px; font-size: 10.5pt; }
-  .recipient .name { font-weight: bold; }
-  .subject { font-weight: bold; margin-bottom: 14px; padding-bottom: 6px; border-bottom: 1px solid #e5e8f0; }
-  .body-text { margin: 0 0 12px 0; text-align: justify; }
-  .terms-table { width: 100%; border-collapse: collapse; margin: 14px 0; background-color: #F4F6F8; }
-  .terms-table td { padding: 6px 12px; font-size: 9.5pt; border-bottom: 1px solid #e5e8f0; }
-  .terms-table .k { color: #555555; width: 40%; }
-  .terms-table .v { font-weight: bold; color: #1a1a2e; }
-  .terms-header { background-color: #1e3a8a; color: #ffffff; font-size: 9pt; font-weight: bold; padding: 6px 12px; text-transform: uppercase; letter-spacing: 0.5px; }
-  .extra-terms { margin: 14px 0; font-size: 10.3pt; }
-  .extra-terms ul { margin: 6px 0 0 0; padding-left: 18px; }
-  .extra-terms li { margin-bottom: 5px; }
-  .sign-table { width: 100%; margin-top: 40px; }
-  .sign-table td { width: 50%; vertical-align: top; font-size: 8.8pt; color: #555555; }
-  .sig-line { border-top: 1px solid #1a1a2e; padding-top: 4px; margin-top: 30px; }
-  .sig-name { font-weight: bold; font-size: 9.8pt; color: #1a1a2e; }
-  .footer-table { width: 100%; background-color: #1e3a8a; color: #ffffff; margin-top: 26px; }
-  .footer-table td { padding: 10px 14px; font-size: 8.5pt; text-align: center; }
+  @page {
+    size: a4 portrait;
+    margin: 6mm 7mm;
+  }
+  body {
+    font-family: Helvetica, Arial, sans-serif;
+    font-size: 8.2pt;
+    color: #1e293b;
+    margin: 0;
+    padding: 0;
+    line-height: 1.32;
+  }
+  .outer-frame {
+    border: 2px solid #0052cc;
+    width: 100%;
+  }
+  
+  /* Header */
+  .header-table {
+    width: 100%;
+    border-collapse: collapse;
+    border-bottom: 2px solid #0052cc;
+  }
+  .header-left {
+    width: 48%;
+    vertical-align: middle;
+    padding: 8px 14px;
+  }
+  .header-right {
+    width: 52%;
+    vertical-align: middle;
+    padding: 8px 14px;
+    text-align: right;
+    font-size: 7.2pt;
+    color: #334155;
+    line-height: 1.25;
+  }
+  .brand-title {
+    font-size: 13.5pt;
+    font-weight: bold;
+    color: #0f172a;
+    line-height: 1.1;
+  }
+  .brand-sub {
+    font-size: 9.5pt;
+    font-weight: bold;
+    color: #0052cc;
+    letter-spacing: 0.5px;
+    margin-top: 1px;
+  }
+  .contact-item {
+    margin-bottom: 1.5px;
+  }
+  .contact-icon {
+    color: #0052cc;
+    font-weight: bold;
+    margin-right: 2px;
+  }
+
+  /* Body Content */
+  .content-body {
+    padding: 8px 16px 6px;
+  }
+  
+  /* Title Block */
+  .title-block {
+    text-align: center;
+    margin: 2px 0 6px;
+  }
+  .title-text {
+    font-size: 13pt;
+    font-weight: bold;
+    color: #0052cc;
+    letter-spacing: 0.5px;
+  }
+  .title-underline {
+    border-bottom: 1.5px solid #0052cc;
+    width: 120px;
+    margin: 2px auto 0;
+  }
+
+  /* Recipient & Subject */
+  .recipient-block {
+    margin-bottom: 5px;
+    font-size: 8pt;
+    line-height: 1.3;
+  }
+  .recipient-name {
+    font-weight: bold;
+    color: #0f172a;
+  }
+  .date-text {
+    color: #475569;
+    font-size: 7.8pt;
+    margin-bottom: 3px;
+  }
+  .subject-line {
+    font-weight: bold;
+    color: #0f172a;
+    font-size: 8.4pt;
+    margin: 4px 0 5px;
+  }
+
+  .salutation {
+    font-size: 8.2pt;
+    font-weight: bold;
+    color: #0f172a;
+    margin-bottom: 3px;
+  }
+  .intro-text {
+    font-size: 8pt;
+    color: #334155;
+    margin-bottom: 6px;
+    text-align: justify;
+  }
+
+  /* Structured Section Headings */
+  .section-block {
+    margin-bottom: 5px;
+  }
+  .section-header-table {
+    width: 100%;
+    margin-bottom: 2px;
+  }
+  .section-title {
+    font-size: 8.5pt;
+    font-weight: bold;
+    color: #0052cc;
+    vertical-align: middle;
+  }
+  .bullet-table {
+    width: 100%;
+    border-collapse: collapse;
+    margin-left: 8px;
+  }
+  .bullet-table td {
+    padding: 1.2px 0;
+    font-size: 7.8pt;
+    vertical-align: top;
+  }
+  .bullet-icon {
+    width: 14px;
+    color: #0052cc;
+    font-size: 8pt;
+    font-weight: bold;
+  }
+  .bullet-label {
+    font-weight: bold;
+    color: #0f172a;
+  }
+  .bullet-val {
+    color: #334155;
+  }
+
+  /* Closing */
+  .closing-text {
+    font-size: 7.8pt;
+    color: #334155;
+    margin: 4px 0;
+    text-align: justify;
+  }
+  
+  /* Signatures */
+  .sign-section {
+    margin-top: 4px;
+    margin-bottom: 4px;
+  }
+  .sign-table {
+    width: 100%;
+    border-collapse: collapse;
+  }
+  .sign-table td {
+    width: 50%;
+    vertical-align: top;
+    font-size: 7.6pt;
+  }
+  .sig-name {
+    font-weight: bold;
+    color: #0f172a;
+    font-size: 8.2pt;
+  }
+  .sig-role {
+    color: #64748b;
+    font-size: 7.2pt;
+  }
+  .sig-line {
+    border-top: 1px solid #64748b;
+    width: 160px;
+    margin-top: 18px;
+    padding-top: 2px;
+  }
+
+  /* Footer */
+  .footer-table {
+    width: 100%;
+    background-color: #0052cc;
+    color: #ffffff;
+    border-collapse: collapse;
+  }
+  .footer-table td {
+    padding: 5px 12px;
+    font-size: 6.8pt;
+    text-align: center;
+    vertical-align: middle;
+  }
 </style>
 </head>
 <body>
 
-<table class="header-table">
-  <tr>
-    <td class="header-left">
-      {% if company.logo_url %}<img src="{{ company.logo_url }}" height="40" /><br/>{% endif %}
-      <span class="company-name">{{ company.name }}</span><br/>
-      <span class="portal-name">HRMS Portal</span>
-    </td>
-    <td class="header-right">
-      {% if company.phone %}{{ company.phone }}<br/>{% endif %}
-      {% if company.email %}{{ company.email }}<br/>{% endif %}
-      {% if company.website %}{{ company.website }}{% endif %}
-    </td>
-  </tr>
-</table>
-<hr class="rule"><hr class="rule-thin">
+<div class="outer-frame">
+  <!-- 1. Header Banner -->
+  <table class="header-table">
+    <tr>
+      <td class="header-left">
+        <table style="border-collapse: collapse;">
+          <tr>
+            {% if company.logo_url %}
+            <td style="vertical-align: middle; padding-right: 8px;">
+              <img src="{{ company.logo_url }}" height="36" style="max-width: 65px;" />
+            </td>
+            {% endif %}
+            <td style="vertical-align: middle;">
+              <div class="brand-title">HRMS Portal</div>
+              <div class="brand-sub">{{ company.name or 'MEAGLE360' }}</div>
+            </td>
+          </tr>
+        </table>
+      </td>
+      <td class="header-right">
+        <div class="contact-item"><span class="contact-icon">&#9906;</span> {{ company.company_address or company.address or '123 Business Park, Sector 62, Noida, Uttar Pradesh - 201309, INDIA' }}</div>
+        <div class="contact-item"><span class="contact-icon">&#127760;</span> {{ company.website or 'www.meagle360.com' }}</div>
+        <div class="contact-item"><span class="contact-icon">&#9993;</span> {{ company.email or 'info@meagle360.com' }}</div>
+        <div class="contact-item"><span class="contact-icon">&#9742;</span> {{ company.phone or '+91 12345 67890' }}</div>
+      </td>
+    </tr>
+  </table>
 
-<div class="date-line">{{ issue_date }}</div>
+  <div class="content-body">
+    <!-- 2. Document Title -->
+    <div class="title-block">
+      <div class="title-text">Offer Letter</div>
+      <div class="title-underline"></div>
+    </div>
 
-<div class="recipient">
-  <span class="name">{{ offer.candidate_name }}</span><br/>
-  {% if offer.candidate_address %}{{ offer.candidate_address }}{% endif %}
+    <!-- 3. Date & Recipient Details -->
+    <div class="date-text"><strong>Date:</strong> {{ issue_date }}</div>
+    <div class="recipient-block">
+      <div class="recipient-name">{{ offer.candidate_name }}</div>
+      {% if offer.candidate_address %}<div>{{ offer.candidate_address }}</div>{% endif %}
+    </div>
+
+    <!-- 4. Subject Line -->
+    <div class="subject-line">Subject: Job Offer for {{ designation_title or "Offered Position" }}</div>
+
+    <!-- 5. Salutation & Opening -->
+    <div class="salutation">Dear {{ first_name or offer.candidate_name }},</div>
+    <div class="intro-text">
+      We are pleased to offer you the position of <strong>{{ designation_title or "-" }}</strong> at <strong>{{ company.name }}</strong>.
+      After reviewing your qualifications and experience, we believe you will be a valuable addition to our team.
+    </div>
+
+    <!-- 6. Position Details Section -->
+    <div class="section-block">
+      <div class="section-title">&#128188; Position Details:</div>
+      <table class="bullet-table">
+        <tr>
+          <td class="bullet-icon">&#10070;</td>
+          <td><span class="bullet-label">Job Title:</span> <span class="bullet-val">{{ designation_title or "-" }}</span></td>
+        </tr>
+        <tr>
+          <td class="bullet-icon">&#10070;</td>
+          <td><span class="bullet-label">Department:</span> <span class="bullet-val">{{ department_name or "-" }}</span></td>
+        </tr>
+        <tr>
+          <td class="bullet-icon">&#10070;</td>
+          <td><span class="bullet-label">Reporting To:</span> <span class="bullet-val">{{ reporting_to_name or "Reporting Manager" }}</span></td>
+        </tr>
+        <tr>
+          <td class="bullet-icon">&#10070;</td>
+          <td><span class="bullet-label">Start Date:</span> <span class="bullet-val">{{ start_date }}</span>{% if end_date %} &nbsp;|&nbsp; <span class="bullet-label">End Date:</span> <span class="bullet-val">{{ end_date }}</span>{% endif %}</td>
+        </tr>
+        <tr>
+          <td class="bullet-icon">&#10070;</td>
+          <td><span class="bullet-label">Employment Type:</span> <span class="bullet-val">{{ offer.employment_type|replace('_', ' ')|title }}</span></td>
+        </tr>
+        <tr>
+          <td class="bullet-icon">&#10070;</td>
+          <td><span class="bullet-label">Work Location:</span> <span class="bullet-val">{{ site_name or "Office Location / Remote" }}</span></td>
+        </tr>
+      </table>
+    </div>
+
+    <!-- 7. Compensation & Benefits Section -->
+    <div class="section-block">
+      <div class="section-title">&#128176; Compensation &amp; Benefits:</div>
+      <table class="bullet-table">
+        <tr>
+          <td class="bullet-icon">&#10070;</td>
+          <td><span class="bullet-label">Salary:</span> <span class="bullet-val">{% if offer.salary_amount %}Rs. {{ "%.2f"|format(offer.salary_amount) }} ({{ offer.salary_frequency or "annual" }}){% else %}As per agreed structure{% endif %}</span></td>
+        </tr>
+        <tr>
+          <td class="bullet-icon">&#10070;</td>
+          <td><span class="bullet-label">Bonus/Incentives (if applicable):</span> <span class="bullet-val">{{ offer.bonus_details or "As per company performance policy" }}</span></td>
+        </tr>
+        <tr>
+          <td class="bullet-icon">&#10070;</td>
+          <td><span class="bullet-label">Other Benefits:</span> <span class="bullet-val">{{ offer.other_benefits or "Health Insurance, Paid Leave, and Statutory Benefits as per company policy" }}</span></td>
+        </tr>
+      </table>
+    </div>
+
+    <!-- 8. Terms & Conditions Section -->
+    <div class="section-block">
+      <div class="section-title">&#128196; Terms &amp; Conditions:</div>
+      <table class="bullet-table">
+        <tr>
+          <td class="bullet-icon">&#10070;</td>
+          <td><span class="bullet-val">Your employment will be subject to the terms outlined in the company's standard policies.</span></td>
+        </tr>
+        <tr>
+          <td class="bullet-icon">&#10070;</td>
+          <td><span class="bullet-val">You may be required to sign a confidentiality agreement and/or a non-compete clause.</span></td>
+        </tr>
+        <tr>
+          <td class="bullet-icon">&#10070;</td>
+          <td><span class="bullet-val">The employment is subject to standard company probationary and code-of-conduct guidelines.</span></td>
+        </tr>
+      </table>
+    </div>
+
+    <!-- 9. Acceptance & Closing -->
+    <div class="closing-text">
+      Please sign and return a copy of this letter by <strong>{{ acceptance_deadline or "the specified acceptance deadline" }}</strong> to confirm your acceptance of the offer.
+      If you have any questions, feel free to reach out to <strong>{{ offer.hr_contact_name or company.authorized_signatory_name or "HR Department" }}</strong>{% if offer.hr_contact_email or company.email %} at {{ offer.hr_contact_email or company.email }}{% endif %}.
+    </div>
+    <div class="closing-text">
+      We are excited to have you on board and look forward to working together!
+    </div>
+
+    <!-- 10. Signatures -->
+    <div class="sign-section">
+      <div style="font-size: 7.8pt; margin-bottom: 2px;">Best regards,</div>
+      <table class="sign-table">
+        <tr>
+          <td>
+            {% if company.signature_url %}
+              <img src="{{ company.signature_url }}" height="28" style="margin-bottom: 2px;" /><br/>
+            {% else %}
+              <div style="font-size: 11pt; font-weight: bold; color: #0f172a; margin-bottom: 2px;">{{ offer.hr_contact_name or company.authorized_signatory_name or "Authorized Signatory" }}</div>
+            {% endif %}
+            <div class="sig-name">{{ offer.hr_contact_name or company.authorized_signatory_name or "Authorized Signatory" }}</div>
+            <div class="sig-role">HR Department | {{ company.name }}</div>
+          </td>
+          <td>
+            <div class="sig-line">
+              <div class="sig-name">Candidate Signature &amp; Date</div>
+              <div class="sig-role">{{ offer.candidate_name }}</div>
+            </div>
+          </td>
+        </tr>
+      </table>
+    </div>
+  </div>
+
+  <!-- 11. Corporate Blue Footer -->
+  <table class="footer-table">
+    <tr>
+      <td style="width: 33%;"><span style="color: #ffffff;">&#9742;</span> {{ company.phone or '+91 12345 67890' }}</td>
+      <td style="width: 34%;"><span style="color: #ffffff;">&#9993;</span> {{ company.email or 'info@meagle360.com' }}</td>
+      <td style="width: 33%;"><span style="color: #ffffff;">&#127760;</span> {{ company.website or 'www.meagle360.com' }}</td>
+    </tr>
+  </table>
 </div>
-
-<div class="subject">Subject: Offer of Employment - {{ designation_title or "the offered position" }}</div>
-
-<p class="body-text">Dear {{ first_name }},</p>
-<p class="body-text">
-  We are pleased to offer you the position of <strong>{{ designation_title or "-" }}</strong> at
-  {{ company.name }}. We were impressed by your background and are confident you will be a
-  valuable addition to our team. This letter sets out the key terms of your offer.
-</p>
-
-<div class="terms-header">Key Terms</div>
-<table class="terms-table">
-  <tr><td class="k">Position</td><td class="v">{{ designation_title or "-" }}</td></tr>
-  <tr><td class="k">Department</td><td class="v">{{ department_name or "-" }}</td></tr>
-  <tr><td class="k">Start Date</td><td class="v">{{ start_date }}</td></tr>
-  {% if end_date %}<tr><td class="k">End Date</td><td class="v">{{ end_date }}</td></tr>{% endif %}
-  <tr><td class="k">Employment Type</td><td class="v">{{ offer.employment_type }}</td></tr>
-  {% if reporting_to_name %}<tr><td class="k">Reporting Manager</td><td class="v">{{ reporting_to_name }}</td></tr>{% endif %}
-  {% if site_name %}<tr><td class="k">Work Location</td><td class="v">{{ site_name }}</td></tr>{% endif %}
-  {% if offer.salary_amount %}<tr><td class="k">Compensation</td><td class="v">Rs. {{ "%.2f"|format(offer.salary_amount) }} ({{ offer.salary_frequency or "annual" }})</td></tr>{% endif %}
-</table>
-
-{% if offer.bonus_details %}
-<p class="body-text"><strong>Bonus / Incentives:</strong> {{ offer.bonus_details }}</p>
-{% endif %}
-{% if offer.other_benefits %}
-<p class="body-text"><strong>Other Benefits:</strong> {{ offer.other_benefits }}</p>
-{% endif %}
-
-<p class="body-text">
-  Your employment will be governed by {{ company.name }}'s standard policies, as communicated
-  to you separately and updated from time to time.
-</p>
-
-{% if offer.acceptance_deadline %}
-<p class="body-text">
-  Please confirm your acceptance of this offer by <strong>{{ acceptance_deadline }}</strong> by
-  signing and returning a copy of this letter.
-</p>
-{% endif %}
-
-<p class="body-text">We look forward to welcoming you to {{ company.name }}.</p>
-<p class="body-text">Warm regards,</p>
-
-<table class="sign-table">
-  <tr>
-    <td>
-      {% if company.signature_url %}<img src="{{ company.signature_url }}" height="35" /><br/>{% endif %}
-      <div class="sig-line">
-        <span class="sig-name">{{ offer.hr_contact_name or company.authorized_signatory_name or "HR Manager" }}</span><br/>
-        {{ company.name }}
-      </div>
-    </td>
-    <td>
-      <div class="sig-line">Candidate Signature &amp; Date</div>
-    </td>
-  </tr>
-</table>
-
-<table class="footer-table">
-  <tr><td>{{ company.name }} | {% if company.company_address %}{{ company.company_address }}{% endif %} {% if company.website %}| {{ company.website }}{% endif %}</td></tr>
-</table>
 
 </body>
 </html>

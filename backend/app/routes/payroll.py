@@ -498,12 +498,24 @@ def process_fnf(
 @router.get("/payslips/{payslip_id}/pdf")
 def download_payslip_pdf(
     payslip_id: UUID,
-    db: Session = Depends(get_db), company_id: UUID = Depends(get_company_id),
-    _=Depends(require_permissions("payroll:read")),
+    db: Session = Depends(get_db),
+    company_id: UUID = Depends(get_company_id),
+    current_user: UserAccount = Depends(get_current_user),
 ):
+    from app.models.payslip import Payslip
+    payslip = db.query(Payslip).filter(Payslip.id == payslip_id, Payslip.company_id == company_id).first()
+    if not payslip:
+        raise HTTPException(status_code=404, detail="Payslip not found")
+
+    user_roles = [r.name for r in current_user.roles]
+    is_owner = current_user.employee_id is not None and current_user.employee_id == payslip.employee_id
+    is_admin_or_hr = any(r in ("SUPER_ADMIN", "ADMIN", "HR_MANAGER") for r in user_roles)
+    if not (is_owner or is_admin_or_hr):
+        raise HTTPException(status_code=403, detail="Not authorized to download this payslip")
+
     pdf_bytes = document_service.generate_payslip_pdf(db, company_id, payslip_id)
     if not pdf_bytes:
-        raise HTTPException(status_code=404, detail="Payslip not found")
+        raise HTTPException(status_code=404, detail="Payslip document could not be generated")
     return Response(
         content=pdf_bytes,
         media_type="application/pdf",
