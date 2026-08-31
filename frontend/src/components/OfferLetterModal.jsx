@@ -285,14 +285,12 @@ export default function OfferLetterModal({ onClose, onSuccess }) {
 
               {/* 3. Metadata & Sender/Recipient */}
               <div className="offer-meta-block">
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline' }}>
-                  <span style={{ fontWeight: 700, color: '#0f172a' }}>{company?.name || 'Meagle360 HRMS Pvt. Ltd.'}</span>
-                  <span style={{ fontWeight: 600, color: '#1e293b' }}>{todayFormatted}</span>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', marginBottom: 4 }}>
+                  <span style={{ fontWeight: 800, color: '#0052cc', fontSize: '1.02rem', textTransform: 'uppercase' }}>{company?.name || 'MEAGLE360 HRMS PVT. LTD.'}</span>
+                  <span style={{ fontWeight: 600, color: '#1e293b', fontSize: '0.96rem' }}>{todayFormatted}</span>
                 </div>
-                <div>{company?.company_address || company?.address || '123 Business Park, Sector 62'}</div>
-                <div style={{ marginBottom: 10 }}>{company?.email || 'info@meagle360.com'} | {company?.phone || '+91 12345 67890'}</div>
-                <div style={{ fontWeight: 800, color: '#0f172a' }}>{form.candidate_name || '[Candidate Name]'}</div>
-                {form.candidate_address && <div>{form.candidate_address}</div>}
+                <div style={{ fontWeight: 800, color: '#0f172a', fontSize: '1.02rem', marginTop: 4 }}>{form.candidate_name || '[Candidate Name]'}</div>
+                {form.candidate_address && <div style={{ color: '#334155', fontSize: '0.94rem', lineHeight: 1.35 }}>{form.candidate_address}</div>}
                 <div className="offer-meta-subject">
                   Subject: Job Offer for {selectedDesignation?.title || 'Selected Position'}
                 </div>

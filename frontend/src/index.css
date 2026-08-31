@@ -3031,13 +3031,13 @@ input[type="password"]::-ms-clear {
   flex-direction: column;
   align-items: flex-start;
   justify-content: center;
-  max-width: 320px;
+  max-width: 440px;
 }
 
 .offer-contact-list {
   display: flex;
   flex-direction: column;
-  gap: 3.5px;
+  gap: 3px;
   width: 100%;
 }
 
@@ -3045,9 +3045,9 @@ input[type="password"]::-ms-clear {
   display: flex;
   align-items: center;
   gap: 8px;
-  font-size: 0.86rem;
+  font-size: 0.85rem;
   color: #1e293b;
-  line-height: 1.36;
+  line-height: 1.32;
   text-align: left;
 }
 
@@ -3058,13 +3058,13 @@ input[type="password"]::-ms-clear {
 
 .offer-header-divider {
   border-bottom: 2px solid #0052cc;
-  margin: 10px -28px 14px -28px;
+  margin: 9px -28px 11px -28px;
   width: calc(100% + 56px);
 }
 
 .offer-title-block {
   text-align: center;
-  margin-bottom: 12px;
+  margin-bottom: 9px;
 }
 
 .offer-title-text {
@@ -3079,12 +3079,12 @@ input[type="password"]::-ms-clear {
   width: 145px;
   height: 2.5px;
   background: #0052cc;
-  margin: 4px auto 0 auto;
+  margin: 3px auto 0 auto;
 }
 
 .offer-meta-block {
-  font-size: 0.98rem;
-  line-height: 1.48;
+  font-size: 0.99rem;
+  line-height: 1.46;
   margin-bottom: 9px;
   color: #1e293b;
 }
@@ -3092,19 +3092,19 @@ input[type="password"]::-ms-clear {
 .offer-meta-subject {
   font-weight: 800;
   color: #0f172a;
-  margin: 7px 0 9px 0;
-  font-size: 1.04rem;
+  margin: 6px 0 8px 0;
+  font-size: 1.05rem;
 }
 
 .offer-salutation {
   font-weight: 700;
   color: #0f172a;
-  margin-bottom: 5px;
-  font-size: 1.00rem;
+  margin-bottom: 4px;
+  font-size: 1.01rem;
 }
 
 .offer-body-p {
-  font-size: 0.98rem;
+  font-size: 0.99rem;
   color: #1e293b;
   margin-bottom: 9px;
   line-height: 1.50;
@@ -3112,22 +3112,22 @@ input[type="password"]::-ms-clear {
 }
 
 .offer-sec-container {
-  margin-bottom: 9px;
+  margin-bottom: 8.5px;
 }
 
 .offer-sec-header {
   display: flex;
   align-items: center;
   gap: 8px;
-  font-size: 1.08rem;
+  font-size: 1.07rem;
   font-weight: 800;
   color: #0052cc;
   margin-bottom: 3px;
 }
 
 .offer-sec-badge {
-  width: 24px;
-  height: 24px;
+  width: 23px;
+  height: 23px;
   border-radius: 50%;
   background: #0052cc;
   color: #ffffff;
@@ -3140,16 +3140,16 @@ input[type="password"]::-ms-clear {
 .offer-bullet-list {
   display: flex;
   flex-direction: column;
-  gap: 3.5px;
-  margin-left: 32px;
+  gap: 3.2px;
+  margin-left: 30px;
 }
 
 .offer-bullet-item {
   display: flex;
   align-items: flex-start;
   gap: 8px;
-  font-size: 0.95rem;
-  line-height: 1.46;
+  font-size: 0.96rem;
+  line-height: 1.44;
 }
 
 .offer-bullet-star {
@@ -3163,7 +3163,7 @@ input[type="password"]::-ms-clear {
   display: flex;
   justify-content: space-between;
   align-items: flex-start;
-  margin-top: 12px;
+  margin-top: 14px;
   width: 100%;
 }
 
@@ -3171,7 +3171,7 @@ input[type="password"]::-ms-clear {
   display: flex;
   flex-direction: column;
   min-width: 220px;
-  font-size: 0.98rem;
+  font-size: 0.99rem;
   line-height: 1.48;
 }
 
@@ -3179,7 +3179,7 @@ input[type="password"]::-ms-clear {
   font-weight: 800;
   font-size: 1.08rem;
   color: #0f172a;
-  margin-top: 3px;
+  margin-top: 2px;
 }
 
 .offer-footer-bar {
@@ -3191,7 +3191,7 @@ input[type="password"]::-ms-clear {
   justify-content: space-between !important;
   align-items: center !important;
   font-size: 0.84rem !important;
-  margin: 10px -28px -2px -28px !important;
+  margin: 8px -28px -2px -28px !important;
   width: calc(100% + 56px) !important;
   box-sizing: border-box !important;
   border-radius: 0 !important;
@@ -3301,7 +3301,7 @@ input[type="password"]::-ms-clear {
     max-height: calc(297mm - 8mm) !important;
     box-sizing: border-box !important;
     margin: 0 !important;
-    padding: 16px 24px 0 24px !important;
+    padding: 12px 24px 0 24px !important;
     border: 2px solid #0052cc !important;
     border-radius: 0 !important;
     box-shadow: none !important;
@@ -3321,8 +3321,12 @@ input[type="password"]::-ms-clear {
     color-adjust: exact !important;
   }
 
+  body.printing-offer-letter .offer-header-right {
+    max-width: 400px !important;
+  }
+
   body.printing-offer-letter .offer-header-divider {
-    margin: 8px -24px 10px -24px !important;
+    margin: 7px -24px 9px -24px !important;
     width: calc(100% + 48px) !important;
     border-bottom: 2px solid #0052cc !important;
   }
@@ -3334,8 +3338,8 @@ input[type="password"]::-ms-clear {
     display: flex !important;
     justify-content: space-between !important;
     align-items: center !important;
-    padding: 7px 20px !important;
-    margin: 8px -24px -2px -24px !important;
+    padding: 6px 20px !important;
+    margin: 6px -24px -2px -24px !important;
     width: calc(100% + 48px) !important;
     border-radius: 0 !important;
     flex-shrink: 0 !important;
