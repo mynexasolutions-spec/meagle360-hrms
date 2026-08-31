@@ -1,398 +1,512 @@
 <!DOCTYPE html>
 <html>
+
 <head>
-<meta charset="utf-8"/>
-<style>
-  @page {
-    size: a4 portrait;
-    margin: 15mm;
-  }
-  body {
-    font-family: Helvetica, Arial, sans-serif;
-    font-size: 9pt;
-    color: #1e293b;
-    margin: 0;
-    padding: 0;
-  }
-  .voucher-container {
-    border: 1px solid #cbd5e1;
-    width: 100%;
-  }
-  .header-table {
-    width: 100%;
-    border-collapse: collapse;
-    border-top: 3px solid #0052cc;
-    border-bottom: 3px solid #0052cc;
-  }
-  .header-left {
-    width: 52%;
-    vertical-align: middle;
-    padding: 10px 16px;
-  }
-  .header-right {
-    width: 48%;
-    vertical-align: middle;
-    background-color: #0052cc;
-    color: #ffffff;
-    padding: 10px 16px;
-  }
-  .company-name {
-    font-size: 14pt;
-    font-weight: bold;
-    color: #0f172a;
-    line-height: 1.1;
-  }
-  .brand-sub {
-    font-size: 9pt;
-    font-weight: bold;
-    color: #0052cc;
-    margin-top: 2px;
-  }
-  .payslip-title {
-    font-size: 18pt;
-    font-weight: bold;
-    letter-spacing: 2px;
-    color: #ffffff;
-  }
-  .meta-table {
-    width: 100%;
-    margin-top: 6px;
-    font-size: 8pt;
-    color: #ffffff;
-  }
-  .meta-table td {
-    padding: 1.5px 0;
-  }
-  .meta-label {
-    width: 75px;
-    font-weight: bold;
-  }
-  
-  .content-padding {
-    padding: 8px 14px;
-  }
-  .section-title {
-    color: #0052cc;
-    font-weight: bold;
-    font-size: 8.5pt;
-    padding-bottom: 2px;
-    border-bottom: 1.5px solid #0052cc;
-    margin-bottom: 4px;
-    letter-spacing: 0.5px;
-  }
-  .info-table {
-    width: 100%;
-    border-collapse: collapse;
-    margin-bottom: 5px;
-  }
-  .info-table td {
-    padding: 2px 4px;
-    font-size: 8pt;
-    vertical-align: top;
-  }
-  .info-lbl {
-    width: 105px;
-    font-weight: bold;
-    color: #0f172a;
-  }
-  .info-sep {
-    width: 10px;
-    color: #64748b;
-    text-align: center;
-  }
-  .info-val {
-    color: #334155;
-  }
+  <meta charset="utf-8" />
+  <style>
+    @page {
+      size: a4 portrait;
+      margin: 15mm;
+    }
 
-  .earn-ded-table {
-    width: 100%;
-    border-collapse: collapse;
-    margin-bottom: 5px;
-  }
-  .earn-ded-table td {
-    vertical-align: top;
-    width: 50%;
-  }
-  .line-table {
-    width: 100%;
-    border-collapse: collapse;
-    border: 1px solid #cbd5e1;
-  }
-  .line-table th {
-    background-color: #0052cc;
-    color: #ffffff;
-    text-align: left;
-    padding: 4px 8px;
-    font-size: 8pt;
-    font-weight: bold;
-  }
-  .line-table th.amt, .line-table td.amt {
-    text-align: right;
-  }
-  .line-table td {
-    padding: 2px 8px;
-    font-size: 7.8pt;
-    border-bottom: 1px solid #f1f5f9;
-  }
-  .total-row td {
-    font-weight: bold;
-    background-color: #eff6ff;
-    color: #0052cc;
-    border-top: 1px solid #bfdbfe;
-    font-size: 8pt;
-  }
+    body {
+      font-family: Helvetica, Arial, sans-serif;
+      font-size: 9pt;
+      color: #1e293b;
+      margin: 0;
+      padding: 0;
+    }
 
-  .stats-table {
-    width: 100%;
-    border: 1px solid #cbd5e1;
-    border-collapse: collapse;
-    margin-bottom: 5px;
-  }
-  .stats-table td {
-    text-align: center;
-    padding: 5px 4px;
-    font-size: 7pt;
-    border-right: 1px solid #e2e8f0;
-    width: 25%;
-  }
-  .stats-label {
-    font-weight: bold;
-    color: #0052cc;
-    margin-bottom: 2px;
-  }
-  .stats-value {
-    font-size: 9.5pt;
-    font-weight: bold;
-    color: #0f172a;
-  }
+    .voucher-container {
+      border: 1px solid #cbd5e1;
+      width: 100%;
+    }
 
-  .netpay-table {
-    width: 100%;
-    background-color: #0052cc;
-    color: #ffffff;
-    margin-bottom: 5px;
-    border-collapse: collapse;
-  }
-  .netpay-table td {
-    padding: 5px 12px;
-  }
-  .netpay-title {
-    font-size: 11pt;
-    font-weight: bold;
-    letter-spacing: 0.5px;
-  }
-  .netpay-amount {
-    font-size: 13pt;
-    font-weight: bold;
-    text-align: right;
-  }
-  .netpay-words {
-    font-size: 7.2pt;
-    font-style: italic;
-    padding-top: 0;
-    opacity: 0.95;
-  }
+    .header-table {
+      width: 100%;
+      border-collapse: collapse;
+      border-top: 3px solid #0052cc;
+      border-bottom: 3px solid #0052cc;
+    }
 
-  .bottom-table {
-    width: 100%;
-    border-collapse: collapse;
-    margin-bottom: 2px;
-  }
-  .signature-card {
-    border: 1px solid #cbd5e1;
-    padding: 10px 16px;
-    width: 320px;
-    float: right;
-    text-align: center;
-  }
-  .notice-head {
-    font-size: 7.2pt;
-    font-weight: bold;
-    color: #0f172a;
-    text-align: left;
-  }
-  .notice-sub {
-    font-size: 6.5pt;
-    color: #64748b;
-    text-align: left;
-    margin-bottom: 6px;
-  }
-  .sig-line {
-    border-bottom: 1px solid #64748b;
-    width: 200px;
-    margin: 5px auto;
-  }
-  .sig-role {
-    font-size: 7.2pt;
-    font-weight: bold;
-    color: #0f172a;
-    text-transform: uppercase;
-  }
-  .sig-dept {
-    font-size: 6.8pt;
-    color: #64748b;
-  }
-  .signature-address {
-    font-size: 7.5pt;
-    color: #334155;
-    margin-bottom: 4px;
-    line-height: 1.3;
-  }
+    .header-left {
+      width: 52%;
+      vertical-align: middle;
+      padding: 10px 16px;
+    }
 
-  .footer-table {
-    width: 100%;
-    background-color: #0052cc;
-    color: #ffffff;
-    border-collapse: collapse;
-  }
-  .footer-table td {
-    padding: 7px 12px;
-    font-size: 7pt;
-    word-break: break-word; /* Ensure long text breaks to prevent clashing */
-    vertical-align: middle;
-  }
-  .footer-thanks {
-    text-align: right;
-    border-left: 1px solid rgba(255,255,255,0.3);
-    padding-left: 10px;
-  }
-  .thanks-head {
-    font-size: 8.5pt;
-    font-weight: bold;
-    letter-spacing: 0.5px;
-  }
-</style>
+    .header-right {
+      width: 48%;
+      vertical-align: middle;
+      background-color: #0052cc;
+      color: #ffffff;
+      padding: 10px 16px;
+    }
+
+    .company-name {
+      font-size: 14pt;
+      font-weight: bold;
+      color: #0f172a;
+      line-height: 1.1;
+    }
+
+    .brand-sub {
+      font-size: 9pt;
+      font-weight: bold;
+      color: #0052cc;
+      margin-top: 2px;
+    }
+
+    .payslip-title {
+      font-size: 18pt;
+      font-weight: bold;
+      letter-spacing: 2px;
+      color: #ffffff;
+    }
+
+    .meta-table {
+      width: 100%;
+      margin-top: 6px;
+      font-size: 8pt;
+      color: #ffffff;
+    }
+
+    .meta-table td {
+      padding: 1.5px 0;
+    }
+
+    .meta-label {
+      width: 75px;
+      font-weight: bold;
+    }
+
+    .content-padding {
+      padding: 10px 16px;
+    }
+
+    .section-title {
+      color: #0052cc;
+      font-weight: bold;
+      font-size: 8.5pt;
+      padding-bottom: 3px;
+      border-bottom: 1.5px solid #0052cc;
+      margin-bottom: 6px;
+      letter-spacing: 0.5px;
+    }
+
+    .info-table {
+      width: 100%;
+      border-collapse: collapse;
+      margin-bottom: 8px;
+    }
+
+    .info-table td {
+      padding: 2.5px 4px;
+      font-size: 8pt;
+      vertical-align: top;
+    }
+
+    .info-lbl {
+      width: 105px;
+      font-weight: bold;
+      color: #0f172a;
+    }
+
+    .info-sep {
+      width: 10px;
+      color: #64748b;
+      text-align: center;
+    }
+
+    .info-val {
+      color: #334155;
+    }
+
+    .earn-ded-table {
+      width: 100%;
+      border-collapse: collapse;
+      margin-bottom: 8px;
+    }
+
+    .earn-ded-table td {
+      vertical-align: top;
+      width: 50%;
+    }
+
+    .line-table {
+      width: 100%;
+      border-collapse: collapse;
+      border: 1px solid #cbd5e1;
+    }
+
+    .line-table th {
+      background-color: #0052cc;
+      color: #ffffff;
+      text-align: left;
+      padding: 5px 8px;
+      font-size: 8pt;
+      font-weight: bold;
+    }
+
+    .line-table th.amt,
+    .line-table td.amt {
+      text-align: right;
+    }
+
+    .line-table td {
+      padding: 4px 8px;
+      font-size: 7.8pt;
+      border-bottom: 1px solid #f1f5f9;
+    }
+
+    .total-row td {
+      font-weight: bold;
+      background-color: #eff6ff;
+      color: #0052cc;
+      border-top: 1px solid #bfdbfe;
+      font-size: 8pt;
+    }
+
+    .stats-table {
+      width: 100%;
+      border: 1px solid #cbd5e1;
+      border-collapse: collapse;
+      margin-bottom: 8px;
+    }
+
+    .stats-table td {
+      text-align: center;
+      padding: 6px 4px;
+      font-size: 7pt;
+      border-right: 1px solid #e2e8f0;
+      width: 25%;
+    }
+
+    .stats-label {
+      font-weight: bold;
+      color: #0052cc;
+      margin-bottom: 2px;
+    }
+
+    .stats-value {
+      font-size: 9.5pt;
+      font-weight: bold;
+      color: #0f172a;
+    }
+
+    .netpay-table {
+      width: 100%;
+      background-color: #0052cc;
+      color: #ffffff;
+      margin-bottom: 8px;
+      border-collapse: collapse;
+    }
+
+    .netpay-table td {
+      padding: 6px 12px;
+    }
+
+    .netpay-title {
+      font-size: 11pt;
+      font-weight: bold;
+      letter-spacing: 0.5px;
+    }
+
+    .netpay-amount {
+      font-size: 13pt;
+      font-weight: bold;
+      text-align: right;
+    }
+
+    .netpay-words {
+      font-size: 7.2pt;
+      font-style: italic;
+      padding-top: 0;
+      opacity: 0.95;
+    }
+
+    .bottom-table {
+      width: 100%;
+      border-collapse: collapse;
+      margin-bottom: 4px;
+    }
+
+    .signature-card {
+      border: 1px solid #e2e8f0;
+      padding: 8px 12px;
+      width: 280px;
+      float: right;
+      text-align: center;
+    }
+
+    .notice-head {
+      font-size: 7.2pt;
+      font-weight: bold;
+      color: #0f172a;
+      text-align: left;
+    }
+
+    .notice-sub {
+      font-size: 6.5pt;
+      color: #64748b;
+      text-align: left;
+      margin-bottom: 6px;
+    }
+
+    .sig-line {
+      border-bottom: 1px solid #64748b;
+      width: 170px;
+      margin: 4px auto;
+    }
+
+    .sig-role {
+      font-size: 6.8pt;
+      font-weight: bold;
+      color: #0f172a;
+      text-transform: uppercase;
+    }
+
+    .sig-dept {
+      font-size: 6.5pt;
+      color: #64748b;
+    }
+
+    .signature-address {
+      font-size: 7.2pt;
+      color: #334155;
+      margin-bottom: 4px;
+      line-height: 1.3;
+    }
+
+    .footer-table {
+      width: 100%;
+      background-color: #0052cc;
+      color: #ffffff;
+      border-collapse: collapse;
+    }
+
+    .footer-table td {
+      padding: 7px 12px;
+      font-size: 7pt;
+      word-break: break-word;
+      /* Ensure long text breaks to prevent clashing */
+      vertical-align: middle;
+    }
+
+    .footer-thanks {
+      text-align: right;
+      border-left: 1px solid rgba(255, 255, 255, 0.3);
+      padding-left: 10px;
+    }
+
+    .thanks-head {
+      font-size: 8.5pt;
+      font-weight: bold;
+      letter-spacing: 0.5px;
+    }
+  </style>
 </head>
+
 <body>
 
-<div class="voucher-container">
-  <!-- Header -->
-  <table class="header-table">
-    <tr>
-      <td class="header-left">
-        {% if company.logo_url %}<img src="{{ company.logo_url }}" height="38" style="margin-bottom: 4px;"/><br/>{% endif %}
-        <span class="company-name">HRMS Portal</span><br/>
-        <span class="brand-sub">{{ company.name or 'MEAGLE360' }}</span>
-      </td>
-      <td class="header-right">
-        <span class="payslip-title">PAYSLIP</span>
-        <table class="meta-table">
-          <tr><td class="meta-label">Pay Period</td><td>: {{ pay_period }}</td></tr>
-          <tr><td class="meta-label">Payslip No.</td><td>: {{ payslip.payslip_number or "-" }}</td></tr>
-          <tr><td class="meta-label">Pay Date</td><td>: {{ pay_date }}</td></tr>
-        </table>
-      </td>
-    </tr>
-  </table>
-
-  <div class="content-padding">
-    <!-- Employee Information -->
-    <div class="section-title">EMPLOYEE INFORMATION</div>
-    <table class="info-table">
+  <div class="voucher-container">
+    <!-- Header -->
+    <table class="header-table">
       <tr>
-        <td class="info-lbl">Employee Name</td><td class="info-sep">:</td><td class="info-val">{{ employee.full_name }}</td>
-        <td class="info-lbl">Date of Joining</td><td class="info-sep">:</td><td class="info-val">{{ date_of_joining }}</td>
-      </tr>
-      <tr>
-        <td class="info-lbl">Employee ID</td><td class="info-sep">:</td><td class="info-val">{{ employee.employee_code }}</td>
-        <td class="info-lbl">PAN</td><td class="info-sep">:</td><td class="info-val">{{ employee.pan_number or "-" }}</td>
-      </tr>
-      <tr>
-        <td class="info-lbl">Designation</td><td class="info-sep">:</td><td class="info-val">{{ designation_title or "-" }}</td>
-        <td class="info-lbl">Bank Name</td><td class="info-sep">:</td><td class="info-val">{{ employee.bank_name or "-" }}</td>
-      </tr>
-      <tr>
-        <td class="info-lbl">Department</td><td class="info-sep">:</td><td class="info-val">{{ department_name or "-" }}</td>
-        <td class="info-lbl">Bank Account No.</td><td class="info-sep">:</td><td class="info-val">{{ masked_account_number }}</td>
-      </tr>
-    </table>
-
-    <!-- Earnings & Deductions Tables -->
-    <table class="earn-ded-table">
-      <tr>
-        <td style="padding-right: 6px;">
-          <table class="line-table">
-            <tr><th>(+) EARNINGS</th><th class="amt">AMOUNT (Rs.)</th></tr>
-            {% for line in earnings %}
-            <tr><td>{{ line.component_name }}</td><td class="amt">{{ "%.2f"|format(line.amount) }}</td></tr>
-            {% endfor %}
-            {% if not earnings %}
-            <tr><td>Basic Salary</td><td class="amt">{{ "%.2f"|format(payslip.basic_pay) }}</td></tr>
-            {% endif %}
-            <tr class="total-row"><td>GROSS EARNINGS</td><td class="amt">{{ "%.2f"|format(payslip.gross_earnings) }}</td></tr>
-          </table>
+        <td class="header-left">
+          {% if company.logo_url %}<img src="{{ company.logo_url }}" height="38" style="margin-bottom: 4px;" /><br />{%
+          endif %}
+          <span class="company-name">HRMS Portal</span><br />
+          <span class="brand-sub">{{ company.name or 'MEAGLE360' }}</span>
         </td>
-        <td style="padding-left: 6px;">
-          <table class="line-table">
-            <tr><th>(-) DEDUCTIONS</th><th class="amt">AMOUNT (Rs.)</th></tr>
-            {% for line in deductions %}
-            <tr><td>{{ line.component_name }}</td><td class="amt">{{ "%.2f"|format(line.amount) }}</td></tr>
-            {% endfor %}
-            {% if not deductions and payslip.lop_amount > 0 %}
-            <tr><td>Loss of Pay ({{ payslip.lop_days }} days)</td><td class="amt">{{ "%.2f"|format(payslip.lop_amount) }}</td></tr>
-            {% elif not deductions %}
-            <tr><td colspan="2" style="text-align: center; color: #94a3b8;">No deductions for this period</td></tr>
-            {% endif %}
-            <tr class="total-row"><td>TOTAL DEDUCTIONS</td><td class="amt">{{ "%.2f"|format(payslip.gross_deductions) }}</td></tr>
+        <td class="header-right">
+          <span class="payslip-title">PAYSLIP</span>
+          <table class="meta-table">
+            <tr>
+              <td class="meta-label">Pay Period</td>
+              <td>: {{ pay_period }}</td>
+            </tr>
+            <tr>
+              <td class="meta-label">Payslip No.</td>
+              <td>: {{ payslip.payslip_number or "-" }}</td>
+            </tr>
+            <tr>
+              <td class="meta-label">Pay Date</td>
+              <td>: {{ pay_date }}</td>
+            </tr>
           </table>
         </td>
       </tr>
     </table>
 
-    <!-- Attendance Metrics -->
-    <table class="stats-table">
-      <tr>
-        <td><div class="stats-label">WORKING DAYS</div><div class="stats-value">{{ payslip.working_days }}</div></td>
-        <td><div class="stats-label">PAID DAYS</div><div class="stats-value">{{ paid_days }}</div></td>
-        <td><div class="stats-label">LEAVE / LOP DAYS</div><div class="stats-value">{{ payslip.lop_days }}</div></td>
-        <td style="border-right: none;"><div class="stats-label">LOP AMOUNT</div><div class="stats-value">Rs. {{ "%.2f"|format(payslip.lop_amount) }}</div></td>
-      </tr>
-    </table>
+    <div class="content-padding">
+      <!-- Employee Information -->
+      <div class="section-title">EMPLOYEE INFORMATION</div>
+      <table class="info-table">
+        <tr>
+          <td class="info-lbl">Employee Name</td>
+          <td class="info-sep">:</td>
+          <td class="info-val">{{ employee.full_name }}</td>
+          <td class="info-lbl">Date of Joining</td>
+          <td class="info-sep">:</td>
+          <td class="info-val">{{ date_of_joining }}</td>
+        </tr>
+        <tr>
+          <td class="info-lbl">Employee ID</td>
+          <td class="info-sep">:</td>
+          <td class="info-val">{{ employee.employee_code }}</td>
+          <td class="info-lbl">PAN</td>
+          <td class="info-sep">:</td>
+          <td class="info-val">{{ employee.pan_number or "-" }}</td>
+        </tr>
+        <tr>
+          <td class="info-lbl">Designation</td>
+          <td class="info-sep">:</td>
+          <td class="info-val">{{ designation_title or "-" }}</td>
+          <td class="info-lbl">Bank Name</td>
+          <td class="info-sep">:</td>
+          <td class="info-val">{{ employee.bank_name or "-" }}</td>
+        </tr>
+        <tr>
+          <td class="info-lbl">Department</td>
+          <td class="info-sep">:</td>
+          <td class="info-val">{{ department_name or "-" }}</td>
+          <td class="info-lbl">Bank Account No.</td>
+          <td class="info-sep">:</td>
+          <td class="info-val">{{ masked_account_number }}</td>
+        </tr>
+      </table>
 
-    <!-- Net Pay Banner -->
-    <table class="netpay-table">
-      <tr>
-        <td class="netpay-title">NET PAY</td>
-        <td class="netpay-amount">Rs. {{ "%.2f"|format(payslip.net_pay) }}</td>
-      </tr>
-      <tr>
-        <td colspan="2" class="netpay-words">({{ net_pay_in_words }})</td>
-      </tr>
-    </table>
+      <!-- Earnings & Deductions Tables -->
+      <table class="earn-ded-table">
+        <tr>
+          <td style="padding-right: 6px;">
+            <table class="line-table">
+              <tr>
+                <th>(+) EARNINGS</th>
+                <th class="amt">AMOUNT (Rs.)</th>
+              </tr>
+              {% for line in earnings %}
+              <tr>
+                <td>{{ line.component_name }}</td>
+                <td class="amt">{{ "%.2f"|format(line.amount) }}</td>
+              </tr>
+              {% endfor %}
+              {% if not earnings %}
+              <tr>
+                <td>Basic Salary</td>
+                <td class="amt">{{ "%.2f"|format(payslip.basic_pay) }}</td>
+              </tr>
+              {% endif %}
+              <tr class="total-row">
+                <td>GROSS EARNINGS</td>
+                <td class="amt">{{ "%.2f"|format(payslip.gross_earnings) }}</td>
+              </tr>
+            </table>
+          </td>
+          <td style="padding-left: 6px;">
+            <table class="line-table">
+              <tr>
+                <th>(-) DEDUCTIONS</th>
+                <th class="amt">AMOUNT (Rs.)</th>
+              </tr>
+              {% for line in deductions %}
+              <tr>
+                <td>{{ line.component_name }}</td>
+                <td class="amt">{{ "%.2f"|format(line.amount) }}</td>
+              </tr>
+              {% endfor %}
+              {% if not deductions and payslip.lop_amount > 0 %}
+              <tr>
+                <td>Loss of Pay ({{ payslip.lop_days }} days)</td>
+                <td class="amt">{{ "%.2f"|format(payslip.lop_amount) }}</td>
+              </tr>
+              {% elif not deductions %}
+              <tr>
+                <td colspan="2" style="text-align: center; color: #94a3b8;">No deductions for this period</td>
+              </tr>
+              {% endif %}
+              <tr class="total-row">
+                <td>TOTAL DEDUCTIONS</td>
+                <td class="amt">{{ "%.2f"|format(payslip.gross_deductions) }}</td>
+              </tr>
+            </table>
+          </td>
+        </tr>
+      </table>
 
-    <!-- Signature / Disclaimer Block -->
-    <table class="bottom-table">
-      <tr>
-        <td style="width: 50%;"></td>
-        <td style="width: 50%;">
-          <div class="signature-card">
-            <div class="signature-address">{{ company.company_address or company.address or '1 Infinite Loop, Cupertino, CA' }}</div>
-            {% if company.signature_url %}
-              <img src="{{ company.signature_url }}" width="170" height="48" /><br/>
-            {% else %}
-              <div style="font-size: 16pt; font-weight: bold; color: #0f172a; margin-bottom: 2px;">{{ company.authorized_signatory_name or 'Rhaunta' }}</div>
-            {% endif %}
-            <div class="sig-line"></div>
-            <div class="sig-role">AUTHORIZED SIGNATORY</div>
-            <div class="sig-dept">{{ company.authorized_signatory_name ~ ' - ' if company.authorized_signatory_name else '' }}HR Department</div>
-          </div>
-        </td>
-      </tr>
-    </table>
-<!-- Corporate Footer (for xhtml2pdf) -->
-  <table class="footer-table" style="width: 100%; background-color: #0052cc; color: #ffffff;">
-      <tr>
-        <td style="width: 33%; padding: 5px;">Tel: {{ company.phone or '+91 98451 78901' }}</td>
-        <td style="width: 33%; padding: 5px;">
-          <a href="mailto:{{ company.email or 'service@meagle360.com' }}" style="color: #ffffff; text-decoration: none;">{{ company.email or 'service@meagle360.com' }}</a><br/>
-          <a href="{{ company.website or 'https://www.meagle360.com' }}" style="color: #ffffff; text-decoration: none;">{{ company.website or 'www.meagle360.com' }}</a>
-        </td>
-        <td style="width: 34%; padding: 5px;" class="footer-thanks">
-          <div class="thanks-head">THANK YOU!</div>
-        </td>
-      </tr>
-    </table>
-  </div> <!-- Correctly closing voucher-container -->
+      <!-- Attendance Metrics -->
+      <table class="stats-table">
+        <tr>
+          <td>
+            <div class="stats-label">WORKING DAYS</div>
+            <div class="stats-value">{{ payslip.working_days }}</div>
+          </td>
+          <td>
+            <div class="stats-label">PAID DAYS</div>
+            <div class="stats-value">{{ paid_days }}</div>
+          </td>
+          <td>
+            <div class="stats-label">LEAVE / LOP DAYS</div>
+            <div class="stats-value">{{ payslip.lop_days }}</div>
+          </td>
+          <td style="border-right: none;">
+            <div class="stats-label">LOP AMOUNT</div>
+            <div class="stats-value">Rs. {{ "%.2f"|format(payslip.lop_amount) }}</div>
+          </td>
+        </tr>
+      </table>
+
+      <!-- Net Pay Banner -->
+      <table class="netpay-table">
+        <tr>
+          <td class="netpay-title">NET PAY</td>
+          <td class="netpay-amount">Rs. {{ "%.2f"|format(payslip.net_pay) }}</td>
+        </tr>
+        <tr>
+          <td colspan="2" class="netpay-words">({{ net_pay_in_words }})</td>
+        </tr>
+      </table>
+
+      <!-- Signature / Disclaimer Block -->
+      <table class="bottom-table">
+        <tr>
+          <td style="width: 50%;"></td>
+          <td style="width: 50%;">
+            <div class="signature-card">
+              <div class="signature-address">{{ company.company_address or company.address or '1 Infinite Loop,
+                Cupertino, CA' }}</div>
+              {% if company.signature_url %}
+              <img src="{{ company.signature_url }}" height="32" /><br />
+              {% else %}
+              <div style="font-size: 14pt; font-weight: bold; color: #0f172a; margin-bottom: 2px;">{{
+                company.authorized_signatory_name or 'Rhaunta' }}</div>
+              {% endif %}
+              <div class="sig-line"></div>
+              <div class="sig-role">AUTHORIZED SIGNATORY</div>
+              <div class="sig-dept">{{ company.authorized_signatory_name ~ ' - ' if company.authorized_signatory_name
+                else '' }}HR Department</div>
+            </div>
+          </td>
+        </tr>
+      </table>
+      <!-- Corporate Footer (for xhtml2pdf) -->
+      <table class="footer-table" style="width: 100%; background-color: #0052cc; color: #ffffff;">
+        <tr>
+          <td style="width: 33%; padding: 5px;">Tel: {{ company.phone or '+91 98451 78901' }}</td>
+          <td style="width: 33%; padding: 5px;">
+            <a href="mailto:{{ company.email or 'service@meagle360.com' }}"
+              style="color: #ffffff; text-decoration: none;">{{ company.email or 'service@meagle360.com' }}</a><br />
+            <a href="{{ company.website or 'https://www.meagle360.com' }}"
+              style="color: #ffffff; text-decoration: none;">{{ company.website or 'www.meagle360.com' }}</a>
+          </td>
+          <td style="width: 34%; padding: 5px;" class="footer-thanks">
+            <div class="thanks-head">THANK YOU!</div>
+          </td>
+        </tr>
+      </table>
+    </div> <!-- Correctly closing voucher-container -->
 
 </body>
+
 </html>
