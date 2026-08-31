@@ -207,10 +207,14 @@
   <div class="title-underline-bar"></div>
 
   <!-- 3. Sender / Recipient Metadata -->
-  <div class="meta-p" style="font-weight: bold; color: #0f172a;">{{ (company.name if company else None) or "Meagle360 HRMS Pvt. Ltd." }}</div>
+  <table style="width: 100%; border-collapse: collapse; margin-bottom: 0;">
+    <tr>
+      <td class="meta-p" style="font-weight: bold; color: #0f172a; padding: 0; text-align: left;">{{ (company.name if company else None) or "Meagle360 HRMS Pvt. Ltd." }}</td>
+      <td class="meta-p" style="font-weight: 600; color: #1e293b; padding: 0; text-align: right;">{{ issue_date }}</td>
+    </tr>
+  </table>
   <div class="meta-p">{{ (company.company_address if company else None) or "123 Business Park, Sector 62" }}</div>
-  <div class="meta-p">{{ (company.email if company else None) or "info@meagle360.com" }} | {{ (company.phone if company else None) or "+91 12345 67890" }}</div>
-  <div style="margin: 5px 0 9px 0;" class="meta-p">{{ issue_date }}</div>
+  <div class="meta-p" style="margin-bottom: 8px;">{{ (company.email if company else None) or "info@meagle360.com" }} | {{ (company.phone if company else None) or "+91 12345 67890" }}</div>
   <div class="meta-p" style="font-weight: bold; color: #0f172a;">{{ offer.candidate_name if offer else "[Candidate Name]" }}</div>
   {% if offer and offer.candidate_address %}<div class="meta-p">{{ offer.candidate_address }}</div>{% endif %}
   <div class="meta-subject">Subject: Job Offer for {{ designation_title or "Selected Position" }}</div>
