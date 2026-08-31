@@ -409,11 +409,11 @@ export default function OfferLetterModal({ onClose, onSuccess }) {
                 <div className="offer-sign-col">
                   <div style={{ fontWeight: 600, color: '#334155', marginBottom: 2 }}>Best regards,</div>
                   {company?.signature_url ? (
-                    <div style={{ margin: '4px 0 2px 0', minHeight: 56, display: 'flex', alignItems: 'center' }}>
-                      <img src={company.signature_url} alt="Sign" style={{ height: 56, maxWidth: 230, width: 'auto', objectFit: 'contain' }} />
+                    <div style={{ margin: '4px 0 2px 0', minHeight: 62, display: 'flex', alignItems: 'center' }}>
+                      <img src={company.signature_url} alt="Sign" style={{ height: 62, maxWidth: 230, width: 'auto', objectFit: 'contain' }} />
                     </div>
                   ) : (
-                    <div style={{ width: 190, height: 56, display: 'flex', alignItems: 'flex-end' }}>
+                    <div style={{ width: 190, height: 62, display: 'flex', alignItems: 'flex-end' }}>
                       <div style={{ width: '100%', borderBottom: '2px solid #94a3b8', marginBottom: 5 }}></div>
                     </div>
                   )}
@@ -425,7 +425,7 @@ export default function OfferLetterModal({ onClose, onSuccess }) {
                 {/* Right: Candidate Signature & Name */}
                 <div className="offer-sign-col">
                   <div style={{ fontWeight: 600, color: '#334155', marginBottom: 2 }}>Accepted &amp; Acknowledged by:</div>
-                  <div style={{ width: 190, height: 56, display: 'flex', alignItems: 'flex-end' }}>
+                  <div style={{ width: 190, height: 62, display: 'flex', alignItems: 'flex-end' }}>
                     <div style={{ width: '100%', borderBottom: '2px solid #94a3b8', marginBottom: 5 }}></div>
                   </div>
                   <div style={{ fontWeight: 700, color: '#64748b', fontSize: '0.82rem', textTransform: 'uppercase', letterSpacing: '0.5px' }}>Signature</div>
