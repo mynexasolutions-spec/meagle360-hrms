@@ -2946,3 +2946,394 @@ input[type="password"]::-ms-clear {
   border-radius: 999px;
   animation: barProgress 1.5s ease-in-out infinite;
 }
+
+/* ═══════════════════════════════════════════════════════════════
+   OFFER LETTER VOUCHER & A4 PRINT STYLES (MATCHING media_1788175292889.jpg)
+   ═══════════════════════════════════════════════════════════════ */
+.offer-letter-container-wrap {
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 16px;
+}
+
+.offer-letter-voucher {
+  border: 2px solid #0052cc;
+  border-radius: 4px;
+  padding: 22px 28px 0 28px;
+  background: #ffffff;
+  width: 100%;
+  max-width: 820px;
+  min-height: 1060px;
+  box-sizing: border-box;
+  font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+  font-size: 1.05rem;
+  color: #1e293b;
+  line-height: 1.55;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08);
+}
+
+.offer-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  width: 100%;
+}
+
+.offer-header-left {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+}
+
+.offer-logo-card {
+  width: 76px;
+  height: 68px;
+  border-radius: 8px;
+  border: 1.5px solid #cbd5e1;
+  padding: 3px 6px;
+  background: #ffffff;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-sizing: border-box;
+  flex-shrink: 0;
+}
+
+.offer-logo-card img {
+  max-width: 100%;
+  max-height: 100%;
+  object-fit: contain;
+}
+
+.offer-brand-title {
+  font-size: 1.82rem;
+  font-weight: 800;
+  color: #0f172a;
+  line-height: 1.1;
+}
+
+.offer-brand-company {
+  font-size: 1.34rem;
+  font-weight: 900;
+  color: #0052cc;
+  margin-top: 2px;
+  letter-spacing: 0.5px;
+  text-transform: uppercase;
+}
+
+.offer-header-right {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  justify-content: center;
+  max-width: 320px;
+}
+
+.offer-contact-list {
+  display: flex;
+  flex-direction: column;
+  gap: 3.5px;
+  width: 100%;
+}
+
+.offer-contact-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 0.86rem;
+  color: #1e293b;
+  line-height: 1.36;
+  text-align: left;
+}
+
+.offer-contact-icon {
+  color: #0052cc;
+  flex-shrink: 0;
+}
+
+.offer-header-divider {
+  border-bottom: 2px solid #0052cc;
+  margin: 10px -28px 14px -28px;
+  width: calc(100% + 56px);
+}
+
+.offer-title-block {
+  text-align: center;
+  margin-bottom: 12px;
+}
+
+.offer-title-text {
+  font-size: 1.82rem;
+  font-weight: 800;
+  color: #0052cc;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.offer-title-underline {
+  width: 150px;
+  height: 2.5px;
+  background: #0052cc;
+  margin: 4px auto 0 auto;
+}
+
+.offer-meta-block {
+  font-size: 1.00rem;
+  line-height: 1.50;
+  margin-bottom: 10px;
+  color: #1e293b;
+}
+
+.offer-meta-subject {
+  font-weight: 800;
+  color: #0f172a;
+  margin: 7px 0 9px 0;
+  font-size: 1.06rem;
+}
+
+.offer-salutation {
+  font-weight: 700;
+  color: #0f172a;
+  margin-bottom: 5px;
+  font-size: 1.02rem;
+}
+
+.offer-body-p {
+  font-size: 1.00rem;
+  color: #1e293b;
+  margin-bottom: 10px;
+  line-height: 1.52;
+  text-align: justify;
+}
+
+.offer-sec-container {
+  margin-bottom: 10px;
+}
+
+.offer-sec-header {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 1.10rem;
+  font-weight: 800;
+  color: #0052cc;
+  margin-bottom: 4px;
+}
+
+.offer-sec-badge {
+  width: 24px;
+  height: 24px;
+  border-radius: 50%;
+  background: #0052cc;
+  color: #ffffff;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.offer-bullet-list {
+  display: flex;
+  flex-direction: column;
+  gap: 3.5px;
+  margin-left: 32px;
+}
+
+.offer-bullet-item {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  font-size: 0.96rem;
+  line-height: 1.48;
+}
+
+.offer-bullet-star {
+  color: #0052cc;
+  font-size: 0.92rem;
+  font-weight: 900;
+  line-height: 1.2;
+}
+
+.offer-sign-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  margin-top: 14px;
+  width: 100%;
+}
+
+.offer-sign-col {
+  display: flex;
+  flex-direction: column;
+  min-width: 220px;
+  font-size: 1.00rem;
+  line-height: 1.50;
+}
+
+.offer-sign-name {
+  font-weight: 800;
+  font-size: 1.10rem;
+  color: #0f172a;
+  margin-top: 3px;
+}
+
+.offer-footer-bar {
+  background: #0052cc !important;
+  color: #ffffff !important;
+  padding: 7px 22px !important;
+  display: flex !important;
+  justify-content: space-between !important;
+  align-items: center !important;
+  font-size: 0.84rem !important;
+  margin: 10px -28px 0 -28px !important;
+  width: calc(100% + 56px) !important;
+  box-sizing: border-box !important;
+  border-radius: 0 !important;
+  flex-shrink: 0 !important;
+}
+
+.offer-footer-item {
+  display: flex !important;
+  align-items: center !important;
+  gap: 7px !important;
+  color: #ffffff !important;
+}
+
+.offer-footer-item svg {
+  color: #ffffff !important;
+}
+
+/* ═══════════════════════════════════════════════════════════════
+   STRICT PRINT ISOLATION FOR OFFER LETTER (100% SINGLE A4 PAGE, ZERO BACKGROUND BLEED)
+   ═══════════════════════════════════════════════════════════════ */
+@media print {
+  @page {
+    size: A4 portrait;
+    margin: 0;
+  }
+
+  html,
+  body {
+    width: 210mm !important;
+    height: 297mm !important;
+    max-height: 297mm !important;
+    margin: 0 !important;
+    padding: 0 !important;
+    background: #ffffff !important;
+    overflow: hidden !important;
+  }
+
+  body.printing-offer-letter {
+    width: 210mm !important;
+    height: 297mm !important;
+    max-height: 297mm !important;
+    margin: 0 !important;
+    padding: 0 !important;
+    background: #ffffff !important;
+    overflow: hidden !important;
+  }
+
+  /* 1. Make EVERYTHING on the page invisible by default */
+  body.printing-offer-letter * {
+    visibility: hidden !important;
+  }
+
+  /* 2. Make ONLY the Offer Letter Voucher and its descendants visible */
+  body.printing-offer-letter #offer-letter-voucher,
+  body.printing-offer-letter #offer-letter-voucher * {
+    visibility: visible !important;
+  }
+
+  /* 3. Hide all UI buttons, sidebars, headers completely */
+  body.printing-offer-letter .no-print,
+  body.printing-offer-letter .sidebar,
+  body.printing-offer-letter .topbar,
+  body.printing-offer-letter .page-header,
+  body.printing-offer-letter .modal-header,
+  body.printing-offer-letter .modal-footer,
+  body.printing-offer-letter .btn,
+  body.printing-offer-letter aside,
+  body.printing-offer-letter nav,
+  body.printing-offer-letter header {
+    display: none !important;
+  }
+
+  /* 4. Unstyle wrappers so they do not add backgrounds, borders, or extra page height */
+  body.printing-offer-letter #root,
+  body.printing-offer-letter .app-shell,
+  body.printing-offer-letter .main-layout,
+  body.printing-offer-letter .main-content,
+  body.printing-offer-letter .modal-backdrop,
+  body.printing-offer-letter .modal-content,
+  body.printing-offer-letter .offer-letter-container-wrap {
+    background: transparent !important;
+    border: none !important;
+    box-shadow: none !important;
+    padding: 0 !important;
+    margin: 0 !important;
+    max-height: none !important;
+    max-width: 100% !important;
+    width: 100% !important;
+    height: auto !important;
+    overflow: visible !important;
+  }
+
+  /* 5. Render Voucher to fill EXACTLY 1 Single A4 page (Zero overflow, Footer ALWAYS pinned) */
+  body.printing-offer-letter #offer-letter-voucher {
+    position: fixed !important;
+    top: 4mm !important;
+    left: 5mm !important;
+    right: 5mm !important;
+    bottom: 4mm !important;
+    width: calc(210mm - 10mm) !important;
+    height: calc(297mm - 8mm) !important;
+    max-width: calc(210mm - 10mm) !important;
+    max-height: calc(297mm - 8mm) !important;
+    box-sizing: border-box !important;
+    margin: 0 !important;
+    padding: 16px 24px 0 24px !important;
+    border: 2px solid #0052cc !important;
+    border-radius: 0 !important;
+    box-shadow: none !important;
+    background: #ffffff !important;
+    display: flex !important;
+    flex-direction: column !important;
+    justify-content: space-between !important;
+    overflow: hidden !important;
+    page-break-inside: avoid !important;
+    break-inside: avoid !important;
+    page-break-after: avoid !important;
+    break-after: avoid !important;
+    page-break-before: avoid !important;
+    break-before: avoid !important;
+    -webkit-print-color-adjust: exact !important;
+    print-color-adjust: exact !important;
+  }
+
+  body.printing-offer-letter .offer-header-divider {
+    margin: 8px -24px 10px -24px !important;
+    width: calc(100% + 48px) !important;
+    border-bottom: 2px solid #0052cc !important;
+  }
+
+  body.printing-offer-letter .offer-footer-bar {
+    background: #0052cc !important;
+    color: #ffffff !important;
+    display: flex !important;
+    justify-content: space-between !important;
+    align-items: center !important;
+    padding: 7px 20px !important;
+    margin: 8px -24px 0 -24px !important;
+    width: calc(100% + 48px) !important;
+    border-radius: 0 !important;
+    flex-shrink: 0 !important;
+    font-size: 0.80rem !important;
+    -webkit-print-color-adjust: exact !important;
+    print-color-adjust: exact !important;
+  }
+}

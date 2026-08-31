@@ -5,23 +5,29 @@
 <style>
   @page {
     size: a4 portrait;
-    margin: 8mm 12mm;
+    margin: 4mm 6mm;
   }
   body {
     font-family: Helvetica, Arial, sans-serif;
-    font-size: 8.5pt;
-    color: #334155;
+    font-size: 7.8pt;
+    color: #1e293b;
     margin: 0;
     padding: 0;
-    line-height: 1.4;
+    line-height: 1.3;
     background-color: #ffffff;
+  }
+
+  .outer-box {
+    width: 100%;
+    border: 2px solid #0052cc;
+    padding: 12px 16px 8px 16px;
+    box-sizing: border-box;
   }
 
   /* ── Header ── */
   .header-table {
     width: 100%;
     border-collapse: collapse;
-    margin-bottom: 8px;
   }
   .header-left {
     width: 50%;
@@ -31,326 +37,337 @@
     width: 50%;
     vertical-align: middle;
     text-align: right;
-    font-size: 7.5pt;
-    color: #64748b;
-    line-height: 1.35;
+    font-size: 6.8pt;
+    color: #1e293b;
+    line-height: 1.3;
   }
-  .company-title {
-    font-size: 15pt;
+  .brand-title {
+    font-size: 13.5pt;
     font-weight: bold;
     color: #0f172a;
     line-height: 1.1;
+    white-space: nowrap;
   }
-  .portal-subtitle {
-    font-size: 9pt;
+  .brand-company {
+    font-size: 10.5pt;
     font-weight: bold;
-    color: #2563eb;
+    color: #0052cc;
     letter-spacing: 0.5px;
     margin-top: 1px;
+    white-space: nowrap;
   }
-  .header-divider {
-    border-bottom: 2px solid #2563eb;
-    margin-bottom: 10px;
-  }
-
-  /* ── Letter Metadata ── */
-  .meta-table {
-    width: 100%;
-    border-collapse: collapse;
-    margin-bottom: 8px;
-  }
-  .meta-date {
-    font-size: 8.5pt;
-    font-weight: bold;
-    color: #0f172a;
-    margin-bottom: 6px;
-  }
-  .recipient-block {
-    font-size: 8.5pt;
-    line-height: 1.35;
-  }
-  .recipient-name {
-    font-size: 9.5pt;
-    font-weight: bold;
-    color: #0f172a;
-  }
-
-  /* ── Subject ── */
-  .subject-box {
-    background-color: #f8fafc;
-    border-left: 3px solid #2563eb;
-    padding: 5px 10px;
-    font-size: 8.5pt;
-    font-weight: bold;
-    color: #0f172a;
+  .header-divider-line {
+    border-bottom: 2px solid #0052cc;
     margin: 8px 0 10px 0;
+    width: 100%;
   }
 
-  /* ── Body Text ── */
+  /* ── Document Title ── */
+  .title-text {
+    font-size: 13pt;
+    font-weight: bold;
+    color: #0052cc;
+    text-align: center;
+    letter-spacing: 0.3px;
+    margin-bottom: 3px;
+  }
+  .title-underline-bar {
+    border-bottom: 2px solid #0052cc;
+    width: 140px;
+    margin: 0 auto 10px auto;
+  }
+
+  /* ── Metadata & Sender/Recipient ── */
+  .meta-p {
+    font-size: 7.6pt;
+    color: #1e293b;
+    margin: 0 0 1.5px 0;
+    line-height: 1.25;
+  }
+  .meta-subject {
+    font-size: 8pt;
+    font-weight: bold;
+    color: #0f172a;
+    margin: 4px 0 5px 0;
+  }
+
+  /* ── Salutation & Intro ── */
   .salutation {
-    font-size: 8.5pt;
-    font-weight: bold;
-    color: #0f172a;
-    margin-bottom: 5px;
-  }
-  .body-p {
-    font-size: 8.2pt;
-    color: #334155;
-    margin: 0 0 8px 0;
-    text-align: justify;
-    line-height: 1.38;
-  }
-
-  /* ── Terms Table (Corporate Executive Standard) ── */
-  .terms-table {
-    width: 100%;
-    border-collapse: collapse;
-    margin: 8px 0 10px 0;
-    border: 1px solid #e2e8f0;
-  }
-  .terms-head {
-    background-color: #1e3a8a;
-    color: #ffffff;
     font-size: 7.8pt;
     font-weight: bold;
-    text-transform: uppercase;
-    letter-spacing: 0.6px;
-    padding: 5px 10px;
-  }
-  .terms-table td {
-    padding: 4px 10px;
-    font-size: 8pt;
-    border-bottom: 1px solid #f1f5f9;
-    vertical-align: middle;
-  }
-  .terms-table tr:nth-child(even) {
-    background-color: #f8fafc;
-  }
-  .term-k {
-    width: 32%;
-    font-weight: bold;
     color: #0f172a;
+    margin: 3px 0 2px 0;
   }
-  .term-v {
-    color: #334155;
+  .body-p {
+    font-size: 7.6pt;
+    color: #1e293b;
+    margin: 0 0 5px 0;
+    text-align: justify;
+    line-height: 1.28;
   }
 
-  /* ── Signatures ── */
-  .sign-section {
-    margin-top: 14px;
-    margin-bottom: 8px;
-  }
-  .sign-table {
+  /* ── 3 Iconic Sections ── */
+  .sec-heading-table {
     width: 100%;
     border-collapse: collapse;
+    margin-top: 4px;
+    margin-bottom: 2px;
   }
-  .sign-label {
-    font-size: 8pt;
-    color: #64748b;
-    line-height: 1.3;
-  }
-  .sig-name {
+  .sec-heading-text {
+    font-size: 8.2pt;
     font-weight: bold;
-    color: #0f172a;
-    font-size: 8.8pt;
-    margin-top: 1px;
+    color: #0052cc;
+    vertical-align: middle;
   }
-  .sig-role {
-    color: #64748b;
+  .bullet-table {
+    width: 100%;
+    border-collapse: collapse;
+    margin-left: 18px;
+    margin-bottom: 3px;
+  }
+  .bullet-table td {
+    padding: 0.8px 0;
+    font-size: 7.4pt;
+    vertical-align: top;
+    line-height: 1.25;
+  }
+  .bullet-star {
+    width: 14px;
+    color: #0052cc;
     font-size: 7.5pt;
-    margin-top: 1px;
+    text-align: center;
+    font-weight: bold;
   }
-  .sig-box {
-    height: 34px;
-  }
-  .sig-rule {
-    border-top: 1px solid #94a3b8;
-    width: 160px;
-    margin-top: 2px;
-    margin-bottom: 4px;
+  .bullet-content {
+    color: #1e293b;
   }
 
-  /* ── Footer ── */
+  /* ── Sign-off ── */
+  .sign-block {
+    margin-top: 4px;
+    font-size: 7.6pt;
+    line-height: 1.22;
+  }
+  .sign-name {
+    font-weight: bold;
+    color: #0f172a;
+    margin-top: 1px;
+  }
+
+  /* ── Bottom Blue Footer ── */
   .footer-table {
     width: 100%;
-    background-color: #1e3a8a;
+    background-color: #0052cc;
     color: #ffffff;
     border-collapse: collapse;
-    margin-top: 12px;
+    margin-top: 8px;
   }
   .footer-table td {
-    padding: 5px 12px;
-    font-size: 7pt;
-    text-align: center;
+    padding: 4px 10px;
+    font-size: 6.6pt;
+    color: #ffffff;
     vertical-align: middle;
-    letter-spacing: 0.2px;
   }
 </style>
 </head>
 <body>
 
-<!-- 1. Header Letterhead -->
-<table class="header-table">
-  <tr>
-    <td class="header-left">
-      <table style="border-collapse: collapse;">
-        <tr>
-          {% if company.logo_url %}
-          <td style="vertical-align: middle; padding-right: 12px;">
-            <img src="{{ company.logo_url }}" width="56" height="52" />
-          </td>
-          {% endif %}
-          <td style="vertical-align: middle;">
-            <div class="company-title">{{ company.name or "MEAGLE360" }}</div>
-            <div class="portal-subtitle">HRMS Portal &bull; Human Resources</div>
-          </td>
-        </tr>
-      </table>
-    </td>
-    <td class="header-right">
-      <div>{{ company.company_address or company.address or "123 Corporate Tower, Sector 62, Noida, India" }}</div>
-      <div>{{ company.email or "hr@meagle360.com" }} &nbsp;|&nbsp; {{ company.phone or "+91 12345 67890" }}</div>
-      {% if company.website %}<div>{{ company.website }}</div>{% endif %}
-    </td>
-  </tr>
-</table>
-
-<div class="header-divider"></div>
-
-<!-- 2. Date & Candidate Details -->
-<div class="meta-date">Date: {{ issue_date }}</div>
-
-<div class="recipient-block">
-  <div>To,</div>
-  <div class="recipient-name">{{ offer.candidate_name }}</div>
-  {% if offer.candidate_address %}<div>{{ offer.candidate_address }}</div>{% endif %}
-</div>
-
-<!-- 3. Subject -->
-<div class="subject-box">
-  Subject: Offer of Employment &ndash; {{ designation_title or "Offered Position" }}
-</div>
-
-<!-- 4. Salutation & Opening -->
-<div class="salutation">Dear {{ first_name or offer.candidate_name }},</div>
-
-<p class="body-p">
-  We are pleased to offer you the position of <strong>{{ designation_title or "-" }}</strong> with
-  <strong>{{ company.name }}</strong>. After evaluating your background, skills, and experience, we are
-  confident that you will make significant contributions to our team and organization.
-</p>
-
-<!-- 5. Key Terms Summary Table -->
-<table class="terms-table">
-  <tr>
-    <th colspan="2" class="terms-head">Summary of Employment Terms</th>
-  </tr>
-  <tr>
-    <td class="term-k">Position / Job Title</td>
-    <td class="term-v"><strong>{{ designation_title or "-" }}</strong></td>
-  </tr>
-  <tr>
-    <td class="term-k">Department</td>
-    <td class="term-v">{{ department_name or "-" }}</td>
-  </tr>
-  <tr>
-    <td class="term-k">Reporting Manager</td>
-    <td class="term-v">{{ reporting_to_name or "Department Lead / HR" }}</td>
-  </tr>
-  <tr>
-    <td class="term-k">Date of Joining</td>
-    <td class="term-v">{{ start_date }}{% if end_date %} (Contract End: {{ end_date }}){% endif %}</td>
-  </tr>
-  <tr>
-    <td class="term-k">Employment Type</td>
-    <td class="term-v">{{ offer.employment_type|replace('_', ' ')|title }}</td>
-  </tr>
-  <tr>
-    <td class="term-k">Work Location</td>
-    <td class="term-v">{{ site_name or "Office / Remote as Assigned" }}</td>
-  </tr>
-  <tr>
-    <td class="term-k">Compensation (CTC)</td>
-    <td class="term-v"><strong>{% if offer.salary_amount %}Rs. {{ "%.2f"|format(offer.salary_amount) }} ({{ offer.salary_frequency or "annual" }}){% else %}As per agreed structure{% endif %}</strong></td>
-  </tr>
-  {% if offer.bonus_details %}
-  <tr>
-    <td class="term-k">Incentives / Bonus</td>
-    <td class="term-v">{{ offer.bonus_details }}</td>
-  </tr>
-  {% endif %}
-  <tr>
-    <td class="term-k">Benefits &amp; Coverage</td>
-    <td class="term-v">{{ offer.other_benefits or "Standard corporate benefits, health coverage, and paid leave as per company policy" }}</td>
-  </tr>
-</table>
-
-<!-- 6. Conditions & Acceptance -->
-<p class="body-p">
-  Your employment will be governed by the standard terms, policies, code of conduct, and confidentiality
-  agreements of <strong>{{ company.name }}</strong>, as communicated and updated from time to time.
-</p>
-
-<p class="body-p">
-  Please confirm your acceptance of this offer by signing and returning a copy of this letter on or before
-  <strong>{{ acceptance_deadline or "the stipulated deadline" }}</strong>. If you have any questions,
-  feel free to contact <strong>{{ offer.hr_contact_name or company.authorized_signatory_name or "HR Department" }}</strong>{% if offer.hr_contact_email or company.email %} at {{ offer.hr_contact_email or company.email }}{% endif %}.
-</p>
-
-<p class="body-p" style="margin-bottom: 4px;">
-  We look forward to welcoming you aboard and building a successful future together!
-</p>
-
-<!-- 7. Signatures -->
-<div class="sign-section">
-  <table class="sign-table">
+<div class="outer-box">
+  <!-- 1. Header Banner -->
+  <table class="header-table">
     <tr>
-      <td style="width: 45%; vertical-align: top;">
-        <div class="sig-label">Sincerely,</div>
-        <div class="sig-label" style="font-weight: bold; color: #0f172a; margin-bottom: 2px;">For {{ company.name }}</div>
-        
-        <div class="sig-box">
-          {% if company.signature_url %}
-            <img src="{{ company.signature_url }}" width="120" height="30" />
-          {% else %}
-            &nbsp;
-          {% endif %}
-        </div>
-        
-        <div class="sig-rule"></div>
-        <div class="sig-name">{{ offer.hr_contact_name or company.authorized_signatory_name or "Authorized Signatory" }}</div>
-        <div class="sig-role">Authorized Signatory &bull; HR Department</div>
+      <td class="header-left">
+        <table style="border-collapse: collapse;">
+          <tr>
+            {% if company and company.logo_url %}
+            <td style="vertical-align: middle; padding-right: 8px;">
+              <img src="{{ company.logo_url }}" width="44" height="40" />
+            </td>
+            {% endif %}
+            <td style="vertical-align: middle;">
+              <div class="brand-title">HRMS Portal</div>
+              <div class="brand-company">{{ (company.name if company else None) or "MEAGLE360" }}</div>
+            </td>
+          </tr>
+        </table>
       </td>
-      
-      <td style="width: 10%;">&nbsp;</td>
-      
-      <td style="width: 45%; vertical-align: top;">
-        <div class="sig-label">Accepted &amp; Agreed:</div>
-        <div class="sig-label" style="font-weight: bold; color: #0f172a; margin-bottom: 2px;">Candidate Acceptance</div>
-        
-        <div class="sig-box">
-          &nbsp;
-        </div>
-        
-        <div class="sig-rule"></div>
-        <div class="sig-name">{{ offer.candidate_name }}</div>
-        <div class="sig-role">Candidate Signature &amp; Date</div>
+      <td class="header-right">
+        <div>{% if icon_location %}<img src="{{ icon_location }}" width="8" height="8" style="vertical-align: middle; margin-right: 2px;" />{% endif %} {{ (company.company_address if company else None) or "123 Business Park, Sector 62, Noida, Uttar Pradesh – 201309, INDIA" }}</div>
+        <div style="margin-top: 1px;">{% if icon_globe %}<img src="{{ icon_globe }}" width="8" height="8" style="vertical-align: middle; margin-right: 2px;" />{% endif %} {{ (company.website if company else None) or "www.meagle360.com" }}</div>
+        <div style="margin-top: 1px;">{% if icon_envelope %}<img src="{{ icon_envelope }}" width="8" height="8" style="vertical-align: middle; margin-right: 2px;" />{% endif %} {{ (company.email if company else None) or "info@meagle360.com" }}</div>
+        <div style="margin-top: 1px;">{% if icon_phone %}<img src="{{ icon_phone }}" width="8" height="8" style="vertical-align: middle; margin-right: 2px;" />{% endif %} {{ (company.phone if company else None) or "+91 12345 67890" }}</div>
       </td>
     </tr>
   </table>
-</div>
 
-<!-- 8. Corporate Footer -->
-<table class="footer-table">
-  <tr>
-    <td>
-      {{ company.name }} &nbsp;&bull;&nbsp;
-      {{ company.company_address or company.address or "Corporate Headquarters" }} &nbsp;&bull;&nbsp;
-      {{ company.email or "hr@meagle360.com" }} &nbsp;&bull;&nbsp;
-      {{ company.website or "www.meagle360.com" }}
-    </td>
-  </tr>
-</table>
+  <div class="header-divider-line"></div>
+
+  <!-- 2. Centered Document Title -->
+  <div class="title-text">Offer Letter</div>
+  <div class="title-underline-bar"></div>
+
+  <!-- 3. Sender / Recipient Metadata -->
+  <div class="meta-p" style="font-weight: bold; color: #0f172a;">{{ (company.name if company else None) or "Meagle360 HRMS Pvt. Ltd." }}</div>
+  <div class="meta-p">{{ (company.company_address if company else None) or "123 Business Park, Sector 62" }}</div>
+  <div class="meta-p">{{ (company.email if company else None) or "info@meagle360.com" }} | {{ (company.phone if company else None) or "+91 12345 67890" }}</div>
+  <div style="margin: 5px 0 9px 0;" class="meta-p">{{ issue_date }}</div>
+  <div class="meta-p" style="font-weight: bold; color: #0f172a;">{{ offer.candidate_name if offer else "[Candidate Name]" }}</div>
+  {% if offer and offer.candidate_address %}<div class="meta-p">{{ offer.candidate_address }}</div>{% endif %}
+  <div class="meta-subject">Subject: Job Offer for {{ designation_title or "Selected Position" }}</div>
+
+  <!-- 4. Salutation & Opening Paragraph -->
+  <div class="salutation">Dear {{ first_name or (offer.candidate_name if offer else "Candidate") }},</div>
+  <p class="body-p">
+    We are pleased to offer you the position of <strong>{{ designation_title or "Selected Position" }}</strong> at <strong>{{ (company.name if company else None) or "MEAGLE360" }}</strong>. After reviewing your qualifications and experience, we believe you will be a valuable addition to our team.
+  </p>
+
+  <!-- 5. Iconic Section 1: Position Details -->
+  <table class="sec-heading-table">
+    <tr>
+      {% if icon_briefcase %}
+      <td style="width: 18px; vertical-align: middle;">
+        <img src="{{ icon_briefcase }}" width="14" height="14" />
+      </td>
+      {% endif %}
+      <td class="sec-heading-text">Position Details:</td>
+    </tr>
+  </table>
+  <table class="bullet-table">
+    <tr>
+      <td class="bullet-star">&#9670;</td>
+      <td class="bullet-content"><strong>Job Title:</strong> {{ designation_title or "Selected Position" }}</td>
+    </tr>
+    <tr>
+      <td class="bullet-star">&#9670;</td>
+      <td class="bullet-content"><strong>Department:</strong> {{ department_name or "General" }}</td>
+    </tr>
+    <tr>
+      <td class="bullet-star">&#9670;</td>
+      <td class="bullet-content"><strong>Reporting To:</strong> {{ reporting_to_name or "Department Manager" }}</td>
+    </tr>
+    <tr>
+      <td class="bullet-star">&#9670;</td>
+      <td class="bullet-content"><strong>Start Date:</strong> {{ start_date }}</td>
+    </tr>
+    <tr>
+      <td class="bullet-star">&#9670;</td>
+      <td class="bullet-content"><strong>Employment Type:</strong> {{ "Full-Time" if offer and offer.employment_type == "full_time" else (offer.employment_type|capitalize if offer and offer.employment_type else "Full-Time") }}</td>
+    </tr>
+    <tr>
+      <td class="bullet-star">&#9670;</td>
+      <td class="bullet-content"><strong>Work Location:</strong> {{ site_name or "Office Location / Headquarters" }}</td>
+    </tr>
+  </table>
+
+  <!-- 6. Iconic Section 2: Compensation & Benefits -->
+  <table class="sec-heading-table">
+    <tr>
+      {% if icon_moneybag %}
+      <td style="width: 18px; vertical-align: middle;">
+        <img src="{{ icon_moneybag }}" width="14" height="14" />
+      </td>
+      {% endif %}
+      <td class="sec-heading-text">Compensation &amp; Benefits:</td>
+    </tr>
+  </table>
+  <table class="bullet-table">
+    <tr>
+      <td class="bullet-star">&#9670;</td>
+      <td class="bullet-content">
+        <strong>Salary:</strong>
+        {% if offer and offer.salary_amount %}
+          Rs. {{ "%.2f"|format(offer.salary_amount) }} ({{ offer.salary_frequency|capitalize if offer.salary_frequency else "Annual" }})
+        {% else %}
+          Competitive Compensation Package as agreed during discussions
+        {% endif %}
+      </td>
+    </tr>
+    <tr>
+      <td class="bullet-star">&#9670;</td>
+      <td class="bullet-content">
+        <strong>Bonus/Incentives (if applicable):</strong> {{ (offer.bonus_details if offer else None) or "Performance-linked bonus as per company policy" }}
+      </td>
+    </tr>
+    <tr>
+      <td class="bullet-star">&#9670;</td>
+      <td class="bullet-content">
+        <strong>Other Benefits:</strong> {{ (offer.other_benefits if offer else None) or "Health Insurance, Paid Leaves, and other standard company perks." }}
+      </td>
+    </tr>
+  </table>
+
+  <!-- 7. Iconic Section 3: Terms & Conditions -->
+  <table class="sec-heading-table">
+    <tr>
+      {% if icon_document %}
+      <td style="width: 18px; vertical-align: middle;">
+        <img src="{{ icon_document }}" width="14" height="14" />
+      </td>
+      {% endif %}
+      <td class="sec-heading-text">Terms &amp; Conditions:</td>
+    </tr>
+  </table>
+  <table class="bullet-table">
+    <tr>
+      <td class="bullet-star">&#9670;</td>
+      <td class="bullet-content">Your employment will be subject to the terms outlined in the company's policies.</td>
+    </tr>
+    <tr>
+      <td class="bullet-star">&#9670;</td>
+      <td class="bullet-content">You may be required to sign a confidentiality agreement and/or a non-compete clause.</td>
+    </tr>
+    <tr>
+      <td class="bullet-star">&#9670;</td>
+      <td class="bullet-content">The employment is {{ "at-will" if offer and offer.employment_type != "fixed_term" else "fixed-term" }}, and either party may terminate the agreement as per company policies.</td>
+    </tr>
+  </table>
+
+  <!-- 8. Closing Paragraphs -->
+  <p class="body-p" style="margin-top: 4px;">
+    Please sign and return a copy of this letter by <strong>{{ acceptance_deadline or "the acceptance deadline" }}</strong> to confirm your acceptance of the offer. If you have any questions, feel free to reach out to <strong>{{ (offer.hr_contact_name if offer else None) or "HR Contact Person" }}</strong> at <strong>{{ (offer.hr_contact_email if offer else None) or (company.email if company else "info@meagle360.com") }}</strong>.
+  </p>
+
+  <p class="body-p">
+    We are excited to have you on board and look forward to working together!
+  </p>
+
+  <!-- 9. Dual Sign-off -->
+  <table style="width: 100%; margin-top: 8px;">
+    <tr>
+      <td style="width: 50%; vertical-align: top;">
+        <div class="sign-block" style="margin-top: 0;">
+          <div>Best regards,</div>
+          {% if company and company.signature_url %}
+            <div style="margin: 3px 0;"><img src="{{ company.signature_url }}" width="120" height="42" /></div>
+          {% else %}
+            <div style="width: 130px; height: 32px; border-bottom: 1.5px solid #94a3b8; margin-bottom: 4px;"></div>
+          {% endif %}
+          <div class="sign-name">{{ (offer.hr_contact_name if offer else None) or (company.authorized_signatory_name if company else None) or "Authorized Signatory" }}</div>
+          <div>{{ designation_title or "HR Department" }}</div>
+          <div>{{ (company.name if company else None) or "MEAGLE360" }}</div>
+        </div>
+      </td>
+      <td style="width: 50%; vertical-align: top; padding-left: 15px;">
+        <div class="sign-block" style="margin-top: 0;">
+          <div>Accepted &amp; Acknowledged by:</div>
+          <div style="width: 130px; height: 32px; border-bottom: 1.5px solid #94a3b8; margin-bottom: 3px;"></div>
+          <div style="font-size: 6.8pt; color: #64748b; font-weight: bold; text-transform: uppercase;">Signature</div>
+          <div class="sign-name" style="margin-top: 2px;">{{ offer.candidate_name if offer else "[Candidate Name]" }}</div>
+          <div>Candidate</div>
+        </div>
+      </td>
+    </tr>
+  </table>
+
+  <!-- 10. Bottom Solid Blue Footer -->
+  <table class="footer-table">
+    <tr>
+      <td style="width: 33%; text-align: left;">{% if icon_phone %}<img src="{{ icon_phone }}" width="7" height="7" style="vertical-align: middle; margin-right: 2px;" />{% endif %} {{ (company.phone if company else None) or "+91 12345 67890" }}</td>
+      <td style="width: 34%; text-align: center;">{% if icon_envelope %}<img src="{{ icon_envelope }}" width="7" height="7" style="vertical-align: middle; margin-right: 2px;" />{% endif %} {{ (company.email if company else None) or "info@meagle360.com" }}</td>
+      <td style="width: 33%; text-align: right;">{% if icon_globe %}<img src="{{ icon_globe }}" width="7" height="7" style="vertical-align: middle; margin-right: 2px;" />{% endif %} {{ (company.website if company else None) or "www.meagle360.com" }}</td>
+    </tr>
+  </table>
+</div>
 
 </body>
 </html>
