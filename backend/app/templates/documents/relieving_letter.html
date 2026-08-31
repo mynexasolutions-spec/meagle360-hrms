@@ -5,346 +5,317 @@
 <style>
   @page {
     size: a4 portrait;
-    margin: 8mm 12mm;
+    margin: 4mm 5mm;
   }
-  body {
-    font-family: Helvetica, Arial, sans-serif;
-    font-size: 8.5pt;
-    color: #334155;
+  * {
+    box-sizing: border-box;
+    -webkit-print-color-adjust: exact;
+    print-color-adjust: exact;
+  }
+  html, body {
     margin: 0;
     padding: 0;
-    line-height: 1.4;
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+    color: #1e293b;
     background-color: #ffffff;
+    font-size: 11.8pt;
+    line-height: 1.72;
   }
 
-  /* ── Header ── */
+  /* ── Outer Blue Border Voucher Container (100% Single Page) ── */
+  .voucher-container {
+    border: 2px solid #0052cc;
+    padding: 18px 24px 0 24px;
+    background: #ffffff;
+    width: 100%;
+    min-height: 285mm;
+    box-sizing: border-box;
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between;
+  }
+
+  /* ── 1. Top Header ── */
   .header-table {
     width: 100%;
     border-collapse: collapse;
-    margin-bottom: 8px;
+    margin-bottom: 0;
   }
-  .header-left {
-    width: 50%;
+  .header-left-td {
+    width: 52%;
     vertical-align: middle;
   }
-  .header-right {
-    width: 50%;
+  .header-right-td {
+    width: 48%;
     vertical-align: middle;
-    text-align: right;
-    font-size: 7.5pt;
-    color: #64748b;
-    line-height: 1.35;
+    text-align: left;
   }
-  .company-title {
-    font-size: 15pt;
-    font-weight: bold;
+  .logo-box {
+    width: 78px;
+    height: 68px;
+    border: 1.5px solid #cbd5e1;
+    border-radius: 6px;
+    padding: 2px 4px;
+    text-align: center;
+    vertical-align: middle;
+    display: inline-block;
+  }
+  .logo-box img {
+    max-width: 72px;
+    max-height: 62px;
+  }
+  .brand-title {
+    font-size: 20pt;
+    font-weight: 800;
     color: #0f172a;
     line-height: 1.1;
   }
-  .portal-subtitle {
-    font-size: 9pt;
-    font-weight: bold;
-    color: #2563eb;
-    letter-spacing: 0.5px;
-    margin-top: 1px;
-  }
-  .header-divider {
-    border-bottom: 2px solid #2563eb;
-    margin-bottom: 10px;
-  }
-
-  /* ── Letter Metadata ── */
-  .meta-date {
-    font-size: 8.5pt;
-    font-weight: bold;
-    color: #0f172a;
-    margin-bottom: 6px;
-  }
-  .recipient-block {
-    font-size: 8.5pt;
-    line-height: 1.35;
-    margin-bottom: 8px;
-  }
-  .recipient-name {
-    font-size: 9.5pt;
-    font-weight: bold;
-    color: #0f172a;
-  }
-
-  /* ── Subject ── */
-  .subject-box {
-    background-color: #f8fafc;
-    border-left: 3px solid #2563eb;
-    padding: 5px 10px;
-    font-size: 8.5pt;
-    font-weight: bold;
-    color: #0f172a;
-    margin: 8px 0 10px 0;
-  }
-
-  /* ── Body Text ── */
-  .salutation {
-    font-size: 8.5pt;
-    font-weight: bold;
-    color: #0f172a;
-    margin-bottom: 5px;
-  }
-  .body-p {
-    font-size: 8.2pt;
-    color: #334155;
-    margin: 0 0 8px 0;
-    text-align: justify;
-    line-height: 1.38;
-  }
-
-  /* ── Service Summary Table (Corporate Executive Standard) ── */
-  .terms-table {
-    width: 100%;
-    border-collapse: collapse;
-    margin: 8px 0 10px 0;
-    border: 1px solid #e2e8f0;
-  }
-  .terms-head {
-    background-color: #1e3a8a;
-    color: #ffffff;
-    font-size: 7.8pt;
-    font-weight: bold;
-    text-transform: uppercase;
-    letter-spacing: 0.6px;
-    padding: 5px 10px;
-  }
-  .terms-table td {
-    padding: 4px 10px;
-    font-size: 8pt;
-    border-bottom: 1px solid #f1f5f9;
-    vertical-align: middle;
-  }
-  .terms-table tr:nth-child(even) {
-    background-color: #f8fafc;
-  }
-  .term-k {
-    width: 32%;
-    font-weight: bold;
-    color: #0f172a;
-  }
-  .term-v {
-    color: #334155;
-  }
-
-  /* ── Signatures ── */
-  .sign-section {
-    margin-top: 14px;
-    margin-bottom: 8px;
-  }
-  .sign-table {
-    width: 100%;
-    border-collapse: collapse;
-  }
-  .sign-label {
-    font-size: 8pt;
-    color: #64748b;
-    line-height: 1.3;
-  }
-  .sig-name {
-    font-weight: bold;
-    color: #0f172a;
-    font-size: 8.8pt;
-    margin-top: 1px;
-  }
-  .sig-role {
-    color: #64748b;
-    font-size: 7.5pt;
-    margin-top: 1px;
-  }
-  .sig-box {
-    height: 34px;
-  }
-  .sig-rule {
-    border-top: 1px solid #94a3b8;
-    width: 160px;
+  .brand-company {
+    font-size: 15pt;
+    font-weight: 900;
+    color: #0052cc;
     margin-top: 2px;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+  }
+  .contact-row-table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 9.2pt;
+    color: #1e293b;
+    line-height: 1.42;
+  }
+  .contact-icon-td {
+    width: 16px;
+    vertical-align: middle;
+    padding: 1.5px 0;
+  }
+  .contact-icon-td img {
+    width: 12px;
+    height: 12px;
+  }
+  .contact-text-td {
+    vertical-align: middle;
+    padding: 1.5px 0 1.5px 4px;
+  }
+
+  /* ── Edge-to-Edge Divider Line ── */
+  .header-divider-line {
+    border-bottom: 2px solid #0052cc;
+    margin: 12px -24px 16px -24px;
+  }
+
+  /* ── 2. Centered Document Title ── */
+  .title-text {
+    text-align: center;
+    font-size: 20pt;
+    font-weight: 800;
+    color: #0052cc;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
     margin-bottom: 4px;
   }
-
-  /* ── Footer ── */
-  .footer-table {
-    width: 100%;
-    background-color: #1e3a8a;
-    color: #ffffff;
-    border-collapse: collapse;
-    margin-top: 12px;
+  .title-underline-bar {
+    width: 180px;
+    height: 3px;
+    background-color: #0052cc;
+    margin: 0 auto 16px auto;
   }
-  .footer-table td {
-    padding: 5px 12px;
-    font-size: 7pt;
+
+  /* ── 3. Top Recipient & Date Section (Matching media_1788198024893.jpg) ── */
+  .meta-p {
+    font-size: 11.5pt;
+    color: #1e293b;
+    line-height: 1.60;
+    margin: 0 0 3px 0;
+  }
+
+  /* ── 4. Centered Subject (Matching media_1788198024893.jpg) ── */
+  .subject-title {
     text-align: center;
-    vertical-align: middle;
-    letter-spacing: 0.2px;
+    font-size: 12.8pt;
+    font-weight: 800;
+    color: #0f172a;
+    margin: 16px 0 20px 0;
+  }
+
+  /* ── 5. Salutation & Body Paragraphs ── */
+  .salutation {
+    font-size: 12pt;
+    font-weight: bold;
+    color: #0f172a;
+    margin-bottom: 12px;
+  }
+  .body-p {
+    font-size: 11.4pt;
+    color: #1e293b;
+    margin: 0 0 16px 0;
+    text-align: justify;
+    line-height: 1.72;
+  }
+
+  /* ── 6. Signatory Section ── */
+  .sign-col {
+    width: 240px;
+    font-size: 11pt;
+    line-height: 1.58;
+    margin-top: 22px;
+  }
+  .sign-name {
+    font-weight: 800;
+    font-size: 12.5pt;
+    color: #0f172a;
+    margin-top: 3px;
+  }
+
+  /* ── 7. 2-Tier Footer (Matching media_1788198024893.jpg) ── */
+  .footer-wrap {
+    margin: 10px -24px -2px -24px;
+  }
+  .footer-cin {
+    background-color: #0052cc;
+    color: #ffffff;
+    font-size: 9pt;
+    font-weight: bold;
+    text-align: center;
+    padding: 6px 10px;
+    letter-spacing: 0.5px;
+  }
+  .footer-address {
+    background-color: #67e8f9;
+    color: #0f172a;
+    font-size: 8pt;
+    font-weight: 600;
+    text-align: center;
+    padding: 5px 10px;
   }
 </style>
 </head>
 <body>
 
-<!-- 1. Header Letterhead -->
-<table class="header-table">
-  <tr>
-    <td class="header-left">
-      <table style="border-collapse: collapse;">
-        <tr>
-          {% if company.logo_url %}
-          <td style="vertical-align: middle; padding-right: 12px;">
-            <img src="{{ company.logo_url }}" width="56" height="52" />
-          </td>
-          {% endif %}
-          <td style="vertical-align: middle;">
-            <div class="company-title">{{ company.name or "MEAGLE360" }}</div>
-            <div class="portal-subtitle">HRMS Portal &bull; Human Resources</div>
-          </td>
-        </tr>
-      </table>
-    </td>
-    <td class="header-right">
-      <div>{{ company.company_address or company.address or "123 Corporate Tower, Sector 62, Noida, India" }}</div>
-      <div>{{ company.email or "hr@meagle360.com" }} &nbsp;|&nbsp; {{ company.phone or "+91 12345 67890" }}</div>
-      {% if company.website %}<div>{{ company.website }}</div>{% endif %}
-    </td>
-  </tr>
-</table>
+<div class="voucher-container">
+  <div>
+    <!-- 1. Header (Matching Offer Letter Brand Header) -->
+    <table class="header-table">
+      <tr>
+        <td class="header-left-td">
+          <table style="border-collapse: collapse;">
+            <tr>
+              {% if company.logo_url %}
+              <td style="vertical-align: middle; padding-right: 12px;">
+                <div class="logo-box">
+                  <img src="{{ company.logo_url }}" />
+                </div>
+              </td>
+              {% endif %}
+              <td style="vertical-align: middle;">
+                <div class="brand-title">HRMS Portal</div>
+                <div class="brand-company">{{ (company.name if company else None) or "MEAGLE360 CORP" }}</div>
+              </td>
+            </tr>
+          </table>
+        </td>
+        <td class="header-right-td">
+          <table class="contact-row-table">
+            <tr>
+              {% if icon_location %}
+              <td class="contact-icon-td"><img src="{{ icon_location }}" /></td>
+              {% endif %}
+              <td class="contact-text-td">{{ (company.company_address if company else None) or (company.address if company else None) or "1 Infinite Loop, Cupertino, CA" }}</td>
+            </tr>
+            {% if company.website %}
+            <tr>
+              {% if icon_globe %}
+              <td class="contact-icon-td"><img src="{{ icon_globe }}" /></td>
+              {% endif %}
+              <td class="contact-text-td">{{ company.website }}</td>
+            </tr>
+            {% endif %}
+            <tr>
+              {% if icon_envelope %}
+              <td class="contact-icon-td"><img src="{{ icon_envelope }}" /></td>
+              {% endif %}
+              <td class="contact-text-td">{{ (company.email if company else None) or "service@puma.com" }}</td>
+            </tr>
+            <tr>
+              {% if icon_phone %}
+              <td class="contact-icon-td"><img src="{{ icon_phone }}" /></td>
+              {% endif %}
+              <td class="contact-text-td">{{ (company.phone if company else None) or "+91 9845178901" }}</td>
+            </tr>
+          </table>
+        </td>
+      </tr>
+    </table>
 
-<div class="header-divider"></div>
+    <div class="header-divider-line"></div>
 
-<!-- 2. Date & Employee Details -->
-<div class="meta-date">Date: {{ issue_date }}</div>
+    <!-- 2. Centered Document Title -->
+    <div class="title-text">Relieving Letter</div>
+    <div class="title-underline-bar"></div>
 
-<div class="recipient-block">
-  <div>To,</div>
-  <div class="recipient-name">{{ employee.full_name }}</div>
-  {% if employee.employee_code %}<div>Employee Code: <strong>{{ employee.employee_code }}</strong></div>{% endif %}
-  {% if employee.current_address %}<div>{{ employee.current_address }}</div>{% endif %}
-</div>
+    <!-- 3. Top Recipient & Date Section (Matching media_1788198024893.jpg) -->
+    <div class="meta-p" style="font-weight: 600; margin-bottom: 6px;">{{ issue_date }}</div>
+    <div class="meta-p" style="font-weight: bold; color: #0f172a; font-size: 10pt;">{{ employee.full_name }}</div>
+    {% if employee.current_address %}<div class="meta-p">{{ employee.current_address }}</div>{% endif %}
+    {% if employee.city %}<div class="meta-p">{{ employee.city }}{% if employee.state %}, {{ employee.state }}{% endif %}{% if employee.postal_code %}, {{ employee.postal_code }}{% endif %}</div>{% endif %}
 
-<!-- 3. Subject -->
-<div class="subject-box">
-  Subject: Relieving &amp; Service Experience Certificate &ndash; {{ employee.full_name }}
-</div>
+    <!-- 4. Centered Subject (Matching media_1788198024893.jpg) -->
+    <div class="subject-title">Subject: Relieving Letter</div>
 
-<!-- 4. Salutation & Opening -->
-<div class="salutation">Dear {{ first_name or employee.full_name }},</div>
+    <!-- 5. Salutation & Body Paragraphs -->
+    <div class="salutation">Dear {{ employee.full_name }},</div>
 
-<p class="body-p">
-  This is to formally certify that <strong>{{ employee.full_name }}</strong>{% if employee.employee_code %} (Employee Code: <strong>{{ employee.employee_code }}</strong>){% endif %}
-  was employed with <strong>{{ company.name }}</strong> from <strong>{{ date_of_joining }}</strong>
-  to <strong>{{ last_working_date }}</strong>.
-</p>
+    <p class="body-p">
+      We are writing to confirm that <strong>{{ employee.full_name }}</strong>, employed with <strong>{{ (company.name if company else None) or "MEAGLE360" }}</strong> since <strong>{{ date_of_joining }}</strong>, has been relieved from their duties effective <strong>{{ last_working_date }}</strong>.
+    </p>
 
-<!-- 5. Service Summary Table -->
-<table class="terms-table">
-  <tr>
-    <th colspan="2" class="terms-head">Summary of Service Record</th>
-  </tr>
-  <tr>
-    <td class="term-k">Employee Name</td>
-    <td class="term-v"><strong>{{ employee.full_name }}</strong></td>
-  </tr>
-  <tr>
-    <td class="term-k">Employee Code</td>
-    <td class="term-v">{{ employee.employee_code or "-" }}</td>
-  </tr>
-  <tr>
-    <td class="term-k">Designation</td>
-    <td class="term-v"><strong>{{ designation_title or "-" }}</strong></td>
-  </tr>
-  <tr>
-    <td class="term-k">Department</td>
-    <td class="term-v">{{ department_name or "-" }}</td>
-  </tr>
-  <tr>
-    <td class="term-k">Date of Joining</td>
-    <td class="term-v">{{ date_of_joining }}</td>
-  </tr>
-  <tr>
-    <td class="term-k">Last Working Date</td>
-    <td class="term-v">{{ last_working_date }}</td>
-  </tr>
-  <tr>
-    <td class="term-k">Clearance Status</td>
-    <td class="term-v">Full &amp; Final Settlement Cleared &bull; All Assets Returned</td>
-  </tr>
-</table>
+    <p class="body-p">
+      During their tenure with us, <strong>{{ employee.full_name }}</strong> performed their duties diligently and responsibly. We appreciate their contributions to the company and wish them all the best in their future endeavors.
+    </p>
 
-<!-- 6. Conduct & Appreciation -->
-<p class="body-p">
-  During their tenure with <strong>{{ company.name }}</strong>, {{ employee.full_name }} carried out their
-  duties and responsibilities with diligence, professional integrity, and dedication.
-</p>
+    {% if relieving.custom_paragraph %}
+    <p class="body-p">
+      {{ relieving.custom_paragraph }}
+    </p>
+    {% endif %}
 
-<p class="body-p">
-  All company properties, documents, assets, and project handovers assigned have been satisfactorily returned
-  and cleared as per company exit policies and protocols.
-</p>
+    <p class="body-p">
+      Please feel free to contact us at {{ (company.phone if company else None) or "+91 9845178901" }} or {{ (company.email if company else None) or "service@puma.com" }} if you require any further information.
+    </p>
 
-{% if relieving.custom_paragraph %}
-<p class="body-p" style="font-style: italic;">
-  {{ relieving.custom_paragraph }}
-</p>
-{% endif %}
+    <p class="body-p" style="margin-bottom: 12px;">
+      Thank you for your cooperation.
+    </p>
 
-<p class="body-p" style="margin-bottom: 4px;">
-  We appreciate their valuable contributions and service to the organization and wish them all the best in their
-  future professional pursuits.
-</p>
-
-<!-- 7. Signatures -->
-<div class="sign-section">
-  <table class="sign-table">
-    <tr>
-      <td style="width: 45%; vertical-align: top;">
-        <div class="sig-label">Sincerely,</div>
-        <div class="sig-label" style="font-weight: bold; color: #0f172a; margin-bottom: 2px;">For {{ company.name }}</div>
-        
-        <div class="sig-box">
-          {% if company.signature_url %}
-            <img src="{{ company.signature_url }}" width="120" height="30" />
-          {% else %}
-            &nbsp;
-          {% endif %}
+    <!-- 6. Signatory Section -->
+    <div class="sign-col">
+      <div style="font-weight: 600; color: #334155; margin-bottom: 2px;">Sincerely,</div>
+      {% if company.signature_url %}
+        <div style="margin: 4px 0 2px 0; min-height: 52px;">
+          <img src="{{ company.signature_url }}" height="52" style="max-width: 200px;" />
         </div>
-        
-        <div class="sig-rule"></div>
-        <div class="sig-name">{{ company.authorized_signatory_name or "Authorized Signatory" }}</div>
-        <div class="sig-role">Authorized Signatory &bull; HR Department</div>
-      </td>
-      
-      <td style="width: 10%;">&nbsp;</td>
-      
-      <td style="width: 45%; vertical-align: top;">
-        <div class="sig-label">Acknowledged &amp; Received:</div>
-        <div class="sig-label" style="font-weight: bold; color: #0f172a; margin-bottom: 2px;">Employee Acknowledgment</div>
-        
-        <div class="sig-box">
-          &nbsp;
-        </div>
-        
-        <div class="sig-rule"></div>
-        <div class="sig-name">{{ employee.full_name }}</div>
-        <div class="sig-role">Employee Signature &amp; Date</div>
-      </td>
-    </tr>
-  </table>
-</div>
+      {% else %}
+        <div style="width: 180px; height: 52px; border-bottom: 2px solid #94a3b8; margin-bottom: 5px;"></div>
+      {% endif %}
+      <div class="sign-name">{{ (company.authorized_signatory_name if company else None) or "Authorized Signatory" }}</div>
+      <div style="color: #475569; font-size: 8.5pt;">HR Department</div>
+      {% if company.phone %}<div style="color: #475569; font-size: 8.2pt;">{{ company.phone }}</div>{% endif %}
+      {% if company.email %}<div style="color: #475569; font-size: 8.2pt;">{{ company.email }}</div>{% endif %}
+      <div style="font-weight: bold; color: #0052cc; font-size: 8.8pt; margin-top: 2px;">{{ (company.name if company else None) or "MEAGLE360 CORP" }}</div>
+    </div>
+  </div>
 
-<!-- 8. Corporate Footer -->
-<table class="footer-table">
-  <tr>
-    <td>
-      {{ company.name }} &nbsp;&bull;&nbsp;
-      {{ company.company_address or company.address or "Corporate Headquarters" }} &nbsp;&bull;&nbsp;
-      {{ company.email or "hr@meagle360.com" }} &nbsp;&bull;&nbsp;
-      {{ company.website or "www.meagle360.com" }}
-      {% if company.cin_number %}&nbsp;&bull;&nbsp; CIN: {{ company.cin_number }}{% endif %}
-    </td>
-  </tr>
-</table>
+  <!-- 7. Bottom 2-Tier Footer (Matching media_1788198024893.jpg) -->
+  <div class="footer-wrap">
+    <div class="footer-cin">
+      CIN NO: {{ (company.cin_number if company else None) or "U74899DL2000PLC103438" }}
+    </div>
+    <div class="footer-address">
+      Registered Address: {{ (company.registered_address if company else None) or (company.company_address if company else None) or (company.address if company else None) or "L-130/1, Gautam Nagar, New Delhi - 110049" }}
+    </div>
+  </div>
+</div>
 
 </body>
 </html>
