@@ -445,7 +445,7 @@ export default function Dashboard() {
               style={{
                 background: '#ffffff',
                 borderRadius: 20,
-                padding: '22px 24px',
+                padding: '18px 20px',
                 border: '1px solid #e2e8f0',
                 boxShadow: '0 4px 20px -2px rgba(0, 0, 0, 0.03)',
                 display: 'flex',
@@ -456,17 +456,16 @@ export default function Dashboard() {
               }}
             >
               <div>
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 14 }}>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-                    <div style={{ width: 34, height: 34, borderRadius: 10, background: '#f5f3ff', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#7c3aed' }}>
-                      <Umbrella size={17} />
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 14, gap: 10 }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 8, minWidth: 0 }}>
+                    <div style={{ width: 32, height: 32, borderRadius: 8, background: '#f5f3ff', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#7c3aed', flexShrink: 0 }}>
+                      <Umbrella size={16} />
                     </div>
-                    <div>
-                      <h3 style={{ fontSize: '1.05rem', fontWeight: 800, color: '#0f172a', margin: 0 }}>Leave Summary</h3>
-                      <p style={{ fontSize: '0.75rem', color: '#64748b', margin: '1px 0 0 0' }}>YTD organization-wide leaves</p>
-                    </div>
+                    <h3 style={{ fontSize: '0.98rem', fontWeight: 800, color: '#0f172a', margin: 0, whiteSpace: 'nowrap' }}>
+                      Leave Summary
+                    </h3>
                   </div>
-                  <span style={{ fontSize: '0.75rem', fontWeight: 700, color: '#059669', background: '#ecfdf5', padding: '3px 10px', borderRadius: 8, border: '1px solid #a7f3d0' }}>
+                  <span style={{ fontSize: '0.70rem', fontWeight: 700, color: '#059669', background: '#ecfdf5', padding: '2px 7px', borderRadius: 6, border: '1px solid #a7f3d0', whiteSpace: 'nowrap', flexShrink: 0 }}>
                     Active Year
                   </span>
                 </div>
@@ -634,7 +633,7 @@ export default function Dashboard() {
               style={{
                 background: '#ffffff',
                 borderRadius: 20,
-                padding: '22px 24px',
+                padding: '18px 20px',
                 border: '1px solid #e2e8f0',
                 boxShadow: '0 4px 20px -2px rgba(0, 0, 0, 0.03)',
                 display: 'flex',
@@ -645,37 +644,36 @@ export default function Dashboard() {
               }}
             >
               <div>
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 14 }}>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-                    <div style={{ width: 34, height: 34, borderRadius: 10, background: '#fdf2f8', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#db2777', flexShrink: 0 }}>
-                      <Megaphone size={17} />
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 14, gap: 10 }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 8, minWidth: 0 }}>
+                    <div style={{ width: 32, height: 32, borderRadius: 8, background: '#fdf2f8', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#db2777', flexShrink: 0 }}>
+                      <Megaphone size={16} />
                     </div>
-                    <div>
-                      <h3 style={{ fontSize: '1.05rem', fontWeight: 800, color: '#0f172a', margin: 0 }}>Announcements</h3>
-                      <p style={{ fontSize: '0.75rem', color: '#64748b', margin: '1px 0 0 0' }}>Recent company broadcasts</p>
-                    </div>
+                    <h3 style={{ fontSize: '0.98rem', fontWeight: 800, color: '#0f172a', margin: 0, whiteSpace: 'nowrap' }}>
+                      Announcements
+                    </h3>
                   </div>
-                  <div style={{ display: 'flex', gap: 8, alignItems: 'center', flexShrink: 0, marginLeft: 16 }}>
+                  <div style={{ display: 'flex', gap: 8, alignItems: 'center', flexShrink: 0 }}>
                     {isAdminOrManager && (
                       <button
                         onClick={() => setShowNewAnnouncement(true)}
                         style={{
-                          display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 4,
-                          padding: '4px 8px', borderRadius: 8, border: '1px solid #cbd5e1',
+                          display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 3,
+                          padding: '3px 7px', borderRadius: 6, border: '1px solid #cbd5e1',
                           background: '#ffffff', color: '#334155', cursor: 'pointer',
-                          fontSize: '0.75rem', fontWeight: 600,
+                          fontSize: '0.72rem', fontWeight: 600,
                           boxShadow: '0 1px 2px rgba(0,0,0,0.03)',
                         }}
                         title="Post Announcement"
                       >
-                        <Plus size={13} />
+                        <Plus size={12} />
                       </button>
                     )}
                     <button
                       onClick={() => setShowAllAnnouncements(true)}
                       style={{
-                        color: 'var(--accent-blue)', fontSize: '0.8125rem', fontWeight: 600,
-                        background: 'transparent', border: 'none', cursor: 'pointer', padding: 0,
+                        color: '#2563eb', fontSize: '0.74rem', fontWeight: 600,
+                        background: 'transparent', border: 'none', cursor: 'pointer', padding: 0, whiteSpace: 'nowrap',
                       }}
                     >
                       View all
@@ -880,18 +878,27 @@ export default function Dashboard() {
         <div className="dashboard-columns">
           
           {/* Left: My Leave Balance (Clean 3+2 Symmetrical Grid) */}
-          <div className="section-card" style={{ borderRadius: 20, padding: '22px 24px', border: '1px solid #e2e8f0', boxShadow: '0 4px 20px -2px rgba(0, 0, 0, 0.03)', height: '100%', display: 'flex', flexDirection: 'column', justifyContent: 'space-between', boxSizing: 'border-box' }}>
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 14 }}>
-              <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-                <div style={{ width: 34, height: 34, borderRadius: 10, background: '#eff6ff', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#2563eb' }}>
-                  <Sparkles size={17} />
+          <div className="section-card" style={{ borderRadius: 20, padding: '18px 20px', border: '1px solid #e2e8f0', boxShadow: '0 4px 20px -2px rgba(0, 0, 0, 0.03)', height: '100%', display: 'flex', flexDirection: 'column', justifyContent: 'space-between', boxSizing: 'border-box' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 14, gap: 10 }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 8, minWidth: 0 }}>
+                <div style={{ width: 32, height: 32, borderRadius: 8, background: '#eff6ff', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#2563eb', flexShrink: 0 }}>
+                  <Sparkles size={16} />
                 </div>
-                <div>
-                  <h3 style={{ marginBottom: 0, fontSize: '1.05rem', fontWeight: 800, color: '#0f172a' }}>My Leave Balance</h3>
-                  <p style={{ fontSize: '0.75rem', color: '#64748b', margin: '1px 0 0 0' }}>Your personal allocated leave entitlements</p>
-                </div>
+                <h3 style={{ marginBottom: 0, fontSize: '0.98rem', fontWeight: 800, color: '#0f172a', whiteSpace: 'nowrap' }}>
+                  My Leave Balance
+                </h3>
               </div>
-              <Link to="/leave" style={{ color: 'var(--accent-blue)', fontSize: '0.8125rem', fontWeight: 600, textDecoration: 'none' }}>
+              <Link
+                to="/leave"
+                style={{
+                  color: '#2563eb',
+                  fontSize: '0.74rem',
+                  fontWeight: 600,
+                  textDecoration: 'none',
+                  whiteSpace: 'nowrap',
+                  flexShrink: 0,
+                }}
+              >
                 View all
               </Link>
             </div>
@@ -1051,16 +1058,28 @@ export default function Dashboard() {
           </div>
 
           {/* Right: Upcoming Holidays */}
-          <div className="section-card" style={{ borderRadius: 20, padding: '20px 22px', border: '1px solid #e2e8f0', height: '100%', display: 'flex', flexDirection: 'column', justifyContent: 'space-between', boxSizing: 'border-box' }}>
+          <div className="section-card" style={{ borderRadius: 20, padding: '18px 20px', border: '1px solid #e2e8f0', height: '100%', display: 'flex', flexDirection: 'column', justifyContent: 'space-between', boxSizing: 'border-box' }}>
             <div>
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 14, width: '100%' }}>
-                <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 14, width: '100%', gap: 10 }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 8, minWidth: 0 }}>
                   <div style={{ width: 32, height: 32, borderRadius: 8, background: '#fee2e2', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#ef4444', flexShrink: 0 }}>
                     <CalendarHeart size={16} />
                   </div>
-                  <h3 style={{ fontSize: '1.02rem', fontWeight: 800, color: '#0f172a', margin: 0, whiteSpace: 'nowrap' }}>Upcoming Holidays</h3>
+                  <h3 style={{ fontSize: '0.98rem', fontWeight: 800, color: '#0f172a', margin: 0, whiteSpace: 'nowrap' }}>
+                    Upcoming Holidays
+                  </h3>
                 </div>
-                <Link to="/attendance" style={{ fontSize: '0.75rem', fontWeight: 600, color: 'var(--accent-blue)', textDecoration: 'none', marginLeft: 'auto', flexShrink: 0 }}>
+                <Link
+                  to="/attendance"
+                  style={{
+                    fontSize: '0.74rem',
+                    fontWeight: 600,
+                    color: '#2563eb',
+                    textDecoration: 'none',
+                    flexShrink: 0,
+                    whiteSpace: 'nowrap',
+                  }}
+                >
                   Calendar
                 </Link>
               </div>
