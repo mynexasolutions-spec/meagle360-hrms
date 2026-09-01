@@ -234,7 +234,7 @@ export default function OfferLetterModal({ onClose, onSuccess }) {
 
           {/* Printable Voucher */}
           <div id="offer-letter-voucher" className="offer-letter-voucher">
-            <div>
+            <div className="offer-content-body">
               {/* 1. Top Header */}
               <div className="offer-header">
                 <div className="offer-header-left">
@@ -249,7 +249,7 @@ export default function OfferLetterModal({ onClose, onSuccess }) {
                   </div>
                   <div>
                     <div className="offer-brand-title">HRMS Portal</div>
-                    <div className="offer-brand-company">{company?.name || 'MEAGLE360'}</div>
+                    <div className="offer-brand-company">{company?.name || 'MEAGLE360 CORP'}</div>
                   </div>
                 </div>
 
@@ -257,19 +257,19 @@ export default function OfferLetterModal({ onClose, onSuccess }) {
                   <div className="offer-contact-list">
                     <div className="offer-contact-row">
                       <MapPin size={12} className="offer-contact-icon" />
-                      <span>{company?.company_address || company?.address || '123 Business Park, Sector 62, Noida, Uttar Pradesh – 201309, INDIA'}</span>
+                      <span>{company?.company_address || company?.address || '1 Infinite Loop, Cupertino, CA'}</span>
                     </div>
                     <div className="offer-contact-row">
                       <Globe size={12} className="offer-contact-icon" />
-                      <span>{company?.website || 'www.meagle360.com'}</span>
+                      <span>{company?.website || 'https://about.puma.com/en'}</span>
                     </div>
                     <div className="offer-contact-row">
                       <Mail size={12} className="offer-contact-icon" />
-                      <span>{company?.email || 'info@meagle360.com'}</span>
+                      <span>{company?.email || 'service@puma.com'}</span>
                     </div>
                     <div className="offer-contact-row">
                       <Phone size={12} className="offer-contact-icon" />
-                      <span>{company?.phone || '+91 12345 67890'}</span>
+                      <span>{company?.phone || '+91 9845178901'}</span>
                     </div>
                   </div>
                 </div>
@@ -291,8 +291,8 @@ export default function OfferLetterModal({ onClose, onSuccess }) {
                 </div>
                 <div>{company?.company_address || company?.address || '1 Infinite Loop, Cupertino, CA'}</div>
                 <div>{company?.email || 'service@puma.com'} | {company?.phone || '+91 9845178901'}</div>
-                <div style={{ fontWeight: 800, color: '#0f172a', marginTop: 4 }}>{form.candidate_name || 'erwin'}</div>
-                {form.candidate_address && <div>{form.candidate_address}</div>}
+                <div className="offer-meta-candidate-name">{form.candidate_name || 'erwin'}</div>
+                <div>{form.candidate_address || 'noida,up,india'}</div>
                 <div className="offer-meta-subject">
                   Subject: Job Offer for {selectedDesignation?.title || 'Software Engineer'}
                 </div>
@@ -315,19 +315,19 @@ export default function OfferLetterModal({ onClose, onSuccess }) {
                 <div className="offer-bullet-list">
                   <div className="offer-bullet-item">
                     <span className="offer-bullet-star">❖</span>
-                    <span><strong>Job Title:</strong> {selectedDesignation?.title || 'Selected Position'}</span>
+                    <span><strong>Job Title:</strong> {selectedDesignation?.title || 'Software Engineer'}</span>
                   </div>
                   <div className="offer-bullet-item">
                     <span className="offer-bullet-star">❖</span>
-                    <span><strong>Department:</strong> {selectedDepartment?.name || 'General'}</span>
+                    <span><strong>Department:</strong> {selectedDepartment?.name || 'Engineering'}</span>
                   </div>
                   <div className="offer-bullet-item">
                     <span className="offer-bullet-star">❖</span>
-                    <span><strong>Reporting To:</strong> {selectedManager ? `${selectedManager.full_name}` : 'Department Manager'}</span>
+                    <span><strong>Reporting To:</strong> {selectedManager ? `${selectedManager.full_name}` : 'Lisa Park'}</span>
                   </div>
                   <div className="offer-bullet-item">
                     <span className="offer-bullet-star">❖</span>
-                    <span><strong>Start Date:</strong> {formatDate(form.start_date) || '[Start Date]'}</span>
+                    <span><strong>Start Date:</strong> {formatDate(form.start_date) || '2 September 2026'}</span>
                   </div>
                   <div className="offer-bullet-item">
                     <span className="offer-bullet-star">❖</span>
@@ -335,7 +335,7 @@ export default function OfferLetterModal({ onClose, onSuccess }) {
                   </div>
                   <div className="offer-bullet-item">
                     <span className="offer-bullet-star">❖</span>
-                    <span><strong>Work Location:</strong> {selectedSite ? `${selectedSite.name} (${selectedSite.city || 'Headquarters'})` : 'Office Location / Remote'}</span>
+                    <span><strong>Work Location:</strong> {selectedSite ? `${selectedSite.name} (${selectedSite.city || 'Bangalore'})` : 'Bangalore HQ (Bangalore)'}</span>
                   </div>
                 </div>
               </div>
@@ -396,7 +396,7 @@ export default function OfferLetterModal({ onClose, onSuccess }) {
 
               {/* 8. Closing Paragraphs */}
               <div className="offer-body-p" style={{ marginTop: 5 }}>
-                Please sign and return a copy of this letter by <strong>{formatDate(form.acceptance_deadline) || '[Acceptance Deadline Date]'}</strong> to confirm your acceptance of the offer. If you have any questions, feel free to reach out to <strong>{form.hr_contact_name || 'HR Contact Person'}</strong> at <strong>{form.hr_contact_email || company?.email || 'info@meagle360.com'}</strong>.
+                Please sign and return a copy of this letter by <strong>{formatDate(form.acceptance_deadline) || '31 August 2026'}</strong> to confirm your acceptance of the offer. If you have any questions, feel free to reach out to <strong>{form.hr_contact_name || 'Sarah Johnson'}</strong> at <strong>{form.hr_contact_email || company?.email || 'sarah@meagle360.com'}</strong>.
               </div>
 
               <div className="offer-body-p">
@@ -417,9 +417,9 @@ export default function OfferLetterModal({ onClose, onSuccess }) {
                       <div style={{ width: '100%', borderBottom: '2px solid #94a3b8', marginBottom: 5 }}></div>
                     </div>
                   )}
-                  <div className="offer-sign-name">{form.hr_contact_name || company?.authorized_signatory_name || 'Authorized Signatory'}</div>
-                  <div style={{ color: '#475569', fontSize: '0.88rem' }}>{selectedDesignation?.title || 'HR Department'}</div>
-                  <div style={{ fontWeight: 700, color: '#0052cc', fontSize: '0.90rem' }}>{company?.name || 'MEAGLE360 CORP'}</div>
+                  <div className="offer-sign-name">{form.hr_contact_name || company?.authorized_signatory_name || 'Sarah Johnson'}</div>
+                  <div style={{ color: '#475569', fontSize: '0.88rem' }}>{selectedDesignation?.title || 'Software Engineer'}</div>
+                  <div style={{ fontWeight: 700, color: '#0052cc', fontSize: '0.90rem' }}>{company?.name || 'Meagle360 Corp'}</div>
                 </div>
 
                 {/* Right: Candidate Signature & Name */}
@@ -429,7 +429,7 @@ export default function OfferLetterModal({ onClose, onSuccess }) {
                     <div style={{ width: '100%', borderBottom: '2px solid #94a3b8', marginBottom: 5 }}></div>
                   </div>
                   <div style={{ fontWeight: 700, color: '#64748b', fontSize: '0.82rem', textTransform: 'uppercase', letterSpacing: '0.5px' }}>Signature</div>
-                  <div className="offer-sign-name" style={{ marginTop: 2 }}>{form.candidate_name || '[Candidate Name]'}</div>
+                  <div className="offer-sign-name" style={{ marginTop: 2 }}>{form.candidate_name || 'erwin'}</div>
                   <div style={{ color: '#475569', fontSize: '0.88rem' }}>Candidate</div>
                 </div>
               </div>
@@ -439,15 +439,15 @@ export default function OfferLetterModal({ onClose, onSuccess }) {
             <div className="offer-footer-bar">
               <div className="offer-footer-item">
                 <Phone size={13} />
-                <span>{company?.phone || '+91 12345 67890'}</span>
+                <span>{company?.phone || '+91 9845178901'}</span>
               </div>
               <div className="offer-footer-item">
                 <Mail size={13} />
-                <span>{company?.email || 'info@meagle360.com'}</span>
+                <span>{company?.email || 'service@puma.com'}</span>
               </div>
               <div className="offer-footer-item">
                 <Globe size={13} />
-                <span>{company?.website || 'www.meagle360.com'}</span>
+                <span>{company?.website || 'https://about.puma.com/en'}</span>
               </div>
             </div>
           </div>
