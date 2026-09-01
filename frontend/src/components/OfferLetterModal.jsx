@@ -285,21 +285,23 @@ export default function OfferLetterModal({ onClose, onSuccess }) {
 
               {/* 3. Metadata & Sender/Recipient */}
               <div className="offer-meta-block">
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', marginBottom: 4 }}>
-                  <span style={{ fontWeight: 800, color: '#0052cc', fontSize: '1.02rem', textTransform: 'uppercase' }}>{company?.name || 'MEAGLE360 HRMS PVT. LTD.'}</span>
-                  <span style={{ fontWeight: 600, color: '#1e293b', fontSize: '0.96rem' }}>{todayFormatted}</span>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline' }}>
+                  <span style={{ fontWeight: 700, color: '#0f172a' }}>{company?.name || 'Meagle360 Corp'}</span>
+                  <span style={{ fontWeight: 600, color: '#1e293b' }}>{todayFormatted}</span>
                 </div>
-                <div style={{ fontWeight: 800, color: '#0f172a', fontSize: '1.02rem', marginTop: 4 }}>{form.candidate_name || '[Candidate Name]'}</div>
-                {form.candidate_address && <div style={{ color: '#334155', fontSize: '0.94rem', lineHeight: 1.35 }}>{form.candidate_address}</div>}
+                <div>{company?.company_address || company?.address || '1 Infinite Loop, Cupertino, CA'}</div>
+                <div>{company?.email || 'service@puma.com'} | {company?.phone || '+91 9845178901'}</div>
+                <div style={{ fontWeight: 800, color: '#0f172a', marginTop: 4 }}>{form.candidate_name || 'erwin'}</div>
+                {form.candidate_address && <div>{form.candidate_address}</div>}
                 <div className="offer-meta-subject">
-                  Subject: Job Offer for {selectedDesignation?.title || 'Selected Position'}
+                  Subject: Job Offer for {selectedDesignation?.title || 'Software Engineer'}
                 </div>
               </div>
 
               {/* 4. Salutation & Opening Paragraph */}
               <div className="offer-salutation">Dear {candidateFirstName},</div>
               <div className="offer-body-p">
-                We are pleased to offer you the position of <strong>{selectedDesignation?.title || 'Selected Position'}</strong> at <strong>{company?.name || 'MEAGLE360'}</strong>. After reviewing your qualifications and experience, we believe you will be a valuable addition to our team.
+                We are pleased to offer you the position of <strong>{selectedDesignation?.title || 'Software Engineer'}</strong> at <strong>{company?.name || 'Meagle360 Corp'}</strong>. After reviewing your qualifications and experience, we believe you will be a valuable addition to our team.
               </div>
 
               {/* 5. Section 1: Position Details */}
