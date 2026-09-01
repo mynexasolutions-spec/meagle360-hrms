@@ -216,7 +216,7 @@
   </table>
   <div class="meta-p">{{ (company.company_address if company else None) or "1 Infinite Loop, Cupertino, CA" }}</div>
   <div class="meta-p">{{ (company.email if company else None) or "service@puma.com" }} | {{ (company.phone if company else None) or "+91 9845178901" }}</div>
-  <div class="meta-p" style="font-weight: bold; color: #0f172a; margin-top: 3px;">{{ offer.candidate_name if offer else "erwin" }}</div>
+  <div class="meta-p" style="font-weight: bold; color: #0f172a; margin-top: 6px;">{{ offer.candidate_name if offer else "erwin" }}</div>
   {% if offer and offer.candidate_address %}<div class="meta-p">{{ offer.candidate_address }}</div>{% else %}<div class="meta-p">noida,up,india</div>{% endif %}
   <div class="meta-subject">Subject: Job Offer for {{ designation_title or "Software Engineer" }}</div>
 

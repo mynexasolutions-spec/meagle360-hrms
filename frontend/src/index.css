@@ -3101,7 +3101,7 @@ input[type="password"]::-ms-clear {
 .offer-meta-candidate-name {
   font-weight: 800;
   color: #0f172a;
-  margin-top: 4.5px;
+  margin-top: 9px;
 }
 
 .offer-meta-subject {
@@ -3388,7 +3388,7 @@ input[type="password"]::-ms-clear {
   body.printing-offer-letter .offer-meta-candidate-name {
     font-weight: 800 !important;
     color: #0f172a !important;
-    margin-top: 4.5px !important;
+    margin-top: 8px !important;
   }
 
   body.printing-offer-letter .offer-meta-subject {
