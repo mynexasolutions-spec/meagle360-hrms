@@ -1,5 +1,4 @@
 import { useState } from 'react';
-import { ArrowUpRight, ArrowDownRight } from 'lucide-react';
 
 export default function StatCard({ icon: Icon, label, value, trend, trendDirection, color, bgColor }) {
   const [hover, setHover] = useState(false);
@@ -59,7 +58,6 @@ export default function StatCard({ icon: Icon, label, value, trend, trendDirecti
               color: trendDirection === 'down' ? 'var(--accent-rose)' : 'var(--accent-emerald)',
             }}
           >
-            {trendDirection === 'down' ? <ArrowDownRight size={12} /> : <ArrowUpRight size={12} />}
             {trend}
           </div>
         )}

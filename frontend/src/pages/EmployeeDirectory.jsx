@@ -1,11 +1,10 @@
 import { useState, useEffect, useMemo } from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useSearchParams, useNavigate } from 'react-router-dom';
 import { getDirectory, inviteEmployee, getDepartments, getRoles, getSites } from '../api/employees';
-import { Users, Search, Plus, Copy, Check, LayoutGrid, List, Mail, UserCheck, UserX, FileText, Award } from 'lucide-react';
+import { Users, Search, Plus, Copy, Check, LayoutGrid, List, Mail, UserCheck, UserX, FileText, Award, Building2 } from 'lucide-react';
 import Modal from '../components/Modal';
 import StatCard from '../components/StatCard';
-import OfferLetterModal from '../components/OfferLetterModal';
-import RelievingLetterModal from '../components/RelievingLetterModal';
+import OrgChart from './OrgChart';
 import { useAuth } from '../context/AuthContext';
 
 const ACCOUNT_STATUS_LABEL = {
@@ -40,8 +39,11 @@ const EMPTY_FORM = {
 };
 
 export default function EmployeeDirectory() {
+  const navigate = useNavigate();
   const { user } = useAuth();
   const canInvite = !!user?.permissions?.['employees:write'];
+  const [searchParams, setSearchParams] = useSearchParams();
+  const activeTab = searchParams.get('tab') === 'organization' ? 'organization' : 'directory';
   const [employees, setEmployees] = useState([]);
   const [departments, setDepartments] = useState([]);
   const [sites, setSites] = useState([]);
@@ -49,13 +51,19 @@ export default function EmployeeDirectory() {
   const [search, setSearch] = useState('');
   const [viewMode, setViewMode] = useState('table'); // 'table' or 'grid'
   const [showInvite, setShowInvite] = useState(false);
-  const [showOfferModal, setShowOfferModal] = useState(false);
-  const [relievingEmployee, setRelievingEmployee] = useState(null);
   const [form, setForm] = useState(EMPTY_FORM);
   const [inviting, setInviting] = useState(false);
   const [inviteResult, setInviteResult] = useState(null);
   const [error, setError] = useState('');
   const [linkCopied, setLinkCopied] = useState(false);
+
+  const handleTabChange = (tab) => {
+    if (tab === 'organization') {
+      setSearchParams({ tab: 'organization' });
+    } else {
+      setSearchParams({});
+    }
+  };
 
   useEffect(() => {
     loadEmployees();
@@ -98,34 +106,20 @@ export default function EmployeeDirectory() {
   };
 
   const handleCopyLink = async () => {
+    if (!setupLink) return;
     try {
-      if (navigator.clipboard?.writeText) {
-        await navigator.clipboard.writeText(setupLink);
-      } else {
-        throw new Error('Clipboard API unavailable');
-      }
+      await navigator.clipboard.writeText(setupLink);
+      setLinkCopied(true);
+      setTimeout(() => setLinkCopied(false), 2000);
     } catch {
-      // Fallback for browsers/contexts that block navigator.clipboard
-      const textarea = document.createElement('textarea');
-      textarea.value = setupLink;
-      textarea.style.position = 'fixed';
-      textarea.style.opacity = '0';
-      document.body.appendChild(textarea);
-      textarea.select();
-      try {
-        document.execCommand('copy');
-      } catch {
-        // give up silently — the link is still visible to select/copy manually
-      }
-      document.body.removeChild(textarea);
+      // ignore
     }
-    setLinkCopied(true);
-    setTimeout(() => setLinkCopied(false), 1800);
   };
 
   const closeInvite = () => {
     setShowInvite(false);
-    if (inviteResult) loadEmployees();
+    setInviteResult(null);
+    loadEmployees();
   };
 
   const handleInvite = async (e) => {
@@ -154,7 +148,8 @@ export default function EmployeeDirectory() {
 
   return (
     <div className="animate-fade-in">
-      <div className="page-header">
+      {/* 1. Header with dynamic title and action buttons */}
+      <div className="page-header" style={{ marginBottom: 18 }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: 14 }}>
           <div
             style={{
@@ -163,18 +158,28 @@ export default function EmployeeDirectory() {
               boxShadow: '0 4px 14px rgba(37, 99, 235, 0.13)',
             }}
           >
-            <Users size={22} style={{ color: '#2563eb' }} />
+            {activeTab === 'organization' ? (
+              <Building2 size={22} style={{ color: '#2563eb' }} />
+            ) : (
+              <Users size={22} style={{ color: '#2563eb' }} />
+            )}
           </div>
           <div>
-            <h1>Employee Directory</h1>
-            <p>{employees.length} employees in your organization</p>
+            <h1 style={{ fontSize: '1.5rem', fontWeight: 800, color: '#0f172a', margin: 0 }}>
+              {activeTab === 'organization' ? 'Organization Structure' : 'Employee Directory'}
+            </h1>
+            <p style={{ color: '#64748b', fontSize: '0.875rem', margin: '2px 0 0 0' }}>
+              {activeTab === 'organization'
+                ? "Visual hierarchy of your organization's reporting structure"
+                : `${employees.length} employees in your organization`}
+            </p>
           </div>
         </div>
-        {canInvite && (
+        {activeTab === 'directory' && canInvite && (
           <div style={{ display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap' }}>
             <button
               className="btn btn-secondary"
-              onClick={() => setShowOfferModal(true)}
+              onClick={() => navigate('/offer-letter')}
               style={{
                 display: 'flex',
                 alignItems: 'center',
@@ -189,7 +194,7 @@ export default function EmployeeDirectory() {
             </button>
             <button
               className="btn btn-secondary"
-              onClick={() => setRelievingEmployee({})}
+              onClick={() => navigate('/relieving-letter')}
               style={{
                 display: 'flex',
                 alignItems: 'center',
@@ -209,41 +214,82 @@ export default function EmployeeDirectory() {
         )}
       </div>
 
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: 16, marginBottom: 24 }}>
-        <StatCard icon={Users} label="Total Employees" value={stats.total} bgColor="#eff6ff" color="#2563eb" />
-        <StatCard icon={UserCheck} label="Active Accounts" value={stats.active} bgColor="#ecfdf5" color="#059669" />
-        <StatCard icon={Mail} label="Invited" value={stats.invited} bgColor="#fffbeb" color="#d97706" />
-        <StatCard icon={UserX} label="No Login Access" value={stats.noLogin} bgColor="#f8fafc" color="#64748b" />
+      {/* 2. Top Segmented Navigation Tabs */}
+      <div style={{ display: 'flex', gap: 6, background: '#f1f5f9', padding: 4, borderRadius: 12, border: '1px solid #e2e8f0', width: 'fit-content', marginBottom: 22 }}>
+        <button
+          onClick={() => handleTabChange('directory')}
+          style={{
+            display: 'flex', alignItems: 'center', gap: 8, padding: '7px 18px', borderRadius: 9, border: 'none',
+            fontSize: '0.84rem', fontWeight: activeTab === 'directory' ? 700 : 600, cursor: 'pointer',
+            background: activeTab === 'directory' ? '#ffffff' : 'transparent',
+            color: activeTab === 'directory' ? '#0f172a' : '#64748b',
+            boxShadow: activeTab === 'directory' ? '0 2px 8px rgba(0,0,0,0.06)' : 'none',
+            transition: 'all 0.15s ease',
+          }}
+        >
+          <Users size={16} style={{ color: activeTab === 'directory' ? '#2563eb' : '#94a3b8' }} />
+          <span>Employee Directory</span>
+          <span style={{ fontSize: '0.70rem', padding: '1px 7px', borderRadius: 99, background: activeTab === 'directory' ? '#eff6ff' : '#e2e8f0', color: activeTab === 'directory' ? '#2563eb' : '#64748b', fontWeight: 700 }}>
+            {employees.length}
+          </span>
+        </button>
+
+        <button
+          onClick={() => handleTabChange('organization')}
+          style={{
+            display: 'flex', alignItems: 'center', gap: 8, padding: '7px 18px', borderRadius: 9, border: 'none',
+            fontSize: '0.84rem', fontWeight: activeTab === 'organization' ? 700 : 600, cursor: 'pointer',
+            background: activeTab === 'organization' ? '#ffffff' : 'transparent',
+            color: activeTab === 'organization' ? '#0f172a' : '#64748b',
+            boxShadow: activeTab === 'organization' ? '0 2px 8px rgba(0,0,0,0.06)' : 'none',
+            transition: 'all 0.15s ease',
+          }}
+        >
+          <Building2 size={16} style={{ color: activeTab === 'organization' ? '#2563eb' : '#94a3b8' }} />
+          <span>Organization</span>
+        </button>
       </div>
 
-      {/* Search & View Switcher Bar */}
-      <div style={{ marginBottom: 24, display: 'flex', justifyContent: 'space-between', gap: 16, alignItems: 'center', flexWrap: 'wrap' }}>
-        <div style={{ position: 'relative', flex: 1, maxWidth: 420 }}>
-          <Search
-            size={18}
-            style={{
-              position: 'absolute', left: 14, top: '50%',
-              transform: 'translateY(-50%)', color: '#94a3b8',
-            }}
-          />
-          <input
-            className="input-field"
-            style={{
-              paddingLeft: 42,
-              borderRadius: 12,
-              border: '1px solid #cbd5e1',
-              fontSize: '0.9rem',
-              boxShadow: '0 2px 8px rgba(0,0,0,0.02)',
-              background: '#ffffff',
-            }}
-            placeholder="Search by name, code, or department..."
-            value={search}
-            onChange={(e) => setSearch(e.target.value)}
-          />
-        </div>
+      {/* 3. Conditional Tab Content */}
+      {activeTab === 'organization' ? (
+        <OrgChart embedded={true} />
+      ) : (
+        <>
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: 16, marginBottom: 24 }}>
+            <StatCard icon={Users} label="Total Employees" value={stats.total} bgColor="#eff6ff" color="#2563eb" />
+            <StatCard icon={UserCheck} label="Active Accounts" value={stats.active} bgColor="#ecfdf5" color="#059669" />
+            <StatCard icon={Mail} label="Invited" value={stats.invited} bgColor="#fffbeb" color="#d97706" />
+            <StatCard icon={UserX} label="No Login Access" value={stats.noLogin} bgColor="#f8fafc" color="#64748b" />
+          </div>
 
-        {/* View Mode Toggle Switcher */}
-        <div style={{ display: 'flex', background: '#f1f5f9', padding: 4, borderRadius: 12, border: '1px solid #e2e8f0' }}>
+          {/* Search & View Switcher Bar */}
+          <div style={{ marginBottom: 24, display: 'flex', justifyContent: 'space-between', gap: 16, alignItems: 'center', flexWrap: 'wrap' }}>
+            <div style={{ position: 'relative', flex: 1, maxWidth: 420 }}>
+              <Search
+                size={18}
+                style={{
+                  position: 'absolute', left: 14, top: '50%',
+                  transform: 'translateY(-50%)', color: '#94a3b8',
+                }}
+              />
+              <input
+                className="input-field"
+                style={{
+                  paddingLeft: 42,
+                  borderRadius: 12,
+                  border: '1px solid #cbd5e1',
+                  fontSize: '0.9rem',
+                  boxShadow: '0 2px 8px rgba(0,0,0,0.02)',
+                  background: '#ffffff',
+                }}
+                placeholder="Search by name, code, or department..."
+                value={search}
+                onChange={(e) => setSearch(e.target.value)}
+              />
+            </div>
+
+            {/* View Mode Toggle Switcher */}
+            <div style={{ display: 'flex', background: '#f1f5f9', padding: 4, borderRadius: 12, border: '1px solid #e2e8f0' }}>
           <button
             onClick={() => setViewMode('table')}
             style={{
@@ -475,7 +521,7 @@ export default function EmployeeDirectory() {
                           alignItems: 'center',
                           borderRadius: 8,
                         }}
-                        onClick={() => setRelievingEmployee(emp)}
+                        onClick={() => navigate(`/relieving-letter?employee_id=${emp.id}`)}
                         title="Generate Official Relieving Letter"
                       >
                         <Award size={14} style={{ color: '#059669' }} /> Relieving Letter
@@ -488,6 +534,8 @@ export default function EmployeeDirectory() {
           </table>
           </div>
         </div>
+      )}
+      </>
       )}
 
       {/* Invite Employee Modal */}
@@ -657,23 +705,6 @@ export default function EmployeeDirectory() {
             </div>
           )}
         </Modal>
-      )}
-
-      {/* Offer Letter Generator Modal */}
-      {showOfferModal && (
-        <OfferLetterModal
-          onClose={() => setShowOfferModal(false)}
-          onSuccess={() => loadEmployees()}
-        />
-      )}
-
-      {/* Relieving Letter Generator Modal */}
-      {relievingEmployee && (
-        <RelievingLetterModal
-          employee={relievingEmployee.id ? relievingEmployee : null}
-          onClose={() => setRelievingEmployee(null)}
-          onSuccess={() => loadEmployees()}
-        />
       )}
     </div>
   );

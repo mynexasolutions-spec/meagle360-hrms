@@ -207,19 +207,41 @@ class DashboardService:
             .all()
         )
 
+        def normalize_name(n: str | None) -> str:
+            if not n:
+                return "Other"
+            n_clean = n.strip()
+            low = n_clean.lower()
+            if "matern" in low or "patern" in low or "parent" in low:
+                return "Parental Leave"
+            if "personal" in low:
+                return "Personal Leave"
+            if "sick" in low:
+                return "Sick Leave"
+            if "annual" in low:
+                return "Annual Leave"
+            if "casual" in low:
+                return "Casual Leave"
+            if "loss of pay" in low or "lop" in low:
+                return "Loss of Pay"
+            return n_clean.title()
+
         totals: dict[str, int] = {}
         for name, start, end in requests:
+            norm = normalize_name(name)
             days = (end - start).days + 1
-            totals[name] = totals.get(name, 0) + days
+            totals[norm] = totals.get(norm, 0) + days
 
         total_days = sum(totals.values()) or 1
+        # Sort descending by days taken
+        sorted_totals = sorted(totals.items(), key=lambda x: x[1], reverse=True)
         return [
             {
                 "leave_type": name,
                 "days": days,
                 "percentage": round(days / total_days * 100, 1),
             }
-            for name, days in totals.items()
+            for name, days in sorted_totals
         ]
 
     def get_leave_insight(self, year: int | None = None) -> dict:

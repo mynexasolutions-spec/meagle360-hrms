@@ -27,6 +27,8 @@ const Documents = lazy(() => import('./pages/Documents'));
 const ReportsAnalytics = lazy(() => import('./pages/ReportsAnalytics'));
 const MyProfile = lazy(() => import('./pages/MyProfile'));
 const ActionTracker = lazy(() => import('./pages/ActionTracker'));
+const OfferLetterStudio = lazy(() => import('./pages/OfferLetterStudio'));
+const RelievingLetterStudio = lazy(() => import('./pages/RelievingLetterStudio'));
 
 function ProtectedRoute({ children }) {
   const { user, loading } = useAuth();
@@ -92,6 +94,8 @@ function AppRoutes() {
           <Route path="/" element={<Dashboard />} />
           <Route path="/employees" element={<EmployeeDirectory />} />
           <Route path="/employees/:id" element={<EmployeeProfile />} />
+          <Route path="/offer-letter" element={<OfferLetterStudio />} />
+          <Route path="/relieving-letter" element={<RelievingLetterStudio />} />
           <Route path="/attendance" element={<Attendance />} />
           <Route path="/leave" element={<LeaveManagement />} />
           <Route
@@ -110,7 +114,7 @@ function AppRoutes() {
               </RequirePermission>
             }
           />
-          <Route path="/org-chart" element={<OrgChart />} />
+          <Route path="/org-chart" element={<Navigate to="/employees?tab=organization" replace />} />
           <Route path="/documents" element={<Documents />} />
           <Route path="/profile" element={<MyProfile />} />
           <Route path="/my-payslips" element={<MyPayslips />} />

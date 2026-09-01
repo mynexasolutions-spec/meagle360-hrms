@@ -540,11 +540,8 @@ input[type="password"]::-ms-clear {
 
 .page-header h1 {
   font-size: 1.5rem;
-  font-weight: 700;
-  background: var(--gradient-primary);
-  -webkit-background-clip: text;
-  -webkit-text-fill-color: transparent;
-  background-clip: text;
+  font-weight: 800;
+  color: #0f172a;
 }
 
 .page-header p {
@@ -553,19 +550,77 @@ input[type="password"]::-ms-clear {
   margin-top: 2px;
 }
 
-/* ── Stats Grid ───────────────────────────────────────── */
-.stats-grid {
+/* ── Dashboard Stats Grid ─────────────────────────────── */
+.dashboard-stats-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
-  gap: 16px;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 20px;
   margin-bottom: 24px;
+}
+
+@media (max-width: 1100px) {
+  .dashboard-stats-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 16px;
+  }
+}
+
+@media (max-width: 560px) {
+  .dashboard-stats-grid {
+    grid-template-columns: 1fr;
+    gap: 12px;
+  }
 }
 
 /* ── Content Grid ─────────────────────────────────────── */
 .content-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(400px, 1fr));
+  grid-template-columns: repeat(2, minmax(0, 1fr));
   gap: 20px;
+  align-items: stretch;
+}
+
+@media (max-width: 900px) {
+  .content-grid {
+    grid-template-columns: 1fr;
+    gap: 16px;
+  }
+}
+
+.leave-balance-grid {
+  display: grid;
+  grid-template-columns: repeat(6, 1fr);
+  gap: 12px;
+}
+
+.leave-balance-grid > div:nth-child(-n+3) {
+  grid-column: span 2;
+}
+
+.leave-balance-grid > div:nth-child(n+4) {
+  grid-column: span 3;
+}
+
+@media (max-width: 900px) {
+  .leave-balance-grid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+  .leave-balance-grid > div:nth-child(-n+3),
+  .leave-balance-grid > div:nth-child(n+4) {
+    grid-column: span 1;
+  }
+  .leave-balance-grid > div:last-child {
+    grid-column: 1 / -1;
+  }
+}
+
+@media (max-width: 560px) {
+  .leave-balance-grid {
+    grid-template-columns: 1fr;
+  }
+  .leave-balance-grid > div:last-child {
+    grid-column: auto;
+  }
 }
 
 /* ── Section Card ─────────────────────────────────────── */
@@ -656,7 +711,7 @@ input[type="password"]::-ms-clear {
 
 /* every nested ul (any depth) gets a trunk stub from its parent card down to its bus line */
 .org-tree ul {
-  padding-top: 32px;
+  padding-top: 22px;
   position: relative;
 }
 
@@ -667,7 +722,7 @@ input[type="password"]::-ms-clear {
   left: 50%;
   border-left: 2px solid #cbd5e1;
   width: 0;
-  height: 32px;
+  height: 22px;
 }
 
 .org-tree li {
@@ -675,12 +730,12 @@ input[type="password"]::-ms-clear {
   display: flex;
   flex-direction: column;
   align-items: center;
-  padding: 0 14px;
+  padding: 0 8px;
 }
 
 /* sibling connector lines (horizontal bus + drop stub) — only for li inside a nested ul, never the root */
 .org-tree ul li {
-  padding-top: 32px;
+  padding-top: 22px;
 }
 
 .org-tree ul li::before,
@@ -690,7 +745,7 @@ input[type="password"]::-ms-clear {
   top: 0;
   right: 50%;
   width: 50%;
-  height: 32px;
+  height: 22px;
   border-top: 2px solid #cbd5e1;
 }
 
@@ -724,18 +779,18 @@ input[type="password"]::-ms-clear {
 }
 
 .org-card {
-  width: 208px;
+  width: 154px;
   background: #ffffff;
-  border-radius: 16px;
+  border-radius: 12px;
   border: 1px solid #e2e8f0;
   border-top: 3px solid var(--org-accent, #2563eb);
-  padding: 16px 14px;
+  padding: 10px 8px;
   display: flex;
   flex-direction: column;
   align-items: center;
   text-align: center;
-  gap: 4px;
-  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.03);
+  gap: 2px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.03);
   transition: transform var(--transition-fast), box-shadow var(--transition-fast), border-color var(--transition-fast);
 }
 
@@ -744,18 +799,18 @@ input[type="password"]::-ms-clear {
 }
 
 .org-card.clickable:hover {
-  transform: translateY(-3px);
-  box-shadow: 0 12px 28px -8px rgba(15, 23, 42, 0.18);
+  transform: translateY(-2px);
+  box-shadow: 0 10px 24px -6px rgba(15, 23, 42, 0.16);
 }
 
 .org-card-toggle {
-  margin-top: 8px;
+  margin-top: 4px;
   display: inline-flex;
   align-items: center;
-  gap: 4px;
-  font-size: 0.6875rem;
+  gap: 3px;
+  font-size: 0.625rem;
   font-weight: 700;
-  padding: 3px 10px;
+  padding: 2px 7px;
   border-radius: var(--radius-full);
   background: var(--bg-input);
   color: var(--text-secondary);
@@ -763,24 +818,24 @@ input[type="password"]::-ms-clear {
 
 @media (max-width: 768px) {
   .org-card {
-    width: 168px;
-    padding: 12px 10px;
+    width: 140px;
+    padding: 8px 6px;
   }
 
   .org-tree li {
-    padding: 0 8px;
+    padding: 0 6px;
   }
 
   .org-tree ul {
-    padding-top: 24px;
+    padding-top: 18px;
   }
 
   .org-tree ul::before {
-    height: 24px;
+    height: 18px;
   }
 
   .org-tree ul li {
-    padding-top: 24px;
+    padding-top: 18px;
   }
 
   .org-tree ul li::before,
@@ -1309,8 +1364,9 @@ input[type="password"]::-ms-clear {
 /* ── Dashboard Columns ────────────────────────────────── */
 .dashboard-columns {
   display: grid;
-  grid-template-columns: minmax(0, 2.4fr) minmax(280px, 1fr);
+  grid-template-columns: minmax(0, 2.2fr) minmax(290px, 1fr);
   gap: 20px;
+  align-items: stretch;
 }
 
 /* ── Leave Management Layout ──────────────────────────── */
@@ -2564,7 +2620,7 @@ input[type="password"]::-ms-clear {
 }
 
 /* ── Responsive ───────────────────────────────────────── */
-@media (max-width: 1024px) {
+@media (max-width: 992px) {
   .dashboard-columns {
     grid-template-columns: 1fr;
   }
@@ -2948,29 +3004,29 @@ input[type="password"]::-ms-clear {
 }
 
 /* ═══════════════════════════════════════════════════════════════
-   OFFER LETTER VOUCHER & A4 PRINT STYLES (MATCHING media_1788175292889.jpg)
+   OFFER LETTER VOUCHER & A4 PRINT STYLES (EXACT MATCH FOR offer_letter_gigilia)
    ═══════════════════════════════════════════════════════════════ */
 .offer-letter-container-wrap {
   width: 100%;
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: 16px;
+  gap: 12px;
 }
 
 .offer-letter-voucher {
   border: 2px solid #0052cc;
   border-radius: 0;
-  padding: 22px 28px 0 28px;
+  padding: 16px 24px 0 24px;
   background: #ffffff;
-  width: 100%;
-  max-width: 840px;
-  min-height: 1060px;
+  width: 794px;
+  min-height: 1120px;
+  max-width: 794px;
   box-sizing: border-box;
   font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
-  font-size: 1.06rem;
+  font-size: 0.96rem;
   color: #1e293b;
-  line-height: 1.50;
+  line-height: 1.44;
   display: flex;
   flex-direction: column;
   justify-content: space-between;
@@ -2996,12 +3052,12 @@ input[type="password"]::-ms-clear {
 .offer-header-left {
   display: flex;
   align-items: center;
-  gap: 15px;
+  gap: 14px;
 }
 
 .offer-logo-card {
-  width: 78px;
-  height: 68px;
+  width: 72px;
+  height: 62px;
   border-radius: 6px;
   border: 1.5px solid #cbd5e1;
   padding: 3px 5px;
@@ -3020,17 +3076,17 @@ input[type="password"]::-ms-clear {
 }
 
 .offer-brand-title {
-  font-size: 1.90rem;
+  font-size: 1.75rem;
   font-weight: 800;
   color: #0f172a;
   line-height: 1.1;
 }
 
 .offer-brand-company {
-  font-size: 1.38rem;
+  font-size: 1.25rem;
   font-weight: 900;
   color: #0052cc;
-  margin-top: 2px;
+  margin-top: 1px;
   letter-spacing: 0.5px;
   text-transform: uppercase;
 }
@@ -3038,26 +3094,27 @@ input[type="password"]::-ms-clear {
 .offer-header-right {
   display: flex;
   flex-direction: column;
-  align-items: flex-start;
+  align-items: flex-end;
   justify-content: center;
-  max-width: 450px;
+  max-width: 420px;
 }
 
 .offer-contact-list {
   display: flex;
   flex-direction: column;
-  gap: 2.5px;
+  gap: 2px;
   width: 100%;
+  align-items: flex-end;
 }
 
 .offer-contact-row {
   display: flex;
   align-items: center;
-  gap: 7px;
-  font-size: 0.90rem;
+  gap: 6px;
+  font-size: 0.82rem;
   color: #1e293b;
-  line-height: 1.34;
-  text-align: left;
+  line-height: 1.30;
+  text-align: right;
 }
 
 .offer-contact-icon {
@@ -3067,33 +3124,47 @@ input[type="password"]::-ms-clear {
 
 .offer-header-divider {
   border-bottom: 2px solid #0052cc;
-  margin: 9px -28px 11px -28px;
-  width: calc(100% + 56px);
+  margin: 8px -24px 10px -24px;
+  width: calc(100% + 48px);
 }
 
 .offer-title-block {
   text-align: center;
-  margin-bottom: 9px;
+  margin-bottom: 10px;
 }
 
 .offer-title-text {
-  font-size: 1.90rem;
-  font-weight: 800;
+  font-size: 1.65rem;
+  font-weight: 900;
   color: #0052cc;
   text-transform: uppercase;
   letter-spacing: 0.04em;
 }
 
-.offer-title-underline {
-  width: 155px;
-  height: 3px;
-  background: #0052cc;
-  margin: 3px auto 0 auto;
+.offer-company-date-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  margin-bottom: 8px;
+  font-size: 0.94rem;
+  line-height: 1.38;
+}
+
+.offer-company-info {
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+  color: #0f172a;
+}
+
+.offer-company-name {
+  font-weight: 700;
+  color: #0f172a;
 }
 
 .offer-meta-block {
-  font-size: 1.04rem;
-  line-height: 1.46;
+  font-size: 0.94rem;
+  line-height: 1.38;
   margin-bottom: 8px;
   color: #1e293b;
 }
@@ -3101,49 +3172,50 @@ input[type="password"]::-ms-clear {
 .offer-meta-candidate-name {
   font-weight: 800;
   color: #0f172a;
-  margin-top: 9px;
+  margin-top: 6px;
+  font-size: 1.04rem;
 }
 
 .offer-meta-subject {
   font-weight: 800;
   color: #0f172a;
-  margin: 7px 0 0 0;
-  font-size: 1.08rem;
+  margin: 6px 0 0 0;
+  font-size: 1.00rem;
 }
 
 .offer-salutation {
   font-weight: 700;
   color: #0f172a;
-  margin-top: 7px;
+  margin-top: 6px;
   margin-bottom: 4px;
-  font-size: 1.06rem;
+  font-size: 0.96rem;
 }
 
 .offer-body-p {
-  font-size: 1.04rem;
+  font-size: 0.94rem;
   color: #1e293b;
-  margin-bottom: 10px;
-  line-height: 1.50;
+  margin-bottom: 8px;
+  line-height: 1.44;
   text-align: justify;
 }
 
 .offer-sec-container {
-  margin-bottom: 10px;
+  margin-bottom: 8px;
 }
 
 .offer-sec-header {
   display: flex;
   align-items: center;
   gap: 7px;
-  font-size: 1.12rem;
+  font-size: 1.02rem;
   font-weight: 800;
   color: #0052cc;
-  margin-bottom: 4px;
+  margin-bottom: 3px;
 }
 
 .offer-sec-badge {
-  width: 24px;
-  height: 24px;
+  width: 22px;
+  height: 22px;
   border-radius: 50%;
   background: #0052cc;
   color: #ffffff;
@@ -3156,21 +3228,21 @@ input[type="password"]::-ms-clear {
 .offer-bullet-list {
   display: flex;
   flex-direction: column;
-  gap: 3.5px;
-  margin-left: 28px;
+  gap: 2.5px;
+  margin-left: 22px;
 }
 
 .offer-bullet-item {
   display: flex;
   align-items: flex-start;
-  gap: 7px;
-  font-size: 1.02rem;
-  line-height: 1.46;
+  gap: 6px;
+  font-size: 0.92rem;
+  line-height: 1.40;
 }
 
 .offer-bullet-star {
   color: #0052cc;
-  font-size: 0.95rem;
+  font-size: 0.88rem;
   font-weight: 900;
   line-height: 1.2;
 }
@@ -3179,22 +3251,22 @@ input[type="password"]::-ms-clear {
   display: flex;
   justify-content: space-between;
   align-items: flex-start;
-  margin-top: 18px;
-  margin-bottom: 10px;
+  margin-top: 12px;
+  margin-bottom: 8px;
   width: 100%;
 }
 
 .offer-sign-col {
   display: flex;
   flex-direction: column;
-  min-width: 220px;
-  font-size: 1.04rem;
-  line-height: 1.46;
+  min-width: 210px;
+  font-size: 0.94rem;
+  line-height: 1.40;
 }
 
 .offer-sign-name {
   font-weight: 800;
-  font-size: 1.14rem;
+  font-size: 1.06rem;
   color: #0f172a;
   margin-top: 2px;
 }
@@ -3203,13 +3275,14 @@ input[type="password"]::-ms-clear {
   background: #0052cc !important;
   background-color: #0052cc !important;
   color: #ffffff !important;
-  padding: 7px 22px !important;
+  padding: 6px 22px !important;
   display: flex !important;
   justify-content: space-between !important;
   align-items: center !important;
-  font-size: 0.88rem !important;
-  margin: 0 -28px -2px -28px !important;
-  width: calc(100% + 56px) !important;
+  font-size: 0.82rem !important;
+  font-weight: 600 !important;
+  margin: 0 -24px 0 -24px !important;
+  width: calc(100% + 48px) !important;
   box-sizing: border-box !important;
   border-radius: 0 !important;
   flex-shrink: 0 !important;
@@ -3224,7 +3297,7 @@ input[type="password"]::-ms-clear {
 .offer-footer-item {
   display: flex !important;
   align-items: center !important;
-  gap: 6px !important;
+  gap: 5px !important;
   color: #ffffff !important;
 }
 
@@ -3233,7 +3306,7 @@ input[type="password"]::-ms-clear {
 }
 
 /* ═══════════════════════════════════════════════════════════════
-   STRICT PRINT ISOLATION FOR OFFER LETTER (100% SINGLE A4 PAGE, ZERO BACKGROUND BLEED)
+   STRICT PRINT ISOLATION FOR OFFER LETTER (100% SINGLE A4 PAGE, ZERO BLEED/OVERFLOW)
    ═══════════════════════════════════════════════════════════════ */
 @media print {
   @page {
@@ -3250,6 +3323,9 @@ input[type="password"]::-ms-clear {
     padding: 0 !important;
     background: #ffffff !important;
     overflow: hidden !important;
+    -webkit-print-color-adjust: exact !important;
+    print-color-adjust: exact !important;
+    color-adjust: exact !important;
   }
 
   body.printing-offer-letter {
@@ -3283,44 +3359,57 @@ input[type="password"]::-ms-clear {
   body.printing-offer-letter .btn,
   body.printing-offer-letter aside,
   body.printing-offer-letter nav,
-  body.printing-offer-letter header {
+  body.printing-offer-letter header,
+  body.printing-offer-letter button {
     display: none !important;
   }
 
   /* 4. Unstyle wrappers so they do not add backgrounds, borders, or extra page height */
   body.printing-offer-letter #root,
   body.printing-offer-letter .app-shell,
+  body.printing-offer-letter .app-main,
+  body.printing-offer-letter .app-content,
   body.printing-offer-letter .main-layout,
   body.printing-offer-letter .main-content,
+  body.printing-offer-letter .animate-fade-in,
   body.printing-offer-letter .modal-backdrop,
   body.printing-offer-letter .modal-content,
-  body.printing-offer-letter .offer-letter-container-wrap {
-    background: transparent !important;
+  body.printing-offer-letter .offer-letter-container-wrap,
+  body.printing-offer-letter .offer-preview-scale-box,
+  body.printing-offer-letter .offer-preview-scale-box > div,
+  body.printing-offer-letter .offer-preview-transform-wrapper {
+    position: static !important;
+    margin: 0 !important;
+    margin-left: 0 !important;
+    margin-right: 0 !important;
+    margin-top: 0 !important;
+    margin-bottom: 0 !important;
+    padding: 0 !important;
     border: none !important;
     box-shadow: none !important;
-    padding: 0 !important;
-    margin: 0 !important;
-    max-height: none !important;
-    max-width: 100% !important;
+    background: transparent !important;
+    transform: none !important;
+    animation: none !important;
     width: 100% !important;
+    max-width: 100% !important;
     height: auto !important;
+    max-height: none !important;
+    display: block !important;
     overflow: visible !important;
   }
 
   /* 5. Render Voucher to fill EXACTLY 1 Single A4 page (Zero overflow, Footer ALWAYS pinned) */
   body.printing-offer-letter #offer-letter-voucher {
-    position: fixed !important;
-    top: 4mm !important;
+    position: absolute !important;
+    top: 5mm !important;
     left: 5mm !important;
-    right: 5mm !important;
-    bottom: 4mm !important;
     width: calc(210mm - 10mm) !important;
-    height: calc(297mm - 8mm) !important;
-    max-width: calc(210mm - 10mm) !important;
-    max-height: calc(297mm - 8mm) !important;
+    height: 282mm !important;
+    max-height: 282mm !important;
+    min-height: 0 !important;
     box-sizing: border-box !important;
     margin: 0 !important;
-    padding: 16px 26px 0 26px !important;
+    padding: 12px 20px 0 20px !important;
     border: 2px solid #0052cc !important;
     border-radius: 0 !important;
     box-shadow: none !important;
@@ -3329,6 +3418,7 @@ input[type="password"]::-ms-clear {
     flex-direction: column !important;
     justify-content: space-between !important;
     overflow: hidden !important;
+    transform: none !important;
     page-break-inside: avoid !important;
     break-inside: avoid !important;
     page-break-after: avoid !important;
@@ -3349,25 +3439,25 @@ input[type="password"]::-ms-clear {
   }
 
   body.printing-offer-letter .offer-brand-title {
-    font-size: 1.85rem !important;
+    font-size: 1.65rem !important;
   }
 
   body.printing-offer-letter .offer-brand-company {
-    font-size: 1.32rem !important;
+    font-size: 1.20rem !important;
   }
 
   body.printing-offer-letter .offer-header-right {
-    max-width: 440px !important;
+    max-width: 400px !important;
   }
 
   body.printing-offer-letter .offer-contact-row {
-    font-size: 0.88rem !important;
-    line-height: 1.34 !important;
+    font-size: 0.80rem !important;
+    line-height: 1.28 !important;
   }
 
   body.printing-offer-letter .offer-header-divider {
-    margin: 7px -26px 9px -26px !important;
-    width: calc(100% + 52px) !important;
+    margin: 6px -20px 8px -20px !important;
+    width: calc(100% + 40px) !important;
     border-bottom: 2px solid #0052cc !important;
   }
 
@@ -3376,68 +3466,84 @@ input[type="password"]::-ms-clear {
   }
 
   body.printing-offer-letter .offer-title-text {
-    font-size: 1.80rem !important;
+    font-size: 1.60rem !important;
+  }
+
+  body.printing-offer-letter .offer-company-date-row {
+    font-size: 0.92rem !important;
+    line-height: 1.36 !important;
+    margin-bottom: 6px !important;
   }
 
   body.printing-offer-letter .offer-meta-block {
-    font-size: 1.02rem !important;
-    line-height: 1.44 !important;
-    margin-bottom: 8px !important;
+    font-size: 0.92rem !important;
+    line-height: 1.36 !important;
+    margin-bottom: 6px !important;
   }
 
   body.printing-offer-letter .offer-meta-candidate-name {
     font-weight: 800 !important;
     color: #0f172a !important;
-    margin-top: 8px !important;
+    margin-top: 4px !important;
+    font-size: 1.02rem !important;
   }
 
   body.printing-offer-letter .offer-meta-subject {
-    font-size: 1.06rem !important;
-    margin: 6px 0 0 0 !important;
+    font-weight: 800 !important;
+    color: #0f172a !important;
+    margin: 4px 0 0 0 !important;
+    font-size: 0.98rem !important;
   }
 
   body.printing-offer-letter .offer-salutation {
-    font-size: 1.04rem !important;
-    margin-top: 7px !important;
-    margin-bottom: 4px !important;
-  }
-
-  body.printing-offer-letter .offer-body-p {
-    font-size: 1.01rem !important;
-    line-height: 1.48 !important;
-    margin-bottom: 9px !important;
-  }
-
-  body.printing-offer-letter .offer-sec-container {
-    margin-bottom: 9px !important;
-  }
-
-  body.printing-offer-letter .offer-sec-header {
-    font-size: 1.10rem !important;
+    font-size: 0.94rem !important;
+    margin-top: 4px !important;
     margin-bottom: 3px !important;
   }
 
+  body.printing-offer-letter .offer-body-p {
+    font-size: 0.92rem !important;
+    line-height: 1.42 !important;
+    margin-bottom: 6px !important;
+  }
+
+  body.printing-offer-letter .offer-sec-container {
+    margin-bottom: 6px !important;
+  }
+
+  body.printing-offer-letter .offer-sec-header {
+    font-size: 1.00rem !important;
+    margin-bottom: 2px !important;
+  }
+
+  body.printing-offer-letter .offer-sec-badge {
+    width: 20px !important;
+    height: 20px !important;
+  }
+
   body.printing-offer-letter .offer-bullet-list {
-    gap: 3.2px !important;
+    margin-left: 20px !important;
+    gap: 2px !important;
   }
 
   body.printing-offer-letter .offer-bullet-item {
-    font-size: 1.00rem !important;
-    line-height: 1.44 !important;
+    font-size: 0.90rem !important;
+    line-height: 1.36 !important;
   }
 
   body.printing-offer-letter .offer-sign-row {
-    margin-top: 16px !important;
-    margin-bottom: 10px !important;
+    margin-top: 8px !important;
+    margin-bottom: 6px !important;
   }
 
   body.printing-offer-letter .offer-sign-col {
-    font-size: 1.02rem !important;
-    line-height: 1.44 !important;
+    min-width: 200px !important;
+    font-size: 0.92rem !important;
+    line-height: 1.36 !important;
   }
 
   body.printing-offer-letter .offer-sign-name {
-    font-size: 1.12rem !important;
+    font-size: 1.04rem !important;
   }
 
   body.printing-offer-letter .offer-footer-bar {
@@ -3447,13 +3553,14 @@ input[type="password"]::-ms-clear {
     display: flex !important;
     justify-content: space-between !important;
     align-items: center !important;
-    padding: 7px 22px !important;
-    margin: 0 -26px -2px -26px !important;
-    width: calc(100% + 52px) !important;
+    padding: 5px 18px !important;
+    margin: 0 -20px 0 -20px !important;
+    width: calc(100% + 40px) !important;
     border-radius: 0 !important;
     flex-shrink: 0 !important;
     position: relative !important;
-    font-size: 0.86rem !important;
+    font-size: 0.80rem !important;
+    font-weight: 600 !important;
     box-shadow: inset 0 0 0 1000px #0052cc !important;
     -webkit-print-color-adjust: exact !important;
     print-color-adjust: exact !important;
@@ -3491,42 +3598,52 @@ input[type="password"]::-ms-clear {
   body.printing-relieving-letter .btn,
   body.printing-relieving-letter aside,
   body.printing-relieving-letter nav,
-  body.printing-relieving-letter header {
+  body.printing-relieving-letter header,
+  body.printing-relieving-letter button {
     display: none !important;
   }
 
   body.printing-relieving-letter #root,
   body.printing-relieving-letter .app-shell,
+  body.printing-relieving-letter .app-main,
+  body.printing-relieving-letter .app-content,
   body.printing-relieving-letter .main-layout,
   body.printing-relieving-letter .main-content,
+  body.printing-relieving-letter .animate-fade-in,
   body.printing-relieving-letter .modal-backdrop,
   body.printing-relieving-letter .modal-content,
   body.printing-relieving-letter .relieving-letter-container-wrap {
-    background: transparent !important;
+    position: static !important;
+    margin: 0 !important;
+    margin-left: 0 !important;
+    margin-right: 0 !important;
+    margin-top: 0 !important;
+    margin-bottom: 0 !important;
+    padding: 0 !important;
     border: none !important;
     box-shadow: none !important;
-    padding: 0 !important;
-    margin: 0 !important;
-    max-height: none !important;
-    max-width: 100% !important;
+    background: transparent !important;
+    transform: none !important;
+    animation: none !important;
     width: 100% !important;
+    max-width: 100% !important;
     height: auto !important;
+    max-height: none !important;
+    display: block !important;
     overflow: visible !important;
   }
 
   body.printing-relieving-letter #relieving-letter-voucher {
-    position: fixed !important;
-    top: 4mm !important;
+    position: absolute !important;
+    top: 5mm !important;
     left: 5mm !important;
-    right: 5mm !important;
-    bottom: 4mm !important;
     width: calc(210mm - 10mm) !important;
-    height: calc(297mm - 8mm) !important;
-    max-width: calc(210mm - 10mm) !important;
-    max-height: calc(297mm - 8mm) !important;
+    height: 282mm !important;
+    max-height: 282mm !important;
+    min-height: 0 !important;
     box-sizing: border-box !important;
     margin: 0 !important;
-    padding: 16px 24px 0 24px !important;
+    padding: 12px 20px 0 20px !important;
     border: 2px solid #0052cc !important;
     border-radius: 0 !important;
     box-shadow: none !important;
@@ -3535,6 +3652,7 @@ input[type="password"]::-ms-clear {
     flex-direction: column !important;
     justify-content: space-between !important;
     overflow: hidden !important;
+    transform: none !important;
     page-break-inside: avoid !important;
     break-inside: avoid !important;
     page-break-after: avoid !important;

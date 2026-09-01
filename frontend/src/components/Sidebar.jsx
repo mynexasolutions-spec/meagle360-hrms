@@ -20,7 +20,6 @@ import {
 const NAV_CONFIG = [
   { path: '/', label: 'Dashboard', icon: LayoutDashboard },
   { path: '/employees', label: 'Employee Directory', icon: Users, permission: 'employees:read' },
-  { path: '/org-chart', label: 'Organization', icon: Building2, permission: 'employees:read' },
   { path: '/attendance', label: 'Attendance', icon: Clock, permission: 'attendance:read' },
   { path: '/leave', label: 'Leave', icon: CalendarDays, permission: 'leave:read' },
   { path: '/expenses', label: 'Expenses', icon: Receipt, permission: 'expenses:read' },
