@@ -208,15 +208,17 @@
   <div class="title-underline-bar"></div>
 
   <!-- 3. Sender / Recipient Metadata -->
-  <table style="width: 100%; border-collapse: collapse; margin-bottom: 3px;">
+  <table style="width: 100%; border-collapse: collapse; margin-bottom: 1px;">
     <tr>
-      <td class="meta-p" style="font-weight: bold; color: #0052cc; font-size: 8.2pt; text-transform: uppercase; padding: 0; text-align: left;">{{ (company.name if company else None) or "MEAGLE360 HRMS PVT. LTD." }}</td>
+      <td class="meta-p" style="font-weight: bold; color: #0f172a; padding: 0; text-align: left;">{{ (company.name if company else None) or "Meagle360 Corp" }}</td>
       <td class="meta-p" style="font-weight: 600; color: #1e293b; padding: 0; text-align: right;">{{ issue_date }}</td>
     </tr>
   </table>
-  <div class="meta-p" style="font-weight: bold; color: #0f172a; font-size: 8pt; margin-top: 2px;">{{ offer.candidate_name if offer else "[Candidate Name]" }}</div>
-  {% if offer and offer.candidate_address %}<div class="meta-p" style="color: #334155; line-height: 1.25;">{{ offer.candidate_address }}</div>{% endif %}
-  <div class="meta-subject">Subject: Job Offer for {{ designation_title or "Selected Position" }}</div>
+  <div class="meta-p">{{ (company.company_address if company else None) or "1 Infinite Loop, Cupertino, CA" }}</div>
+  <div class="meta-p">{{ (company.email if company else None) or "service@puma.com" }} | {{ (company.phone if company else None) or "+91 9845178901" }}</div>
+  <div class="meta-p" style="font-weight: bold; color: #0f172a; margin-top: 3px;">{{ offer.candidate_name if offer else "erwin" }}</div>
+  {% if offer and offer.candidate_address %}<div class="meta-p">{{ offer.candidate_address }}</div>{% else %}<div class="meta-p">noida,up,india</div>{% endif %}
+  <div class="meta-subject">Subject: Job Offer for {{ designation_title or "Software Engineer" }}</div>
 
   <!-- 4. Salutation & Opening Paragraph -->
   <div class="salutation">Dear {{ first_name or (offer.candidate_name if offer else "Candidate") }},</div>
