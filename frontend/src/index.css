@@ -3612,7 +3612,10 @@ input[type="password"]::-ms-clear {
   body.printing-relieving-letter .animate-fade-in,
   body.printing-relieving-letter .modal-backdrop,
   body.printing-relieving-letter .modal-content,
-  body.printing-relieving-letter .relieving-letter-container-wrap {
+  body.printing-relieving-letter .relieving-letter-container-wrap,
+  body.printing-relieving-letter .relieving-preview-scale-box,
+  body.printing-relieving-letter .relieving-preview-scale-box > div,
+  body.printing-relieving-letter .relieving-preview-transform-wrapper {
     position: static !important;
     margin: 0 !important;
     margin-left: 0 !important;
@@ -3664,15 +3667,87 @@ input[type="password"]::-ms-clear {
     color-adjust: exact !important;
   }
 
+  body.printing-relieving-letter .relieving-content-body {
+    flex: 1 1 auto !important;
+    display: flex !important;
+    flex-direction: column !important;
+    justify-content: flex-start !important;
+    min-height: 0 !important;
+  }
+
+  body.printing-relieving-letter .relieving-brand-title {
+    font-size: 1.65rem !important;
+  }
+
+  body.printing-relieving-letter .relieving-brand-company {
+    font-size: 1.20rem !important;
+  }
+
+  body.printing-relieving-letter .relieving-header-right {
+    max-width: 400px !important;
+  }
+
+  body.printing-relieving-letter .relieving-contact-row {
+    font-size: 0.80rem !important;
+    line-height: 1.28 !important;
+  }
+
   body.printing-relieving-letter .relieving-header-divider {
-    margin: 8px -24px 10px -24px !important;
-    width: calc(100% + 48px) !important;
+    margin: 6px -20px 8px -20px !important;
+    width: calc(100% + 40px) !important;
     border-bottom: 2px solid #0052cc !important;
   }
 
+  body.printing-relieving-letter .relieving-title-block {
+    margin-bottom: 14px !important;
+  }
+
+  body.printing-relieving-letter .relieving-title-text {
+    font-size: 2.15rem !important;
+  }
+
+  body.printing-relieving-letter .relieving-title-underline {
+    width: 190px !important;
+    height: 4px !important;
+    margin: 5px auto 0 auto !important;
+  }
+
+  body.printing-relieving-letter .relieving-meta-block {
+    font-size: 1.14rem !important;
+    line-height: 1.55 !important;
+    margin-bottom: 18px !important;
+  }
+
+  body.printing-relieving-letter .relieving-subject {
+    font-size: 1.25rem !important;
+    margin: 20px 0 20px 0 !important;
+  }
+
+  body.printing-relieving-letter .relieving-salutation {
+    font-size: 1.18rem !important;
+    margin-bottom: 14px !important;
+  }
+
+  body.printing-relieving-letter .relieving-body-p {
+    font-size: 1.14rem !important;
+    line-height: 1.76 !important;
+    margin-bottom: 18px !important;
+  }
+
+  body.printing-relieving-letter .relieving-sign-block {
+    margin-top: 24px !important;
+    margin-bottom: 6px !important;
+    font-size: 1.10rem !important;
+    line-height: 1.55 !important;
+  }
+
+  body.printing-relieving-letter .relieving-sign-name {
+    font-size: 1.28rem !important;
+  }
+
   body.printing-relieving-letter .relieving-footer-wrap {
-    width: calc(100% + 48px) !important;
-    margin: 8px -24px -2px -24px !important;
+    width: calc(100% + 40px) !important;
+    margin: 0 -20px 0 -20px !important;
     display: flex !important;
     flex-direction: column !important;
     flex-shrink: 0 !important;
@@ -3709,33 +3784,42 @@ input[type="password"]::-ms-clear {
 }
 
 /* ═══════════════════════════════════════════════════════════════
-   RELIEVING LETTER VOUCHER STYLES (MATCHING media_1788198024893.jpg)
+   RELIEVING LETTER VOUCHER STYLES (MATCHING media_1788275459346.pdf)
    ═══════════════════════════════════════════════════════════════ */
 .relieving-letter-container-wrap {
   width: 100%;
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: 16px;
+  gap: 12px;
 }
 
 .relieving-letter-voucher {
   border: 2px solid #0052cc;
-  border-radius: 4px;
-  padding: 24px 30px 0 30px;
+  border-radius: 0;
+  padding: 16px 24px 0 24px;
   background: #ffffff;
-  width: 100%;
-  max-width: 840px;
-  min-height: 1070px;
+  width: 794px;
+  min-height: 1120px;
+  max-width: 794px;
   box-sizing: border-box;
   font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
-  font-size: 1.16rem;
+  font-size: 1.14rem;
   color: #1e293b;
-  line-height: 1.74;
+  line-height: 1.76;
   display: flex;
   flex-direction: column;
   justify-content: space-between;
+  position: relative;
   box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08);
+}
+
+.relieving-content-body {
+  flex: 1 1 auto;
+  display: flex;
+  flex-direction: column;
+  justify-content: flex-start;
+  min-height: 0;
 }
 
 .relieving-header {
@@ -3748,15 +3832,15 @@ input[type="password"]::-ms-clear {
 .relieving-header-left {
   display: flex;
   align-items: center;
-  gap: 16px;
+  gap: 14px;
 }
 
 .relieving-logo-card {
-  width: 90px;
-  height: 78px;
-  border-radius: 8px;
-  border: 1.5px solid #cbd5e1;
-  padding: 3px 6px;
+  width: 80px;
+  height: 52px;
+  border-radius: 6px;
+  border: 1px solid #cbd5e1;
+  padding: 2px 4px;
   background: #ffffff;
   display: flex;
   align-items: center;
@@ -3772,14 +3856,14 @@ input[type="password"]::-ms-clear {
 }
 
 .relieving-brand-title {
-  font-size: 2.20rem;
+  font-size: 1.70rem;
   font-weight: 800;
   color: #0f172a;
   line-height: 1.1;
 }
 
 .relieving-brand-company {
-  font-size: 1.60rem;
+  font-size: 1.25rem;
   font-weight: 900;
   color: #0052cc;
   margin-top: 2px;
@@ -3792,23 +3876,23 @@ input[type="password"]::-ms-clear {
   flex-direction: column;
   align-items: flex-start;
   justify-content: center;
-  max-width: 340px;
+  max-width: 420px;
 }
 
 .relieving-contact-list {
   display: flex;
   flex-direction: column;
-  gap: 5px;
+  gap: 2.5px;
   width: 100%;
 }
 
 .relieving-contact-row {
   display: flex;
   align-items: center;
-  gap: 8px;
-  font-size: 0.95rem;
+  gap: 7px;
+  font-size: 0.82rem;
   color: #1e293b;
-  line-height: 1.45;
+  line-height: 1.30;
   text-align: left;
 }
 
@@ -3819,34 +3903,34 @@ input[type="password"]::-ms-clear {
 
 .relieving-header-divider {
   border-bottom: 2px solid #0052cc;
-  margin: 14px -30px 18px -30px;
-  width: calc(100% + 60px);
+  margin: 8px -24px 14px -24px;
+  width: calc(100% + 48px);
 }
 
 .relieving-title-block {
   text-align: center;
-  margin-bottom: 18px;
+  margin-bottom: 16px;
 }
 
 .relieving-title-text {
-  font-size: 2.20rem;
-  font-weight: 800;
+  font-size: 2.15rem;
+  font-weight: 900;
   color: #0052cc;
   text-transform: uppercase;
   letter-spacing: 0.04em;
 }
 
 .relieving-title-underline {
-  width: 180px;
-  height: 3.5px;
+  width: 190px;
+  height: 4px;
   background: #0052cc;
-  margin: 6px auto 0 auto;
+  margin: 5px auto 0 auto;
 }
 
 .relieving-meta-block {
-  font-size: 1.15rem;
-  line-height: 1.62;
-  margin-bottom: 20px;
+  font-size: 1.14rem;
+  line-height: 1.55;
+  margin-bottom: 18px;
   color: #1e293b;
 }
 
@@ -3855,7 +3939,7 @@ input[type="password"]::-ms-clear {
   font-size: 1.25rem;
   font-weight: 800;
   color: #0f172a;
-  margin: 18px 0 22px 0;
+  margin: 20px 0 20px 0;
 }
 
 .relieving-salutation {
@@ -3869,33 +3953,36 @@ input[type="password"]::-ms-clear {
   font-size: 1.14rem;
   color: #1e293b;
   margin-bottom: 18px;
-  line-height: 1.74;
+  line-height: 1.76;
   text-align: justify;
 }
 
 .relieving-sign-block {
   display: flex;
   flex-direction: column;
-  min-width: 240px;
-  font-size: 1.12rem;
-  line-height: 1.60;
-  margin-top: 26px;
+  min-width: 200px;
+  font-size: 1.10rem;
+  line-height: 1.55;
+  margin-top: 24px;
+  margin-bottom: 8px;
 }
 
 .relieving-sign-name {
   font-weight: 800;
-  font-size: 1.25rem;
+  font-size: 1.28rem;
   color: #0f172a;
-  margin-top: 4px;
+  margin-top: 2px;
 }
 
 .relieving-footer-wrap {
-  width: calc(100% + 60px);
-  margin: 12px -30px -2px -30px;
+  width: calc(100% + 48px);
+  margin: 0 -24px 0 -24px;
   box-sizing: border-box;
   display: flex;
   flex-direction: column;
   flex-shrink: 0;
+  position: relative;
+  z-index: 10;
 }
 
 .relieving-footer-cin {
@@ -3904,8 +3991,8 @@ input[type="password"]::-ms-clear {
   color: #ffffff !important;
   font-weight: 700 !important;
   text-align: center !important;
-  padding: 8px 12px !important;
-  font-size: 0.92rem !important;
+  padding: 6px 12px !important;
+  font-size: 0.82rem !important;
   letter-spacing: 0.5px !important;
   box-shadow: inset 0 0 0 1000px #0052cc !important;
   -webkit-print-color-adjust: exact !important;
@@ -3919,8 +4006,8 @@ input[type="password"]::-ms-clear {
   color: #0f172a !important;
   font-weight: 600 !important;
   text-align: center !important;
-  padding: 6px 12px !important;
-  font-size: 0.85rem !important;
+  padding: 5px 12px !important;
+  font-size: 0.78rem !important;
   box-shadow: inset 0 0 0 1000px #67e8f9 !important;
   -webkit-print-color-adjust: exact !important;
   print-color-adjust: exact !important;
