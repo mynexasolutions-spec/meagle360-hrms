@@ -510,7 +510,7 @@ export default function EmployeeDirectory() {
                     </span>
                   </td>
                   <td style={{ padding: '14px 20px', textAlign: 'right', whiteSpace: 'nowrap' }}>
-                    {canInvite && (
+                    {canInvite && !(emp.role_names || []).some((r) => r.toLowerCase() === 'admin') ? (
                       <button
                         className="btn btn-secondary"
                         style={{
@@ -526,6 +526,8 @@ export default function EmployeeDirectory() {
                       >
                         <Award size={14} style={{ color: '#059669' }} /> Relieving Letter
                       </button>
+                    ) : (
+                      <span style={{ color: '#94a3b8', fontSize: '0.85rem' }}>—</span>
                     )}
                   </td>
                 </tr>

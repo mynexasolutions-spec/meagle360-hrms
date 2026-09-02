@@ -2,7 +2,6 @@ import { NavLink } from 'react-router-dom';
 import {
   LayoutDashboard,
   Users,
-  Building2,
   Clock,
   CalendarDays,
   FileText,
@@ -12,10 +11,10 @@ import {
   GitBranch,
   Receipt,
   Wallet,
-  CheckSquare,
 } from 'lucide-react';
 
 // permission: a permission key the user must have, or an array (any-of).
+// hideIfPermission: a permission key (or array) which, if present, hides this item.
 // Items with no `permission` are visible to everyone.
 const NAV_CONFIG = [
   { path: '/', label: 'Dashboard', icon: LayoutDashboard },
@@ -24,8 +23,7 @@ const NAV_CONFIG = [
   { path: '/leave', label: 'Leave', icon: CalendarDays, permission: 'leave:read' },
   { path: '/expenses', label: 'Expenses', icon: Receipt, permission: 'expenses:read' },
   { path: '/payroll', label: 'Payroll', icon: Wallet, permission: 'payroll:read' },
-  { path: '/my-payslips', label: 'My Payslips', icon: Wallet },
-  { path: '/action-tracker', label: 'Action Tracker', icon: CheckSquare },
+  { path: '/my-payslips', label: 'My Payslips', icon: Wallet, hideIfPermission: 'payroll:read' },
   { path: '/shifts', label: 'Shifts', icon: GitBranch, permission: 'shifts:read' },
   { path: '/documents', label: 'Documents', icon: FileText, permission: 'employees:read' },
   { path: '/reports', label: 'Reports & Analytics', icon: BarChart3, permission: ['leave:approve', 'settings:write'] },
@@ -33,17 +31,21 @@ const NAV_CONFIG = [
   { path: '/profile', label: 'My Profile', icon: UserCircle },
 ];
 
-function hasPermission(permissions, required) {
-  if (!required) return true;
+function isItemVisible(item, permissions) {
   const perms = permissions || {};
-  const list = Array.isArray(required) ? required : [required];
+  if (item.hideIfPermission) {
+    const hideList = Array.isArray(item.hideIfPermission) ? item.hideIfPermission : [item.hideIfPermission];
+    if (hideList.some((p) => perms[p])) return false;
+  }
+  if (!item.permission) return true;
+  const list = Array.isArray(item.permission) ? item.permission : [item.permission];
   return list.some((p) => perms[p]);
 }
 
 export default function Sidebar({ sidebarOpen, permissions }) {
   return (
     <nav style={{ flex: 1, padding: '16px 10px', overflowY: 'auto' }}>
-      {NAV_CONFIG.filter((item) => hasPermission(permissions, item.permission)).map((item) => (
+      {NAV_CONFIG.filter((item) => isItemVisible(item, permissions)).map((item) => (
         <NavLink
           key={item.path}
           to={item.path}
@@ -57,3 +59,4 @@ export default function Sidebar({ sidebarOpen, permissions }) {
     </nav>
   );
 }
+
