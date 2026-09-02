@@ -590,7 +590,7 @@ input[type="password"]::-ms-clear {
 .leave-balance-grid {
   display: grid;
   grid-template-columns: repeat(6, 1fr);
-  gap: 12px;
+  gap: 14px;
 }
 
 .leave-balance-grid > div:nth-child(-n+3) {
@@ -1364,7 +1364,7 @@ input[type="password"]::-ms-clear {
 /* ── Dashboard Columns ────────────────────────────────── */
 .dashboard-columns {
   display: grid;
-  grid-template-columns: minmax(0, 1.95fr) minmax(290px, 1.05fr);
+  grid-template-columns: minmax(0, 2.15fr) minmax(280px, 1fr);
   gap: 16px;
   align-items: stretch;
 }

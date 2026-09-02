@@ -926,7 +926,7 @@ export default function Dashboard() {
                         display: 'flex',
                         flexDirection: 'column',
                         justifyContent: 'space-between',
-                        padding: '10px 12px',
+                        padding: '9px 11px',
                         borderRadius: 12,
                         background: 'var(--bg-input)',
                         border: '1px solid #eef2f6',
@@ -934,12 +934,12 @@ export default function Dashboard() {
                         minWidth: 0,
                       }}
                     >
-                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8, gap: 5 }}>
-                        <div style={{ display: 'flex', alignItems: 'center', gap: 6, minWidth: 0, flex: 1 }}>
+                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8, gap: 6 }}>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: 5, minWidth: 0, flex: 1 }}>
                           <div
                             style={{
-                              width: 22,
-                              height: 22,
+                              width: 20,
+                              height: 20,
                               borderRadius: 6,
                               flexShrink: 0,
                               display: 'flex',
@@ -949,38 +949,37 @@ export default function Dashboard() {
                               color: style.color,
                             }}
                           >
-                            <style.icon size={12} />
+                            <style.icon size={11} />
                           </div>
-                          <div style={{ minWidth: 0, flex: 1 }}>
-                            <div
-                              style={{
-                                fontWeight: 700,
-                                fontSize: '0.72rem',
-                                color: '#0f172a',
-                                whiteSpace: 'nowrap',
-                                letterSpacing: '-0.02em',
-                              }}
-                              title={displayName}
-                            >
-                              {displayName}
-                            </div>
+                          <div
+                            style={{
+                              fontWeight: 700,
+                              fontSize: '0.70rem',
+                              color: '#0f172a',
+                              whiteSpace: 'nowrap',
+                              letterSpacing: '-0.02em',
+                            }}
+                            title={displayName}
+                          >
+                            {displayName}
                           </div>
                         </div>
                         <span
                           style={{
-                            fontSize: '0.70rem',
+                            fontSize: '0.675rem',
                             fontWeight: 700,
                             color: '#1e293b',
                             background: '#ffffff',
-                            padding: '1px 5px',
+                            padding: '1.5px 5px',
                             borderRadius: 5,
                             border: '1px solid #e2e8f0',
                             flexShrink: 0,
                             whiteSpace: 'nowrap',
                             boxShadow: '0 1px 2px rgba(0,0,0,0.03)',
+                            marginLeft: 'auto',
                           }}
                         >
-                          {balanceNum} {total ? `/ ${total}` : ''} d
+                          {balanceNum}{total ? `/${total}` : ''} d
                         </span>
                       </div>
 
