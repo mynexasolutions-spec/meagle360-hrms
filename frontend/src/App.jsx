@@ -93,7 +93,14 @@ function AppRoutes() {
         {/* Dashboard Routes */}
         <Route element={<ProtectedRoute><DashboardLayout /></ProtectedRoute>}>
           <Route path="/" element={<Dashboard />} />
-          <Route path="/employees" element={<EmployeeDirectory />} />
+          <Route
+            path="/employees"
+            element={
+              <RequirePermission permission="settings:write">
+                <EmployeeDirectory />
+              </RequirePermission>
+            }
+          />
           <Route path="/employees/:id" element={<EmployeeProfile />} />
           <Route path="/offer-letter" element={<OfferLetterStudio />} />
           <Route path="/relieving-letter" element={<RelievingLetterStudio />} />

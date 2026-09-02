@@ -223,7 +223,7 @@ export default function Dashboard() {
     { label: clockedIn ? 'Clock Out' : 'Clock In', icon: Clock, onClick: handleClock, color: '#2563eb', bg: '#eff6ff' },
     { label: 'Apply Leave', icon: CalendarPlus, path: '/leave', color: '#059669', bg: '#ecfdf5' },
     { label: 'My Payslips', icon: DollarSign, path: '/my-payslips', color: '#d97706', bg: '#fffbeb' },
-    { label: 'Employee Directory', icon: Users, path: '/employees', color: '#7c3aed', bg: '#f5f3ff' },
+    { label: 'My Profile', icon: Users, path: '/profile', color: '#7c3aed', bg: '#f5f3ff' },
     { label: 'Upload Document', icon: Upload, path: '/documents', color: '#0891b2', bg: '#ecfeff' },
   ];
 
