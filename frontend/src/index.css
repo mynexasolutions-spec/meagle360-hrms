@@ -572,6 +572,16 @@ input[type="password"]::-ms-clear {
   }
 }
 
+/* ── Stats Grid (Module Pages KPI Cards) ──────────────── */
+.stats-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+  gap: 16px;
+  margin-bottom: 24px;
+}
+
+
+
 /* ── Content Grid ─────────────────────────────────────── */
 .content-grid {
   display: grid;

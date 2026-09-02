@@ -98,7 +98,7 @@ export default function DashboardLayout() {
           )}
         </div>
 
-        <Sidebar sidebarOpen={showLabels} permissions={user?.permissions} />
+        <Sidebar sidebarOpen={showLabels} permissions={user?.permissions} roleName={user?.role_name} />
 
         {/* User Profile */}
         <div style={{ padding: '12px', borderTop: '1px solid #f1f5f9', background: '#f8fafc' }}>

@@ -29,6 +29,7 @@ const MyProfile = lazy(() => import('./pages/MyProfile'));
 const ActionTracker = lazy(() => import('./pages/ActionTracker'));
 const OfferLetterStudio = lazy(() => import('./pages/OfferLetterStudio'));
 const RelievingLetterStudio = lazy(() => import('./pages/RelievingLetterStudio'));
+const Subscriptions = lazy(() => import('./pages/Subscriptions'));
 
 function ProtectedRoute({ children }) {
   const { user, loading } = useAuth();
@@ -140,6 +141,14 @@ function AppRoutes() {
             element={
               <RequirePermission permission="settings:write">
                 <Settings />
+              </RequirePermission>
+            }
+          />
+          <Route
+            path="/subscriptions"
+            element={
+              <RequirePermission permission="settings:write">
+                <Subscriptions />
               </RequirePermission>
             }
           />
