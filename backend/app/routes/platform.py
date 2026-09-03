@@ -15,6 +15,7 @@ from app.dependencies import get_current_platform_admin
 from app.models.platform_admin import PlatformAdmin
 from app.models.company import Company
 from app.models.user_account import UserAccount
+from app.services.subdomain_service import slugify, RESERVED_SUBDOMAINS
 from app.schemas.platform import (
     PlatformTokenResponse,
     PlatformAdminResponse,
@@ -129,12 +130,31 @@ def update_company(
     db: Session = Depends(get_db),
     _: PlatformAdmin = Depends(get_current_platform_admin),
 ):
-    """Edit a tenant's name, country, plan tier, or seat limit."""
+    """Edit a tenant's name, subdomain, country, plan tier, or seat limit."""
     company = db.query(Company).filter(Company.id == company_id).first()
     if not company:
         raise HTTPException(status_code=404, detail="Company not found")
 
-    for field, value in data.model_dump(exclude_unset=True).items():
+    update_data = data.model_dump(exclude_unset=True)
+
+    if "subdomain" in update_data:
+        new_subdomain = slugify(update_data["subdomain"])
+        if not new_subdomain:
+            raise HTTPException(status_code=400, detail="Subdomain cannot be empty")
+        if len(new_subdomain) > 63:
+            raise HTTPException(status_code=400, detail="Subdomain is too long (max 63 characters)")
+        if new_subdomain in RESERVED_SUBDOMAINS:
+            raise HTTPException(status_code=400, detail=f"'{new_subdomain}' is a reserved subdomain")
+        existing = (
+            db.query(Company)
+            .filter(Company.subdomain == new_subdomain, Company.id != company_id)
+            .first()
+        )
+        if existing:
+            raise HTTPException(status_code=400, detail=f"Subdomain '{new_subdomain}' is already in use")
+        update_data["subdomain"] = new_subdomain
+
+    for field, value in update_data.items():
         setattr(company, field, value)
     db.commit()
     db.refresh(company)

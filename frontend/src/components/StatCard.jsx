@@ -5,14 +5,10 @@ export default function StatCard({ icon: Icon, label, value, trend, trendDirecti
 
   return (
     <div
-      className="glass-card"
+      className="glass-card stat-card-root"
       onMouseEnter={() => setHover(true)}
       onMouseLeave={() => setHover(false)}
       style={{
-        padding: '20px',
-        display: 'flex',
-        alignItems: 'flex-start',
-        gap: '16px',
         position: 'relative',
         overflow: 'hidden',
         cursor: 'default',
@@ -28,9 +24,8 @@ export default function StatCard({ icon: Icon, label, value, trend, trendDirecti
         }}
       />
       <div
+        className="stat-card-icon-wrap"
         style={{
-          width: 44,
-          height: 44,
           borderRadius: 'var(--radius-md)',
           background: bgColor,
           display: 'flex',
@@ -43,18 +38,19 @@ export default function StatCard({ icon: Icon, label, value, trend, trendDirecti
       >
         <Icon size={20} style={{ color }} />
       </div>
-      <div style={{ minWidth: 0 }}>
-        <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)', marginBottom: 4, fontWeight: 500 }}>
+      <div style={{ minWidth: 0, flex: 1 }}>
+        <div className="stat-card-label" style={{ color: 'var(--text-muted)', marginBottom: 3, fontWeight: 600 }}>
           {label}
         </div>
-        <div style={{ fontSize: '1.625rem', fontWeight: 800, lineHeight: 1.2, color: 'var(--text-primary)', letterSpacing: '-0.01em' }}>
+        <div className="stat-card-value" style={{ fontWeight: 800, lineHeight: 1.15, color: 'var(--text-primary)', letterSpacing: '-0.01em' }}>
           {value}
         </div>
         {trend && (
           <div
+            className="stat-card-trend"
             style={{
-              display: 'flex', alignItems: 'center', gap: 3, marginTop: 6,
-              fontSize: '0.6875rem', fontWeight: 600,
+              display: 'flex', alignItems: 'center', gap: 3, marginTop: 4,
+              fontWeight: 600,
               color: trendDirection === 'down' ? 'var(--accent-rose)' : 'var(--accent-emerald)',
             }}
           >

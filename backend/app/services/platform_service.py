@@ -23,6 +23,7 @@ from app.models.leave_type import LeaveType
 from app.models.salary_component import SalaryComponent
 from app.services.auth_service import hash_password, create_invite_token
 from app.services.email_service import try_send_invite_email
+from app.services.subdomain_service import generate_unique_subdomain
 
 DEFAULT_EXPENSE_CATEGORIES = ["Travel", "Meals & Entertainment", "Office Supplies", "Transportation", "Other"]
 
@@ -100,9 +101,11 @@ def create_company(
     seat_limit: int | None,
 ) -> Company:
     """Create a new tenant, pending setup, with its default role set seeded."""
+    subdomain = generate_unique_subdomain(name, db)
     company = Company(
         id=uuid.uuid4(),
         name=name,
+        subdomain=subdomain,
         country=country,
         multi_entity=multi_entity,
         status="pending_setup",

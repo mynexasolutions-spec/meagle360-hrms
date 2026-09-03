@@ -9,7 +9,7 @@ import {
   Users, CheckCircle, Umbrella, FileClock, Megaphone, CalendarHeart,
   Clock, CalendarPlus, Upload, Wifi, Plus, UserPlus, DollarSign,
   Palmtree, Heart, Ticket, Sparkles, Baby, Gift, Activity,
-  CheckCircle2, AlertTriangle, Info, Sun, Sunset, Moon,
+  CheckCircle2, AlertTriangle, Info, Sun, Sunset, Moon, ChevronDown, CalendarCheck,
 } from 'lucide-react';
 import {
   ResponsiveContainer, AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, Legend,
@@ -227,25 +227,39 @@ export default function Dashboard() {
     { label: 'Upload Document', icon: Upload, path: '/documents', color: '#0891b2', bg: '#ecfeff' },
   ];
 
+  const [mobileCards, setMobileCards] = useState({
+    leaveSummary: true,
+    announcements: false,
+    workforcePulse: false,
+    approvals: true,
+    leaveBalance: true,
+    upcomingHolidays: false,
+  });
+
+  const toggleCard = (cardKey) => {
+    setMobileCards((prev) => ({ ...prev, [cardKey]: !prev[cardKey] }));
+  };
+
   return (
-    <div className="animate-fade-in" style={{ maxWidth: 1400, margin: '0 auto' }}>
+    <div className="animate-fade-in" style={{ maxWidth: 1400, margin: '0 auto', width: '100%', minWidth: 0, boxSizing: 'border-box', paddingBottom: 16 }}>
       
       {/* 1. Header with integrated Clock In / Status */}
-      <div className="page-header" style={{ marginBottom: 22, display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: 16 }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: 14 }}>
+      <div className="page-header dashboard-greeting-header" style={{ marginBottom: 20, display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: 14 }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 12, minWidth: 0 }}>
           <div
+            className="dashboard-greeting-icon"
             style={{
-              width: 48, height: 48, borderRadius: 16, flexShrink: 0,
+              width: 46, height: 46, borderRadius: 14, flexShrink: 0,
               background: greetingStyle.bg, display: 'flex', alignItems: 'center', justifyContent: 'center',
               boxShadow: `0 4px 14px ${greetingStyle.color}22`,
             }}
           >
             <greetingStyle.icon size={22} style={{ color: greetingStyle.color }} />
           </div>
-          <div>
+          <div style={{ minWidth: 0 }}>
             <h1
               style={{
-                fontSize: 'clamp(1.25rem, 4.5vw, 1.75rem)', fontWeight: 800,
+                fontSize: 'clamp(1.2rem, 4vw, 1.75rem)', fontWeight: 800,
                 color: '#0f172a',
                 WebkitTextFillColor: '#0f172a',
                 margin: 0,
@@ -253,18 +267,19 @@ export default function Dashboard() {
             >
               {greeting()}, {user?.full_name?.split(' ')[0] || 'there'}
             </h1>
-            <p style={{ color: '#64748b', fontSize: '0.875rem', margin: '2px 0 0 0' }}>Here's what's happening in your organization today.</p>
+            <p style={{ color: '#64748b', fontSize: '0.8125rem', margin: '2px 0 0 0' }}>Here's what's happening in your organization today.</p>
           </div>
         </div>
 
-        <div style={{ display: 'flex', alignItems: 'center', gap: 12, flexWrap: 'wrap' }}>
+        <div className="dashboard-header-actions" style={{ display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap' }}>
           {user?.employee_id && (
             <button
               onClick={handleClock}
               disabled={clockLoading}
+              className="dashboard-clock-btn"
               style={{
                 display: 'inline-flex', alignItems: 'center', gap: 8,
-                padding: '9px 16px', borderRadius: 12,
+                padding: '8px 14px', borderRadius: 12,
                 background: clockedIn ? '#fee2e2' : '#eff6ff',
                 color: clockedIn ? '#dc2626' : '#2563eb',
                 border: `1.5px solid ${clockedIn ? '#fca5a5' : '#bfdbfe'}`,
@@ -284,11 +299,11 @@ export default function Dashboard() {
             </button>
           )}
 
-          <div className="dashboard-date-block" style={{ textAlign: 'right', padding: '8px 16px', borderRadius: 12, background: '#ffffff', border: '1px solid #e2e8f0', boxShadow: '0 2px 8px rgba(0,0,0,0.02)' }}>
-            <div style={{ fontSize: '0.92rem', fontWeight: 700, color: '#0f172a' }}>
+          <div className="dashboard-date-block" style={{ textAlign: 'right', padding: '6px 12px', borderRadius: 12, background: '#ffffff', border: '1px solid #e2e8f0', boxShadow: '0 2px 8px rgba(0,0,0,0.02)' }}>
+            <div style={{ fontSize: '0.88rem', fontWeight: 700, color: '#0f172a' }}>
               {today.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
             </div>
-            <div style={{ fontSize: '0.75rem', color: '#64748b', marginTop: 1 }}>
+            <div style={{ fontSize: '0.70rem', color: '#64748b', marginTop: 1 }}>
               {today.toLocaleDateString(undefined, { day: '2-digit', month: 'short', year: 'numeric', weekday: 'short' })}
             </div>
           </div>
@@ -336,36 +351,23 @@ export default function Dashboard() {
       </div>
 
       {/* 3. Main Dashboard Rows (Symmetrical Row Architecture) */}
-      <div style={{ display: 'grid', gap: 20 }}>
+      <div className="dashboard-main-grid" style={{ display: 'grid', gap: 20, width: '100%', minWidth: 0, boxSizing: 'border-box' }}>
         
         {/* Row 1: Attendance Hero Chart (Left) + Quick Actions (Right) */}
         <div className="dashboard-columns">
           {/* Attendance Overview Card */}
-          <div
-            style={{
-              background: '#ffffff',
-              borderRadius: 20,
-              padding: '22px 24px',
-              border: '1px solid #e2e8f0',
-              boxShadow: '0 4px 20px -2px rgba(0, 0, 0, 0.03)',
-              display: 'flex',
-              flexDirection: 'column',
-              justifyContent: 'space-between',
-              height: '100%',
-              boxSizing: 'border-box',
-            }}
-          >
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16, flexWrap: 'wrap', gap: 10 }}>
-              <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-                <div style={{ width: 36, height: 36, borderRadius: 10, background: '#ecfdf5', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#059669' }}>
+          <div className="dashboard-card">
+            <div className="attendance-card-header">
+              <div style={{ display: 'flex', alignItems: 'center', gap: 10, minWidth: 0 }}>
+                <div style={{ width: 36, height: 36, borderRadius: 10, background: '#ecfdf5', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#059669', flexShrink: 0 }}>
                   <Activity size={18} />
                 </div>
-                <div>
-                  <h3 style={{ fontSize: '1.08rem', fontWeight: 800, color: '#0f172a', margin: 0 }}>Attendance Overview (Last 7 Days)</h3>
-                  <p style={{ fontSize: '0.8125rem', color: '#64748b', margin: '2px 0 0 0' }}>Daily presence, absence, and leave trends across your organization</p>
+                <div style={{ minWidth: 0 }}>
+                  <h3 className="dashboard-card-title">Attendance Overview (Last 7 Days)</h3>
+                  <p className="dashboard-card-sub">Daily presence, absence, and leave trends across your organization</p>
                 </div>
               </div>
-              <div style={{ display: 'flex', gap: 10, alignItems: 'center', flexWrap: 'wrap' }}>
+              <div className="attendance-card-header-pills">
                 <span style={{ fontSize: '0.8125rem', fontWeight: 600, color: '#059669', background: '#ecfdf5', padding: '4px 12px', borderRadius: 8, border: '1px solid #a7f3d0' }}>
                   Present: {summary?.present_today ?? 0}
                 </span>
@@ -374,37 +376,39 @@ export default function Dashboard() {
                 </span>
               </div>
             </div>
-            <ResponsiveContainer width="100%" height={240}>
-              <AreaChart data={attendanceOverview} margin={{ top: 12, right: 10, left: -20, bottom: 0 }}>
-                <defs>
-                  <linearGradient id="presentGrad" x1="0" y1="0" x2="0" y2="1">
-                    <stop offset="5%" stopColor="#059669" stopOpacity={0.25}/>
-                    <stop offset="95%" stopColor="#059669" stopOpacity={0.0}/>
-                  </linearGradient>
-                  <linearGradient id="absentGrad" x1="0" y1="0" x2="0" y2="1">
-                    <stop offset="5%" stopColor="#ef4444" stopOpacity={0.18}/>
-                    <stop offset="95%" stopColor="#ef4444" stopOpacity={0.0}/>
-                  </linearGradient>
-                  <linearGradient id="leaveGrad" x1="0" y1="0" x2="0" y2="1">
-                    <stop offset="5%" stopColor="#2563eb" stopOpacity={0.2}/>
-                    <stop offset="95%" stopColor="#2563eb" stopOpacity={0.0}/>
-                  </linearGradient>
-                </defs>
-                <CartesianGrid strokeDasharray="3 3" stroke="#f1f5f9" vertical={false} />
-                <XAxis dataKey="date" tick={{ fontSize: 11, fill: '#64748b' }} tickFormatter={(d) => d.slice(5)} />
-                <YAxis tick={{ fontSize: 11, fill: '#64748b' }} axisLine={false} tickLine={false} />
-                <Tooltip contentStyle={{ background: '#ffffff', border: '1px solid #e2e8f0', borderRadius: 12, fontSize: 12, boxShadow: '0 4px 14px rgba(0,0,0,0.06)' }} />
-                <Legend wrapperStyle={{ fontSize: 12, paddingTop: 8 }} />
-                <Area type="monotone" dataKey="present" stroke="#059669" strokeWidth={2.5} fillOpacity={1} fill="url(#presentGrad)" name="Present" />
-                <Area type="monotone" dataKey="absent" stroke="#ef4444" strokeWidth={2.5} fillOpacity={1} fill="url(#absentGrad)" name="Absent" />
-                <Area type="monotone" dataKey="on_leave" stroke="#2563eb" strokeWidth={2.5} fillOpacity={1} fill="url(#leaveGrad)" name="On Leave" />
-              </AreaChart>
-            </ResponsiveContainer>
+            <div className="dashboard-chart-box">
+              <ResponsiveContainer width="100%" height="100%">
+                <AreaChart data={attendanceOverview} margin={{ top: 10, right: 8, left: -24, bottom: 0 }}>
+                  <defs>
+                    <linearGradient id="presentGrad" x1="0" y1="0" x2="0" y2="1">
+                      <stop offset="5%" stopColor="#059669" stopOpacity={0.25}/>
+                      <stop offset="95%" stopColor="#059669" stopOpacity={0.0}/>
+                    </linearGradient>
+                    <linearGradient id="absentGrad" x1="0" y1="0" x2="0" y2="1">
+                      <stop offset="5%" stopColor="#ef4444" stopOpacity={0.18}/>
+                      <stop offset="95%" stopColor="#ef4444" stopOpacity={0.0}/>
+                    </linearGradient>
+                    <linearGradient id="leaveGrad" x1="0" y1="0" x2="0" y2="1">
+                      <stop offset="5%" stopColor="#2563eb" stopOpacity={0.2}/>
+                      <stop offset="95%" stopColor="#2563eb" stopOpacity={0.0}/>
+                    </linearGradient>
+                  </defs>
+                  <CartesianGrid strokeDasharray="3 3" stroke="#f1f5f9" vertical={false} />
+                  <XAxis dataKey="date" tick={{ fontSize: 10, fill: '#64748b' }} tickFormatter={(d) => d.slice(5)} />
+                  <YAxis tick={{ fontSize: 10, fill: '#64748b' }} axisLine={false} tickLine={false} width={28} />
+                  <Tooltip contentStyle={{ background: '#ffffff', border: '1px solid #e2e8f0', borderRadius: 12, fontSize: 12, boxShadow: '0 4px 14px rgba(0,0,0,0.06)' }} />
+                  <Legend wrapperStyle={{ fontSize: 11, paddingTop: 6 }} />
+                  <Area type="monotone" dataKey="present" stroke="#059669" strokeWidth={2.5} fillOpacity={1} fill="url(#presentGrad)" name="Present" />
+                  <Area type="monotone" dataKey="absent" stroke="#ef4444" strokeWidth={2.5} fillOpacity={1} fill="url(#absentGrad)" name="Absent" />
+                  <Area type="monotone" dataKey="on_leave" stroke="#2563eb" strokeWidth={2.5} fillOpacity={1} fill="url(#leaveGrad)" name="On Leave" />
+                </AreaChart>
+              </ResponsiveContainer>
+            </div>
           </div>
 
           {/* Quick Actions (Admin / Manager Tailored) */}
-          <div className="section-card" style={{ borderRadius: 20, padding: '20px 22px', border: '1px solid #e2e8f0', display: 'flex', flexDirection: 'column', justifyContent: 'space-between', height: '100%', boxSizing: 'border-box' }}>
-            <h3 style={{ fontSize: '1.02rem', fontWeight: 800, color: '#0f172a', marginBottom: 12 }}>Quick Actions</h3>
+          <div className="dashboard-card">
+            <h3 className="dashboard-card-title" style={{ marginBottom: 12 }}>Quick Actions</h3>
             <div style={{ display: 'grid', gap: 8, flex: 1, alignContent: 'space-between' }}>
               {quickActions.map((action) => (
                 <a
@@ -438,62 +442,63 @@ export default function Dashboard() {
         <div className="dashboard-columns">
           
           {/* Left: Content Grid for Leave Summary & Announcements */}
-          <div className="content-grid" style={{ height: '100%' }}>
+          <div className="content-grid" style={{ height: '100%', minWidth: 0 }}>
             
             {/* Left Card: Leave Summary (Rich Executive Distribution Card) */}
-            <div
-              style={{
-                background: '#ffffff',
-                borderRadius: 20,
-                padding: '18px 20px',
-                border: '1px solid #e2e8f0',
-                boxShadow: '0 4px 20px -2px rgba(0, 0, 0, 0.03)',
-                display: 'flex',
-                flexDirection: 'column',
-                justifyContent: 'space-between',
-                height: '100%',
-                boxSizing: 'border-box',
-              }}
-            >
-              <div>
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 14, gap: 10 }}>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: 8, minWidth: 0 }}>
-                    <div style={{ width: 32, height: 32, borderRadius: 8, background: '#f5f3ff', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#7c3aed', flexShrink: 0 }}>
-                      <Umbrella size={16} />
-                    </div>
-                    <h3 style={{ fontSize: '0.98rem', fontWeight: 800, color: '#0f172a', margin: 0, whiteSpace: 'nowrap' }}>
+            <div className="dashboard-card dashboard-card-sm">
+              <div
+                className="card-header-clickable"
+                onClick={() => toggleCard('leaveSummary')}
+                style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: mobileCards.leaveSummary ? 14 : 0, gap: 10 }}
+              >
+                <div style={{ display: 'flex', alignItems: 'center', gap: 8, minWidth: 0 }}>
+                  <div style={{ width: 32, height: 32, borderRadius: 8, background: '#f5f3ff', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#7c3aed', flexShrink: 0 }}>
+                    <Umbrella size={16} />
+                  </div>
+                  <div style={{ minWidth: 0 }}>
+                    <h3 className="dashboard-card-title" style={{ whiteSpace: 'nowrap' }}>
                       Leave Summary
                     </h3>
+                    <p className="dashboard-card-sub" style={{ margin: 0 }}>
+                      YTD organization-wide leaves
+                    </p>
                   </div>
-                  <span style={{ fontSize: '0.70rem', fontWeight: 700, color: '#059669', background: '#ecfdf5', padding: '2px 7px', borderRadius: 6, border: '1px solid #a7f3d0', whiteSpace: 'nowrap', flexShrink: 0 }}>
+                </div>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 6, flexShrink: 0 }}>
+                  <span style={{ fontSize: '0.70rem', fontWeight: 700, color: '#059669', background: '#ecfdf5', padding: '2px 7px', borderRadius: 6, border: '1px solid #a7f3d0', whiteSpace: 'nowrap' }}>
                     Active Year
                   </span>
+                  <div className="card-accordion-toggle">
+                    <ChevronDown size={14} style={{ transform: mobileCards.leaveSummary ? 'rotate(180deg)' : 'none', transition: 'transform 0.2s' }} />
+                  </div>
                 </div>
+              </div>
 
+              <div className={`card-collapsible-body ${!mobileCards.leaveSummary ? 'is-collapsed' : ''}`} style={{ height: '100%', display: 'flex', flexDirection: 'column', justifyContent: 'space-between' }}>
                 {leaveSummary.length === 0 ? (
                   <div className="empty-state"><Umbrella /><p>No approved leave this year yet</p></div>
                 ) : (
                   <div>
-                    {/* Top: Donut Chart + Segmented Distribution Bar */}
-                    <div style={{ display: 'flex', alignItems: 'center', gap: 16, marginBottom: 14 }}>
-                      <div style={{ position: 'relative', width: 110, height: 110, flexShrink: 0 }}>
+                    {/* Top: Donut Chart + Segmented Distribution Bar (Stacked cleanly on mobile) */}
+                    <div className="leave-summary-top-row" style={{ marginBottom: 16 }}>
+                      <div className="leave-donut-box">
                         <ResponsiveContainer width="100%" height="100%">
                           <PieChart>
-                            <Pie data={leaveSummary} dataKey="days" nameKey="leave_type" innerRadius={42} outerRadius={51} paddingAngle={3} stroke="none">
+                            <Pie data={leaveSummary} dataKey="days" nameKey="leave_type" innerRadius="73%" outerRadius="88%" paddingAngle={3} stroke="none">
                               {leaveSummary.map((_, i) => (
                                 <Cell key={i} fill={DONUT_COLORS[i % DONUT_COLORS.length]} />
                               ))}
                             </Pie>
                           </PieChart>
                         </ResponsiveContainer>
-                        <div style={{ position: 'absolute', inset: 0, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center' }}>
-                          <div style={{ fontSize: '1.3rem', fontWeight: 900, color: '#0f172a', letterSpacing: '-0.02em', lineHeight: 1 }}>{totalLeaveDays}</div>
-                          <div style={{ fontSize: '0.625rem', color: '#64748b', fontWeight: 700, marginTop: 3 }}>Total Days</div>
+                        <div style={{ position: 'absolute', inset: 0, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', pointerEvents: 'none' }}>
+                          <div className="leave-donut-center-num" style={{ lineHeight: 1 }}>{totalLeaveDays}</div>
+                          <div style={{ fontSize: '0.66rem', color: '#64748b', fontWeight: 700, marginTop: 4, letterSpacing: '0.01em' }}>Total Days</div>
                         </div>
                       </div>
 
                       {/* Segmented Color Bar & Top Utilization */}
-                      <div style={{ flex: 1, minWidth: 0, display: 'flex', flexDirection: 'column', gap: 6 }}>
+                      <div className="leave-summary-distribution-box" style={{ flex: 1, minWidth: 0, display: 'flex', flexDirection: 'column', gap: 6 }}>
                         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline' }}>
                           <span style={{ fontSize: '0.74rem', fontWeight: 700, color: '#475569' }}>Distribution</span>
                           <span style={{ fontSize: '0.6875rem', fontWeight: 700, color: '#059669', background: '#ecfdf5', padding: '1px 6px', borderRadius: 5 }}>
@@ -522,24 +527,17 @@ export default function Dashboard() {
                     </div>
 
                     {/* Middle: 4 Rich Colored Category Tiles (Neat & Non-Overflowing) */}
-                    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, minmax(0, 1fr))', gap: 8 }}>
+                    <div className="leave-summary-tiles" style={{ gap: 10 }}>
                       {leaveSummary.map((l, i) => {
                         const style = getLeaveTypeStyle(l.leave_type);
                         const color = DONUT_COLORS[i % DONUT_COLORS.length];
                         return (
                           <div
                             key={l.leave_type}
+                            className="leave-summary-tile-item"
                             style={{
-                              display: 'flex',
-                              flexDirection: 'column',
-                              justifyContent: 'space-between',
-                              padding: '8px 10px',
-                              borderRadius: 11,
                               background: style.bg || 'var(--bg-input)',
                               border: `1px solid ${color}35`,
-                              minHeight: 60,
-                              boxSizing: 'border-box',
-                              boxShadow: '0 1px 3px rgba(0,0,0,0.02)',
                             }}
                           >
                             {/* Line 1: Icon + Full Category Title */}
@@ -560,22 +558,14 @@ export default function Dashboard() {
                               >
                                 <style.icon size={10} />
                               </div>
-                              <span
-                                style={{
-                                  fontSize: '0.69rem',
-                                  fontWeight: 700,
-                                  color: '#0f172a',
-                                  whiteSpace: 'nowrap',
-                                  letterSpacing: '-0.02em',
-                                }}
-                              >
+                              <span className="leave-summary-tile-title">
                                 {l.leave_type}
                               </span>
                             </div>
 
                             {/* Line 2: Big Bold Days Count + Percentage Badge */}
                             <div style={{ display: 'flex', alignItems: 'baseline', justifyContent: 'space-between', marginTop: 4, width: '100%' }}>
-                              <span style={{ fontSize: '0.88rem', fontWeight: 800, color: '#0f172a', lineHeight: 1 }}>
+                              <span className="leave-summary-tile-count">
                                 {l.days} <span style={{ fontSize: '0.65rem', color: '#64748b', fontWeight: 600 }}>days</span>
                               </span>
                               <span
@@ -599,64 +589,63 @@ export default function Dashboard() {
 
                   </div>
                 )}
-              </div>
 
-              {/* Organization Leave Health Insight Strip */}
-              <div
-                style={{
-                  marginTop: 12,
-                  padding: '8px 12px',
-                  borderRadius: 10,
-                  background: '#f8fafc',
-                  border: '1px solid #e2e8f0',
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'space-between',
-                  flexWrap: 'wrap',
-                  gap: 6,
-                }}
-              >
-                <div style={{ display: 'flex', alignItems: 'center', gap: 6, minWidth: 0 }}>
-                  <span style={{ width: 7, height: 7, borderRadius: '50%', background: '#059669', flexShrink: 0 }} />
-                  <span style={{ fontSize: '0.73rem', color: '#475569', fontWeight: 600, whiteSpace: 'nowrap' }}>
-                    Org Balance: <strong style={{ color: '#059669' }}>88% intact</strong>
-                  </span>
+                {/* Organization Leave Health Insight Strip */}
+                <div
+                  style={{
+                    marginTop: 14,
+                    padding: '10px 14px',
+                    borderRadius: 12,
+                    background: '#f8fafc',
+                    border: '1px solid #e2e8f0',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'space-between',
+                    flexWrap: 'wrap',
+                    gap: 6,
+                  }}
+                >
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 6, minWidth: 0 }}>
+                    <span style={{ width: 7, height: 7, borderRadius: '50%', background: '#059669', flexShrink: 0 }} />
+                    <span style={{ fontSize: '0.73rem', color: '#475569', fontWeight: 600, whiteSpace: 'nowrap' }}>
+                      Org Balance: <strong style={{ color: '#059669' }}>88% intact</strong>
+                    </span>
+                  </div>
+                  <Link to="/leave" style={{ fontSize: '0.73rem', fontWeight: 700, color: 'var(--accent-blue)', textDecoration: 'none', whiteSpace: 'nowrap', flexShrink: 0 }}>
+                    Leave Policy
+                  </Link>
                 </div>
-                <Link to="/leave" style={{ fontSize: '0.73rem', fontWeight: 700, color: 'var(--accent-blue)', textDecoration: 'none', whiteSpace: 'nowrap', flexShrink: 0 }}>
-                  Leave Policy
-                </Link>
               </div>
             </div>
 
             {/* Right Card: Recent Announcements */}
-            <div
-              style={{
-                background: '#ffffff',
-                borderRadius: 20,
-                padding: '18px 20px',
-                border: '1px solid #e2e8f0',
-                boxShadow: '0 4px 20px -2px rgba(0, 0, 0, 0.03)',
-                display: 'flex',
-                flexDirection: 'column',
-                justifyContent: 'space-between',
-                height: '100%',
-                boxSizing: 'border-box',
-              }}
-            >
+            <div className="dashboard-card dashboard-card-sm" style={{ display: 'flex', flexDirection: 'column', justifyContent: 'space-between', height: '100%' }}>
               <div>
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 14, gap: 10 }}>
+                <div
+                  className="card-header-clickable"
+                  onClick={() => toggleCard('announcements')}
+                  style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: mobileCards.announcements ? 14 : 16, gap: 10 }}
+                >
                   <div style={{ display: 'flex', alignItems: 'center', gap: 8, minWidth: 0 }}>
                     <div style={{ width: 32, height: 32, borderRadius: 8, background: '#fdf2f8', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#db2777', flexShrink: 0 }}>
                       <Megaphone size={16} />
                     </div>
-                    <h3 style={{ fontSize: '0.98rem', fontWeight: 800, color: '#0f172a', margin: 0, whiteSpace: 'nowrap' }}>
-                      Announcements
-                    </h3>
+                    <div style={{ minWidth: 0 }}>
+                      <h3 className="dashboard-card-title" style={{ whiteSpace: 'nowrap' }}>
+                        Announcements
+                      </h3>
+                      <p className="dashboard-card-sub" style={{ margin: 0 }}>
+                        Recent company broadcasts
+                      </p>
+                    </div>
                   </div>
                   <div style={{ display: 'flex', gap: 8, alignItems: 'center', flexShrink: 0 }}>
                     {isAdminOrManager && (
                       <button
-                        onClick={() => setShowNewAnnouncement(true)}
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          setShowNewAnnouncement(true);
+                        }}
                         style={{
                           display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 3,
                           padding: '3px 7px', borderRadius: 6, border: '1px solid #cbd5e1',
@@ -670,7 +659,11 @@ export default function Dashboard() {
                       </button>
                     )}
                     <button
-                      onClick={() => setShowAllAnnouncements(true)}
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        setShowAllAnnouncements(true);
+                      }}
+                      className="card-desktop-action"
                       style={{
                         color: '#2563eb', fontSize: '0.74rem', fontWeight: 600,
                         background: 'transparent', border: 'none', cursor: 'pointer', padding: 0, whiteSpace: 'nowrap',
@@ -678,51 +671,59 @@ export default function Dashboard() {
                     >
                       View all
                     </button>
+                    <span className="card-mobile-badge" style={{ fontSize: '0.70rem', fontWeight: 700, color: '#db2777', background: '#fdf2f8', padding: '2px 7px', borderRadius: 6, border: '1px solid #fbcfe8' }}>
+                      {announcements.length}
+                    </span>
+                    <div className="card-accordion-toggle">
+                      <ChevronDown size={14} style={{ transform: mobileCards.announcements ? 'rotate(180deg)' : 'none', transition: 'transform 0.2s' }} />
+                    </div>
                   </div>
                 </div>
 
-                {announcements.length === 0 ? (
-                  <div className="empty-state"><Megaphone /><p>No announcements posted yet</p></div>
-                ) : (
-                  <div style={{ display: 'grid', gap: 10 }}>
-                    {announcements.slice(0, 2).map((a) => (
-                      <div
-                        key={a.id}
-                        onClick={() => setSelectedAnnouncement(a)}
-                        style={{
-                          display: 'flex', gap: 12, alignItems: 'flex-start',
-                          padding: '10px 14px', borderRadius: 12,
-                          background: 'var(--bg-input)', border: '1px solid #f1f5f9',
-                          cursor: 'pointer', transition: 'transform 0.15s ease, box-shadow 0.15s ease',
-                        }}
-                        className="quick-action-row"
-                        title="Click to view full announcement"
-                      >
-                        <div style={{ width: 28, height: 28, borderRadius: 8, background: '#eff6ff', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#2563eb', flexShrink: 0, marginTop: 2 }}>
-                          <Megaphone size={13} />
+                <div className={`card-collapsible-body ${!mobileCards.announcements ? 'is-collapsed' : ''}`}>
+                  {announcements.length === 0 ? (
+                    <div className="empty-state"><Megaphone /><p>No announcements posted yet</p></div>
+                  ) : (
+                    <div style={{ display: 'grid', gap: 14 }}>
+                      {announcements.slice(0, 2).map((a) => (
+                        <div
+                          key={a.id}
+                          onClick={() => setSelectedAnnouncement(a)}
+                          style={{
+                            display: 'flex', gap: 12, alignItems: 'flex-start',
+                            padding: '13px 16px', borderRadius: 12,
+                            background: 'var(--bg-input)', border: '1px solid #f1f5f9',
+                            cursor: 'pointer', transition: 'transform 0.15s ease, box-shadow 0.15s ease',
+                          }}
+                          className="quick-action-row"
+                          title="Click to view full announcement"
+                        >
+                          <div style={{ width: 28, height: 28, borderRadius: 8, background: '#eff6ff', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#2563eb', flexShrink: 0, marginTop: 2 }}>
+                            <Megaphone size={13} />
+                          </div>
+                          <div style={{ flex: 1, minWidth: 0 }}>
+                            <div style={{ fontWeight: 700, fontSize: '0.86rem', color: '#0f172a', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                              {a.title}
+                            </div>
+                            <div style={{ color: '#64748b', fontSize: '0.76rem', marginTop: 3, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                              {a.body}
+                            </div>
+                            <div style={{ color: '#94a3b8', fontSize: '0.6875rem', marginTop: 5 }}>
+                              {new Date(a.created_at).toLocaleDateString(undefined, { day: '2-digit', month: '2-digit', year: 'numeric' })}
+                            </div>
+                          </div>
                         </div>
-                        <div style={{ flex: 1, minWidth: 0 }}>
-                          <div style={{ fontWeight: 700, fontSize: '0.84rem', color: '#0f172a', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-                            {a.title}
-                          </div>
-                          <div style={{ color: '#64748b', fontSize: '0.75rem', marginTop: 2, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-                            {a.body}
-                          </div>
-                          <div style={{ color: '#94a3b8', fontSize: '0.6875rem', marginTop: 4 }}>
-                            {new Date(a.created_at).toLocaleDateString(undefined, { day: '2-digit', month: '2-digit', year: 'numeric' })}
-                          </div>
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-                )}
+                      ))}
+                    </div>
+                  )}
+                </div>
               </div>
 
               {/* Broadcast Footer */}
               <div
                 style={{
-                  marginTop: 12,
-                  paddingTop: 8,
+                  marginTop: 14,
+                  paddingTop: 10,
                   borderTop: '1px solid #f1f5f9',
                   display: 'flex',
                   justifyContent: 'space-between',
@@ -747,109 +748,158 @@ export default function Dashboard() {
           </div>
 
           {/* Right: Workforce Pulse + My Approvals */}
-          <div style={{ display: 'flex', flexDirection: 'column', gap: 16, height: '100%', justifyContent: 'space-between' }}>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 14, minWidth: 0 }}>
             
             {/* Unified Workforce Pulse */}
             {canSeeLiveStatus && (
-              <div className="section-card" style={{ borderRadius: 20, padding: '20px 22px', border: '1px solid #e2e8f0', background: '#ffffff', boxShadow: '0 4px 20px -2px rgba(0, 0, 0, 0.03)', display: 'flex', flexDirection: 'column', justifyContent: 'space-between' }}>
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 }}>
-                  <h3 style={{ fontSize: '1.02rem', fontWeight: 800, color: '#0f172a', margin: 0 }}>Workforce Pulse</h3>
-                  <div style={{ display: 'flex', background: 'var(--bg-input)', padding: 3, borderRadius: 10, gap: 3 }}>
-                    <button
-                      onClick={() => setWorkforceTab('present')}
-                      style={{
-                        border: 'none', background: workforceTab === 'present' ? '#ffffff' : 'transparent',
-                        color: workforceTab === 'present' ? '#059669' : '#64748b',
-                        padding: '3px 9px', borderRadius: 7, fontSize: '0.75rem', fontWeight: 700, cursor: 'pointer',
-                        boxShadow: workforceTab === 'present' ? '0 1px 4px rgba(0,0,0,0.06)' : 'none',
-                      }}
-                    >
-                      Present
-                    </button>
-                    <button
-                      onClick={() => setWorkforceTab('leave')}
-                      style={{
-                        border: 'none', background: workforceTab === 'leave' ? '#ffffff' : 'transparent',
-                        color: workforceTab === 'leave' ? '#d97706' : '#64748b',
-                        padding: '3px 9px', borderRadius: 7, fontSize: '0.75rem', fontWeight: 700, cursor: 'pointer',
-                        boxShadow: workforceTab === 'leave' ? '0 1px 4px rgba(0,0,0,0.06)' : 'none',
-                      }}
-                    >
-                      On Leave
-                    </button>
+              <div className="dashboard-card dashboard-card-sm">
+                <div>
+                  <div
+                    className="card-header-clickable"
+                    onClick={() => toggleCard('workforcePulse')}
+                    style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12, gap: 6, flexWrap: 'nowrap' }}
+                  >
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 6, minWidth: 0, flexShrink: 0 }}>
+                      <h3 className="dashboard-card-title" style={{ fontSize: '0.94rem', whiteSpace: 'nowrap' }}>Workforce Pulse</h3>
+                      <span className="card-mobile-badge" style={{ fontSize: '0.70rem', fontWeight: 700, color: '#059669', background: '#ecfdf5', padding: '2px 7px', borderRadius: 6 }}>
+                        {presentList.length} Online
+                      </span>
+                    </div>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 6, flexShrink: 0 }}>
+                      <div className="card-desktop-action" style={{ display: 'flex', background: 'var(--bg-input)', padding: '2px 3px', borderRadius: 8, gap: 2, flexShrink: 0 }}>
+                        <button
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            setWorkforceTab('present');
+                          }}
+                          style={{
+                            border: 'none', background: workforceTab === 'present' ? '#ffffff' : 'transparent',
+                            color: workforceTab === 'present' ? '#059669' : '#64748b',
+                            padding: '2px 7px', borderRadius: 6, fontSize: '0.70rem', fontWeight: 700, cursor: 'pointer',
+                            boxShadow: workforceTab === 'present' ? '0 1px 3px rgba(0,0,0,0.06)' : 'none',
+                          }}
+                        >
+                          Present
+                        </button>
+                        <button
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            setWorkforceTab('leave');
+                          }}
+                          style={{
+                            border: 'none', background: workforceTab === 'leave' ? '#ffffff' : 'transparent',
+                            color: workforceTab === 'leave' ? '#d97706' : '#64748b',
+                            padding: '2px 7px', borderRadius: 6, fontSize: '0.70rem', fontWeight: 700, cursor: 'pointer',
+                            boxShadow: workforceTab === 'leave' ? '0 1px 3px rgba(0,0,0,0.06)' : 'none',
+                          }}
+                        >
+                          On Leave
+                        </button>
+                      </div>
+                      <div className="card-accordion-toggle">
+                        <ChevronDown size={14} style={{ transform: mobileCards.workforcePulse ? 'rotate(180deg)' : 'none', transition: 'transform 0.2s' }} />
+                      </div>
+                    </div>
+                  </div>
+
+                  <div className={`card-collapsible-body ${!mobileCards.workforcePulse ? 'is-collapsed' : ''}`}>
+                    <div className="card-mobile-badge" style={{ display: 'flex', background: 'var(--bg-input)', padding: 3, borderRadius: 10, gap: 3, marginBottom: 12 }}>
+                      <button
+                        onClick={() => setWorkforceTab('present')}
+                        style={{
+                          border: 'none', background: workforceTab === 'present' ? '#ffffff' : 'transparent',
+                          color: workforceTab === 'present' ? '#059669' : '#64748b',
+                          padding: '3px 9px', borderRadius: 7, fontSize: '0.75rem', fontWeight: 700, cursor: 'pointer',
+                          boxShadow: workforceTab === 'present' ? '0 1px 4px rgba(0,0,0,0.06)' : 'none',
+                        }}
+                      >
+                        Present
+                      </button>
+                      <button
+                        onClick={() => setWorkforceTab('leave')}
+                        style={{
+                          border: 'none', background: workforceTab === 'leave' ? '#ffffff' : 'transparent',
+                          color: workforceTab === 'leave' ? '#d97706' : '#64748b',
+                          padding: '3px 9px', borderRadius: 7, fontSize: '0.75rem', fontWeight: 700, cursor: 'pointer',
+                          boxShadow: workforceTab === 'leave' ? '0 1px 4px rgba(0,0,0,0.06)' : 'none',
+                        }}
+                      >
+                        On Leave
+                      </button>
+                    </div>
+
+                    {workforceTab === 'present' ? (
+                      <div>
+                        {presentList.length === 0 ? (
+                          <div style={{ fontSize: '0.8125rem', color: 'var(--text-muted)', padding: '12px 0', textAlign: 'center' }}>
+                            No employees clocked in yet today.
+                          </div>
+                        ) : (
+                          <div style={{ display: 'grid', gap: 10, maxHeight: 180, overflowY: 'auto' }}>
+                            {presentList.map((e) => (
+                              <div key={e.employee_id} style={{ display: 'flex', alignItems: 'center', gap: 10, fontSize: '0.8125rem' }}>
+                                <span style={{ width: 8, height: 8, borderRadius: '50%', background: 'var(--accent-emerald)', flexShrink: 0 }} />
+                                <span style={{ flex: 1, fontWeight: 600 }}>{e.full_name}</span>
+                                <span style={{ color: 'var(--text-muted)', fontSize: '0.75rem' }}>
+                                  {e.online_since ? `Since ${new Date(e.online_since).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}` : 'Clocked in'}
+                                </span>
+                              </div>
+                            ))}
+                          </div>
+                        )}
+                      </div>
+                    ) : (
+                      <div>
+                        {onLeaveToday.length === 0 ? (
+                          <div style={{ fontSize: '0.8125rem', color: 'var(--text-muted)', padding: '12px 0', textAlign: 'center' }}>
+                            No one is on leave today.
+                          </div>
+                        ) : (
+                          <div style={{ display: 'grid', gap: 10, maxHeight: 180, overflowY: 'auto' }}>
+                            {onLeaveToday.map((e) => (
+                              <div key={e.employee_id} style={{ display: 'flex', alignItems: 'center', gap: 10, fontSize: '0.8125rem' }}>
+                                <div
+                                  style={{
+                                    width: 30, height: 30, borderRadius: '50%', flexShrink: 0,
+                                    display: 'flex', alignItems: 'center', justifyContent: 'center',
+                                    background: e.photo_url ? `center/cover no-repeat url(${e.photo_url})` : '#fffbeb',
+                                    color: '#d97706', fontSize: '0.6875rem', fontWeight: 700, border: '1px solid #fde68a',
+                                  }}
+                                >
+                                  {!e.photo_url && initials(e.full_name)}
+                                </div>
+                                <div style={{ flex: 1, minWidth: 0 }}>
+                                  <div style={{ fontWeight: 600 }}>{e.full_name}</div>
+                                  <div style={{ color: 'var(--text-muted)', fontSize: '0.75rem' }}>{e.department_name || 'Staff'}</div>
+                                </div>
+                                <span style={{ color: '#d97706', fontSize: '0.75rem', fontWeight: 600, background: '#fffbeb', padding: '2px 8px', borderRadius: 6 }}>
+                                  {formatLeaveTypeName(e.leave_type_name)}
+                                </span>
+                              </div>
+                            ))}
+                          </div>
+                        )}
+                      </div>
+                    )}
                   </div>
                 </div>
-
-                {workforceTab === 'present' ? (
-                  <div>
-                    {presentList.length === 0 ? (
-                      <div style={{ fontSize: '0.8125rem', color: 'var(--text-muted)', padding: '12px 0', textAlign: 'center' }}>
-                        No employees clocked in yet today.
-                      </div>
-                    ) : (
-                      <div style={{ display: 'grid', gap: 10, maxHeight: 180, overflowY: 'auto' }}>
-                        {presentList.map((e) => (
-                          <div key={e.employee_id} style={{ display: 'flex', alignItems: 'center', gap: 10, fontSize: '0.8125rem' }}>
-                            <span style={{ width: 8, height: 8, borderRadius: '50%', background: 'var(--accent-emerald)', flexShrink: 0 }} />
-                            <span style={{ flex: 1, fontWeight: 600 }}>{e.full_name}</span>
-                            <span style={{ color: 'var(--text-muted)', fontSize: '0.75rem' }}>
-                              {e.online_since ? `Since ${new Date(e.online_since).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}` : 'Clocked in'}
-                            </span>
-                          </div>
-                        ))}
-                      </div>
-                    )}
-                  </div>
-                ) : (
-                  <div>
-                    {onLeaveToday.length === 0 ? (
-                      <div style={{ fontSize: '0.8125rem', color: 'var(--text-muted)', padding: '12px 0', textAlign: 'center' }}>
-                        No one is on leave today.
-                      </div>
-                    ) : (
-                      <div style={{ display: 'grid', gap: 10, maxHeight: 180, overflowY: 'auto' }}>
-                        {onLeaveToday.map((e) => (
-                          <div key={e.employee_id} style={{ display: 'flex', alignItems: 'center', gap: 10, fontSize: '0.8125rem' }}>
-                            <div
-                              style={{
-                                width: 30, height: 30, borderRadius: '50%', flexShrink: 0,
-                                display: 'flex', alignItems: 'center', justifyContent: 'center',
-                                background: e.photo_url ? `center/cover no-repeat url(${e.photo_url})` : '#fffbeb',
-                                color: '#d97706', fontSize: '0.6875rem', fontWeight: 700, border: '1px solid #fde68a',
-                              }}
-                            >
-                              {!e.photo_url && initials(e.full_name)}
-                            </div>
-                            <div style={{ flex: 1, minWidth: 0 }}>
-                              <div style={{ fontWeight: 600 }}>{e.full_name}</div>
-                              <div style={{ color: 'var(--text-muted)', fontSize: '0.75rem' }}>{e.department_name || 'Staff'}</div>
-                            </div>
-                            <span style={{ color: '#d97706', fontSize: '0.75rem', fontWeight: 600, background: '#fffbeb', padding: '2px 8px', borderRadius: 6 }}>
-                              {formatLeaveTypeName(e.leave_type_name)}
-                            </span>
-                          </div>
-                        ))}
-                      </div>
-                    )}
-                  </div>
-                )}
               </div>
             )}
 
             {/* Pending Approvals */}
             {canApprove && (
-              <div className="section-card" style={{ borderRadius: 20, padding: '20px 22px', border: '1px solid #e2e8f0', background: '#ffffff', boxShadow: '0 4px 20px -2px rgba(0, 0, 0, 0.03)', display: 'flex', flexDirection: 'column', justifyContent: 'space-between' }}>
+              <div className="dashboard-card dashboard-card-sm" style={{ flex: 1, display: 'flex', flexDirection: 'column', justifyContent: 'space-between' }}>
                 <div>
                   <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 }}>
-                    <h3 style={{ fontSize: '1.02rem', fontWeight: 800, color: '#0f172a', margin: 0 }}>
-                      My Approvals
-                    </h3>
-                    {pending.length > 0 && <span className="badge badge-pending">{pending.length}</span>}
+                    <h3 className="dashboard-card-title">My Approvals</h3>
+                    <span style={{ fontSize: '0.75rem', fontWeight: 700, color: '#d97706', background: '#fffbeb', padding: '2px 8px', borderRadius: 99, border: '1px solid #fef3c7' }}>
+                      {pending.length}
+                    </span>
                   </div>
                   {pending.length === 0 ? (
-                    <div style={{ fontSize: '0.8125rem', color: 'var(--text-muted)' }}>Nothing pending review</div>
+                    <div className="empty-state"><CalendarCheck /><p>No pending approvals</p></div>
                   ) : (
-                    <div style={{ display: 'grid', gap: 10 }}>
+                    <div style={{ display: 'grid', gap: 8 }}>
                       {pending.slice(0, 3).map((r) => (
                         <div key={r.id} style={{ display: 'flex', flexDirection: 'column', gap: 2, fontSize: '0.8125rem', padding: '8px 10px', borderRadius: 8, background: 'var(--bg-input)' }}>
                           <div style={{ display: 'flex', justifyContent: 'space-between' }}>
@@ -878,217 +928,250 @@ export default function Dashboard() {
         <div className="dashboard-columns">
           
           {/* Left: My Leave Balance (Clean 3+2 Symmetrical Grid) */}
-          <div className="section-card" style={{ borderRadius: 20, padding: '18px 20px', border: '1px solid #e2e8f0', boxShadow: '0 4px 20px -2px rgba(0, 0, 0, 0.03)', height: '100%', display: 'flex', flexDirection: 'column', justifyContent: 'space-between', boxSizing: 'border-box' }}>
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 14, gap: 10 }}>
-              <div style={{ display: 'flex', alignItems: 'center', gap: 8, minWidth: 0 }}>
-                <div style={{ width: 32, height: 32, borderRadius: 8, background: '#eff6ff', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#2563eb', flexShrink: 0 }}>
-                  <Sparkles size={16} />
-                </div>
-                <h3 style={{ marginBottom: 0, fontSize: '0.98rem', fontWeight: 800, color: '#0f172a', whiteSpace: 'nowrap' }}>
-                  My Leave Balance
-                </h3>
-              </div>
-              <Link
-                to="/leave"
-                style={{
-                  color: '#2563eb',
-                  fontSize: '0.74rem',
-                  fontWeight: 600,
-                  textDecoration: 'none',
-                  whiteSpace: 'nowrap',
-                  flexShrink: 0,
-                }}
+          <div className="dashboard-card dashboard-card-sm" style={{ display: 'flex', flexDirection: 'column', justifyContent: 'space-between', height: '100%' }}>
+            <div>
+              <div
+                className="card-header-clickable"
+                onClick={() => toggleCard('leaveBalance')}
+                style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: mobileCards.leaveBalance ? 14 : 0, gap: 10 }}
               >
-                View all
-              </Link>
-            </div>
-            {balances.length === 0 ? (
-              <div className="empty-state"><Umbrella /><p>No leave balances configured</p></div>
-            ) : (
-              <div className="leave-balance-grid">
-                {[...balances]
-                  .sort((a, b) => {
-                    const order = { 'Annual Leave': 1, 'Sick Leave': 2, 'Personal Leave': 3, 'Parental Leave': 4, 'Loss of Pay': 5 };
-                    const nameA = formatLeaveTypeName(a.leave_type_name);
-                    const nameB = formatLeaveTypeName(b.leave_type_name);
-                    return (order[nameA] || 99) - (order[nameB] || 99);
-                  })
-                  .map((b) => {
-                  const displayName = formatLeaveTypeName(b.leave_type_name);
-                  const style = getLeaveTypeStyle(displayName);
-                  const total = b.annual_entitlement && Number(b.annual_entitlement) > 0 ? Number(b.annual_entitlement) : null;
-                  const balanceNum = Number(b.balance);
-                  const pct = total ? Math.max(0, Math.min(100, (balanceNum / total) * 100)) : 100;
-                  return (
-                    <div
-                      key={b.id}
-                      style={{
-                        display: 'flex',
-                        flexDirection: 'column',
-                        justifyContent: 'space-between',
-                        padding: '9px 11px',
-                        borderRadius: 12,
-                        background: 'var(--bg-input)',
-                        border: '1px solid #eef2f6',
-                        transition: 'transform 0.2s ease, box-shadow 0.2s ease',
-                        minWidth: 0,
-                      }}
-                    >
-                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8, gap: 6 }}>
-                        <div style={{ display: 'flex', alignItems: 'center', gap: 5, minWidth: 0, flex: 1 }}>
-                          <div
-                            style={{
-                              width: 20,
-                              height: 20,
-                              borderRadius: 6,
-                              flexShrink: 0,
-                              display: 'flex',
-                              alignItems: 'center',
-                              justifyContent: 'center',
-                              background: style.bg,
-                              color: style.color,
-                            }}
-                          >
-                            <style.icon size={11} />
-                          </div>
-                          <div
-                            style={{
-                              fontWeight: 700,
-                              fontSize: '0.70rem',
-                              color: '#0f172a',
-                              whiteSpace: 'nowrap',
-                              letterSpacing: '-0.02em',
-                            }}
-                            title={displayName}
-                          >
-                            {displayName}
-                          </div>
-                        </div>
-                        <span
+                <div style={{ display: 'flex', alignItems: 'center', gap: 8, minWidth: 0 }}>
+                  <div style={{ width: 32, height: 32, borderRadius: 8, background: '#eff6ff', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#2563eb', flexShrink: 0 }}>
+                    <Sparkles size={16} />
+                  </div>
+                  <h3 style={{ marginBottom: 0, fontSize: '0.98rem', fontWeight: 800, color: '#0f172a', whiteSpace: 'nowrap' }}>
+                    My Leave Balance
+                  </h3>
+                </div>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 6, flexShrink: 0 }}>
+                  <Link
+                    to="/leave"
+                    className="card-desktop-action"
+                    style={{
+                      color: '#2563eb',
+                      fontSize: '0.74rem',
+                      fontWeight: 600,
+                      textDecoration: 'none',
+                      whiteSpace: 'nowrap',
+                      flexShrink: 0,
+                    }}
+                  >
+                    View all
+                  </Link>
+                  <span className="card-mobile-badge" style={{ fontSize: '0.70rem', fontWeight: 700, color: '#2563eb', background: '#eff6ff', padding: '2px 7px', borderRadius: 6, border: '1px solid #bfdbfe', whiteSpace: 'nowrap' }}>
+                    {balances.length} Types
+                  </span>
+                  <div className="card-accordion-toggle">
+                    <ChevronDown size={14} style={{ transform: mobileCards.leaveBalance ? 'rotate(180deg)' : 'none', transition: 'transform 0.2s' }} />
+                  </div>
+                </div>
+              </div>
+
+              <div className={`card-collapsible-body ${!mobileCards.leaveBalance ? 'is-collapsed' : ''}`}>
+                {balances.length === 0 ? (
+                  <div className="empty-state"><Umbrella /><p>No leave balances configured</p></div>
+                ) : (
+                  <div className="leave-balance-grid">
+                    {[...balances]
+                      .sort((a, b) => {
+                        const order = { 'Annual Leave': 1, 'Sick Leave': 2, 'Personal Leave': 3, 'Parental Leave': 4, 'Loss of Pay': 5 };
+                        const nameA = formatLeaveTypeName(a.leave_type_name);
+                        const nameB = formatLeaveTypeName(b.leave_type_name);
+                        return (order[nameA] || 99) - (order[nameB] || 99);
+                      })
+                      .map((b) => {
+                      const displayName = formatLeaveTypeName(b.leave_type_name);
+                      const style = getLeaveTypeStyle(displayName);
+                      const total = b.annual_entitlement && Number(b.annual_entitlement) > 0 ? Number(b.annual_entitlement) : null;
+                      const balanceNum = Number(b.balance);
+                      const pct = total ? Math.max(0, Math.min(100, (balanceNum / total) * 100)) : 100;
+                      return (
+                        <div
+                          key={b.id}
                           style={{
-                            fontSize: '0.675rem',
-                            fontWeight: 700,
-                            color: '#1e293b',
-                            background: '#ffffff',
-                            padding: '1.5px 5px',
-                            borderRadius: 5,
-                            border: '1px solid #e2e8f0',
-                            flexShrink: 0,
-                            whiteSpace: 'nowrap',
-                            boxShadow: '0 1px 2px rgba(0,0,0,0.03)',
-                            marginLeft: 'auto',
+                            display: 'flex',
+                            flexDirection: 'column',
+                            justifyContent: 'space-between',
+                            padding: '11px 13px',
+                            minHeight: 68,
+                            borderRadius: 12,
+                            background: 'var(--bg-input)',
+                            border: '1px solid #eef2f6',
+                            transition: 'transform 0.2s ease, box-shadow 0.2s ease',
+                            minWidth: 0,
                           }}
                         >
-                          {balanceNum}{total ? `/${total}` : ''} d
-                        </span>
-                      </div>
-
-                      {/* Progress Bar & Allocation Info */}
-                      <div>
-                        <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.675rem', color: '#64748b', marginBottom: 4 }}>
-                          <span>Allocated</span>
-                          <span style={{ fontWeight: 600, color: total ? '#334155' : '#64748b' }}>
-                            {total ? `${Math.round(pct)}% remaining` : 'Unlimited'}
+                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8, gap: 6 }}>
+                          <div style={{ display: 'flex', alignItems: 'center', gap: 5, minWidth: 0, flex: 1 }}>
+                            <div
+                              style={{
+                                width: 20,
+                                height: 20,
+                                borderRadius: 6,
+                                flexShrink: 0,
+                                display: 'flex',
+                                alignItems: 'center',
+                                justifyContent: 'center',
+                                background: style.bg,
+                                color: style.color,
+                              }}
+                            >
+                              <style.icon size={11} />
+                            </div>
+                            <div
+                              style={{
+                                fontWeight: 700,
+                                fontSize: '0.70rem',
+                                color: '#0f172a',
+                                whiteSpace: 'nowrap',
+                                letterSpacing: '-0.02em',
+                              }}
+                              title={displayName}
+                            >
+                              {displayName}
+                            </div>
+                          </div>
+                          <span
+                            style={{
+                              fontSize: '0.675rem',
+                              fontWeight: 700,
+                              color: '#1e293b',
+                              background: '#ffffff',
+                              padding: '1.5px 5px',
+                              borderRadius: 5,
+                              border: '1px solid #e2e8f0',
+                              flexShrink: 0,
+                              whiteSpace: 'nowrap',
+                              boxShadow: '0 1px 2px rgba(0,0,0,0.03)',
+                              marginLeft: 'auto',
+                            }}
+                          >
+                            {balanceNum}{total ? `/${total}` : ''} d
                           </span>
                         </div>
-                        <div style={{ width: '100%', height: 4, background: '#e2e8f0', borderRadius: 99, overflow: 'hidden' }}>
-                          <div
-                            style={{
-                              width: total ? `${pct}%` : '100%',
-                              height: '100%',
-                              background: total ? style.color : '#8b5cf6',
-                              borderRadius: 99,
-                            }}
-                          />
+
+                        {/* Progress Bar & Allocation Info */}
+                        <div>
+                          <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.675rem', color: '#64748b', marginBottom: 4 }}>
+                            <span>Allocated</span>
+                            <span style={{ fontWeight: 600, color: total ? '#334155' : '#64748b' }}>
+                              {total ? `${Math.round(pct)}% remaining` : 'Unlimited'}
+                            </span>
+                          </div>
+                          <div style={{ width: '100%', height: 4, background: '#e2e8f0', borderRadius: 99, overflow: 'hidden' }}>
+                            <div
+                              style={{
+                                width: total ? `${pct}%` : '100%',
+                                height: '100%',
+                                background: total ? style.color : '#8b5cf6',
+                                borderRadius: 99,
+                              }}
+                            />
+                          </div>
                         </div>
                       </div>
-                    </div>
-                  );
-                })}
-              </div>
-            )}
+                    );
+                  })}
+                </div>
+              )}
 
-            {/* Bottom Row: Carry-Forward Policy & Planning */}
-            <div
-              style={{
-                marginTop: 14,
-                padding: '9px 14px',
-                borderRadius: 12,
-                background: '#f0fdf4',
-                border: '1px solid #bbf7d0',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'space-between',
-                flexWrap: 'wrap',
-                gap: 8,
-              }}
-            >
-              <div style={{ display: 'flex', alignItems: 'center', gap: 8, minWidth: 0 }}>
-                <div style={{ width: 24, height: 24, borderRadius: 6, background: '#ffffff', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#16a34a', flexShrink: 0 }}>
-                  <CalendarPlus size={13} />
-                </div>
-                <div style={{ minWidth: 0 }}>
-                  <div style={{ fontSize: '0.78rem', fontWeight: 700, color: '#15803d' }}>
-                    Carry-Forward Policy & Entitlement Planning
-                  </div>
-                  <div style={{ fontSize: '0.70rem', color: '#166534', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
-                    Up to 5 unused Annual Leaves rollover automatically to fiscal year {today.getFullYear() + 1}.
-                  </div>
-                </div>
-              </div>
-              <Link
-                to="/leave"
+              {/* Bottom Row: Carry-Forward Policy & Planning */}
+              <div
                 style={{
-                  fontSize: '0.72rem',
-                  fontWeight: 700,
-                  color: '#ffffff',
-                  background: '#2563eb',
-                  padding: '5px 12px',
-                  borderRadius: 8,
-                  textDecoration: 'none',
-                  boxShadow: '0 2px 5px rgba(37,99,235,0.18)',
-                  whiteSpace: 'nowrap',
-                  flexShrink: 0,
+                  marginTop: 14,
+                  padding: '9px 14px',
+                  borderRadius: 12,
+                  background: '#f0fdf4',
+                  border: '1px solid #bbf7d0',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'space-between',
+                  flexWrap: 'wrap',
+                  gap: 8,
                 }}
               >
-                Apply
-              </Link>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 8, minWidth: 0 }}>
+                  <div style={{ width: 24, height: 24, borderRadius: 6, background: '#ffffff', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#16a34a', flexShrink: 0 }}>
+                    <CalendarPlus size={13} />
+                  </div>
+                  <div style={{ minWidth: 0 }}>
+                    <div style={{ fontSize: '0.78rem', fontWeight: 700, color: '#15803d' }}>
+                      Carry-Forward Policy & Entitlement Planning
+                    </div>
+                    <div style={{ fontSize: '0.70rem', color: '#166534', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                      Up to 5 unused Annual Leaves rollover automatically to fiscal year {today.getFullYear() + 1}.
+                    </div>
+                  </div>
+                </div>
+                <Link
+                  to="/leave"
+                  style={{
+                    fontSize: '0.72rem',
+                    fontWeight: 700,
+                    color: '#ffffff',
+                    background: '#2563eb',
+                    padding: '5px 12px',
+                    borderRadius: 8,
+                    textDecoration: 'none',
+                    boxShadow: '0 2px 5px rgba(37,99,235,0.18)',
+                    whiteSpace: 'nowrap',
+                    flexShrink: 0,
+                  }}
+                >
+                  Apply
+                </Link>
+              </div>
             </div>
           </div>
+        </div>
 
-          {/* Right: Upcoming Holidays */}
-          <div className="section-card" style={{ borderRadius: 20, padding: '18px 20px', border: '1px solid #e2e8f0', height: '100%', display: 'flex', flexDirection: 'column', justifyContent: 'space-between', boxSizing: 'border-box' }}>
+        {/* Right: Upcoming Holidays */}
+          <div className="dashboard-card dashboard-card-sm" style={{ display: 'flex', flexDirection: 'column', justifyContent: 'space-between', height: '100%' }}>
             <div>
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 14, width: '100%', gap: 10 }}>
+              <div
+                className="card-header-clickable"
+                onClick={() => toggleCard('upcomingHolidays')}
+                style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: mobileCards.upcomingHolidays ? 14 : 16, width: '100%', gap: 8 }}
+              >
                 <div style={{ display: 'flex', alignItems: 'center', gap: 8, minWidth: 0 }}>
-                  <div style={{ width: 32, height: 32, borderRadius: 8, background: '#fee2e2', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#ef4444', flexShrink: 0 }}>
-                    <CalendarHeart size={16} />
+                  <div style={{ width: 30, height: 30, borderRadius: 8, background: '#fee2e2', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#ef4444', flexShrink: 0 }}>
+                    <CalendarHeart size={15} />
                   </div>
-                  <h3 style={{ fontSize: '0.98rem', fontWeight: 800, color: '#0f172a', margin: 0, whiteSpace: 'nowrap' }}>
+                  <h3 className="dashboard-card-title" style={{ fontSize: '0.94rem', whiteSpace: 'nowrap' }}>
                     Upcoming Holidays
                   </h3>
                 </div>
-                <Link
-                  to="/attendance"
-                  style={{
-                    fontSize: '0.74rem',
-                    fontWeight: 600,
-                    color: '#2563eb',
-                    textDecoration: 'none',
-                    flexShrink: 0,
-                    whiteSpace: 'nowrap',
-                  }}
-                >
-                  Calendar
-                </Link>
-              </div>
-              {upcomingHolidays.length === 0 ? (
-                <div style={{ fontSize: '0.8125rem', color: 'var(--text-muted)', padding: '12px 0', textAlign: 'center' }}>
-                  No upcoming holidays scheduled
+                <div style={{ display: 'flex', alignItems: 'center', gap: 6, flexShrink: 0 }}>
+                  <Link
+                    to="/attendance"
+                    className="card-desktop-action"
+                    style={{
+                      fontSize: '0.74rem',
+                      fontWeight: 600,
+                      color: '#2563eb',
+                      textDecoration: 'none',
+                      whiteSpace: 'nowrap',
+                    }}
+                  >
+                    Calendar
+                  </Link>
+                  <span className="card-mobile-badge" style={{ fontSize: '0.70rem', fontWeight: 700, color: '#ef4444', background: '#fee2e2', padding: '2px 7px', borderRadius: 6, border: '1px solid #fecaca', whiteSpace: 'nowrap' }}>
+                    {upcomingHolidays.length} Upcoming
+                  </span>
+                  <div className="card-accordion-toggle">
+                    <ChevronDown size={14} style={{ transform: mobileCards.upcomingHolidays ? 'rotate(180deg)' : 'none', transition: 'transform 0.2s' }} />
+                  </div>
                 </div>
-              ) : (
-                <div style={{ display: 'grid', gap: 10 }}>
-                  {upcomingHolidays.map((h) => {
+              </div>
+
+              <div className={`card-collapsible-body ${!mobileCards.upcomingHolidays ? 'is-collapsed' : ''}`}>
+                {upcomingHolidays.length === 0 ? (
+                  <div style={{ fontSize: '0.8125rem', color: 'var(--text-muted)', padding: '12px 0', textAlign: 'center' }}>
+                    No upcoming holidays scheduled
+                  </div>
+                ) : (
+                  <div style={{ display: 'grid', gap: 12, paddingBottom: 6 }}>
+                  {upcomingHolidays.slice(0, 3).map((h) => {
                     const hDate = new Date(h.holiday_date);
                     const diffDays = Math.ceil((hDate - new Date(today.toDateString())) / (1000 * 60 * 60 * 24));
                     const monthName = hDate.toLocaleDateString(undefined, { month: 'short' }).toUpperCase();
@@ -1101,7 +1184,7 @@ export default function Dashboard() {
                           display: 'flex',
                           alignItems: 'center',
                           justifyContent: 'space-between',
-                          padding: '10px 12px',
+                          padding: '11px 14px',
                           borderRadius: 12,
                           background: 'var(--bg-input)',
                           border: '1px solid #f1f5f9',
@@ -1123,11 +1206,11 @@ export default function Dashboard() {
                               boxShadow: '0 1px 3px rgba(0,0,0,0.03)',
                             }}
                           >
-                            <span style={{ fontSize: '0.625rem', fontWeight: 800, color: '#ef4444', lineHeight: 1 }}>{monthName}</span>
-                            <span style={{ fontSize: '0.95rem', fontWeight: 900, color: '#0f172a', lineHeight: 1.1 }}>{dayNum}</span>
+                            <span style={{ fontSize: '0.62rem', fontWeight: 800, color: '#ef4444', lineHeight: 1 }}>{monthName}</span>
+                            <span style={{ fontSize: '0.94rem', fontWeight: 900, color: '#0f172a', lineHeight: 1.1 }}>{dayNum}</span>
                           </div>
                           <div>
-                            <div style={{ fontSize: '0.84rem', fontWeight: 700, color: '#0f172a' }}>{h.name}</div>
+                            <div style={{ fontSize: '0.85rem', fontWeight: 700, color: '#0f172a' }}>{h.name || h.holiday_name}</div>
                             <div style={{ fontSize: '0.72rem', color: 'var(--text-muted)', marginTop: 2 }}>
                               {weekday}, {hDate.toLocaleDateString(undefined, { day: '2-digit', month: 'short', year: 'numeric' })}
                             </div>
@@ -1153,6 +1236,7 @@ export default function Dashboard() {
                 </div>
               )}
             </div>
+          </div>
           </div>
 
         </div>

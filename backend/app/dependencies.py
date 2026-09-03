@@ -4,12 +4,12 @@ Shared FastAPI dependencies.
 Key dependency: get_current_user → get_company_id
 This is the SINGLE place that enforces company-scoped access.
 """
-
+from fastapi import Depends, HTTPException, status, Request
 from uuid import UUID
-from fastapi import Depends, HTTPException, status
 from fastapi.security import OAuth2PasswordBearer
 from sqlalchemy.orm import Session
-
+from app.models.company import Company
+from app.services.subdomain_service import RESERVED_SUBDOMAINS
 from app.database import get_db
 from app.models.user_account import UserAccount
 from app.models.platform_admin import PlatformAdmin
@@ -124,3 +124,28 @@ def require_permissions(*permissions: str):
         return current_user
 
     return _check
+
+def get_company_from_subdomain(request: Request, db: Session = Depends(get_db)) -> Company | None:
+    """
+    Resolve the tenant Company from the request's subdomain, e.g.
+    "abc-corp.meagle360.com" -> Company(subdomain="abc-corp").
+
+    Returns None when the request comes in on the bare root domain
+    (meagle360.com, hrms.meagle360.com) or from localhost during local
+    development — callers decide whether that's acceptable for their route.
+    """
+    host = request.headers.get("host", "")
+    # Strip port if present, e.g. "abc-corp.meagle360.com:8000"
+    host = host.split(":")[0]
+
+    parts = host.split(".")
+    # A real tenant subdomain looks like "abc-corp.meagle360.com" (3 parts).
+    # "meagle360.com" (2 parts) or "localhost" (1 part) is not a tenant request.
+    if len(parts) < 3:
+        return None
+
+    subdomain = parts[0]
+    if subdomain in RESERVED_SUBDOMAINS:
+        return None
+
+    return db.query(Company).filter(Company.subdomain == subdomain).first()

@@ -58,6 +58,7 @@ class SetPasswordRequest(BaseModel):
 class PlatformCompanyResponse(BaseModel):
     id: UUID
     name: str
+    subdomain: str
     country: str | None
     multi_entity: bool
     status: str
@@ -72,6 +73,7 @@ class PlatformCompanyResponse(BaseModel):
 
 class CompanyUpdateRequest(BaseModel):
     name: str | None = None
+    subdomain: str | None = None
     country: str | None = None
     plan_tier: str | None = None
     seat_limit: int | None = None

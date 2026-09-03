@@ -5,7 +5,7 @@ from fastapi.security import OAuth2PasswordRequestForm
 from sqlalchemy.orm import Session
 
 from app.database import get_db
-from app.dependencies import get_current_user, require_permissions
+from app.dependencies import get_current_user, require_permissions, get_company_from_subdomain  
 from app.models.user_account import UserAccount
 from app.schemas.auth import (
     LoginRequest,
@@ -25,10 +25,26 @@ router = APIRouter(prefix="/api/auth", tags=["Authentication"])
 
 
 @router.post("/login", response_model=TokenResponse)
-def login(form_data: OAuth2PasswordRequestForm = Depends(), db: Session = Depends(get_db)):
-    """Authenticate with email + password, receive JWT."""
+def login(
+    form_data: OAuth2PasswordRequestForm = Depends(),
+    db: Session = Depends(get_db),
+    tenant: "Company | None" = Depends(get_company_from_subdomain),
+):
+    """Authenticate with email + password, receive JWT.
+
+    If the request came in on a tenant subdomain (abc-corp.meagle360.com),
+    the authenticated user's company must match that subdomain's company —
+    this is what prevents a Company A account from logging in through
+    Company B's subdomain.
+    """
     user = authenticate_user(db, form_data.username, form_data.password)
     if not user:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Invalid email or password",
+            headers={"WWW-Authenticate": "Bearer"},
+        )
+    if tenant is not None and user.company_id != tenant.id:
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail="Invalid email or password",

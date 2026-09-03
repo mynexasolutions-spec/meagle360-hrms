@@ -103,7 +103,7 @@ export default function PlatformLayout() {
         </div>
       </header>
 
-      <main className="platform-main" style={{ maxWidth: 1200, margin: '0 auto' }}>
+      <main className="platform-main" style={{ maxWidth: 1380, width: '100%', margin: '0 auto' }}>
         <Outlet />
       </main>
     </div>

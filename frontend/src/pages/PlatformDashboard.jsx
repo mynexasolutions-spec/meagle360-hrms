@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useState } from 'react';
 import {
   Plus, UserPlus, Ban, CheckCircle2, Copy, Check, Users, Pencil, Trash2,
-  Building2, Clock3, Search, ShieldAlert, RefreshCw, Mail,
+  Building2, Clock3, Search, ShieldAlert, RefreshCw, Mail, Globe,
 } from 'lucide-react';
 import Modal from '../components/Modal';
 import StatCard from '../components/StatCard';
@@ -9,6 +9,9 @@ import {
   listCompanies, createCompany, updateCompanyStatus, inviteCompanyAdmin,
   listCompanyUsers, updateCompany, deleteCompany, resendCompanyAdminInvite,
 } from '../api/platform';
+
+const BASE_DOMAIN = import.meta.env.VITE_TENANT_DOMAIN || 'meagle360.com';
+const getPortalUrl = (subdomain) => `https://${subdomain}.${BASE_DOMAIN}`;
 
 const STATUS_BADGE = {
   active: 'badge-active',
@@ -25,6 +28,7 @@ const STATUS_DOT = {
 };
 
 const PLAN_STYLES = {
+  trial: { color: '#0891b2', bg: '#ecfeff' },
   standard: { color: '#2563eb', bg: '#eff6ff' },
   pro: { color: '#7c3aed', bg: '#f5f3ff' },
   enterprise: { color: '#d97706', bg: '#fffbeb' },
@@ -57,8 +61,12 @@ export default function PlatformDashboard() {
   const [error, setError] = useState('');
 
   const [showCreate, setShowCreate] = useState(false);
-  const [createForm, setCreateForm] = useState({ name: '', country: '', plan_tier: 'standard', seat_limit: '' });
+  const [createForm, setCreateForm] = useState({ name: '', country: '', multi_entity: false, plan_tier: 'standard', seat_limit: '' });
   const [creating, setCreating] = useState(false);
+  const [createdResult, setCreatedResult] = useState(null);
+  const [createdLinkCopied, setCreatedLinkCopied] = useState(false);
+
+  const [copiedSubdomainId, setCopiedSubdomainId] = useState(null);
 
   const [inviteFor, setInviteFor] = useState(null); // company object
   const [inviteForm, setInviteForm] = useState({ email: '', full_name: '', employee_code: 'EMP001' });
@@ -74,8 +82,9 @@ export default function PlatformDashboard() {
   const [resendLinkCopied, setResendLinkCopied] = useState(false);
 
   const [editFor, setEditFor] = useState(null); // company object
-  const [editForm, setEditForm] = useState({ name: '', country: '', plan_tier: 'standard', seat_limit: '' });
+  const [editForm, setEditForm] = useState({ name: '', subdomain: '', country: '', plan_tier: 'standard', seat_limit: '' });
   const [editing, setEditing] = useState(false);
+  const [editError, setEditError] = useState('');
 
   const [deleteFor, setDeleteFor] = useState(null); // company object
   const [deleting, setDeleting] = useState(false);
@@ -107,19 +116,26 @@ export default function PlatformDashboard() {
 
   useEffect(loadCompanies, []);
 
+  const copyPortalUrl = (company) => {
+    navigator.clipboard.writeText(getPortalUrl(company.subdomain));
+    setCopiedSubdomainId(company.id);
+    setTimeout(() => setCopiedSubdomainId(null), 1800);
+  };
+
   const handleCreate = async (e) => {
     e.preventDefault();
     setError('');
     setCreating(true);
     try {
-      await createCompany({
+      const res = await createCompany({
         name: createForm.name,
         country: createForm.country || null,
+        multi_entity: createForm.multi_entity,
         plan_tier: createForm.plan_tier,
         seat_limit: createForm.seat_limit ? Number(createForm.seat_limit) : null,
       });
-      setShowCreate(false);
-      setCreateForm({ name: '', country: '', plan_tier: 'standard', seat_limit: '' });
+      setCreatedResult(res.data);
+      setCreateForm({ name: '', country: '', multi_entity: false, plan_tier: 'standard', seat_limit: '' });
       loadCompanies();
     } catch (err) {
       setError(err.response?.data?.detail || 'Failed to create company');
@@ -210,8 +226,10 @@ export default function PlatformDashboard() {
 
   const openEdit = (company) => {
     setEditFor(company);
+    setEditError('');
     setEditForm({
       name: company.name,
+      subdomain: company.subdomain || '',
       country: company.country || '',
       plan_tier: company.plan_tier,
       seat_limit: company.seat_limit ?? '',
@@ -220,11 +238,12 @@ export default function PlatformDashboard() {
 
   const handleEdit = async (e) => {
     e.preventDefault();
-    setError('');
+    setEditError('');
     setEditing(true);
     try {
       await updateCompany(editFor.id, {
         name: editForm.name,
+        subdomain: editForm.subdomain ? editForm.subdomain.trim() : undefined,
         country: editForm.country || null,
         plan_tier: editForm.plan_tier,
         seat_limit: editForm.seat_limit ? Number(editForm.seat_limit) : null,
@@ -232,7 +251,7 @@ export default function PlatformDashboard() {
       setEditFor(null);
       loadCompanies();
     } catch (err) {
-      setError(err.response?.data?.detail || 'Failed to update company');
+      setEditError(err.response?.data?.detail || 'Failed to update company');
     } finally {
       setEditing(false);
     }
@@ -318,142 +337,343 @@ export default function PlatformDashboard() {
             {companies.length === 0 ? 'No companies yet. Create the first one.' : 'No companies match your search.'}
           </div>
         ) : (
-          <div style={{ overflowX: 'auto' }}>
-            <table className="data-table">
-              <thead>
-                <tr>
-                  <th>Company</th>
-                  <th>Status</th>
-                  <th>Plan</th>
-                  <th>Country</th>
-                  <th style={{ textAlign: 'right' }}>Actions</th>
-                </tr>
-              </thead>
-              <tbody>
-                {filteredCompanies.map((c, i) => {
-                  const plan = PLAN_STYLES[c.plan_tier] || PLAN_STYLES.standard;
-                  return (
-                    <tr key={c.id}>
-                      <td style={{ whiteSpace: 'nowrap' }}>
-                        <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
-                          <div
-                            style={{
-                              width: 36, height: 36, borderRadius: 'var(--radius-md)', flexShrink: 0,
-                              background: avatarGradient(i), display: 'flex', alignItems: 'center',
-                              justifyContent: 'center', color: 'white', fontSize: '0.75rem', fontWeight: 700,
-                            }}
-                          >
-                            {companyInitials(c.name)}
-                          </div>
-                          <span style={{ fontWeight: 700, color: '#0f172a' }}>{c.name}</span>
-                        </div>
-                      </td>
-                      <td style={{ whiteSpace: 'nowrap' }}>
-                        <span style={{ display: 'inline-flex', alignItems: 'center', gap: 6 }}>
-                          <span style={{ width: 7, height: 7, borderRadius: '50%', background: STATUS_DOT[c.status] || '#94a3b8', flexShrink: 0 }} />
-                          <span className={`badge ${STATUS_BADGE[c.status] || 'badge-info'}`}>{c.status.replace('_', ' ')}</span>
-                        </span>
-                      </td>
-                      <td style={{ whiteSpace: 'nowrap' }}>
-                        <span
+        <div style={{ overflowX: 'auto', width: '100%' }}>
+          <table className="data-table" style={{ width: '100%', minWidth: 780 }}>
+            <thead>
+              <tr>
+                <th style={{ width: '32%', minWidth: 220 }}>Company</th>
+                <th style={{ width: '16%', minWidth: 130 }}>Status</th>
+                <th style={{ width: '12%', minWidth: 90 }}>Plan</th>
+                <th style={{ width: '14%', minWidth: 100 }}>Country</th>
+                <th style={{ width: '26%', minWidth: 200, textAlign: 'right' }}>Actions</th>
+              </tr>
+            </thead>
+            <tbody>
+              {filteredCompanies.map((c, i) => {
+                const plan = PLAN_STYLES[c.plan_tier] || PLAN_STYLES.standard;
+                return (
+                  <tr key={c.id}>
+                    <td>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+                        <div
                           style={{
-                            fontSize: '0.75rem', fontWeight: 700, textTransform: 'capitalize',
-                            color: plan.color, background: plan.bg, padding: '3px 10px', borderRadius: 'var(--radius-full)',
-                            whiteSpace: 'nowrap',
+                            width: 38, height: 38, borderRadius: 'var(--radius-md)', flexShrink: 0,
+                            background: avatarGradient(i), display: 'flex', alignItems: 'center',
+                            justifyContent: 'center', color: 'white', fontSize: '0.8rem', fontWeight: 700,
+                            boxShadow: '0 2px 6px rgba(0,0,0,0.06)',
                           }}
                         >
-                          {c.plan_tier}
-                        </span>
-                      </td>
-                      <td style={{ color: 'var(--text-secondary)', whiteSpace: 'nowrap' }}>{c.country || '—'}</td>
-                      <td style={{ whiteSpace: 'nowrap' }}>
-                        <div className="platform-actions" style={{ display: 'flex', gap: 6, justifyContent: 'flex-end', flexWrap: 'nowrap' }}>
-                          <button className="btn btn-secondary btn-sm" onClick={() => openUsers(c)}>
-                            <Users size={14} /> <span className="platform-action-label">Users</span>
-                          </button>
-                          <button className="btn btn-secondary btn-sm" onClick={() => openInvite(c)}>
-                            <UserPlus size={14} /> <span className="platform-action-label">Invite</span>
-                          </button>
-                          <button
-                            className="btn btn-secondary btn-sm"
-                            onClick={() => handleToggleStatus(c)}
-                            disabled={c.status === 'pending_setup'}
-                            title={c.status === 'pending_setup' ? 'Awaiting admin setup' : ''}
-                          >
-                            {c.status === 'suspended' ? <CheckCircle2 size={14} /> : <Ban size={14} />}
-                            <span className="platform-action-label">{c.status === 'suspended' ? 'Reactivate' : 'Suspend'}</span>
-                          </button>
-                          <button className="btn btn-secondary btn-sm" onClick={() => openEdit(c)}>
-                            <Pencil size={14} /> <span className="platform-action-label">Edit</span>
-                          </button>
-                          <button
-                            className="btn btn-secondary btn-sm"
-                            style={{ color: 'var(--accent-rose)' }}
-                            onClick={() => setDeleteFor(c)}
-                          >
-                            <Trash2 size={14} /> <span className="platform-action-label">Delete</span>
-                          </button>
+                          {companyInitials(c.name)}
                         </div>
-                      </td>
-                    </tr>
-                  );
-                })}
-              </tbody>
-            </table>
-          </div>
+                        <div style={{ minWidth: 0 }}>
+                          <div style={{ fontWeight: 700, color: '#0f172a', fontSize: '0.875rem' }}>{c.name}</div>
+                          <div
+                            style={{
+                              display: 'inline-flex',
+                              alignItems: 'center',
+                              gap: 5,
+                              marginTop: 3,
+                              padding: '2px 7px',
+                              borderRadius: 6,
+                              background: '#f1f5f9',
+                              border: '1px solid #e2e8f0',
+                              maxWidth: '100%',
+                            }}
+                          >
+                            <Globe size={11} style={{ color: '#64748b', flexShrink: 0 }} />
+                            <span
+                              style={{
+                                fontSize: '0.72rem',
+                                color: '#475569',
+                                fontWeight: 500,
+                                fontFamily: 'monospace',
+                              }}
+                              className="truncate"
+                            >
+                              {c.subdomain}.{BASE_DOMAIN}
+                            </span>
+                            <button
+                              type="button"
+                              onClick={(e) => { e.stopPropagation(); copyPortalUrl(c); }}
+                              style={{
+                                background: 'none', border: 'none', cursor: 'pointer', padding: 0,
+                                display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
+                                color: copiedSubdomainId === c.id ? 'var(--accent-emerald)' : '#94a3b8',
+                                transition: 'color 150ms ease', flexShrink: 0,
+                              }}
+                              title={copiedSubdomainId === c.id ? 'Copied!' : 'Copy portal URL'}
+                            >
+                              {copiedSubdomainId === c.id ? <Check size={11} style={{ color: 'var(--accent-emerald)' }} /> : <Copy size={11} />}
+                            </button>
+                          </div>
+                        </div>
+                      </div>
+                    </td>
+                    <td>
+                      <span style={{ display: 'inline-flex', alignItems: 'center', gap: 6 }}>
+                        <span style={{ width: 7, height: 7, borderRadius: '50%', background: STATUS_DOT[c.status] || '#94a3b8', flexShrink: 0 }} />
+                        <span className={`badge ${STATUS_BADGE[c.status] || 'badge-info'}`}>{c.status.replace('_', ' ')}</span>
+                      </span>
+                    </td>
+                    <td>
+                      <span
+                        style={{
+                          fontSize: '0.75rem', fontWeight: 700, textTransform: 'capitalize',
+                          color: plan.color, background: plan.bg, padding: '3px 10px', borderRadius: 'var(--radius-full)',
+                          whiteSpace: 'nowrap',
+                        }}
+                      >
+                        {c.plan_tier}
+                      </span>
+                    </td>
+                    <td style={{ color: 'var(--text-secondary)' }}>{c.country || '—'}</td>
+                    <td style={{ textAlign: 'right' }}>
+                      <div className="platform-actions" style={{ display: 'inline-flex', alignItems: 'center', gap: 6, justifyContent: 'flex-end' }}>
+                        <button className="btn btn-secondary btn-sm" onClick={() => openUsers(c)} title="View Users">
+                          <Users size={13} /> <span className="platform-action-label">Users</span>
+                        </button>
+                        <button className="btn btn-secondary btn-sm" onClick={() => openInvite(c)} title="Invite Admin">
+                          <UserPlus size={13} /> <span className="platform-action-label">Invite</span>
+                        </button>
+                        <button
+                          className="btn-icon btn-ghost"
+                          style={{
+                            width: 32, height: 32, display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
+                            borderRadius: 'var(--radius-md)', border: '1px solid var(--border-color)',
+                            background: '#ffffff',
+                            color: c.status === 'suspended' ? 'var(--accent-emerald)' : 'var(--text-secondary)',
+                            padding: 0,
+                          }}
+                          onClick={() => handleToggleStatus(c)}
+                          disabled={c.status === 'pending_setup'}
+                          title={c.status === 'pending_setup' ? 'Awaiting admin setup' : c.status === 'suspended' ? 'Reactivate tenant' : 'Suspend tenant'}
+                        >
+                          {c.status === 'suspended' ? <CheckCircle2 size={15} /> : <Ban size={15} />}
+                        </button>
+                        <button
+                          className="btn-icon btn-ghost"
+                          style={{
+                            width: 32, height: 32, display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
+                            borderRadius: 'var(--radius-md)', border: '1px solid var(--border-color)',
+                            background: '#ffffff',
+                            color: 'var(--text-secondary)',
+                            padding: 0,
+                          }}
+                          onClick={() => openEdit(c)}
+                          title="Edit tenant details"
+                        >
+                          <Pencil size={15} />
+                        </button>
+                        <button
+                          className="btn-icon btn-ghost"
+                          style={{
+                            width: 32, height: 32, display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
+                            borderRadius: 'var(--radius-md)', border: '1px solid var(--border-color)',
+                            background: '#ffffff',
+                            color: 'var(--accent-rose)',
+                            padding: 0,
+                          }}
+                          onClick={() => setDeleteFor(c)}
+                          title="Delete tenant permanently"
+                        >
+                          <Trash2 size={15} />
+                        </button>
+                      </div>
+                    </td>
+                  </tr>
+                );
+              })}
+            </tbody>
+          </table>
+        </div>
         )}
       </div>
 
       {showCreate && (
-        <Modal title="New Company" onClose={() => setShowCreate(false)}>
-          <form onSubmit={handleCreate}>
-            <div className="input-group">
-              <label className="input-label">Company Name</label>
-              <input
-                className="input-field"
-                value={createForm.name}
-                onChange={(e) => setCreateForm({ ...createForm, name: e.target.value })}
-                required
-              />
-            </div>
-            <div className="input-group">
-              <label className="input-label">Country</label>
-              <input
-                className="input-field"
-                value={createForm.country}
-                onChange={(e) => setCreateForm({ ...createForm, country: e.target.value })}
-              />
-            </div>
-            <div className="input-group">
-              <label className="input-label">Plan Tier</label>
-              <select
-                className="input-field"
-                value={createForm.plan_tier}
-                onChange={(e) => setCreateForm({ ...createForm, plan_tier: e.target.value })}
+        <Modal
+          title={createdResult ? 'Company Created' : 'New Company'}
+          onClose={() => {
+            setShowCreate(false);
+            setCreatedResult(null);
+            setCreatedLinkCopied(false);
+          }}
+        >
+          {!createdResult ? (
+            <form onSubmit={handleCreate}>
+              <div className="input-group">
+                <label className="input-label">Company Name</label>
+                <input
+                  className="input-field"
+                  value={createForm.name}
+                  onChange={(e) => setCreateForm({ ...createForm, name: e.target.value })}
+                  placeholder="e.g. Acme Corporation"
+                  required
+                />
+              </div>
+              <div className="input-group">
+                <label className="input-label">Country</label>
+                <input
+                  className="input-field"
+                  value={createForm.country}
+                  onChange={(e) => setCreateForm({ ...createForm, country: e.target.value })}
+                  placeholder="e.g. India"
+                />
+              </div>
+              <div className="input-group" style={{ display: 'flex', alignItems: 'center', gap: 8, marginTop: 4, marginBottom: 14 }}>
+                <input
+                  type="checkbox"
+                  id="create_multi_entity"
+                  checked={createForm.multi_entity}
+                  onChange={(e) => setCreateForm({ ...createForm, multi_entity: e.target.checked })}
+                  style={{ width: 16, height: 16, cursor: 'pointer' }}
+                />
+                <label htmlFor="create_multi_entity" style={{ fontSize: '0.8125rem', fontWeight: 600, color: '#334155', cursor: 'pointer' }}>
+                  Multi-Entity Organization
+                </label>
+              </div>
+              <div className="input-group">
+                <label className="input-label">Plan Tier</label>
+                <select
+                  className="input-field"
+                  value={createForm.plan_tier}
+                  onChange={(e) => setCreateForm({ ...createForm, plan_tier: e.target.value })}
+                >
+                  <option value="trial">Trial</option>
+                  <option value="standard">Standard</option>
+                  <option value="pro">Pro</option>
+                  <option value="enterprise">Enterprise</option>
+                </select>
+              </div>
+              <div className="input-group">
+                <label className="input-label">Seat Limit (optional)</label>
+                <input
+                  type="number"
+                  className="input-field"
+                  value={createForm.seat_limit}
+                  onChange={(e) => setCreateForm({ ...createForm, seat_limit: e.target.value })}
+                  placeholder="Leave empty for unlimited"
+                />
+              </div>
+              <button type="submit" className="btn btn-primary" disabled={creating} style={{ width: '100%', justifyContent: 'center', marginTop: 8 }}>
+                {creating ? 'Creating...' : 'Create Company'}
+              </button>
+            </form>
+          ) : (
+            <div>
+              <div
+                style={{
+                  display: 'flex', alignItems: 'center', gap: 10,
+                  padding: '12px 14px', borderRadius: 'var(--radius-md)',
+                  background: 'var(--accent-emerald-light)', color: 'var(--accent-emerald)',
+                  fontSize: '0.875rem', fontWeight: 600, marginBottom: 16,
+                }}
               >
-                <option value="standard">Standard</option>
-                <option value="pro">Pro</option>
-                <option value="enterprise">Enterprise</option>
-              </select>
+                <CheckCircle2 size={18} style={{ flexShrink: 0 }} />
+                <span>Company created successfully!</span>
+              </div>
+
+              <p style={{ fontSize: '0.875rem', color: 'var(--text-secondary)', marginBottom: 12 }}>
+                <strong>{createdResult.name}</strong> has been provisioned. Their portal URL is:
+              </p>
+
+              <div
+                style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: 8,
+                  padding: '12px 14px',
+                  borderRadius: 'var(--radius-md)',
+                  background: 'var(--bg-secondary)',
+                  border: '1px solid var(--border-color)',
+                  fontSize: '0.875rem',
+                  fontWeight: 600,
+                  wordBreak: 'break-all',
+                  marginBottom: 16,
+                }}
+              >
+                <span style={{ flex: 1, color: '#0f172a' }}>{getPortalUrl(createdResult.subdomain)}</span>
+                <button
+                  type="button"
+                  className="btn btn-secondary btn-sm"
+                  style={{
+                    flexShrink: 0,
+                    color: createdLinkCopied ? 'var(--accent-emerald)' : undefined,
+                    background: createdLinkCopied ? 'var(--accent-emerald-light)' : undefined,
+                  }}
+                  onClick={() => {
+                    navigator.clipboard.writeText(getPortalUrl(createdResult.subdomain));
+                    setCreatedLinkCopied(true);
+                    setTimeout(() => setCreatedLinkCopied(false), 1800);
+                  }}
+                >
+                  {createdLinkCopied ? <Check size={14} /> : <Copy size={14} />}
+                  {createdLinkCopied ? 'Copied!' : 'Copy link'}
+                </button>
+              </div>
+
+              <div style={{ display: 'flex', gap: 10, justifyContent: 'flex-end', marginTop: 20 }}>
+                <button
+                  className="btn btn-secondary"
+                  onClick={() => {
+                    setShowCreate(false);
+                    setCreatedResult(null);
+                    setCreatedLinkCopied(false);
+                  }}
+                >
+                  Done
+                </button>
+                <button
+                  className="btn btn-primary"
+                  onClick={() => {
+                    const comp = createdResult;
+                    setShowCreate(false);
+                    setCreatedResult(null);
+                    setCreatedLinkCopied(false);
+                    openInvite(comp);
+                  }}
+                >
+                  <UserPlus size={15} /> Invite Admin
+                </button>
+              </div>
             </div>
-            <div className="input-group">
-              <label className="input-label">Seat Limit (optional)</label>
-              <input
-                type="number"
-                className="input-field"
-                value={createForm.seat_limit}
-                onChange={(e) => setCreateForm({ ...createForm, seat_limit: e.target.value })}
-              />
-            </div>
-            <button type="submit" className="btn btn-primary" disabled={creating} style={{ width: '100%', justifyContent: 'center', marginTop: 8 }}>
-              {creating ? 'Creating...' : 'Create Company'}
-            </button>
-          </form>
+          )}
         </Modal>
       )}
 
       {inviteFor && (
         <Modal title={`Invite Admin — ${inviteFor.name}`} onClose={() => setInviteFor(null)}>
+          <div
+            style={{
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'space-between',
+              gap: 8,
+              padding: '8px 12px',
+              borderRadius: 'var(--radius-md)',
+              background: 'var(--bg-secondary)',
+              border: '1px solid var(--border-color)',
+              fontSize: '0.8125rem',
+              marginBottom: 16,
+            }}
+          >
+            <span style={{ color: 'var(--text-secondary)' }}>
+              Portal: <strong style={{ color: '#0f172a' }}>{getPortalUrl(inviteFor.subdomain)}</strong>
+            </span>
+            <button
+              type="button"
+              className="btn-icon btn-ghost"
+              style={{ width: 22, height: 22, padding: 0 }}
+              onClick={() => {
+                navigator.clipboard.writeText(getPortalUrl(inviteFor.subdomain));
+                setCopiedSubdomainId('invite');
+                setTimeout(() => setCopiedSubdomainId(null), 1800);
+              }}
+              title="Copy Portal URL"
+            >
+              {copiedSubdomainId === 'invite' ? <Check size={13} style={{ color: 'var(--accent-emerald)' }} /> : <Copy size={13} />}
+            </button>
+          </div>
+
           {!inviteResult ? (
             <form onSubmit={handleInvite}>
               <div className="input-group">
@@ -554,6 +774,38 @@ export default function PlatformDashboard() {
 
       {usersFor && (
         <Modal title={`Users — ${usersFor.name}`} onClose={() => setUsersFor(null)}>
+          <div
+            style={{
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'space-between',
+              gap: 8,
+              padding: '8px 12px',
+              borderRadius: 'var(--radius-md)',
+              background: 'var(--bg-secondary)',
+              border: '1px solid var(--border-color)',
+              fontSize: '0.8125rem',
+              marginBottom: 14,
+            }}
+          >
+            <span style={{ color: 'var(--text-secondary)' }}>
+              Portal: <strong style={{ color: '#0f172a' }}>{getPortalUrl(usersFor.subdomain)}</strong>
+            </span>
+            <button
+              type="button"
+              className="btn-icon btn-ghost"
+              style={{ width: 22, height: 22, padding: 0 }}
+              onClick={() => {
+                navigator.clipboard.writeText(getPortalUrl(usersFor.subdomain));
+                setCopiedSubdomainId('users');
+                setTimeout(() => setCopiedSubdomainId(null), 1800);
+              }}
+              title="Copy Portal URL"
+            >
+              {copiedSubdomainId === 'users' ? <Check size={13} style={{ color: 'var(--accent-emerald)' }} /> : <Copy size={13} />}
+            </button>
+          </div>
+
           {usersLoading ? (
             <div style={{ padding: 12, color: 'var(--text-muted)', fontSize: '0.875rem' }}>Loading...</div>
           ) : users.length === 0 ? (
@@ -661,6 +913,23 @@ export default function PlatformDashboard() {
 
       {editFor && (
         <Modal title={`Edit — ${editFor.name}`} onClose={() => setEditFor(null)}>
+          {editError && (
+            <div
+              style={{
+                display: 'flex',
+                alignItems: 'center',
+                gap: 8,
+                padding: '10px 14px',
+                borderRadius: 'var(--radius-md)',
+                background: 'var(--accent-rose-light)',
+                color: 'var(--accent-rose)',
+                fontSize: '0.8125rem',
+                marginBottom: 14,
+              }}
+            >
+              <ShieldAlert size={15} style={{ flexShrink: 0 }} /> {editError}
+            </div>
+          )}
           <form onSubmit={handleEdit}>
             <div className="input-group">
               <label className="input-label">Company Name</label>
@@ -670,6 +939,41 @@ export default function PlatformDashboard() {
                 onChange={(e) => setEditForm({ ...editForm, name: e.target.value })}
                 required
               />
+            </div>
+            <div className="input-group">
+              <label className="input-label">Subdomain</label>
+              <div style={{ display: 'flex', alignItems: 'center' }}>
+                <input
+                  className="input-field"
+                  value={editForm.subdomain}
+                  onChange={(e) => setEditForm({ ...editForm, subdomain: e.target.value })}
+                  maxLength={63}
+                  placeholder="e.g. acme-corp"
+                  required
+                  style={{ borderTopRightRadius: 0, borderBottomRightRadius: 0 }}
+                />
+                <span
+                  style={{
+                    height: 38,
+                    display: 'inline-flex',
+                    alignItems: 'center',
+                    padding: '0 12px',
+                    background: 'var(--bg-secondary)',
+                    border: '1px solid var(--border-color)',
+                    borderLeft: 'none',
+                    borderTopRightRadius: 'var(--radius-md)',
+                    borderBottomRightRadius: 'var(--radius-md)',
+                    fontSize: '0.8125rem',
+                    color: 'var(--text-muted)',
+                    whiteSpace: 'nowrap',
+                  }}
+                >
+                  .{BASE_DOMAIN}
+                </span>
+              </div>
+              <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)', marginTop: 4 }}>
+                Portal: https://{editForm.subdomain || '...'}.{BASE_DOMAIN} (max 63 characters)
+              </span>
             </div>
             <div className="input-group">
               <label className="input-label">Country</label>
@@ -686,6 +990,7 @@ export default function PlatformDashboard() {
                 value={editForm.plan_tier}
                 onChange={(e) => setEditForm({ ...editForm, plan_tier: e.target.value })}
               >
+                <option value="trial">Trial</option>
                 <option value="standard">Standard</option>
                 <option value="pro">Pro</option>
                 <option value="enterprise">Enterprise</option>

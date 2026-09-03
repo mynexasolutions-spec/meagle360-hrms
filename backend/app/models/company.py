@@ -16,6 +16,7 @@ class Company(Base, TimestampMixin):
         UUID(as_uuid=True), primary_key=True, default=uuid.uuid4
     )
     name: Mapped[str] = mapped_column(String(255), nullable=False)
+    subdomain: Mapped[str] = mapped_column(String(63), unique=True, nullable=False, index=True)
     country: Mapped[str] = mapped_column(String(100), nullable=True)
     multi_entity: Mapped[bool] = mapped_column(Boolean, default=False)
 

@@ -565,10 +565,72 @@ input[type="password"]::-ms-clear {
   }
 }
 
-@media (max-width: 560px) {
+@media (max-width: 640px) {
   .dashboard-stats-grid {
-    grid-template-columns: 1fr;
-    gap: 12px;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 10px;
+    margin-bottom: 16px;
+  }
+}
+
+/* ── Stat Card Component ──────────────────────────────── */
+.stat-card-root {
+  padding: 20px;
+  display: flex;
+  align-items: flex-start;
+  gap: 16px;
+}
+
+.stat-card-icon-wrap {
+  width: 44px;
+  height: 44px;
+}
+
+.stat-card-label {
+  font-size: 0.75rem;
+}
+
+.stat-card-value {
+  font-size: 1.625rem;
+}
+
+.stat-card-trend {
+  font-size: 0.6875rem;
+}
+
+@media (max-width: 640px) {
+  .stat-card-root {
+    padding: 12px 14px;
+    gap: 10px;
+    border-radius: 16px !important;
+  }
+
+  .stat-card-icon-wrap {
+    width: 36px;
+    height: 36px;
+  }
+
+  .stat-card-icon-wrap svg {
+    width: 18px;
+    height: 18px;
+  }
+
+  .stat-card-label {
+    font-size: 0.70rem;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+
+  .stat-card-value {
+    font-size: 1.35rem;
+  }
+
+  .stat-card-trend {
+    font-size: 0.625rem;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
   }
 }
 
@@ -594,6 +656,155 @@ input[type="password"]::-ms-clear {
   .content-grid {
     grid-template-columns: 1fr;
     gap: 16px;
+  }
+}
+
+/* ── Dashboard Micro-Cards Architecture ──────────────── */
+.dashboard-card {
+  background: #ffffff;
+  border-radius: 20px;
+  padding: 20px 22px;
+  border: 1px solid #e2e8f0;
+  box-shadow: 0 4px 20px -2px rgba(0, 0, 0, 0.03);
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  height: 100%;
+  box-sizing: border-box;
+  min-width: 0;
+  width: 100%;
+}
+
+.dashboard-card-sm {
+  padding: 20px 22px;
+}
+
+.dashboard-card-title {
+  font-size: 1.05rem;
+  font-weight: 800;
+  color: #0f172a;
+  margin: 0;
+}
+
+.dashboard-card-sub {
+  font-size: 0.8125rem;
+  color: #64748b;
+  margin: 2px 0 0 0;
+}
+
+.dashboard-chart-box {
+  width: 100%;
+  min-width: 0;
+  height: 220px;
+  overflow: hidden;
+}
+
+.leave-donut-box {
+  position: relative;
+  width: 125px;
+  height: 125px;
+  flex-shrink: 0;
+}
+
+.leave-donut-center-num {
+  font-size: 1.45rem;
+  font-weight: 900;
+  color: #0f172a;
+  letter-spacing: -0.02em;
+  line-height: 1;
+}
+
+.leave-summary-tile-item {
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  padding: 12px 14px;
+  border-radius: 12px;
+  min-height: 70px;
+  box-sizing: border-box;
+  box-shadow: 0 1px 3px rgba(0,0,0,0.02);
+}
+
+.leave-summary-tile-title {
+  font-size: 0.72rem;
+  font-weight: 700;
+  color: #0f172a;
+  white-space: nowrap;
+  letter-spacing: -0.02em;
+}
+
+.leave-summary-tile-count {
+  font-size: 0.94rem;
+  font-weight: 800;
+  color: #0f172a;
+  line-height: 1;
+}
+
+/* ── Mobile-Optimized Dashboard Widgets (Idea 1 & 2) ─── */
+.attendance-card-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 16px;
+  flex-wrap: wrap;
+  gap: 10px;
+  width: 100%;
+  box-sizing: border-box;
+}
+
+.attendance-card-header-pills {
+  display: flex;
+  gap: 10px;
+  align-items: center;
+  flex-wrap: wrap;
+}
+
+.leave-summary-top-row {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  margin-bottom: 14px;
+  width: 100%;
+  box-sizing: border-box;
+}
+
+.leave-summary-tiles {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 8px;
+  width: 100%;
+  box-sizing: border-box;
+}
+
+@media (max-width: 640px) {
+  .attendance-card-header {
+    flex-direction: column !important;
+    align-items: flex-start !important;
+    gap: 8px !important;
+    margin-bottom: 10px !important;
+  }
+
+  .attendance-card-header-pills {
+    width: 100% !important;
+    justify-content: space-between !important;
+  }
+
+  .leave-summary-top-row {
+    flex-direction: column !important;
+    align-items: center !important;
+    gap: 10px !important;
+    margin-bottom: 10px !important;
+  }
+
+  .leave-summary-distribution-box {
+    width: 100% !important;
+  }
+}
+
+@media (max-width: 420px) {
+  .leave-summary-tiles {
+    grid-template-columns: 1fr !important;
+    gap: 6px !important;
   }
 }
 
@@ -624,13 +835,40 @@ input[type="password"]::-ms-clear {
   }
 }
 
-@media (max-width: 560px) {
+@media (max-width: 768px) {
   .leave-balance-grid {
-    grid-template-columns: 1fr;
+    grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+    gap: 8px !important;
+  }
+  .leave-balance-grid > div:nth-child(-n+3),
+  .leave-balance-grid > div:nth-child(n+4) {
+    grid-column: span 1 !important;
   }
   .leave-balance-grid > div:last-child {
-    grid-column: auto;
+    grid-column: 1 / -1 !important;
   }
+}
+
+/* ── Card Accordion & Responsive Action Visibility ─────── */
+.card-accordion-toggle {
+  display: none !important;
+}
+
+.card-mobile-badge {
+  display: none !important;
+}
+
+.card-desktop-action {
+  display: inline-flex !important;
+  align-items: center;
+}
+
+.card-collapsible-body {
+  display: block !important;
+}
+
+.card-header-clickable {
+  cursor: default;
 }
 
 /* ── Section Card ─────────────────────────────────────── */
@@ -1196,18 +1434,43 @@ input[type="password"]::-ms-clear {
 /* ── App Shell (Sidebar / Main) ──────────────────────── */
 .app-sidebar {
   width: var(--sidebar-width);
+  transition: width var(--transition-slow);
 }
 
 .app-sidebar.collapsed {
   width: 72px;
 }
 
+.app-sidebar.collapsed .sidebar-brand-text,
+.app-sidebar.collapsed .sidebar-user-text {
+  display: none !important;
+}
+
 .app-main {
   margin-left: var(--sidebar-width);
+  transition: margin-left var(--transition-slow);
+  width: calc(100% - var(--sidebar-width));
 }
 
 .app-main.sidebar-collapsed {
   margin-left: 72px;
+  width: calc(100% - 72px);
+}
+
+.app-content {
+  flex: 1;
+  padding: 24px 28px;
+  overflow-y: auto;
+  max-width: 100%;
+  box-sizing: border-box;
+}
+
+.topbar-mobile-menu-btn {
+  display: none;
+}
+
+.mobile-bottom-nav {
+  display: none !important;
 }
 
 /* ── Sidebar Nav Links ─────────────────────────────────── */
@@ -2733,27 +2996,41 @@ input[type="password"]::-ms-clear {
   /* Sidebar becomes an off-canvas drawer */
   .app-sidebar {
     width: min(80vw, 280px) !important;
-    transform: translateX(-100%);
-    transition: transform var(--transition-slow);
-    box-shadow: var(--shadow-lg);
+    transform: translateX(-100%) !important;
+    transition: transform var(--transition-slow) !important;
+    box-shadow: var(--shadow-lg) !important;
+    z-index: 100 !important;
   }
 
   .app-sidebar.mobile-open {
-    transform: translateX(0);
+    transform: translateX(0) !important;
+  }
+
+  .sidebar-desktop-toggle {
+    display: none !important;
+  }
+
+  .topbar-mobile-menu-btn {
+    display: flex !important;
   }
 
   .app-main,
   .app-main.sidebar-collapsed {
     margin-left: 0 !important;
+    width: 100% !important;
+    max-width: 100vw !important;
+    min-height: 100vh !important;
+    display: flex !important;
+    flex-direction: column !important;
   }
 
   .sidebar-backdrop.visible {
-    display: block;
-    position: fixed;
-    inset: 0;
-    background: rgba(15, 23, 42, 0.5);
-    z-index: 90;
-    animation: fadeIn 0.2s ease;
+    display: block !important;
+    position: fixed !important;
+    inset: 0 !important;
+    background: rgba(15, 23, 42, 0.5) !important;
+    z-index: 90 !important;
+    animation: fadeIn 0.2s ease !important;
   }
 
   .clock-strip {
@@ -2761,9 +3038,31 @@ input[type="password"]::-ms-clear {
     padding: 16px !important;
   }
 
+  .dashboard-greeting-header {
+    flex-direction: column !important;
+    align-items: stretch !important;
+    gap: 12px !important;
+    margin-bottom: 16px !important;
+  }
+
+  .dashboard-header-actions {
+    width: 100% !important;
+    display: flex !important;
+    align-items: center !important;
+    justify-content: space-between !important;
+    gap: 10px !important;
+  }
+
+  .dashboard-clock-btn {
+    flex: 1 1 auto !important;
+    justify-content: center !important;
+  }
+
   .dashboard-date-block {
-    text-align: left !important;
-    width: 100%;
+    text-align: right !important;
+    width: auto !important;
+    flex-shrink: 0 !important;
+    padding: 6px 12px !important;
   }
 
   .clock-strip-badge {
@@ -2771,26 +3070,238 @@ input[type="password"]::-ms-clear {
   }
 
   .app-content {
-    padding: 16px !important;
+    flex: 1 0 auto !important;
+    overflow-y: visible !important;
+    overflow-x: hidden !important;
+    padding: 12px 14px 78px 14px !important;
+    width: 100% !important;
+    max-width: 100vw !important;
+    box-sizing: border-box !important;
   }
 
   .topbar-search {
-    max-width: none !important;
+    display: none !important;
   }
 
   .topbar-help,
-  .topbar-profile-text {
+  .topbar-profile-text,
+  .topbar-chevron {
     display: none !important;
+  }
+
+  .dashboard-stats-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+    gap: 8px !important;
+    margin-bottom: 10px !important;
+  }
+
+  .dashboard-columns,
+  .content-grid {
+    grid-template-columns: 1fr !important;
+    gap: 10px !important;
+  }
+
+  /* ── Micro-Cards Scaling for Mobile ────────────────── */
+  .dashboard-card {
+    border-radius: 14px !important;
+    padding: 14px 16px !important;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.02) !important;
+  }
+
+  .dashboard-card-sm {
+    padding: 14px 14px !important;
+  }
+
+  .dashboard-card-title {
+    font-size: 0.88rem !important;
+  }
+
+  .dashboard-card-sub {
+    font-size: 0.70rem !important;
+  }
+
+  .dashboard-main-grid {
+    gap: 10px !important;
+  }
+
+  .dashboard-chart-box {
+    height: 140px !important;
+  }
+
+  .leave-donut-box {
+    width: 120px !important;
+    height: 120px !important;
+  }
+
+  .leave-donut-center-num {
+    font-size: 1.40rem !important;
+    font-weight: 900 !important;
+  }
+
+  /* ── Mobile Accordion Card Collapse (Idea 3) ───────────── */
+  .card-accordion-toggle {
+    display: inline-flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    width: 26px !important;
+    height: 26px !important;
+    border-radius: 7px !important;
+    background: #f1f5f9 !important;
+    color: #475569 !important;
+    border: 1px solid #e2e8f0 !important;
+    cursor: pointer !important;
+    flex-shrink: 0 !important;
+  }
+
+  .card-mobile-badge {
+    display: inline-flex !important;
+  }
+
+  .card-desktop-action {
+    display: none !important;
+  }
+
+  .card-header-clickable {
+    cursor: pointer !important;
+    user-select: none !important;
+    -webkit-tap-highlight-color: transparent !important;
+  }
+
+  .card-collapsible-body.is-collapsed {
+    display: none !important;
+  }
+
+  .leave-summary-tile-item {
+    padding: 6px 8px !important;
+    min-height: 44px !important;
+    border-radius: 8px !important;
+  }
+
+  .leave-summary-tile-title {
+    font-size: 0.625rem !important;
+  }
+
+  .leave-summary-tile-count {
+    font-size: 0.78rem !important;
+  }
+
+  .quick-action-row {
+    padding: 6px 9px !important;
+    font-size: 0.75rem !important;
+    border-radius: 8px !important;
+  }
+
+  .dashboard-greeting-header {
+    margin-bottom: 10px !important;
+    gap: 8px !important;
+  }
+
+  .dashboard-header-actions {
+    width: 100% !important;
+    display: flex !important;
+    align-items: center !important;
+    justify-content: space-between !important;
+    gap: 8px !important;
+  }
+
+  .dashboard-clock-btn {
+    flex: 1 !important;
+    justify-content: center !important;
+    padding: 7px 12px !important;
+    font-size: 0.78rem !important;
+  }
+
+  .dashboard-date-block {
+    padding: 5px 10px !important;
+    border-radius: 10px !important;
+    background: #ffffff !important;
+    border: 1px solid #e2e8f0 !important;
+    box-shadow: 0 1px 4px rgba(0,0,0,0.02) !important;
+    flex-shrink: 0 !important;
+    text-align: right !important;
+  }
+
+  /* ── Mobile Bottom Navigation Bar (Idea A) ───────────── */
+  .mobile-bottom-nav {
+    display: flex !important;
+    position: fixed !important;
+    bottom: 0 !important;
+    left: 0 !important;
+    right: 0 !important;
+    height: 64px !important;
+    background: rgba(255, 255, 255, 0.95) !important;
+    backdrop-filter: blur(16px) !important;
+    -webkit-backdrop-filter: blur(16px) !important;
+    border-top: 1px solid #e2e8f0 !important;
+    box-shadow: 0 -4px 20px rgba(0, 0, 0, 0.05) !important;
+    z-index: 95 !important;
+    align-items: center !important;
+    justify-content: space-around !important;
+    padding: 0 6px !important;
+    padding-bottom: env(safe-area-inset-bottom, 0px) !important;
+    box-sizing: border-box !important;
+  }
+
+  .bottom-nav-item {
+    display: flex !important;
+    flex-direction: column !important;
+    align-items: center !important;
+    justify-content: center !important;
+    flex: 1 !important;
+    height: 100% !important;
+    text-decoration: none !important;
+    color: #64748b !important;
+    transition: all 0.15s ease !important;
+    padding: 6px 0 !important;
+    border-radius: 12px !important;
+    gap: 3px !important;
+  }
+
+  .bottom-nav-icon-wrap {
+    display: flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    width: 32px !important;
+    height: 28px !important;
+    border-radius: 99px !important;
+    transition: all 0.15s ease !important;
+  }
+
+  .bottom-nav-label {
+    font-size: 0.65rem !important;
+    font-weight: 600 !important;
+    letter-spacing: -0.01em !important;
+    transition: all 0.15s ease !important;
+  }
+
+  .bottom-nav-item.active {
+    color: #2563eb !important;
+  }
+
+  .bottom-nav-item.active .bottom-nav-icon-wrap {
+    background: #eff6ff !important;
+    color: #2563eb !important;
+    transform: translateY(-2px) !important;
+  }
+
+  .bottom-nav-item.active .bottom-nav-label {
+    font-weight: 800 !important;
+    color: #2563eb !important;
   }
 }
 
 @media (max-width: 480px) {
-  .topbar-search {
-    display: none !important;
+  .app-content {
+    padding: 10px 10px 84px 10px !important;
+  }
+
+  .dashboard-stats-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+    gap: 8px !important;
   }
 }
 
-@media (max-width: 640px) {
+@media (max-width: 992px) {
   .platform-action-label {
     display: none;
   }
@@ -2798,7 +3309,9 @@ input[type="password"]::-ms-clear {
   .platform-actions .btn {
     padding: 6px 8px;
   }
+}
 
+@media (max-width: 640px) {
   .view-toggle-label {
     display: none;
   }

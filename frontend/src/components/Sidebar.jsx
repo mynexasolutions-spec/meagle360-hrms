@@ -49,7 +49,7 @@ function isItemVisible(item, permissions, roleName) {
 
 export default function Sidebar({ sidebarOpen, permissions, roleName }) {
   return (
-    <nav style={{ flex: 1, padding: '16px 10px', overflowY: 'auto' }}>
+    <nav style={{ flex: 1, padding: '20px 12px', overflowY: 'auto' }}>
       {NAV_CONFIG.filter((item) => isItemVisible(item, permissions, roleName)).map((item) => (
         <NavLink
           key={item.path}
