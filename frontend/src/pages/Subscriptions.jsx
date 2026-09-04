@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import {
   Crown,
   Sparkles,
@@ -9,18 +9,21 @@ import {
   Zap,
   ShieldCheck,
   CheckCircle2,
-  CreditCard,
-  Building2,
   Lock,
   ArrowRight,
   Receipt,
-  Clock,
+  AlertTriangle,
+  Mail,
+  HelpCircle,
 } from 'lucide-react';
 import Modal from '../components/Modal';
+import { getMySubscription } from '../api/company';
+import LoadingScreen from '../components/LoadingScreen';
 
 const PLANS = [
   {
     id: 'quarterly',
+    tierKey: 'quarterly',
     name: 'Quarterly Plan',
     duration: '3 Months',
     subtitle: 'Ideal for agile teams & short-term workforce planning',
@@ -43,6 +46,7 @@ const PLANS = [
   },
   {
     id: 'half_yearly',
+    tierKey: 'half_yearly',
     name: 'Half-Yearly Plan',
     duration: '6 Months',
     subtitle: 'Best balance of team flexibility and operational cost efficiency',
@@ -64,7 +68,8 @@ const PLANS = [
     buttonVariant: 'primary',
   },
   {
-    id: 'annual',
+    id: 'yearly',
+    tierKey: 'yearly',
     name: 'Annual Plan',
     duration: '12 Months',
     subtitle: 'Unrestricted enterprise scale for established companies',
@@ -87,29 +92,169 @@ const PLANS = [
   },
 ];
 
+function formatTier(tier) {
+  if (!tier) return 'Unknown';
+  switch (tier.toLowerCase()) {
+    case 'trial':
+      return 'Trial';
+    case 'quarterly':
+      return 'Quarterly';
+    case 'half_yearly':
+      return 'Half-Yearly';
+    case 'yearly':
+      return 'Yearly';
+    default:
+      return tier.charAt(0).toUpperCase() + tier.slice(1);
+  }
+}
+
+function formatDate(dateStr) {
+  if (!dateStr) return 'No expiry set';
+  try {
+    const d = new Date(dateStr);
+    return d.toLocaleDateString('en-US', {
+      day: 'numeric',
+      month: 'short',
+      year: 'numeric',
+    });
+  } catch {
+    return dateStr;
+  }
+}
+
 export default function Subscriptions() {
+  const [subscription, setSubscription] = useState(null);
+  const [loading, setLoading] = useState(true);
+  const [accessDenied, setAccessDenied] = useState(false);
   const [selectedPlan, setSelectedPlan] = useState(null);
-  const [subscribedPlan, setSubscribedPlan] = useState(null);
-  const [isProcessing, setIsProcessing] = useState(false);
-  const [paymentSuccess, setPaymentSuccess] = useState(false);
 
-  const handleOpenCheckout = (plan) => {
-    setSelectedPlan(plan);
-    setPaymentSuccess(false);
-  };
+  useEffect(() => {
+    getMySubscription()
+      .then((res) => {
+        setSubscription(res.data);
+      })
+      .catch((err) => {
+        if (err.response?.status === 403) {
+          setAccessDenied(true);
+        } else if (err.response?.status === 402 && err.response?.data) {
+          setSubscription(err.response.data);
+        }
+      })
+      .finally(() => setLoading(false));
+  }, []);
 
-  const handleConfirmSubscription = () => {
-    setIsProcessing(true);
-    setTimeout(() => {
-      setIsProcessing(false);
-      setPaymentSuccess(true);
-      setSubscribedPlan(selectedPlan);
-    }, 1200);
-  };
+  if (loading) {
+    return <LoadingScreen subtitle="Loading subscription details..." />;
+  }
+
+  if (accessDenied) {
+    return (
+      <div className="animate-fade-in" style={{ maxWidth: 560, margin: '60px auto', textAlign: 'center', padding: '0 20px' }}>
+        <div
+          style={{
+            background: '#ffffff',
+            borderRadius: 24,
+            padding: '48px 32px',
+            border: '1px solid #e2e8f0',
+            boxShadow: '0 10px 30px -10px rgba(15, 23, 42, 0.08)',
+          }}
+        >
+          <div
+            style={{
+              width: 60,
+              height: 60,
+              borderRadius: 18,
+              background: '#f1f5f9',
+              color: '#475569',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              margin: '0 auto 18px',
+            }}
+          >
+            <ShieldCheck size={32} />
+          </div>
+          <h2 style={{ fontSize: '1.35rem', fontWeight: 800, color: '#0f172a', marginBottom: 10 }}>
+            Access Restricted
+          </h2>
+          <p style={{ color: '#64748b', fontSize: '0.925rem', lineHeight: 1.5, margin: 0 }}>
+            Only Organization Administrators can view or manage subscription and plan tracking details.
+          </p>
+        </div>
+      </div>
+    );
+  }
+
+  const isExpired = subscription?.is_expired;
+  const daysRemaining = subscription?.days_remaining != null ? Math.max(subscription.days_remaining, 0) : null;
+  const currentTier = subscription?.plan_tier?.toLowerCase();
 
   return (
     <div className="animate-fade-in" style={{ maxWidth: 1180, margin: '0 auto', paddingBottom: 48 }}>
       
+      {/* Expired Global Alert Banner */}
+      {isExpired && (
+        <div
+          style={{
+            background: '#fef2f2',
+            border: '1.5px solid #fecaca',
+            borderRadius: 20,
+            padding: '18px 24px',
+            margin: '0 0 32px',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'space-between',
+            flexWrap: 'wrap',
+            gap: 16,
+            boxShadow: '0 6px 20px rgba(220, 38, 38, 0.1)',
+          }}
+        >
+          <div style={{ display: 'flex', alignItems: 'center', gap: 14, minWidth: 280 }}>
+            <div
+              style={{
+                width: 46,
+                height: 46,
+                borderRadius: 14,
+                background: '#fee2e2',
+                color: '#dc2626',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                flexShrink: 0,
+              }}
+            >
+              <AlertTriangle size={24} />
+            </div>
+            <div>
+              <div style={{ fontWeight: 800, fontSize: '1.05rem', color: '#991b1b', letterSpacing: '-0.01em' }}>
+                Your plan has ended — purchase a plan to continue.
+              </div>
+              <div style={{ fontSize: '0.8125rem', color: '#b91c1c', marginTop: 2 }}>
+                Expired on {formatDate(subscription?.plan_ends_at)}. Please contact our support team to reactivate access.
+              </div>
+            </div>
+          </div>
+          <a
+            href="mailto:support@meagle360.com?subject=Plan%20Renewal%20Request%20-%20Meagle360"
+            className="btn btn-primary"
+            style={{
+              background: '#dc2626',
+              borderColor: '#dc2626',
+              padding: '11px 20px',
+              fontSize: '0.875rem',
+              fontWeight: 700,
+              textDecoration: 'none',
+              display: 'inline-flex',
+              alignItems: 'center',
+              gap: 8,
+              boxShadow: '0 4px 12px rgba(220, 38, 38, 0.3)',
+            }}
+          >
+            <Mail size={16} /> Contact to Renew
+          </a>
+        </div>
+      )}
+
       {/* Page Header */}
       <div style={{ textAlign: 'center', maxWidth: 680, margin: '0 auto 36px', paddingTop: 10 }}>
         <div
@@ -151,29 +296,69 @@ export default function Subscriptions() {
           Choose the ideal billing cycle tailored to your organization size with premium perks and guaranteed SLA.
         </p>
 
-        {subscribedPlan && (
+        {/* Live Persistent Tracker Top Badge */}
+        {subscription && (
           <div
             style={{
               marginTop: 20,
-              padding: '12px 20px',
-              borderRadius: 14,
-              background: '#ecfdf5',
-              border: '1px solid #a7f3d0',
-              color: '#065f46',
+              padding: '10px 22px',
+              borderRadius: 9999,
+              background: isExpired ? '#fef2f2' : '#ecfdf5',
+              border: isExpired ? '1px solid #fecaca' : '1px solid #a7f3d0',
+              color: isExpired ? '#991b1b' : '#065f46',
               display: 'inline-flex',
               alignItems: 'center',
-              gap: 10,
+              gap: 12,
               fontWeight: 600,
-              fontSize: '0.9rem',
+              fontSize: '0.875rem',
+              flexWrap: 'wrap',
+              justifyContent: 'center',
+              boxShadow: '0 2px 8px rgba(0,0,0,0.03)',
             }}
           >
-            <CheckCircle2 size={18} style={{ color: '#10b981' }} />
-            <span>Active Plan: <strong>{subscribedPlan.name}</strong> ({subscribedPlan.population} Employees)</span>
+            <span style={{ display: 'inline-flex', alignItems: 'center', gap: 6 }}>
+              {isExpired ? (
+                <AlertTriangle size={16} style={{ color: '#dc2626' }} />
+              ) : (
+                <CheckCircle2 size={16} style={{ color: '#10b981' }} />
+              )}
+              <span>
+                Active Plan: <strong>{formatTier(subscription.plan_tier)}</strong>
+              </span>
+            </span>
+
+            {subscription.plan_ends_at ? (
+              <>
+                <span style={{ opacity: 0.5 }}>•</span>
+                <span>
+                  Expires: <strong>{formatDate(subscription.plan_ends_at)}</strong>
+                </span>
+                <span style={{ opacity: 0.5 }}>•</span>
+                <span
+                  style={{
+                    background: isExpired ? '#fee2e2' : '#d1fae5',
+                    padding: '2px 10px',
+                    borderRadius: 9999,
+                    fontWeight: 700,
+                    color: isExpired ? '#dc2626' : '#047857',
+                  }}
+                >
+                  {isExpired
+                    ? 'Expired'
+                    : `${daysRemaining} ${daysRemaining === 1 ? 'day' : 'days'} left`}
+                </span>
+              </>
+            ) : (
+              <>
+                <span style={{ opacity: 0.5 }}>•</span>
+                <span style={{ color: '#64748b', fontStyle: 'italic' }}>No expiry set</span>
+              </>
+            )}
           </div>
         )}
       </div>
 
-      {/* Pricing Cards Grid (3 Columns) */}
+      {/* Pricing Cards Grid (3 Columns — Quarterly, Half-Yearly, Yearly) */}
       <div
         style={{
           display: 'grid',
@@ -183,7 +368,7 @@ export default function Subscriptions() {
         }}
       >
         {PLANS.map((plan) => {
-          const isCurrentActive = subscribedPlan?.id === plan.id;
+          const isCurrentActive = currentTier === plan.tierKey && !isExpired;
           return (
             <div
               key={plan.id}
@@ -269,7 +454,14 @@ export default function Subscriptions() {
                   </span>
                 </div>
 
-                <div style={{ fontSize: '0.75rem', color: plan.savings ? (plan.isPopular ? '#2563eb' : '#059669') : '#94a3b8', fontWeight: plan.savings ? 700 : 500, marginBottom: 18 }}>
+                <div
+                  style={{
+                    fontSize: '0.75rem',
+                    color: plan.savings ? (plan.isPopular ? '#2563eb' : '#059669') : '#94a3b8',
+                    fontWeight: plan.savings ? 700 : 500,
+                    marginBottom: 18,
+                  }}
+                >
                   {plan.savings || plan.billingNote}
                 </div>
 
@@ -352,7 +544,7 @@ export default function Subscriptions() {
               {/* CTA Button */}
               <div style={{ marginTop: 'auto', paddingTop: 8 }}>
                 <button
-                  onClick={() => handleOpenCheckout(plan)}
+                  onClick={() => setSelectedPlan(plan)}
                   style={{
                     width: '100%',
                     padding: '13px 20px',
@@ -381,7 +573,7 @@ export default function Subscriptions() {
                 >
                   {isCurrentActive ? (
                     <>
-                      <CheckCircle2 size={17} style={{ color: '#10b981' }} /> Current Plan
+                      <CheckCircle2 size={17} style={{ color: '#10b981' }} /> Current Active Plan
                     </>
                   ) : (
                     <>
@@ -417,7 +609,7 @@ export default function Subscriptions() {
         </div>
         <div style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: '0.85rem', color: '#475569', fontWeight: 600 }}>
           <Zap size={16} style={{ color: '#2563eb' }} />
-          <span>Instant Activation with Auto-Perks</span>
+          <span>Instant Activation via Platform Ops</span>
         </div>
         <div style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: '0.85rem', color: '#475569', fontWeight: 600 }}>
           <Receipt size={16} style={{ color: '#7c3aed' }} />
@@ -425,125 +617,93 @@ export default function Subscriptions() {
         </div>
       </div>
 
-      {/* Checkout / Activation Modal */}
+      {/* Contact & Activation Modal */}
       {selectedPlan && (
         <Modal
-          title={paymentSuccess ? 'Subscription Activated!' : `Subscribe to ${selectedPlan.name}`}
+          title={`Renew / Upgrade to ${selectedPlan.name}`}
           onClose={() => setSelectedPlan(null)}
         >
-          {paymentSuccess ? (
-            <div style={{ textAlign: 'center', padding: '20px 10px' }}>
-              <div
-                style={{
-                  width: 64,
-                  height: 64,
-                  borderRadius: 20,
-                  background: '#ecfdf5',
-                  color: '#10b981',
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  margin: '0 auto 16px',
-                  boxShadow: '0 8px 20px rgba(16, 185, 129, 0.2)',
-                }}
-              >
-                <CheckCircle2 size={36} />
+          <div>
+            <div
+              style={{
+                padding: '16px 20px',
+                background: '#f8fafc',
+                borderRadius: 16,
+                border: '1px solid #e2e8f0',
+                marginBottom: 20,
+              }}
+            >
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 10 }}>
+                <span style={{ fontWeight: 700, color: '#0f172a' }}>{selectedPlan.name} ({selectedPlan.duration})</span>
+                <span style={{ fontWeight: 800, fontSize: '1.2rem', color: '#2563eb' }}>₹{selectedPlan.price.toLocaleString('en-IN')}</span>
               </div>
-              <h3 style={{ fontSize: '1.35rem', fontWeight: 800, color: '#0f172a', margin: '0 0 6px 0' }}>
-                Plan Successfully Activated!
-              </h3>
-              <p style={{ color: '#64748b', fontSize: '0.9rem', marginBottom: 20 }}>
-                Your organization is now upgraded to <strong>{selectedPlan.name}</strong> ({selectedPlan.population} Employees) with all exclusive perks applied.
-              </p>
-              <div
-                style={{
-                  background: '#f8fafc',
-                  borderRadius: 14,
-                  padding: '16px',
-                  border: '1px solid #e2e8f0',
-                  textAlign: 'left',
-                  marginBottom: 24,
-                }}
-              >
-                <div style={{ fontSize: '0.78125rem', fontWeight: 700, color: '#2563eb', textTransform: 'uppercase', marginBottom: 8 }}>
-                  Active Perks Applied to Your Account:
-                </div>
+              <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.8125rem', color: '#64748b', marginBottom: 4 }}>
+                <span>Workforce Capacity:</span>
+                <span style={{ fontWeight: 600, color: '#0f172a' }}>{selectedPlan.population} Employees</span>
+              </div>
+              <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.8125rem', color: '#64748b' }}>
+                <span>GST (18% Input Credit):</span>
+                <span>Included</span>
+              </div>
+            </div>
+
+            <div style={{ marginBottom: 20 }}>
+              <div style={{ fontSize: '0.8125rem', fontWeight: 700, color: '#0f172a', marginBottom: 8 }}>
+                Included Special Perks:
+              </div>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
                 {selectedPlan.perks.map((p, i) => (
-                  <div key={i} style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: '0.85rem', color: '#334155', marginBottom: 6 }}>
-                    <Check size={14} style={{ color: '#10b981' }} />
+                  <div key={i} style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: '0.85rem', color: '#475569' }}>
+                    <Check size={14} style={{ color: '#2563eb' }} />
                     <span>{p.text}</span>
                   </div>
                 ))}
               </div>
+            </div>
+
+            {/* Renewal Instructions */}
+            <div
+              style={{
+                background: '#eff6ff',
+                border: '1px solid #dbeafe',
+                borderRadius: 14,
+                padding: '14px 16px',
+                marginBottom: 24,
+              }}
+            >
+              <div style={{ display: 'flex', alignItems: 'center', gap: 8, fontWeight: 700, fontSize: '0.85rem', color: '#1e40af', marginBottom: 6 }}>
+                <HelpCircle size={16} />
+                <span>How to activate or renew this plan:</span>
+              </div>
+              <p style={{ margin: 0, fontSize: '0.8125rem', color: '#3b82f6', lineHeight: 1.45 }}>
+                To subscribe or change your company plan, please reach out to your Meagle360 representative or our 24/7 support desk. Your plan will be updated instantly.
+              </p>
+            </div>
+
+            <div style={{ display: 'flex', gap: 10, justifyContent: 'flex-end', flexWrap: 'wrap' }}>
               <button
-                className="btn btn-primary"
-                style={{ width: '100%', padding: '12px' }}
+                type="button"
+                className="btn btn-secondary"
                 onClick={() => setSelectedPlan(null)}
               >
-                Return to Dashboard
+                Close
               </button>
-            </div>
-          ) : (
-            <div>
-              <div
+              <a
+                href={`mailto:support@meagle360.com?subject=${encodeURIComponent(`Plan Upgrade Request: ${selectedPlan.name}`)}&body=${encodeURIComponent(`Hello Meagle360 Team,\n\nWe would like to renew/upgrade our organization subscription to the ${selectedPlan.name} (₹${selectedPlan.price.toLocaleString('en-IN')}). Please provide the renewal details.\n\nThank you!`)}`}
+                className="btn btn-primary"
                 style={{
-                  padding: '16px',
-                  background: '#f8fafc',
-                  borderRadius: 14,
-                  border: '1px solid #e2e8f0',
-                  marginBottom: 20,
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  gap: 8,
+                  textDecoration: 'none',
+                  padding: '10px 18px',
                 }}
               >
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 10 }}>
-                  <span style={{ fontWeight: 700, color: '#0f172a' }}>{selectedPlan.name} ({selectedPlan.duration})</span>
-                  <span style={{ fontWeight: 800, fontSize: '1.15rem', color: '#2563eb' }}>₹{selectedPlan.price.toLocaleString('en-IN')}</span>
-                </div>
-                <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.8125rem', color: '#64748b', marginBottom: 4 }}>
-                  <span>Workforce Capacity:</span>
-                  <span style={{ fontWeight: 600, color: '#0f172a' }}>{selectedPlan.population} Employees</span>
-                </div>
-                <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.8125rem', color: '#64748b' }}>
-                  <span>GST (18% Input Credit):</span>
-                  <span>Included</span>
-                </div>
-              </div>
-
-              <div style={{ marginBottom: 24 }}>
-                <div style={{ fontSize: '0.8125rem', fontWeight: 700, color: '#0f172a', marginBottom: 8 }}>
-                  Included Special Perks:
-                </div>
-                <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
-                  {selectedPlan.perks.map((p, i) => (
-                    <div key={i} style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: '0.85rem', color: '#475569' }}>
-                      <Check size={14} style={{ color: '#2563eb' }} />
-                      <span>{p.text}</span>
-                    </div>
-                  ))}
-                </div>
-              </div>
-
-              <div style={{ display: 'flex', gap: 10, justifyContent: 'flex-end' }}>
-                <button
-                  type="button"
-                  className="btn btn-secondary"
-                  onClick={() => setSelectedPlan(null)}
-                  disabled={isProcessing}
-                >
-                  Cancel
-                </button>
-                <button
-                  type="button"
-                  className="btn btn-primary"
-                  onClick={handleConfirmSubscription}
-                  disabled={isProcessing}
-                  style={{ display: 'inline-flex', alignItems: 'center', gap: 8 }}
-                >
-                  <CreditCard size={16} />
-                  {isProcessing ? 'Activating Plan...' : `Confirm & Activate (₹${selectedPlan.price.toLocaleString('en-IN')})`}
-                </button>
-              </div>
+                <Mail size={16} />
+                Contact Support to Renew
+              </a>
             </div>
-          )}
+          </div>
         </Modal>
       )}
     </div>

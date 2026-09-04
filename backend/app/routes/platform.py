@@ -74,14 +74,18 @@ def create_company(
     _: PlatformAdmin = Depends(get_current_platform_admin),
 ):
     """Provision a new tenant (status=pending_setup) with default Admin/Manager/Employee roles."""
-    return platform_service.create_company(
-        db,
-        name=data.name,
-        country=data.country,
-        multi_entity=data.multi_entity,
-        plan_tier=data.plan_tier,
-        seat_limit=data.seat_limit,
-    )
+    try:
+        return platform_service.create_company(
+            db,
+            name=data.name,
+            country=data.country,
+            multi_entity=data.multi_entity,
+            plan_tier=data.plan_tier,
+            seat_limit=data.seat_limit,
+            trial_days=data.trial_days,
+        )
+    except ValueError as e:
+        raise HTTPException(status_code=400, detail=str(e))
 
 
 @router.get("/companies/{company_id}/users", response_model=list[CompanyUserResponse])
@@ -136,6 +140,17 @@ def update_company(
         raise HTTPException(status_code=404, detail="Company not found")
 
     update_data = data.model_dump(exclude_unset=True)
+
+    # trial_days is only an input for computing plan_ends_at, not a real
+    # Company column — pull it out before the generic setattr loop below.
+    incoming_trial_days = update_data.pop("trial_days", None)
+    if "plan_tier" in update_data:
+        try:
+            update_data["plan_ends_at"] = platform_service.compute_plan_ends_at(
+                update_data["plan_tier"], incoming_trial_days
+            )
+        except ValueError as e:
+            raise HTTPException(status_code=400, detail=str(e))
 
     if "subdomain" in update_data:
         new_subdomain = slugify(update_data["subdomain"])

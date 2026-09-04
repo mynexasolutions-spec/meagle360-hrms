@@ -12,7 +12,9 @@ import {
   Receipt,
   Wallet,
   Crown,
+  AlertTriangle,
 } from 'lucide-react';
+import { useAuth } from '../context/AuthContext';
 
 // permission: a permission key the user must have, or an array (any-of).
 // hideIfPermission: a permission key (or array) which, if present, hides this item.
@@ -34,7 +36,10 @@ const NAV_CONFIG = [
   { path: '/subscriptions', label: 'Subscriptions', icon: Crown, permission: 'settings:write' },
 ];
 
-function isItemVisible(item, permissions, roleName) {
+function isItemVisible(item, permissions, roleName, isPlanExpired) {
+  if (isPlanExpired) {
+    return item.path === '/subscriptions';
+  }
   const perms = permissions || {};
   const isAdmin = roleName === 'Admin' || !!perms['settings:write'];
   if (item.hideIfAdmin && isAdmin) return false;
@@ -48,9 +53,35 @@ function isItemVisible(item, permissions, roleName) {
 }
 
 export default function Sidebar({ sidebarOpen, permissions, roleName }) {
+  const { isPlanExpired } = useAuth();
+
+  const visibleItems = NAV_CONFIG.filter((item) =>
+    isItemVisible(item, permissions, roleName, isPlanExpired)
+  );
+
   return (
     <nav style={{ flex: 1, padding: '20px 12px', overflowY: 'auto' }}>
-      {NAV_CONFIG.filter((item) => isItemVisible(item, permissions, roleName)).map((item) => (
+      {isPlanExpired && sidebarOpen && (
+        <div
+          style={{
+            margin: '0 4px 16px 4px',
+            padding: '10px 12px',
+            borderRadius: '12px',
+            background: '#fef2f2',
+            border: '1px solid #fecaca',
+            color: '#991b1b',
+            fontSize: '0.75rem',
+            fontWeight: 600,
+            display: 'flex',
+            alignItems: 'center',
+            gap: '8px',
+          }}
+        >
+          <AlertTriangle size={16} style={{ color: '#dc2626', flexShrink: 0 }} />
+          <span>Plan Expired — Locked</span>
+        </div>
+      )}
+      {visibleItems.map((item) => (
         <NavLink
           key={item.path}
           to={item.path}

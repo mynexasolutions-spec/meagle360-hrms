@@ -10,6 +10,7 @@ flips it to "active".
 import secrets
 import uuid
 from datetime import datetime, timezone
+from dateutil.relativedelta import relativedelta
 from uuid import UUID
 
 from sqlalchemy.orm import Session
@@ -26,6 +27,35 @@ from app.services.email_service import try_send_invite_email
 from app.services.subdomain_service import generate_unique_subdomain
 
 DEFAULT_EXPENSE_CATEGORIES = ["Travel", "Meals & Entertainment", "Office Supplies", "Transportation", "Other"]
+
+VALID_PLAN_TIERS = {"trial", "quarterly", "half_yearly", "yearly"}
+# Fixed month offsets for tiers with a set duration. "trial" is deliberately
+# absent here — its length is a custom, admin-supplied number of days rather
+# than a fixed offset.
+PLAN_TIER_MONTHS = {"quarterly": 3, "half_yearly": 6, "yearly": 12}
+
+
+def compute_plan_ends_at(plan_tier: str, trial_days: int | None) -> datetime:
+    """Compute the plan expiry timestamp for a given tier.
+
+    trial: caller-supplied custom day count (required, must be positive).
+    quarterly/half_yearly/yearly: fixed month offset from now, ignores
+    trial_days even if the caller passes one.
+    """
+    if plan_tier not in VALID_PLAN_TIERS:
+        valid = sorted(VALID_PLAN_TIERS)
+        raise ValueError("Invalid plan_tier: " + repr(plan_tier) + ". Must be one of " + str(valid))
+
+    now = datetime.now(timezone.utc)
+
+    if plan_tier == "trial":
+        if trial_days is None or trial_days <= 0:
+            raise ValueError("trial_days must be a positive integer when plan_tier is 'trial'")
+        from datetime import timedelta
+        return now + timedelta(days=trial_days)
+
+    months = PLAN_TIER_MONTHS[plan_tier]
+    return now + relativedelta(months=months)
 
 # (name, component_type, calculation_type, value, is_statutory, is_taxable, display_order)
 DEFAULT_INDIA_SALARY_COMPONENTS = [
@@ -99,9 +129,11 @@ def create_company(
     multi_entity: bool,
     plan_tier: str,
     seat_limit: int | None,
+    trial_days: int | None = None,
 ) -> Company:
     """Create a new tenant, pending setup, with its default role set seeded."""
     subdomain = generate_unique_subdomain(name, db)
+    plan_ends_at = compute_plan_ends_at(plan_tier, trial_days)
     company = Company(
         id=uuid.uuid4(),
         name=name,
@@ -110,6 +142,7 @@ def create_company(
         multi_entity=multi_entity,
         status="pending_setup",
         plan_tier=plan_tier,
+        plan_ends_at=plan_ends_at,
         seat_limit=seat_limit,
     )
     db.add(company)

@@ -23,6 +23,16 @@ class CompanyUpdate(BaseModel):
     registered_address: str | None = None
 
 
+class CompanySubscriptionResponse(BaseModel):
+    """Org-side view of the calling company's own plan status — powers
+    the persistent Subscription-page tracker. Deliberately excludes any
+    other company's data (unlike the platform admin list view)."""
+    plan_tier: str
+    plan_ends_at: datetime | None
+    days_remaining: int | None  # None when plan_ends_at is not set
+    is_expired: bool
+
+
 class CompanyResponse(BaseModel):
     id: UUID
     name: str

@@ -2,6 +2,8 @@ import client from './client';
 
 export const getMyCompany = () => client.get('/companies/me');
 
+export const getMySubscription = () => client.get('/companies/me/subscription');
+
 export const updateMyCompany = (data) => client.put('/companies/me', data);
 
 export const uploadCompanyBranding = (file, imageType) => {

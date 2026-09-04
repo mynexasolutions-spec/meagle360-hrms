@@ -21,6 +21,28 @@ oauth2_scheme = OAuth2PasswordBearer(tokenUrl="/api/auth/login")
 platform_oauth2_scheme = OAuth2PasswordBearer(tokenUrl="/api/platform/auth/login")
 
 
+def _check_plan_not_expired(db: Session, company_id: UUID) -> None:
+    """Single place both login and every in-session request funnel
+    through to enforce plan expiry. Raises a 402 with a machine-readable
+    error_code so the frontend can reliably show the plan-ended screen
+    instead of a generic error."""
+    from datetime import datetime, timezone
+
+    company = db.query(Company).filter(Company.id == company_id).first()
+    if company is None:
+        return
+    if company.plan_ends_at is None:
+        return
+    if company.plan_ends_at <= datetime.now(timezone.utc):
+        raise HTTPException(
+            status_code=status.HTTP_402_PAYMENT_REQUIRED,
+            detail={
+                "error_code": "plan_expired",
+                "message": "Your plan has ended. Purchase a plan to continue.",
+            },
+        )
+
+
 def get_current_user(
     token: str = Depends(oauth2_scheme),
     db: Session = Depends(get_db),
@@ -47,6 +69,12 @@ def get_current_user(
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail="User not found",
         )
+
+    # NOTE: plan-expiry enforcement is NOT done here. It is handled by
+    # PlanExpiryMiddleware (app/middleware/plan_expiry.py), which allows
+    # login + a small allowlist of routes (subscription status, /auth/me,
+    # logout) even when the plan has expired, and blocks everything else.
+    # A hard block here would also block those allowlisted routes.
     return user
 
 

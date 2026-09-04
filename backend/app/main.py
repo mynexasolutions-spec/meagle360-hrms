@@ -12,6 +12,7 @@ from fastapi.responses import JSONResponse
 
 from app.config import get_settings
 from app.routes import auth, company, department, designation, employee, attendance, leave, shift, platform, dashboard, announcement, overtime, audit, role, expense, site, payroll, action_tracker
+from app.middleware.plan_expiry import PlanExpiryMiddleware
 
 settings = get_settings()
 
@@ -49,6 +50,11 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
+# Registered after CORS: Starlette applies middleware in reverse order of
+# registration, so this runs AFTER CORSMiddleware — meaning any 402 it
+# returns still passes back out through CORSMiddleware and gets the right
+# Access-Control-Allow-Origin header attached.
+app.add_middleware(PlanExpiryMiddleware)
 
 # ── Register routers ────────────────────────────────────
 app.include_router(platform.router)

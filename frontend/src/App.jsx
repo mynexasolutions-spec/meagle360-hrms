@@ -1,5 +1,5 @@
 import { lazy, Suspense } from 'react';
-import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
+import { BrowserRouter, Routes, Route, Navigate, useLocation } from 'react-router-dom';
 import { AuthProvider, useAuth } from './context/AuthContext';
 import { PlatformAuthProvider, usePlatformAuth } from './context/PlatformAuthContext';
 import DashboardLayout from './layouts/DashboardLayout';
@@ -32,9 +32,13 @@ const RelievingLetterStudio = lazy(() => import('./pages/RelievingLetterStudio')
 const Subscriptions = lazy(() => import('./pages/Subscriptions'));
 
 function ProtectedRoute({ children }) {
-  const { user, loading } = useAuth();
+  const { user, loading, isPlanExpired } = useAuth();
+  const location = useLocation();
   if (loading) return <LoadingScreen subtitle="Verifying authentication..." />;
   if (!user) return <Navigate to="/login" replace />;
+  if (isPlanExpired && location.pathname !== '/subscriptions') {
+    return <Navigate to="/subscriptions" replace />;
+  }
   return children;
 }
 
@@ -151,14 +155,7 @@ function AppRoutes() {
               </RequirePermission>
             }
           />
-          <Route
-            path="/subscriptions"
-            element={
-              <RequirePermission permission="settings:write">
-                <Subscriptions />
-              </RequirePermission>
-            }
-          />
+          <Route path="/subscriptions" element={<Subscriptions />} />
         </Route>
 
         {/* Catch-all */}

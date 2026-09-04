@@ -42,6 +42,26 @@ client.interceptors.response.use(
         console.error('[API] localStorage.removeItem failed:', storageErr);
       }
       window.location.href = '/login';
+    } else if (
+      error.response?.status === 402 &&
+      error.response?.data?.error_code === 'plan_expired'
+    ) {
+      // Notify running app / AuthContext
+      try {
+        window.dispatchEvent(new CustomEvent('plan_expired', { detail: error.response.data }));
+      } catch (e) {
+        console.error('[API] Failed to dispatch plan_expired event:', e);
+      }
+
+      // Safe redirect to /subscriptions if not already on it or on login/platform
+      const currentPath = window.location.pathname;
+      if (
+        !currentPath.startsWith('/subscriptions') &&
+        !currentPath.startsWith('/login') &&
+        !currentPath.startsWith('/platform')
+      ) {
+        window.location.href = '/subscriptions';
+      }
     }
     return Promise.reject(error);
   }

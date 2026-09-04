@@ -29,7 +29,8 @@ class CompanyCreateRequest(BaseModel):
     name: str
     country: str | None = None
     multi_entity: bool = False
-    plan_tier: str = "standard"
+    plan_tier: str = "trial"
+    trial_days: int | None = None  # required when plan_tier == "trial"
     seat_limit: int | None = None
 
 
@@ -63,6 +64,8 @@ class PlatformCompanyResponse(BaseModel):
     multi_entity: bool
     status: str
     plan_tier: str
+    plan_ends_at: datetime | None
+    days_remaining: int | None
     seat_limit: int | None
     created_at: datetime
     updated_at: datetime
@@ -76,6 +79,7 @@ class CompanyUpdateRequest(BaseModel):
     subdomain: str | None = None
     country: str | None = None
     plan_tier: str | None = None
+    trial_days: int | None = None  # required when plan_tier is being changed to "trial"
     seat_limit: int | None = None
 
 

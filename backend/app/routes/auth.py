@@ -5,7 +5,7 @@ from fastapi.security import OAuth2PasswordRequestForm
 from sqlalchemy.orm import Session
 
 from app.database import get_db
-from app.dependencies import get_current_user, require_permissions, get_company_from_subdomain  
+from app.dependencies import get_current_user, require_permissions, get_company_from_subdomain
 from app.models.user_account import UserAccount
 from app.schemas.auth import (
     LoginRequest,
@@ -50,6 +50,8 @@ def login(
             detail="Invalid email or password",
             headers={"WWW-Authenticate": "Bearer"},
         )
+    # Login is deliberately allowed even if the plan has expired — see
+    # PlanExpiryMiddleware for how post-login access is then restricted.
     token = create_access_token(user.id, user.company_id, user.role_id)
     return TokenResponse(access_token=token)
 

@@ -1,8 +1,9 @@
 """Company model — the root entity for multi-tenancy."""
 
+from datetime import datetime
 import uuid
 from decimal import Decimal
-from sqlalchemy import Boolean, Integer, Numeric, String
+from sqlalchemy import Boolean, DateTime, Integer, Numeric, String
 from sqlalchemy.dialects.postgresql import JSON, UUID
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
@@ -25,6 +26,20 @@ class Company(Base, TimestampMixin):
     #         active → suspended / cancelled
     status: Mapped[str] = mapped_column(String(30), nullable=False, default="active")
     plan_tier: Mapped[str] = mapped_column(String(50), nullable=False, default="standard")
+    # Plan expiry — null means no expiry set (e.g. legacy/manually managed).
+    # trial: admin sets custom days. quarterly/half_yearly/yearly: fixed months, auto-computed.
+    plan_ends_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
+
+    @property
+    def days_remaining(self) -> int | None:
+        """Computed, not persisted — None when plan_ends_at is unset,
+        otherwise days left (floored at 0, never negative)."""
+        if self.plan_ends_at is None:
+            return None
+        from datetime import timezone as _tz
+        now = datetime.now(_tz.utc)
+        delta = self.plan_ends_at - now
+        return max(delta.days, 0)
     seat_limit: Mapped[int | None] = mapped_column(Integer, nullable=True)
 
     # ── Payroll / attendance policy ──────────────────────

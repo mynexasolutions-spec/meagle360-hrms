@@ -28,11 +28,45 @@ const STATUS_DOT = {
 };
 
 const PLAN_STYLES = {
-  trial: { color: '#0891b2', bg: '#ecfeff' },
-  standard: { color: '#2563eb', bg: '#eff6ff' },
-  pro: { color: '#7c3aed', bg: '#f5f3ff' },
-  enterprise: { color: '#d97706', bg: '#fffbeb' },
+  trial: { label: 'Trial', color: '#0891b2', bg: '#ecfeff' },
+  quarterly: { label: 'Quarterly', color: '#2563eb', bg: '#eff6ff' },
+  half_yearly: { label: 'Half-Yearly', color: '#7c3aed', bg: '#f5f3ff' },
+  yearly: { label: 'Yearly', color: '#059669', bg: '#ecfdf5' },
 };
+
+function formatPlanTier(tier) {
+  if (!tier) return '—';
+  const style = PLAN_STYLES[tier];
+  if (style) return style.label;
+  return tier.charAt(0).toUpperCase() + tier.slice(1);
+}
+
+function formatDate(dateStr) {
+  if (!dateStr) return '—';
+  try {
+    const d = new Date(dateStr);
+    return d.toLocaleDateString('en-US', {
+      day: 'numeric',
+      month: 'short',
+      year: 'numeric',
+    });
+  } catch {
+    return dateStr;
+  }
+}
+
+function getDaysRemaining(company) {
+  if (company.days_remaining != null) return Math.max(company.days_remaining, 0);
+  if (!company.plan_ends_at) return null;
+  try {
+    const expiry = new Date(company.plan_ends_at);
+    const now = new Date();
+    const diffMs = expiry.getTime() - now.getTime();
+    return Math.max(Math.ceil(diffMs / (1000 * 60 * 60 * 24)), 0);
+  } catch {
+    return null;
+  }
+}
 
 const AVATAR_GRADIENTS = [
   'linear-gradient(135deg, #6366f1, #8b5cf6)',
@@ -61,7 +95,14 @@ export default function PlatformDashboard() {
   const [error, setError] = useState('');
 
   const [showCreate, setShowCreate] = useState(false);
-  const [createForm, setCreateForm] = useState({ name: '', country: '', multi_entity: false, plan_tier: 'standard', seat_limit: '' });
+  const [createForm, setCreateForm] = useState({
+    name: '',
+    country: '',
+    multi_entity: false,
+    plan_tier: 'trial',
+    trial_days: 15,
+    seat_limit: '',
+  });
   const [creating, setCreating] = useState(false);
   const [createdResult, setCreatedResult] = useState(null);
   const [createdLinkCopied, setCreatedLinkCopied] = useState(false);
@@ -127,18 +168,29 @@ export default function PlatformDashboard() {
     setError('');
     setCreating(true);
     try {
-      const res = await createCompany({
+      const payload = {
         name: createForm.name,
         country: createForm.country || null,
         multi_entity: createForm.multi_entity,
         plan_tier: createForm.plan_tier,
         seat_limit: createForm.seat_limit ? Number(createForm.seat_limit) : null,
-      });
+      };
+      if (createForm.plan_tier === 'trial') {
+        payload.trial_days = createForm.trial_days ? Number(createForm.trial_days) : undefined;
+      }
+      const res = await createCompany(payload);
       setCreatedResult(res.data);
-      setCreateForm({ name: '', country: '', multi_entity: false, plan_tier: 'standard', seat_limit: '' });
+      setCreateForm({
+        name: '',
+        country: '',
+        multi_entity: false,
+        plan_tier: 'trial',
+        trial_days: 15,
+        seat_limit: '',
+      });
       loadCompanies();
     } catch (err) {
-      setError(err.response?.data?.detail || 'Failed to create company');
+      setError(err.response?.data?.detail || err.message || 'Failed to create company');
     } finally {
       setCreating(false);
     }
@@ -231,7 +283,8 @@ export default function PlatformDashboard() {
       name: company.name,
       subdomain: company.subdomain || '',
       country: company.country || '',
-      plan_tier: company.plan_tier,
+      plan_tier: company.plan_tier || 'trial',
+      trial_days: company.plan_tier === 'trial' ? (company.days_remaining || 15) : 30,
       seat_limit: company.seat_limit ?? '',
     });
   };
@@ -241,17 +294,21 @@ export default function PlatformDashboard() {
     setEditError('');
     setEditing(true);
     try {
-      await updateCompany(editFor.id, {
+      const payload = {
         name: editForm.name,
         subdomain: editForm.subdomain ? editForm.subdomain.trim() : undefined,
         country: editForm.country || null,
         plan_tier: editForm.plan_tier,
         seat_limit: editForm.seat_limit ? Number(editForm.seat_limit) : null,
-      });
+      };
+      if (editForm.plan_tier === 'trial') {
+        payload.trial_days = editForm.trial_days ? Number(editForm.trial_days) : undefined;
+      }
+      await updateCompany(editFor.id, payload);
       setEditFor(null);
       loadCompanies();
     } catch (err) {
-      setEditError(err.response?.data?.detail || 'Failed to update company');
+      setEditError(err.response?.data?.detail || err.message || 'Failed to update company');
     } finally {
       setEditing(false);
     }
@@ -338,19 +395,24 @@ export default function PlatformDashboard() {
           </div>
         ) : (
         <div style={{ overflowX: 'auto', width: '100%' }}>
-          <table className="data-table" style={{ width: '100%', minWidth: 780 }}>
+          <table className="data-table" style={{ width: '100%', minWidth: 920 }}>
             <thead>
               <tr>
-                <th style={{ width: '32%', minWidth: 220 }}>Company</th>
-                <th style={{ width: '16%', minWidth: 130 }}>Status</th>
-                <th style={{ width: '12%', minWidth: 90 }}>Plan</th>
-                <th style={{ width: '14%', minWidth: 100 }}>Country</th>
-                <th style={{ width: '26%', minWidth: 200, textAlign: 'right' }}>Actions</th>
+                <th style={{ width: '26%', minWidth: 200 }}>Company</th>
+                <th style={{ width: '12%', minWidth: 100 }}>Status</th>
+                <th style={{ width: '13%', minWidth: 100 }}>Plan Tier</th>
+                <th style={{ width: '13%', minWidth: 110 }}>Expiry Date</th>
+                <th style={{ width: '12%', minWidth: 110 }}>Days Left</th>
+                <th style={{ width: '10%', minWidth: 80 }}>Country</th>
+                <th style={{ width: '14%', minWidth: 160, textAlign: 'right' }}>Actions</th>
               </tr>
             </thead>
             <tbody>
               {filteredCompanies.map((c, i) => {
-                const plan = PLAN_STYLES[c.plan_tier] || PLAN_STYLES.standard;
+                const plan = PLAN_STYLES[c.plan_tier] || { label: c.plan_tier, color: '#475569', bg: '#f1f5f9' };
+                const daysLeft = getDaysRemaining(c);
+                const isExpired = daysLeft === 0 || (c.plan_ends_at && new Date(c.plan_ends_at) <= new Date());
+                const isExpiringSoon = daysLeft != null && daysLeft > 0 && daysLeft < 7;
                 return (
                   <tr key={c.id}>
                     <td>
@@ -418,13 +480,38 @@ export default function PlatformDashboard() {
                     <td>
                       <span
                         style={{
-                          fontSize: '0.75rem', fontWeight: 700, textTransform: 'capitalize',
+                          fontSize: '0.75rem', fontWeight: 700,
                           color: plan.color, background: plan.bg, padding: '3px 10px', borderRadius: 'var(--radius-full)',
                           whiteSpace: 'nowrap',
                         }}
                       >
-                        {c.plan_tier}
+                        {formatPlanTier(c.plan_tier)}
                       </span>
+                    </td>
+                    <td style={{ color: '#334155', fontSize: '0.8125rem', whiteSpace: 'nowrap' }}>
+                      {formatDate(c.plan_ends_at)}
+                    </td>
+                    <td>
+                      {daysLeft != null ? (
+                        <span
+                          style={{
+                            fontSize: '0.75rem',
+                            fontWeight: 700,
+                            padding: '3px 8px',
+                            borderRadius: 6,
+                            whiteSpace: 'nowrap',
+                            ...(isExpired
+                              ? { background: '#fef2f2', color: '#dc2626', border: '1px solid #fecaca' }
+                              : isExpiringSoon
+                              ? { background: '#fffbeb', color: '#d97706', border: '1px solid #fde68a' }
+                              : { background: '#ecfdf5', color: '#059669', border: '1px solid #a7f3d0' }),
+                          }}
+                        >
+                          {daysLeft} {daysLeft === 1 ? 'day' : 'days'}
+                        </span>
+                      ) : (
+                        <span style={{ color: 'var(--text-muted)', fontSize: '0.8125rem' }}>—</span>
+                      )}
                     </td>
                     <td style={{ color: 'var(--text-secondary)' }}>{c.country || '—'}</td>
                     <td style={{ textAlign: 'right' }}>
@@ -539,11 +626,25 @@ export default function PlatformDashboard() {
                   onChange={(e) => setCreateForm({ ...createForm, plan_tier: e.target.value })}
                 >
                   <option value="trial">Trial</option>
-                  <option value="standard">Standard</option>
-                  <option value="pro">Pro</option>
-                  <option value="enterprise">Enterprise</option>
+                  <option value="quarterly">Quarterly</option>
+                  <option value="half_yearly">Half-Yearly</option>
+                  <option value="yearly">Yearly</option>
                 </select>
               </div>
+              {createForm.plan_tier === 'trial' && (
+                <div className="input-group animate-fade-in">
+                  <label className="input-label">Trial Duration (Days)</label>
+                  <input
+                    type="number"
+                    min="1"
+                    className="input-field"
+                    value={createForm.trial_days}
+                    onChange={(e) => setCreateForm({ ...createForm, trial_days: e.target.value })}
+                    placeholder="e.g. 15"
+                    required
+                  />
+                </div>
+              )}
               <div className="input-group">
                 <label className="input-label">Seat Limit (optional)</label>
                 <input
@@ -991,11 +1092,25 @@ export default function PlatformDashboard() {
                 onChange={(e) => setEditForm({ ...editForm, plan_tier: e.target.value })}
               >
                 <option value="trial">Trial</option>
-                <option value="standard">Standard</option>
-                <option value="pro">Pro</option>
-                <option value="enterprise">Enterprise</option>
+                <option value="quarterly">Quarterly</option>
+                <option value="half_yearly">Half-Yearly</option>
+                <option value="yearly">Yearly</option>
               </select>
             </div>
+            {editForm.plan_tier === 'trial' && (
+              <div className="input-group animate-fade-in">
+                <label className="input-label">Trial Duration (Days)</label>
+                <input
+                  type="number"
+                  min="1"
+                  className="input-field"
+                  value={editForm.trial_days}
+                  onChange={(e) => setEditForm({ ...editForm, trial_days: e.target.value })}
+                  placeholder="e.g. 15"
+                  required
+                />
+              </div>
+            )}
             <div className="input-group">
               <label className="input-label">Seat Limit (optional)</label>
               <input

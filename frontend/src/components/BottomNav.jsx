@@ -3,19 +3,24 @@ import { LayoutDashboard, Users, Clock, CalendarDays, Wallet, UserCircle } from 
 import { useAuth } from '../context/AuthContext';
 
 export default function BottomNav() {
-  const { user } = useAuth();
+  const { user, isPlanExpired } = useAuth();
   const perms = user?.permissions || {};
   const isAdmin = user?.role_name === 'Admin' || !!perms['settings:write'];
 
-  const navItems = [
-    { path: '/', label: 'Home', icon: LayoutDashboard },
-    { path: '/attendance', label: 'Attendance', icon: Clock },
-    { path: '/leave', label: 'Leave', icon: CalendarDays },
-    isAdmin
-      ? { path: '/employees', label: 'Directory', icon: Users }
-      : { path: '/my-payslips', label: 'Payslips', icon: Wallet },
-    { path: '/profile', label: 'Profile', icon: UserCircle },
-  ];
+  const navItems = isPlanExpired
+    ? [
+        { path: '/subscriptions', label: 'Subscription', icon: Wallet },
+        { path: '/profile', label: 'Profile', icon: UserCircle },
+      ]
+    : [
+        { path: '/', label: 'Home', icon: LayoutDashboard },
+        { path: '/attendance', label: 'Attendance', icon: Clock },
+        { path: '/leave', label: 'Leave', icon: CalendarDays },
+        isAdmin
+          ? { path: '/employees', label: 'Directory', icon: Users }
+          : { path: '/my-payslips', label: 'Payslips', icon: Wallet },
+        { path: '/profile', label: 'Profile', icon: UserCircle },
+      ];
 
   return (
     <nav className="mobile-bottom-nav">
