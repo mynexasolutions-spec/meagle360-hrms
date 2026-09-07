@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { getOrgChart } from '../api/employees';
-import { Building2, ChevronDown, ChevronRight, Users, Network, List } from 'lucide-react';
+import { Building2, ChevronDown, ChevronRight, Users, Network, List, ZoomIn, ZoomOut, RotateCcw } from 'lucide-react';
 
 const NODE_COLORS = [
   { border: '#2563eb', bg: '#eff6ff', badgeBg: '#dbeafe', badgeColor: '#1e40af', label: 'Executive Leadership' },
@@ -14,7 +14,7 @@ function OrgTreeNode({ node, depth = 0 }) {
   const [expanded, setExpanded] = useState(depth < 2);
   const hasChildren = node.direct_reports && node.direct_reports.length > 0;
   const colorScheme = NODE_COLORS[Math.min(depth, NODE_COLORS.length - 1)];
-  const initials = node.full_name.split(' ').map((n) => n[0]).join('').toUpperCase();
+  const initials = (node.full_name || '').split(' ').map((n) => n[0]).join('').toUpperCase();
 
   return (
     <li>
@@ -28,42 +28,42 @@ function OrgTreeNode({ node, depth = 0 }) {
           <img
             src={node.photo_url}
             alt={node.full_name}
-            style={{ width: 52, height: 52, borderRadius: 14, objectFit: 'cover', boxShadow: '0 4px 10px rgba(0,0,0,0.08)' }}
+            style={{ width: 36, height: 36, borderRadius: 10, objectFit: 'cover', boxShadow: '0 2px 6px rgba(0,0,0,0.08)' }}
           />
         ) : (
           <div
             style={{
-              width: 52, height: 52, borderRadius: 14,
+              width: 36, height: 36, borderRadius: 10,
               background: `linear-gradient(135deg, ${colorScheme.border}, #1e293b)`,
               color: '#ffffff', display: 'flex', alignItems: 'center', justifyContent: 'center',
-              fontWeight: 800, fontSize: '1.05rem', boxShadow: '0 4px 10px rgba(0,0,0,0.08)',
+              fontWeight: 800, fontSize: '0.85rem', boxShadow: '0 2px 6px rgba(0,0,0,0.08)',
             }}
           >
             {initials}
           </div>
         )}
 
-        <div style={{ fontSize: '0.925rem', fontWeight: 800, color: '#0f172a', marginTop: 8, lineHeight: 1.25 }}>
+        <div style={{ fontSize: '0.8125rem', fontWeight: 800, color: '#0f172a', marginTop: 4, lineHeight: 1.2 }}>
           {node.full_name}
         </div>
         <span
           style={{
-            fontSize: '0.6875rem', fontWeight: 700, padding: '2px 9px', borderRadius: 8,
-            background: colorScheme.badgeBg, color: colorScheme.badgeColor, marginTop: 2,
+            fontSize: '0.625rem', fontWeight: 700, padding: '1px 7px', borderRadius: 6,
+            background: colorScheme.badgeBg, color: colorScheme.badgeColor, marginTop: 1,
           }}
         >
           {colorScheme.label}
         </span>
         {node.department_name && (
-          <div style={{ fontSize: '0.75rem', color: '#64748b', marginTop: 4 }}>{node.department_name}</div>
+          <div style={{ fontSize: '0.6875rem', color: '#64748b', marginTop: 2 }}>{node.department_name}</div>
         )}
-        <div style={{ fontSize: '0.6875rem', color: '#94a3b8', marginTop: 2 }}>{node.employee_code}</div>
+        <div style={{ fontSize: '0.625rem', color: '#94a3b8', marginTop: 1 }}>{node.employee_code}</div>
 
         {hasChildren && (
           <div className="org-card-toggle">
-            <Users size={11} />
+            <Users size={10} />
             {node.direct_reports.length}
-            {expanded ? <ChevronDown size={12} /> : <ChevronRight size={12} />}
+            {expanded ? <ChevronDown size={11} /> : <ChevronRight size={11} />}
           </div>
         )}
       </div>
@@ -180,9 +180,10 @@ function OrgNode({ node, depth = 0 }) {
   );
 }
 
-export default function OrgChart() {
+export default function OrgChart({ embedded = false }) {
   const [chart, setChart] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [zoom, setZoom] = useState(0.85);
   const [viewMode, setViewMode] = useState(() => (
     window.matchMedia('(max-width: 768px)').matches ? 'list' : 'tree'
   ));
@@ -202,56 +203,110 @@ export default function OrgChart() {
     }
   };
 
+  const handleZoomIn = () => setZoom((z) => Math.min(1.4, Number((z + 0.1).toFixed(2))));
+  const handleZoomOut = () => setZoom((z) => Math.max(0.4, Number((z - 0.1).toFixed(2))));
+  const handleResetZoom = () => setZoom(0.85);
+
   return (
     <div className="animate-fade-in">
-      <div className="page-header">
-        <div style={{ display: 'flex', alignItems: 'center', gap: 14 }}>
-          <div
-            style={{
-              width: 48, height: 48, borderRadius: 16, flexShrink: 0,
-              background: '#eff6ff', display: 'flex', alignItems: 'center', justifyContent: 'center',
-              boxShadow: '0 4px 14px rgba(37, 99, 235, 0.13)',
-            }}
-          >
-            <Building2 size={22} style={{ color: '#2563eb' }} />
+      {!embedded && (
+        <div className="page-header">
+          <div style={{ display: 'flex', alignItems: 'center', gap: 14 }}>
+            <div
+              style={{
+                width: 48, height: 48, borderRadius: 16, flexShrink: 0,
+                background: '#eff6ff', display: 'flex', alignItems: 'center', justifyContent: 'center',
+                boxShadow: '0 4px 14px rgba(37, 99, 235, 0.13)',
+              }}
+            >
+              <Building2 size={22} style={{ color: '#2563eb' }} />
+            </div>
+            <div>
+              <h1 style={{ fontSize: '1.5rem', fontWeight: 800, color: '#0f172a', margin: 0 }}>Organization Chart</h1>
+              <p style={{ color: '#64748b', fontSize: '0.875rem', margin: '2px 0 0 0' }}>Visual hierarchy of your organization's reporting structure</p>
+            </div>
           </div>
-          <div>
-            <h1>Organization Chart</h1>
-            <p>Visual hierarchy of your organization's reporting structure</p>
-          </div>
-        </div>
 
-        {!loading && chart.length > 0 && (
-          <div style={{ display: 'flex', background: '#f1f5f9', padding: 4, borderRadius: 12, border: '1px solid #e2e8f0' }}>
+          {!loading && chart.length > 0 && (
+            <div style={{ display: 'flex', background: '#f1f5f9', padding: 4, borderRadius: 12, border: '1px solid #e2e8f0' }}>
+              <button
+                onClick={() => setViewMode('tree')}
+                style={{
+                  display: 'flex', alignItems: 'center', gap: 6, padding: '6px 14px', borderRadius: 8, border: 'none',
+                  fontSize: '0.8125rem', fontWeight: 600, cursor: 'pointer', transition: 'all 0.15s ease',
+                  background: viewMode === 'tree' ? '#ffffff' : 'transparent',
+                  color: viewMode === 'tree' ? '#0f172a' : '#64748b',
+                  boxShadow: viewMode === 'tree' ? '0 2px 6px rgba(0,0,0,0.06)' : 'none',
+                }}
+              >
+                <Network size={15} /> <span className="view-toggle-label">Tree View</span>
+              </button>
+              <button
+                onClick={() => setViewMode('list')}
+                style={{
+                  display: 'flex', alignItems: 'center', gap: 6, padding: '6px 14px', borderRadius: 8, border: 'none',
+                  fontSize: '0.8125rem', fontWeight: 600, cursor: 'pointer', transition: 'all 0.15s ease',
+                  background: viewMode === 'list' ? '#ffffff' : 'transparent',
+                  color: viewMode === 'list' ? '#0f172a' : '#64748b',
+                  boxShadow: viewMode === 'list' ? '0 2px 6px rgba(0,0,0,0.06)' : 'none',
+                }}
+              >
+                <List size={15} /> <span className="view-toggle-label">List View</span>
+              </button>
+            </div>
+          )}
+        </div>
+      )}
+
+      {/* Embedded Controls Bar */}
+      {embedded && !loading && chart.length > 0 && (
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: 12, marginBottom: 16 }}>
+          <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8 }}>
+            {NODE_COLORS.map((c) => (
+              <span
+                key={c.label}
+                style={{
+                  display: 'inline-flex', alignItems: 'center', gap: 6,
+                  fontSize: '0.75rem', fontWeight: 600, color: c.badgeColor,
+                  background: c.badgeBg, padding: '4px 10px', borderRadius: 'var(--radius-full)',
+                }}
+              >
+                <span style={{ width: 7, height: 7, borderRadius: '50%', background: c.border, flexShrink: 0 }} />
+                {c.label}
+              </span>
+            ))}
+          </div>
+
+          <div style={{ display: 'flex', background: '#f1f5f9', padding: 3, borderRadius: 10, border: '1px solid #e2e8f0' }}>
             <button
               onClick={() => setViewMode('tree')}
               style={{
-                display: 'flex', alignItems: 'center', gap: 6, padding: '6px 14px', borderRadius: 8, border: 'none',
-                fontSize: '0.8125rem', fontWeight: 600, cursor: 'pointer', transition: 'all 0.15s ease',
+                display: 'flex', alignItems: 'center', gap: 6, padding: '5px 12px', borderRadius: 7, border: 'none',
+                fontSize: '0.78rem', fontWeight: 600, cursor: 'pointer', transition: 'all 0.15s ease',
                 background: viewMode === 'tree' ? '#ffffff' : 'transparent',
                 color: viewMode === 'tree' ? '#0f172a' : '#64748b',
-                boxShadow: viewMode === 'tree' ? '0 2px 6px rgba(0,0,0,0.06)' : 'none',
+                boxShadow: viewMode === 'tree' ? '0 1px 4px rgba(0,0,0,0.06)' : 'none',
               }}
             >
-              <Network size={15} /> <span className="view-toggle-label">Tree View</span>
+              <Network size={14} /> Tree View
             </button>
             <button
               onClick={() => setViewMode('list')}
               style={{
-                display: 'flex', alignItems: 'center', gap: 6, padding: '6px 14px', borderRadius: 8, border: 'none',
-                fontSize: '0.8125rem', fontWeight: 600, cursor: 'pointer', transition: 'all 0.15s ease',
+                display: 'flex', alignItems: 'center', gap: 6, padding: '5px 12px', borderRadius: 7, border: 'none',
+                fontSize: '0.78rem', fontWeight: 600, cursor: 'pointer', transition: 'all 0.15s ease',
                 background: viewMode === 'list' ? '#ffffff' : 'transparent',
                 color: viewMode === 'list' ? '#0f172a' : '#64748b',
-                boxShadow: viewMode === 'list' ? '0 2px 6px rgba(0,0,0,0.06)' : 'none',
+                boxShadow: viewMode === 'list' ? '0 1px 4px rgba(0,0,0,0.06)' : 'none',
               }}
             >
-              <List size={15} /> <span className="view-toggle-label">List View</span>
+              <List size={14} /> List View
             </button>
           </div>
-        )}
-      </div>
+        </div>
+      )}
 
-      {!loading && chart.length > 0 && (
+      {!embedded && !loading && chart.length > 0 && (
         <div style={{ display: 'flex', flexWrap: 'wrap', gap: 10, marginBottom: 20 }}>
           {NODE_COLORS.map((c) => (
             <span
@@ -269,17 +324,63 @@ export default function OrgChart() {
         </div>
       )}
 
-      <div className="section-card" style={{ padding: viewMode === 'tree' ? 0 : undefined, borderTop: '3px solid #2563eb' }}>
+      <div className="section-card" style={{ padding: 0, borderTop: '3px solid #2563eb', position: 'relative', overflow: 'hidden' }}>
         {loading ? (
-          <div className="empty-state"><p>Loading...</p></div>
+          <div className="empty-state" style={{ padding: 40 }}><p>Loading...</p></div>
         ) : chart.length === 0 ? (
-          <div className="empty-state">
+          <div className="empty-state" style={{ padding: 40 }}>
             <Building2 size={48} />
             <p>No organization data available</p>
           </div>
         ) : viewMode === 'tree' ? (
-          <div className="org-tree-scroll">
-            <div className="org-forest">
+          <div className="org-tree-scroll" style={{ position: 'relative', overflow: 'auto', minHeight: 460, background: '#fafafa', padding: '16px 8px 32px 8px' }}>
+            
+            {/* Floating Zoom Control Bar */}
+            <div style={{ position: 'sticky', top: 8, right: 8, zIndex: 10, display: 'flex', justifyContent: 'flex-end', padding: '0 8px', pointerEvents: 'none', marginBottom: 6 }}>
+              <div style={{ pointerEvents: 'auto', display: 'flex', alignItems: 'center', gap: 4, background: 'rgba(255, 255, 255, 0.94)', backdropFilter: 'blur(8px)', padding: '4px 8px', borderRadius: 10, border: '1px solid #cbd5e1', boxShadow: '0 4px 14px rgba(0,0,0,0.08)' }}>
+                <button
+                  type="button"
+                  onClick={handleZoomOut}
+                  style={{ width: 28, height: 28, borderRadius: 6, border: '1px solid #e2e8f0', background: '#ffffff', color: '#334155', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer' }}
+                  title="Zoom Out"
+                >
+                  <ZoomOut size={14} />
+                </button>
+                <span style={{ fontSize: '0.75rem', fontWeight: 700, color: '#0f172a', minWidth: 40, textAlign: 'center' }}>
+                  {Math.round(zoom * 100)}%
+                </span>
+                <button
+                  type="button"
+                  onClick={handleZoomIn}
+                  style={{ width: 28, height: 28, borderRadius: 6, border: '1px solid #e2e8f0', background: '#ffffff', color: '#334155', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer' }}
+                  title="Zoom In"
+                >
+                  <ZoomIn size={14} />
+                </button>
+                <div style={{ width: 1, height: 16, background: '#cbd5e1', margin: '0 2px' }} />
+                <button
+                  type="button"
+                  onClick={handleResetZoom}
+                  style={{ height: 28, padding: '0 8px', borderRadius: 6, border: '1px solid #e2e8f0', background: '#ffffff', color: '#334155', display: 'flex', alignItems: 'center', gap: 4, fontSize: '0.72rem', fontWeight: 600, cursor: 'pointer' }}
+                  title="Reset to Fit View"
+                >
+                  <RotateCcw size={12} /> Fit
+                </button>
+              </div>
+            </div>
+
+            <div
+              className="org-forest"
+              style={{
+                transform: `scale(${zoom})`,
+                transformOrigin: 'top center',
+                transition: 'transform 0.18s ease-out',
+                display: 'flex',
+                justifyContent: 'center',
+                paddingTop: 4,
+                paddingBottom: 24,
+              }}
+            >
               {chart.map((node) => (
                 <ul className="org-tree" key={node.id}>
                   <OrgTreeNode node={node} />
@@ -288,7 +389,9 @@ export default function OrgChart() {
             </div>
           </div>
         ) : (
-          chart.map((node) => <OrgNode key={node.id} node={node} />)
+          <div style={{ padding: '20px 24px' }}>
+            {chart.map((node) => <OrgNode key={node.id} node={node} />)}
+          </div>
         )}
       </div>
     </div>

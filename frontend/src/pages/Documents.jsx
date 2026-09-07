@@ -61,12 +61,42 @@ export default function Documents() {
       </div>
 
       {/* Executive Documents Table */}
-      <div className="section-card" style={{ borderTop: '3px solid #2563eb', padding: documents.length === 0 ? 20 : 0, overflow: 'hidden' }}>
+      <div className="section-card" style={{ borderTop: '3px solid #2563eb', padding: documents.length === 0 ? '40px 20px' : 0, overflow: 'hidden' }}>
         {documents.length === 0 ? (
-          <div className="empty-state">
-            <FileText size={48} />
-            <h3 style={{ margin: 0, fontSize: '1.1rem', color: '#0f172a', fontWeight: 700 }}>No Documents Uploaded</h3>
-            <p style={{ margin: '4px 0 0 0', fontSize: '0.875rem' }}>Uploaded employee contracts and ID documents will appear here.</p>
+          <div
+            className="empty-state"
+            style={{
+              display: 'flex',
+              flexDirection: 'column',
+              alignItems: 'center',
+              justifyContent: 'center',
+              textAlign: 'center',
+              padding: '30px 20px',
+              width: '100%',
+              boxSizing: 'border-box',
+            }}
+          >
+            <div
+              style={{
+                width: 60,
+                height: 60,
+                borderRadius: 16,
+                background: '#f1f5f9',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                color: '#64748b',
+                marginBottom: 14,
+              }}
+            >
+              <FileText size={30} />
+            </div>
+            <h3 style={{ margin: 0, fontSize: '1.1rem', color: '#0f172a', fontWeight: 700, textAlign: 'center' }}>
+              No Documents Uploaded
+            </h3>
+            <p style={{ margin: '6px 0 0 0', fontSize: '0.875rem', color: '#64748b', textAlign: 'center', maxWidth: 420 }}>
+              Uploaded employee contracts and ID documents will appear here.
+            </p>
           </div>
         ) : (
           <div style={{ overflowX: 'auto' }}>

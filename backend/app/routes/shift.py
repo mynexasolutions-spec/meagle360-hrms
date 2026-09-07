@@ -12,6 +12,7 @@ from app.schemas.shift import (
     ShiftUpdate,
     ShiftResponse,
     EmployeeShiftAssign,
+    EmployeeShiftUpdate,
     EmployeeShiftResponse,
 )
 
@@ -118,3 +119,63 @@ def get_roster(
         )
         for r in roster
     ]
+
+
+@router.put("/assign/{assignment_id}", response_model=EmployeeShiftResponse)
+def update_assigned_shift(
+    assignment_id: UUID,
+    data: EmployeeShiftUpdate,
+    db: Session = Depends(get_db),
+    company_id: UUID = Depends(get_company_id),
+    current_user: UserAccount = Depends(get_current_user),
+):
+    from app.models.employee_shift import EmployeeShift
+    assignment = db.query(EmployeeShift).filter(EmployeeShift.id == assignment_id, EmployeeShift.company_id == company_id).first()
+    if not assignment:
+        raise HTTPException(status_code=404, detail="Shift assignment not found")
+
+    isAdmin = current_user.role.name == "Admin" if current_user.role else False
+    isManagerPermission = bool(current_user.merged_permissions.get("attendance:approve") or current_user.merged_permissions.get("settings:write"))
+    isDirectManager = assignment.employee and assignment.employee.manager_id == current_user.employee_id
+
+    if not (isAdmin or isManagerPermission or isDirectManager):
+        raise HTTPException(status_code=403, detail="You do not have permission to update this shift assignment")
+
+    svc = ShiftService(db, company_id)
+    updated = svc.update_assignment(assignment_id, data.model_dump(exclude_unset=True))
+    if not updated:
+        raise HTTPException(status_code=404, detail="Failed to update shift assignment")
+    return EmployeeShiftResponse(
+        id=updated.id,
+        employee_id=updated.employee_id,
+        shift_id=updated.shift_id,
+        effective_from=updated.effective_from,
+        employee_name=updated.employee.full_name if updated.employee else None,
+        shift_type=updated.shift.shift_type if updated.shift else None,
+    )
+
+
+@router.delete("/assign/{assignment_id}", status_code=204)
+def delete_assigned_shift(
+    assignment_id: UUID,
+    db: Session = Depends(get_db),
+    company_id: UUID = Depends(get_company_id),
+    current_user: UserAccount = Depends(get_current_user),
+):
+    from app.models.employee_shift import EmployeeShift
+    assignment = db.query(EmployeeShift).filter(EmployeeShift.id == assignment_id, EmployeeShift.company_id == company_id).first()
+    if not assignment:
+        raise HTTPException(status_code=404, detail="Shift assignment not found")
+
+    isAdmin = current_user.role.name == "Admin" if current_user.role else False
+    isManagerPermission = bool(current_user.merged_permissions.get("attendance:approve") or current_user.merged_permissions.get("settings:write"))
+    isDirectManager = assignment.employee and assignment.employee.manager_id == current_user.employee_id
+
+    if not (isAdmin or isManagerPermission or isDirectManager):
+        raise HTTPException(status_code=403, detail="You do not have permission to delete this shift assignment")
+
+    svc = ShiftService(db, company_id)
+    if not svc.delete_assignment(assignment_id):
+        raise HTTPException(status_code=404, detail="Failed to delete shift assignment")
+
+

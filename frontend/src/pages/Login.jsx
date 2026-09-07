@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { login, getMe } from '../api/auth';
+import { getMySubscription } from '../api/company';
 import { Lock, Mail, Eye, EyeOff, ArrowRight, Sparkles, Shield, Crown, User } from 'lucide-react';
 
 import logoAsset from '../assets/logo.jpg';
@@ -48,8 +49,24 @@ export default function Login() {
 
       const meRes = await getMe();
       console.log('[Login] getMe() succeeded:', meRes.data);
-      loginUser(token, meRes.data);
-      navigate('/');
+
+      let subData = null;
+      if (meRes.data?.role?.name === 'Admin' || meRes.data?.permissions?.['settings:write']) {
+        try {
+          const subRes = await getMySubscription();
+          subData = subRes.data;
+        } catch (subErr) {
+          console.warn('[Login] getMySubscription failed/403:', subErr);
+        }
+      }
+
+      loginUser(token, meRes.data, subData);
+
+      if (subData?.is_expired) {
+        navigate('/subscriptions');
+      } else {
+        navigate('/');
+      }
     } catch (err) {
       console.error('[Login] handleSubmit failed:', err);
       setError(err.response?.data?.detail || err.message || 'Login failed');

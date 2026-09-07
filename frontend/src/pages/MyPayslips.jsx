@@ -21,6 +21,7 @@ import {
   Phone,
   Mail,
   MapPin,
+  Globe,
   CheckCircle2,
 } from 'lucide-react';
 
@@ -123,7 +124,7 @@ export default function MyPayslips() {
   const [employee, setEmployee] = useState(null);
   const [company, setCompany] = useState(null);
   const [expandedId, setExpandedId] = useState(null);
-  const [downloadingId, setDownloadingId] = useState(null);
+  const [printingId, setPrintingId] = useState(null);
 
   useEffect(() => {
     getMyPayslips()
@@ -148,86 +149,50 @@ export default function MyPayslips() {
     }
   }, [user?.employee_id]);
 
-  const handleDownloadPDF = async (p) => {
-    setDownloadingId(p.id);
-    const empCode = employee?.employee_code || p.employee_code || 'EMP';
-    const filename = `Payslip_${MONTH_NAMES[p.run_month - 1]}_${p.run_year}_${empCode}.pdf`;
+  const handlePrintPayslip = (p) => {
+    setPrintingId(p.id);
+    setExpandedId(p.id);
 
-    try {
-      // 1. First attempt: Server-side PDF generation (pristine single-page A4, vector crisp)
-      try {
-        const response = await downloadPayslipPdf(p.id);
-        if (response?.data) {
-          const blob = new Blob([response.data], { type: 'application/pdf' });
-          const url = window.URL.createObjectURL(blob);
-          const link = document.createElement('a');
-          link.href = url;
-          link.download = filename;
-          document.body.appendChild(link);
-          link.click();
-          document.body.removeChild(link);
-          window.URL.revokeObjectURL(url);
-          setDownloadingId(null);
-          return;
-        }
-      } catch (serverErr) {
-        console.warn('Server PDF generation failed, falling back to client canvas:', serverErr);
-      }
+    const oldTitle = document.title;
+    const rawName =
+      employee?.full_name ||
+      p.employee_name ||
+      user?.full_name ||
+      user?.name ||
+      user?.username ||
+      'Employee';
 
-      // 2. Fallback: Client-side html2pdf
-      const element = document.getElementById(`payslip-container-${p.id}`);
-      if (!element) {
-        window.print();
-        return;
-      }
+    const empName = rawName.trim().replace(/[^a-zA-Z0-9_\s-]/g, '').replace(/\s+/g, '_');
 
-      const opt = {
-        margin: [0, 0, 0, 0],
-        filename: filename,
-        image: { type: 'jpeg', quality: 0.98 },
-        html2canvas: {
-          scale: 2,
-          useCORS: true,
-          allowTaint: true,
-          logging: false,
-          scrollY: 0,
-          scrollX: 0,
-        },
-        jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' },
-        pagebreak: { mode: ['avoid-all'] },
-      };
+    const runMonth = Number(p.run_month || p.month || (new Date().getMonth() + 1));
+    const runYear = Number(p.run_year || p.year || new Date().getFullYear());
+    const month = MONTH_NAMES[runMonth - 1] || `Month_${runMonth}`;
+    const year = runYear;
 
-      const generate = () => {
-        return window.html2pdf().set(opt).from(element).save();
-      };
+    const rawCode = employee?.employee_code || p.employee_code || user?.employee_code || '';
+    const empCode = rawCode ? rawCode.trim().replace(/[^a-zA-Z0-9_-]/g, '') : '';
 
-      if (window.html2pdf) {
-        await generate();
-      } else {
-        await new Promise((resolve, reject) => {
-          const script = document.createElement('script');
-          script.src = 'https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js';
-          script.onload = async () => {
-            try {
-              await generate();
-              resolve();
-            } catch (e) {
-              reject(e);
-            }
-          };
-          script.onerror = () => {
-            window.print();
-            resolve();
-          };
-          document.body.appendChild(script);
-        });
-      }
-    } catch (err) {
-      console.error('Error generating PDF:', err);
+    // Suggested PDF filename: Payslip_EmployeeName_Month_Year.pdf
+    const customFileName = `Payslip_${empName}_${month}_${year}${empCode ? '_' + empCode : ''}`;
+    document.title = customFileName;
+
+    let restored = false;
+    const restore = () => {
+      if (restored) return;
+      restored = true;
+      document.title = oldTitle;
+      setPrintingId(null);
+      window.removeEventListener('afterprint', restore);
+    };
+
+    window.addEventListener('afterprint', restore);
+
+    // Short timeout to guarantee DOM rendering before invoking browser print dialog
+    setTimeout(() => {
       window.print();
-    } finally {
-      setDownloadingId(null);
-    }
+      // Fallback in case afterprint event is delayed
+      setTimeout(restore, 1500);
+    }, 150);
   };
 
   return (
@@ -364,8 +329,7 @@ export default function MyPayslips() {
                     style={{ display: 'flex', justifyContent: 'flex-end', gap: 12, marginBottom: 20 }}
                   >
                     <button
-                      onClick={() => handleDownloadPDF(p)}
-                      disabled={downloadingId === p.id}
+                      onClick={() => handlePrintPayslip(p)}
                       style={{
                         display: 'inline-flex',
                         alignItems: 'center',
@@ -378,17 +342,22 @@ export default function MyPayslips() {
                         fontSize: '0.875rem',
                         fontWeight: 600,
                         color: '#ffffff',
-                        cursor: downloadingId === p.id ? 'not-allowed' : 'pointer',
+                        cursor: 'pointer',
                         boxShadow: '0 4px 12px rgba(0, 82, 204, 0.25)',
-                        opacity: downloadingId === p.id ? 0.75 : 1,
+                        transition: 'transform 0.15s ease',
                       }}
+                      onMouseEnter={(e) => (e.currentTarget.style.transform = 'translateY(-1px)')}
+                      onMouseLeave={(e) => (e.currentTarget.style.transform = 'translateY(0)')}
                     >
-                      <Download size={16} /> {downloadingId === p.id ? 'Generating PDF...' : 'Download PDF'}
+                      <Printer size={16} /> Print / Save as PDF
                     </button>
                   </div>
 
                   {/* Corporate Payslip Voucher Container */}
-                  <div id={`payslip-container-${p.id}`} className="payslip-voucher">
+                  <div
+                    id={`payslip-container-${p.id}`}
+                    className={`payslip-voucher ${printingId === p.id ? 'payslip-voucher-print-active' : ''}`}
+                  >
                     {/* 1. Header Banner (Angled Blue Polygon) */}
                     <div className="payslip-banner-header">
                       <div className="payslip-brand-left">
@@ -611,15 +580,15 @@ export default function MyPayslips() {
                         </div>
                       </div>
 
-                      {/* 6. Signature & Notice Card (Aligned Right) */}
+                      {/* 6. Signature Card (Aligned Right) */}
                       <div className="payslip-bottom-section">
                         <div className="payslip-signature-card">
                           <div>
                             <div className="payslip-notice-header">
-                              <FileText size={16} style={{ flexShrink: 0 }} />
+                              <FileText size={15} style={{ flexShrink: 0 }} />
                               <span>THIS IS A COMPUTER-GENERATED PAYSLIP.</span>
                             </div>
-                            <div className="payslip-notice-sub">This does not require any signature.</div>
+                            <div className="payslip-notice-sub">This document does not require a physical signature.</div>
                           </div>
 
                           <div className="payslip-sig-container">
@@ -650,30 +619,44 @@ export default function MyPayslips() {
                     {/* 7. Corporate Blue Footer */}
                     <div className="payslip-footer">
                       <div className="payslip-footer-contacts">
-                        <div className="payslip-footer-contact-item">
-                          <Phone size={15} />
-                          <div className="item-text">
-                            <span>{company?.phone || '+123 456 789 00'}</span>
+                        {/* Left Column: Phone & Email */}
+                        <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
+                          <div className="payslip-footer-contact-item">
+                            <Phone size={14} />
+                            <div className="item-text">
+                              <span>{company?.phone || '+123 456 789 00'}</span>
+                            </div>
+                          </div>
+                          <div className="payslip-footer-contact-item">
+                            <Mail size={14} />
+                            <div className="item-text">
+                              <span>{company?.email || 'info@meagle360.com'}</span>
+                            </div>
                           </div>
                         </div>
-                        <div className="payslip-footer-contact-item">
-                          <Mail size={15} />
-                          <div className="item-text">
-                            <span>{company?.email || 'info@meagle360.com'}</span>
-                            {company?.website && <span>{company.website}</span>}
-                          </div>
-                        </div>
-                        <div className="payslip-footer-contact-item">
-                          <MapPin size={15} />
-                          <div className="item-text">
-                            <span>{company?.company_address || company?.address || '123A Street Name, City, State - 560001'}</span>
+
+                        {/* Right Column: Website & Address */}
+                        <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
+                          {company?.website && (
+                            <div className="payslip-footer-contact-item">
+                              <Globe size={14} />
+                              <div className="item-text">
+                                <span>{company.website}</span>
+                              </div>
+                            </div>
+                          )}
+                          <div className="payslip-footer-contact-item">
+                            <MapPin size={14} />
+                            <div className="item-text">
+                              <span>{company?.company_address || company?.address || '123A Street Name, City, State - 560001'}</span>
+                            </div>
                           </div>
                         </div>
                       </div>
 
                       <div className="payslip-footer-thanks">
                         <div className="thanks-title">THANK YOU!</div>
-                        <div className="thanks-sub">{company?.footer_text || 'We appreciate your hard work.'}</div>
+                        <div className="thanks-sub">We appreciate your hard work.</div>
                       </div>
                     </div>
                   </div>

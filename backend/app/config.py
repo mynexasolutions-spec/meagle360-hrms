@@ -27,6 +27,11 @@ class Settings(BaseSettings):
     SMTP_FROM_EMAIL: str = ""
     SMTP_FROM_NAME: str = "Meagle360 HRMS"
 
+    # ── Brevo (transactional email API) ───────────────────
+    BREVO_API_KEY: str = ""
+    BREVO_SENDER_EMAIL: str = ""
+    BREVO_SENDER_NAME: str = "Meagle360"
+
     # -- Cloudinary (logo/signature uploads) ------------------
     CLOUDINARY_CLOUD_NAME: str = ""
     CLOUDINARY_API_KEY: str = ""

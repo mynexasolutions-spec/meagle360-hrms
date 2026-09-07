@@ -29,7 +29,8 @@ class CompanyCreateRequest(BaseModel):
     name: str
     country: str | None = None
     multi_entity: bool = False
-    plan_tier: str = "standard"
+    plan_tier: str = "trial"
+    trial_days: int | None = None  # required when plan_tier == "trial"
     seat_limit: int | None = None
 
 
@@ -58,10 +59,13 @@ class SetPasswordRequest(BaseModel):
 class PlatformCompanyResponse(BaseModel):
     id: UUID
     name: str
+    subdomain: str
     country: str | None
     multi_entity: bool
     status: str
     plan_tier: str
+    plan_ends_at: datetime | None
+    days_remaining: int | None
     seat_limit: int | None
     created_at: datetime
     updated_at: datetime
@@ -72,8 +76,10 @@ class PlatformCompanyResponse(BaseModel):
 
 class CompanyUpdateRequest(BaseModel):
     name: str | None = None
+    subdomain: str | None = None
     country: str | None = None
     plan_tier: str | None = None
+    trial_days: int | None = None  # required when plan_tier is being changed to "trial"
     seat_limit: int | None = None
 
 

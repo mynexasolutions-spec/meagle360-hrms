@@ -35,6 +35,11 @@ class EmployeeShiftAssign(BaseModel):
     effective_from: date
 
 
+class EmployeeShiftUpdate(BaseModel):
+    shift_id: UUID | None = None
+    effective_from: date | None = None
+
+
 class EmployeeShiftResponse(BaseModel):
     id: UUID
     employee_id: UUID
@@ -45,3 +50,4 @@ class EmployeeShiftResponse(BaseModel):
 
     class Config:
         from_attributes = True
+

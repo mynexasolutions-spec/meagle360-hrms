@@ -69,7 +69,7 @@ export default function TopBar({ onToggleSidebar }) {
         zIndex: 50,
       }}
     >
-      <button className="btn-icon btn-ghost" onClick={onToggleSidebar} title="Toggle sidebar">
+      <button className="btn-icon btn-ghost topbar-mobile-menu-btn" onClick={onToggleSidebar} title="Toggle sidebar">
         <Menu size={20} />
       </button>
 

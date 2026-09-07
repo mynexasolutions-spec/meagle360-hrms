@@ -1,5 +1,5 @@
 import { lazy, Suspense } from 'react';
-import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
+import { BrowserRouter, Routes, Route, Navigate, useLocation } from 'react-router-dom';
 import { AuthProvider, useAuth } from './context/AuthContext';
 import { PlatformAuthProvider, usePlatformAuth } from './context/PlatformAuthContext';
 import DashboardLayout from './layouts/DashboardLayout';
@@ -27,11 +27,18 @@ const Documents = lazy(() => import('./pages/Documents'));
 const ReportsAnalytics = lazy(() => import('./pages/ReportsAnalytics'));
 const MyProfile = lazy(() => import('./pages/MyProfile'));
 const ActionTracker = lazy(() => import('./pages/ActionTracker'));
+const OfferLetterStudio = lazy(() => import('./pages/OfferLetterStudio'));
+const RelievingLetterStudio = lazy(() => import('./pages/RelievingLetterStudio'));
+const Subscriptions = lazy(() => import('./pages/Subscriptions'));
 
 function ProtectedRoute({ children }) {
-  const { user, loading } = useAuth();
+  const { user, loading, isPlanExpired } = useAuth();
+  const location = useLocation();
   if (loading) return <LoadingScreen subtitle="Verifying authentication..." />;
   if (!user) return <Navigate to="/login" replace />;
+  if (isPlanExpired && location.pathname !== '/subscriptions') {
+    return <Navigate to="/subscriptions" replace />;
+  }
   return children;
 }
 
@@ -90,8 +97,17 @@ function AppRoutes() {
         {/* Dashboard Routes */}
         <Route element={<ProtectedRoute><DashboardLayout /></ProtectedRoute>}>
           <Route path="/" element={<Dashboard />} />
-          <Route path="/employees" element={<EmployeeDirectory />} />
+          <Route
+            path="/employees"
+            element={
+              <RequirePermission permission="settings:write">
+                <EmployeeDirectory />
+              </RequirePermission>
+            }
+          />
           <Route path="/employees/:id" element={<EmployeeProfile />} />
+          <Route path="/offer-letter" element={<OfferLetterStudio />} />
+          <Route path="/relieving-letter" element={<RelievingLetterStudio />} />
           <Route path="/attendance" element={<Attendance />} />
           <Route path="/leave" element={<LeaveManagement />} />
           <Route
@@ -110,7 +126,7 @@ function AppRoutes() {
               </RequirePermission>
             }
           />
-          <Route path="/org-chart" element={<OrgChart />} />
+          <Route path="/org-chart" element={<Navigate to="/employees?tab=organization" replace />} />
           <Route path="/documents" element={<Documents />} />
           <Route path="/profile" element={<MyProfile />} />
           <Route path="/my-payslips" element={<MyPayslips />} />
@@ -139,6 +155,7 @@ function AppRoutes() {
               </RequirePermission>
             }
           />
+          <Route path="/subscriptions" element={<Subscriptions />} />
         </Route>
 
         {/* Catch-all */}

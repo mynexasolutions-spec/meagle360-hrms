@@ -7,10 +7,8 @@ replacing send_email()'s internals, callers don't change.
 """
 
 import logging
-import smtplib
-from email.mime.multipart import MIMEMultipart
-from email.mime.text import MIMEText
-from email.utils import formatdate, make_msgid
+
+import httpx
 
 from app.config import get_settings
 
@@ -19,46 +17,52 @@ settings = get_settings()
 
 
 def send_email(to_email: str, subject: str, text_body: str, html_body: str) -> None:
-    """Send a multipart (plain text + HTML) email over SMTP. Raises on
-    failure — callers decide whether a failed send should block the
-    calling operation.
+    """Send a transactional email via the Brevo HTTP API. Raises on failure —
+    callers decide whether a failed send should block the calling operation.
 
-    Sends both a plain-text and an HTML part, and sets Message-ID/Date/
-    Reply-To — a text-only-HTML message with none of the standard headers
-    smtplib doesn't add automatically is a common spam-filter signal, so
-    these are here to make the message look like normal mail rather than
-    a bare automated blast (the bigger lever — SPF/DKIM/DMARC on the
-    sending domain — lives in DNS, not here)."""
-    if not settings.SMTP_HOST or not settings.SMTP_USER:
-        raise RuntimeError("SMTP is not configured (SMTP_HOST/SMTP_USER missing)")
+    Uses HTTPS (port 443) rather than SMTP ports (587/465), which some VPS
+    hosting providers block by default — this avoids that class of failure
+    entirely, at the cost of being Brevo-specific rather than a swappable
+    standard protocol.
+    """
+    if not settings.BREVO_API_KEY or not settings.BREVO_SENDER_EMAIL:
+        raise RuntimeError("Brevo is not configured (BREVO_API_KEY/BREVO_SENDER_EMAIL missing)")
 
-    message = MIMEMultipart("alternative")
-    message["Subject"] = subject
-    message["From"] = f"{settings.SMTP_FROM_NAME} <{settings.SMTP_FROM_EMAIL}>"
-    message["To"] = to_email
-    message["Reply-To"] = settings.SMTP_FROM_EMAIL
-    message["Date"] = formatdate(localtime=True)
-    message["Message-ID"] = make_msgid(domain=settings.SMTP_FROM_EMAIL.split("@")[-1])
-    # Plain text first, HTML second: multipart/alternative renders the LAST
-    # part a client understands, so this order lets plain-text-only clients
-    # fall back gracefully while everyone else gets the styled version.
-    message.attach(MIMEText(text_body, "plain"))
-    message.attach(MIMEText(html_body, "html"))
+    payload = {
+        "sender": {
+            "name": settings.BREVO_SENDER_NAME,
+            "email": settings.BREVO_SENDER_EMAIL,
+        },
+        "to": [{"email": to_email}],
+        "subject": subject,
+        "textContent": text_body,
+        "htmlContent": html_body,
+    }
+    headers = {
+        "api-key": settings.BREVO_API_KEY,
+        "Content-Type": "application/json",
+        "Accept": "application/json",
+    }
 
-    with smtplib.SMTP_SSL(settings.SMTP_HOST, settings.SMTP_PORT) as server:
-        server.login(settings.SMTP_USER, settings.SMTP_PASSWORD)
-        server.sendmail(settings.SMTP_FROM_EMAIL, [to_email], message.as_string())
+    response = httpx.post(
+        "https://api.brevo.com/v3/smtp/email",
+        json=payload,
+        headers=headers,
+        timeout=10.0,
+    )
+    if response.status_code >= 400:
+        raise RuntimeError(f"Brevo send failed ({response.status_code}): {response.text}")
 
 
 def send_invite_email(to_email: str, full_name: str, invite_token: str) -> None:
     """Send a new-account setup link to a newly invited employee or company admin."""
     base_url = (settings.APP_BASE_URL or "http://localhost:5173").rstrip("/")
     setup_link = f"{base_url}/set-password?token={invite_token}"
-    monogram = "".join(w[0] for w in settings.SMTP_FROM_NAME.split()[:2]).upper() or "M"
+    monogram = "".join(w[0] for w in settings.BREVO_SENDER_NAME.split()[:2]).upper() or "M"
 
     text_body = (
         f"Hi {full_name},\n\n"
-        f"An account has been created for you on {settings.SMTP_FROM_NAME}. "
+        f"An account has been created for you on {settings.BREVO_SENDER_NAME}. "
         f"Open the link below to set your password and get started. "
         f"This link expires in 48 hours.\n\n"
         f"{setup_link}\n\n"
@@ -92,7 +96,7 @@ def send_invite_email(to_email: str, full_name: str, invite_token: str) -> None:
                 </tr>
               </table>
               <p style="margin:0 0 8px 0; font-size:11px; font-weight:700; letter-spacing:1.5px; text-transform:uppercase; color:#2563eb;">Account Invitation</p>
-              <h1 style="margin:0; font-size:22px; font-weight:800; color:#0f172a;">Welcome to {settings.SMTP_FROM_NAME}</h1>
+              <h1 style="margin:0; font-size:22px; font-weight:800; color:#0f172a;">Welcome to {settings.BREVO_SENDER_NAME}</h1>
             </td>
           </tr>
           <!-- Body -->
@@ -137,7 +141,7 @@ def send_invite_email(to_email: str, full_name: str, invite_token: str) -> None:
             <td style="padding:20px 40px 28px 40px; background-color:#f8fafc; border-top:1px solid #e2e8f0;">
               <p style="margin:0; color:#94a3b8; font-size:12px; line-height:1.6; text-align:center;">
                 If you weren't expecting this, you can safely ignore this email.<br>
-                &copy; {settings.SMTP_FROM_NAME}
+                &copy; {settings.BREVO_SENDER_NAME}
               </p>
             </td>
           </tr>
@@ -148,7 +152,7 @@ def send_invite_email(to_email: str, full_name: str, invite_token: str) -> None:
 </body>
 </html>
 """
-    send_email(to_email, f"Set up your {settings.SMTP_FROM_NAME} account", text_body, html_body)
+    send_email(to_email, f"Set up your {settings.BREVO_SENDER_NAME} account", text_body, html_body)
 
 
 def try_send_invite_email(to_email: str, full_name: str, invite_token: str) -> bool:

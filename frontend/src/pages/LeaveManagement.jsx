@@ -365,7 +365,7 @@ export default function LeaveManagement() {
                   <td style={{ fontWeight: 500, whiteSpace: 'nowrap' }}>{r.leave_type_name || '—'}</td>
                   <td style={{ whiteSpace: 'nowrap' }}>{r.start_date}</td>
                   <td style={{ whiteSpace: 'nowrap' }}>{r.end_date}</td>
-                  <td style={{ whiteSpace: 'nowrap' }}>{(new Date(r.end_date) - new Date(r.start_date)) / 86400000 + 1}</td>
+                  <td style={{ whiteSpace: 'nowrap' }}>{Math.max(1, Math.round((new Date(r.end_date) - new Date(r.start_date)) / 86400000) + 1)}</td>
                   <td style={{ whiteSpace: 'nowrap' }}><span className={`badge badge-${r.status}`}>{r.status}</span></td>
                 </tr>
               ))}
@@ -483,7 +483,7 @@ export default function LeaveManagement() {
             {(() => {
               const totalDays = history
                 .filter((r) => r.status === 'approved')
-                .reduce((sum, r) => sum + ((new Date(r.end_date) - new Date(r.start_date)) / 86400000 + 1), 0);
+                .reduce((sum, r) => sum + Math.max(1, Math.round((new Date(r.end_date) - new Date(r.start_date)) / 86400000) + 1), 0);
               return (
                 <div style={{ fontSize: '0.8125rem', color: '#64748b' }}>
                   <strong style={{ color: '#0f172a', fontSize: '1rem' }}>{totalDays}</strong> approved leave day{totalDays === 1 ? '' : 's'} matching these filters
@@ -512,7 +512,7 @@ export default function LeaveManagement() {
                     <td style={{ fontWeight: 500, whiteSpace: 'nowrap' }}>{r.leave_type_name || '—'}</td>
                     <td style={{ whiteSpace: 'nowrap' }}>{r.start_date}</td>
                     <td style={{ whiteSpace: 'nowrap' }}>{r.end_date}</td>
-                    <td style={{ whiteSpace: 'nowrap' }}>{(new Date(r.end_date) - new Date(r.start_date)) / 86400000 + 1}</td>
+                    <td style={{ whiteSpace: 'nowrap' }}>{Math.max(1, Math.round((new Date(r.end_date) - new Date(r.start_date)) / 86400000) + 1)}</td>
                     <td style={{ whiteSpace: 'nowrap' }}><span className={`badge badge-${r.status}`}>{r.status}</span></td>
                     <td style={{ whiteSpace: 'nowrap', color: '#64748b' }}>{new Date(r.created_at).toLocaleDateString()}</td>
                   </tr>

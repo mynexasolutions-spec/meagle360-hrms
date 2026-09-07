@@ -21,6 +21,9 @@ export default function ShiftManagement() {
   const [showAssign, setShowAssign] = useState(false);
   const [assignForm, setAssignForm] = useState({ employee_id: '', shift_id: '', effective_from: new Date().toISOString().slice(0, 10) });
 
+  const [editingRoster, setEditingRoster] = useState(null);
+  const [editRosterForm, setEditRosterForm] = useState({ shift_id: '', effective_from: '' });
+
   useEffect(() => {
     loadData();
     client.get('/employees/').then((r) => {
@@ -90,6 +93,36 @@ export default function ShiftManagement() {
       loadData();
     } catch (err) {
       alert(err.response?.data?.detail || 'Failed to assign shift');
+    }
+  };
+
+  const handleOpenEditRoster = (item) => {
+    setEditingRoster(item);
+    setEditRosterForm({
+      shift_id: item.shift_id || '',
+      effective_from: item.effective_from ? item.effective_from.slice(0, 10) : new Date().toISOString().slice(0, 10),
+    });
+  };
+
+  const handleUpdateRoster = async (e) => {
+    e.preventDefault();
+    if (!editingRoster) return;
+    try {
+      await client.put(`/shifts/assign/${editingRoster.id}`, editRosterForm);
+      setEditingRoster(null);
+      loadData();
+    } catch (err) {
+      alert(err.response?.data?.detail || 'Failed to update shift assignment');
+    }
+  };
+
+  const handleDeleteRoster = async (item) => {
+    if (!confirm(`Are you sure you want to remove the shift assignment for ${item.employee_name || 'this employee'}?`)) return;
+    try {
+      await client.delete(`/shifts/assign/${item.id}`);
+      loadData();
+    } catch (err) {
+      alert(err.response?.data?.detail || 'Failed to remove shift assignment');
     }
   };
 
@@ -272,12 +305,13 @@ export default function ShiftManagement() {
         <div className="section-card" style={{ borderTop: '3px solid #2563eb' }}>
           <h3><Users size={18} style={{ color: 'var(--accent-blue)' }} /> Employee Roster</h3>
           <div style={{ overflowX: 'auto' }}>
-            <table className="data-table">
+            <table className="data-table" style={{ width: '100%' }}>
               <thead>
                 <tr>
-                  <th style={{ whiteSpace: 'nowrap' }}>Employee</th>
-                  <th style={{ whiteSpace: 'nowrap' }}>Shift</th>
-                  <th style={{ whiteSpace: 'nowrap' }}>Effective From</th>
+                  <th style={{ whiteSpace: 'nowrap', width: '32%' }}>Employee</th>
+                  <th style={{ whiteSpace: 'nowrap', width: '24%' }}>Shift</th>
+                  <th style={{ whiteSpace: 'nowrap', width: '24%' }}>Effective From</th>
+                  {canManageShifts && <th style={{ whiteSpace: 'nowrap', width: '20%', textAlign: 'left' }}>Actions</th>}
                 </tr>
               </thead>
               <tbody>
@@ -290,6 +324,40 @@ export default function ShiftManagement() {
                       </span>
                     </td>
                     <td style={{ color: '#64748b', whiteSpace: 'nowrap' }}>{r.effective_from ? new Date(r.effective_from).toLocaleDateString() : '—'}</td>
+                    {canManageShifts && (
+                      <td style={{ textAlign: 'left', whiteSpace: 'nowrap' }}>
+                        <div style={{ display: 'inline-flex', gap: 6, alignItems: 'center' }}>
+                          <button
+                            className="btn-icon btn-ghost"
+                            onClick={() => handleOpenEditRoster(r)}
+                            title="Edit Shift Assignment"
+                            style={{
+                              padding: '5px 8px',
+                              borderRadius: 8,
+                              border: '1px solid #cbd5e1',
+                              background: '#ffffff',
+                              boxShadow: '0 1px 2px rgba(0,0,0,0.03)',
+                            }}
+                          >
+                            <Pencil size={14} style={{ color: '#2563eb' }} />
+                          </button>
+                          <button
+                            className="btn-icon btn-ghost"
+                            onClick={() => handleDeleteRoster(r)}
+                            title="Remove Shift Assignment"
+                            style={{
+                              padding: '5px 8px',
+                              borderRadius: 8,
+                              border: '1px solid #fecdd3',
+                              background: '#fff1f2',
+                              boxShadow: '0 1px 2px rgba(0,0,0,0.03)',
+                            }}
+                          >
+                            <Trash2 size={14} style={{ color: '#e11d48' }} />
+                          </button>
+                        </div>
+                      </td>
+                    )}
                   </tr>
                 ))}
               </tbody>
@@ -430,6 +498,43 @@ export default function ShiftManagement() {
             <div style={{ display: 'flex', gap: 10, justifyContent: 'flex-end', marginTop: 20 }}>
               <button type="button" className="btn btn-secondary" onClick={() => setShowAssign(false)}>Cancel</button>
               <button type="submit" className="btn btn-primary">Assign</button>
+            </div>
+          </form>
+        </Modal>
+      )}
+
+      {editingRoster && (
+        <Modal title={`Edit Shift Assignment — ${editingRoster.employee_name || 'Employee'}`} onClose={() => setEditingRoster(null)}>
+          <form onSubmit={handleUpdateRoster}>
+            <div className="input-group">
+              <label className="input-label">Select Shift</label>
+              <select
+                className="input-field"
+                value={editRosterForm.shift_id}
+                onChange={(e) => setEditRosterForm({ ...editRosterForm, shift_id: e.target.value })}
+                required
+              >
+                <option value="">Choose shift template...</option>
+                {shifts.map((s) => (
+                  <option key={s.id} value={s.id}>
+                    {s.shift_type} ({formatTime(s.start_time)} - {formatTime(s.end_time)})
+                  </option>
+                ))}
+              </select>
+            </div>
+            <div className="input-group">
+              <label className="input-label">Effective From Date</label>
+              <input
+                type="date"
+                className="input-field"
+                value={editRosterForm.effective_from}
+                onChange={(e) => setEditRosterForm({ ...editRosterForm, effective_from: e.target.value })}
+                required
+              />
+            </div>
+            <div style={{ display: 'flex', gap: 10, justifyContent: 'flex-end', marginTop: 20 }}>
+              <button type="button" className="btn btn-secondary" onClick={() => setEditingRoster(null)}>Cancel</button>
+              <button type="submit" className="btn btn-primary">Save Changes</button>
             </div>
           </form>
         </Modal>

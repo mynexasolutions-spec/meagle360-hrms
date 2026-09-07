@@ -33,3 +33,10 @@ class ShiftService:
 
     def get_employee_shifts(self, employee_id: UUID):
         return self.assignment_repo.get_by_employee(employee_id)
+
+    def update_assignment(self, assignment_id: UUID, data: dict):
+        return self.assignment_repo.update(assignment_id, data)
+
+    def delete_assignment(self, assignment_id: UUID) -> bool:
+        return self.assignment_repo.delete(assignment_id)
+
