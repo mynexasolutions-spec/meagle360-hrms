@@ -153,3 +153,18 @@ class LeaveRequestRepository(BaseRepository[LeaveRequest]):
             .limit(limit)
             .all()
         )
+
+    def get_overlapping_range(self, start, end):
+        """Approved/pending leave requests overlapping [start, end] across ALL
+        employees — company-wide version of get_by_employee_and_date_range,
+        used by the daily attendance overview."""
+        return (
+            self._scoped_query()
+            .options(joinedload(LeaveRequest.leave_type))
+            .filter(
+                LeaveRequest.status.in_(["approved", "pending"]),
+                LeaveRequest.start_date <= end,
+                LeaveRequest.end_date >= start,
+            )
+            .all()
+        )

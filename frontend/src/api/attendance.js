@@ -15,6 +15,9 @@ export const getTimesheet = (params = {}) =>
 export const getEmployeeOverview = (params = {}) =>
   client.get('/attendance/employee-overview', { params });
 
+export const getDailyOverview = (params = {}) =>
+  client.get('/attendance/daily-overview', { params });
+
 export const getHolidays = () => client.get('/attendance/holidays');
 
 export const createHoliday = (data) => client.post('/attendance/holidays', data);

@@ -1,6 +1,7 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
+import { useSearchParams } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
-import { getEmployeeOverview, clockIn, clockOut, getClockStatus } from '../api/attendance';
+import { getEmployeeOverview, getDailyOverview, clockIn, clockOut, getClockStatus } from '../api/attendance';
 import {
   requestRegularization, getMyRegularizations, getPendingRegularizations, approveRegularization,
   getRegularizationHistory,
@@ -12,6 +13,7 @@ import { getMyCompany, updateMyCompany } from '../api/company';
 import {
   Clock, CheckCircle2, Plus, Check, X, CalendarClock, Timer,
   ChevronLeft, ChevronRight, Users, Search, FileText, SlidersHorizontal, Pencil,
+  CalendarDays, RefreshCw, ArrowUpDown, ArrowUp, ArrowDown,
 } from 'lucide-react';
 import Modal from '../components/Modal';
 
@@ -22,7 +24,584 @@ const MONTH_NAMES = [
 
 function formatTime(dt) {
   if (!dt) return '—';
-  return new Date(dt).toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' });
+  return new Date(dt).toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', timeZone: 'Asia/Kolkata' });
+}
+
+function formatISTTime(dt) {
+  if (!dt) return '--';
+  try {
+    return new Date(dt).toLocaleTimeString('en-US', {
+      hour: '2-digit',
+      minute: '2-digit',
+      hour12: true,
+      timeZone: 'Asia/Kolkata',
+    });
+  } catch {
+    return '--';
+  }
+}
+
+function getTodayISTDateString() {
+  const d = new Date();
+  const formatter = new Intl.DateTimeFormat('en-CA', {
+    timeZone: 'Asia/Kolkata',
+    year: 'numeric',
+    month: '2-digit',
+    day: '2-digit',
+  });
+  return formatter.format(d);
+}
+
+function formatDisplayDate(dateStr) {
+  if (!dateStr) return '';
+  try {
+    const [y, m, d] = dateStr.split('-').map(Number);
+    const dateObj = new Date(y, m - 1, d);
+    return dateObj.toLocaleDateString('en-US', {
+      weekday: 'short',
+      month: 'short',
+      day: 'numeric',
+      year: 'numeric',
+    });
+  } catch {
+    return dateStr;
+  }
+}
+
+function getInitials(name) {
+  if (!name) return '??';
+  const parts = name.trim().split(/\s+/);
+  if (parts.length === 1) return parts[0].slice(0, 2).toUpperCase();
+  return (parts[0][0] + parts[parts.length - 1][0]).toUpperCase();
+}
+
+function DailyStatusBadge({ status, leaveType }) {
+  if (status === 'Present') {
+    return (
+      <span
+        style={{
+          display: 'inline-flex',
+          alignItems: 'center',
+          gap: 6,
+          padding: '4px 12px',
+          borderRadius: 9999,
+          fontSize: '0.8125rem',
+          fontWeight: 600,
+          background: '#dcfce7',
+          color: '#15803d',
+          border: '1px solid #bbf7d0',
+          whiteSpace: 'nowrap',
+        }}
+      >
+        <span style={{ width: 6, height: 6, borderRadius: '50%', background: '#16a34a' }} />
+        Present
+      </span>
+    );
+  }
+  if (status === 'Present (Not Clocked Out)') {
+    return (
+      <span
+        style={{
+          display: 'inline-flex',
+          alignItems: 'center',
+          gap: 6,
+          padding: '4px 12px',
+          borderRadius: 9999,
+          fontSize: '0.8125rem',
+          fontWeight: 600,
+          background: '#fef3c7',
+          color: '#b45309',
+          border: '1px solid #fde68a',
+          whiteSpace: 'nowrap',
+        }}
+      >
+        <span style={{ width: 6, height: 6, borderRadius: '50%', background: '#f59e0b' }} />
+        Present (Not Clocked Out)
+      </span>
+    );
+  }
+  if (status === 'On Leave') {
+    return (
+      <span
+        style={{
+          display: 'inline-flex',
+          alignItems: 'center',
+          gap: 6,
+          padding: '4px 12px',
+          borderRadius: 9999,
+          fontSize: '0.8125rem',
+          fontWeight: 600,
+          background: '#dbeafe',
+          color: '#1d4ed8',
+          border: '1px solid #bfdbfe',
+          whiteSpace: 'nowrap',
+        }}
+      >
+        <span style={{ width: 6, height: 6, borderRadius: '50%', background: '#2563eb' }} />
+        {leaveType ? `On Leave (${leaveType})` : 'On Leave'}
+      </span>
+    );
+  }
+  if (status === 'Absent') {
+    return (
+      <span
+        style={{
+          display: 'inline-flex',
+          alignItems: 'center',
+          gap: 6,
+          padding: '4px 12px',
+          borderRadius: 9999,
+          fontSize: '0.8125rem',
+          fontWeight: 600,
+          background: '#fee2e2',
+          color: '#dc2626',
+          border: '1px solid #fecaca',
+          whiteSpace: 'nowrap',
+        }}
+      >
+        <span style={{ width: 6, height: 6, borderRadius: '50%', background: '#ef4444' }} />
+        Absent
+      </span>
+    );
+  }
+  return <span className="badge">{status}</span>;
+}
+
+function DailyAttendanceOverview() {
+  const todayStr = useMemo(() => getTodayISTDateString(), []);
+  const [targetDate, setTargetDate] = useState(todayStr);
+  const [data, setData] = useState(null);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState(null);
+
+  const [searchTerm, setSearchTerm] = useState('');
+  const [deptFilter, setDeptFilter] = useState('');
+  const [statusFilter, setStatusFilter] = useState('');
+
+  const [sortField, setSortField] = useState('check_in');
+  const [sortDirection, setSortDirection] = useState('asc');
+
+  const loadOverview = async (dateParam) => {
+    setLoading(true);
+    setError(null);
+    try {
+      const res = await getDailyOverview({ target_date: dateParam });
+      setData(res.data);
+    } catch (err) {
+      console.error('Failed to load daily attendance overview', err);
+      setError(err.response?.data?.detail || 'Failed to fetch daily overview. Please try again.');
+      setData(null);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    loadOverview(targetDate);
+  }, [targetDate]);
+
+  const handleShiftDay = (offset) => {
+    const [y, m, d] = targetDate.split('-').map(Number);
+    const dateObj = new Date(y, m - 1, d);
+    dateObj.setDate(dateObj.getDate() + offset);
+    const nextY = dateObj.getFullYear();
+    const nextM = String(dateObj.getMonth() + 1).padStart(2, '0');
+    const nextD = String(dateObj.getDate()).padStart(2, '0');
+    setTargetDate(`${nextY}-${nextM}-${nextD}`);
+  };
+
+  const employees = useMemo(() => data?.employees || [], [data?.employees]);
+
+  const departments = useMemo(() => {
+    return Array.from(new Set(employees.map((e) => e.department).filter(Boolean))).sort();
+  }, [employees]);
+
+  const stats = useMemo(() => {
+    const total = employees.length;
+    const presentCount = employees.filter((e) => e.status === 'Present').length;
+    const notClockedOutCount = employees.filter((e) => e.status === 'Present (Not Clocked Out)').length;
+    const onLeaveCount = employees.filter((e) => e.status === 'On Leave').length;
+    const absentCount = employees.filter((e) => e.status === 'Absent').length;
+    return {
+      total,
+      presentTotal: presentCount + notClockedOutCount,
+      present: presentCount,
+      notClockedOut: notClockedOutCount,
+      onLeave: onLeaveCount,
+      absent: absentCount,
+    };
+  }, [employees]);
+
+  const filteredEmployees = useMemo(() => {
+    return employees.filter((emp) => {
+      const s = searchTerm.toLowerCase();
+      const matchesSearch = !s ||
+        (emp.employee_name && emp.employee_name.toLowerCase().includes(s)) ||
+        (emp.department && emp.department.toLowerCase().includes(s));
+      const matchesDept = !deptFilter || emp.department === deptFilter;
+      const matchesStatus = !statusFilter || emp.status === statusFilter;
+      return matchesSearch && matchesDept && matchesStatus;
+    });
+  }, [employees, searchTerm, deptFilter, statusFilter]);
+
+  const sortedEmployees = useMemo(() => {
+    const list = [...filteredEmployees];
+    list.sort((a, b) => {
+      if (sortField === 'check_in') {
+        // Earliest arrival first; nulls sort to bottom
+        if (!a.check_in && !b.check_in) {
+          return (a.employee_name || '').localeCompare(b.employee_name || '');
+        }
+        if (!a.check_in) return 1;
+        if (!b.check_in) return -1;
+        const diff = new Date(a.check_in).getTime() - new Date(b.check_in).getTime();
+        if (diff !== 0) return sortDirection === 'asc' ? diff : -diff;
+        return (a.employee_name || '').localeCompare(b.employee_name || '');
+      }
+      if (sortField === 'check_out') {
+        if (!a.check_out && !b.check_out) {
+          return (a.employee_name || '').localeCompare(b.employee_name || '');
+        }
+        if (!a.check_out) return 1;
+        if (!b.check_out) return -1;
+        const diff = new Date(a.check_out).getTime() - new Date(b.check_out).getTime();
+        if (diff !== 0) return sortDirection === 'asc' ? diff : -diff;
+        return (a.employee_name || '').localeCompare(b.employee_name || '');
+      }
+      if (sortField === 'employee_name') {
+        const cmp = (a.employee_name || '').localeCompare(b.employee_name || '');
+        return sortDirection === 'asc' ? cmp : -cmp;
+      }
+      if (sortField === 'department') {
+        const cmp = (a.department || '').localeCompare(b.department || '');
+        return sortDirection === 'asc' ? cmp : -cmp;
+      }
+      if (sortField === 'status') {
+        const cmp = (a.status || '').localeCompare(b.status || '');
+        return sortDirection === 'asc' ? cmp : -cmp;
+      }
+      return 0;
+    });
+    return list;
+  }, [filteredEmployees, sortField, sortDirection]);
+
+  const handleSort = (field) => {
+    if (sortField === field) {
+      setSortDirection((prev) => (prev === 'asc' ? 'desc' : 'asc'));
+    } else {
+      setSortField(field);
+      setSortDirection('asc');
+    }
+  };
+
+  return (
+    <div>
+      <div className="section-card" style={{ marginBottom: 20, borderTop: '3px solid #2563eb' }}>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: 16, marginBottom: 20 }}>
+          <div>
+            <h3 style={{ marginBottom: 4, display: 'flex', alignItems: 'center', gap: 8 }}>
+              <CalendarDays size={20} style={{ color: 'var(--accent-blue)' }} />
+              Daily Attendance Overview
+            </h3>
+            <p style={{ color: '#64748b', fontSize: '0.875rem', margin: 0 }}>
+              Company-wide attendance status for {formatDisplayDate(targetDate)}
+            </p>
+          </div>
+
+          {/* Date Picker Controls */}
+          <div style={{ display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap' }}>
+            <div style={{ display: 'inline-flex', alignItems: 'center', background: '#f8fafc', border: '1px solid #e2e8f0', borderRadius: 12, padding: '3px 6px' }}>
+              <button
+                className="btn-icon btn-ghost"
+                onClick={() => handleShiftDay(-1)}
+                title="Previous Day"
+                style={{ width: 32, height: 32, padding: 0 }}
+              >
+                <ChevronLeft size={16} />
+              </button>
+              <input
+                type="date"
+                className="input-field"
+                value={targetDate}
+                onChange={(e) => setTargetDate(e.target.value)}
+                style={{
+                  border: 'none',
+                  background: 'transparent',
+                  padding: '4px 8px',
+                  fontSize: '0.875rem',
+                  fontWeight: 600,
+                  cursor: 'pointer',
+                  boxShadow: 'none',
+                  maxWidth: 150,
+                }}
+              />
+              <button
+                className="btn-icon btn-ghost"
+                onClick={() => handleShiftDay(1)}
+                title="Next Day"
+                style={{ width: 32, height: 32, padding: 0 }}
+              >
+                <ChevronRight size={16} />
+              </button>
+            </div>
+
+            <button
+              className="btn btn-secondary btn-sm"
+              onClick={() => setTargetDate(todayStr)}
+              disabled={targetDate === todayStr}
+              style={{
+                borderRadius: 10,
+                padding: '6px 14px',
+                fontWeight: 600,
+                fontSize: '0.8125rem',
+                opacity: targetDate === todayStr ? 0.6 : 1,
+              }}
+            >
+              Today
+            </button>
+
+            <button
+              className="btn btn-secondary btn-sm"
+              onClick={() => loadOverview(targetDate)}
+              disabled={loading}
+              title="Refresh data"
+              style={{ borderRadius: 10, padding: '6px 12px' }}
+            >
+              <RefreshCw size={14} className={loading ? 'animate-spin' : ''} />
+            </button>
+          </div>
+        </div>
+
+        {/* KPI Stat Cards */}
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(140px, 1fr))', gap: 12, marginBottom: 20 }}>
+          <div style={{ background: '#f8fafc', border: '1px solid #e2e8f0', borderRadius: 14, padding: '12px 16px' }}>
+            <div style={{ fontSize: '0.75rem', fontWeight: 600, color: '#64748b', textTransform: 'uppercase', letterSpacing: '0.04em' }}>Total Staff</div>
+            <div style={{ fontSize: '1.4rem', fontWeight: 800, color: '#0f172a', marginTop: 4 }}>{stats.total}</div>
+          </div>
+          <div style={{ background: '#f0fdf4', border: '1px solid #bbf7d0', borderRadius: 14, padding: '12px 16px' }}>
+            <div style={{ fontSize: '0.75rem', fontWeight: 600, color: '#15803d', textTransform: 'uppercase', letterSpacing: '0.04em' }}>Present</div>
+            <div style={{ fontSize: '1.4rem', fontWeight: 800, color: '#16a34a', marginTop: 4 }}>{stats.presentTotal}</div>
+          </div>
+          <div style={{ background: '#fffbeb', border: '1px solid #fde68a', borderRadius: 14, padding: '12px 16px' }}>
+            <div style={{ fontSize: '0.75rem', fontWeight: 600, color: '#b45309', textTransform: 'uppercase', letterSpacing: '0.04em' }}>In Progress</div>
+            <div style={{ fontSize: '1.4rem', fontWeight: 800, color: '#d97706', marginTop: 4 }}>{stats.notClockedOut}</div>
+          </div>
+          <div style={{ background: '#eff6ff', border: '1px solid #bfdbfe', borderRadius: 14, padding: '12px 16px' }}>
+            <div style={{ fontSize: '0.75rem', fontWeight: 600, color: '#1d4ed8', textTransform: 'uppercase', letterSpacing: '0.04em' }}>On Leave</div>
+            <div style={{ fontSize: '1.4rem', fontWeight: 800, color: '#2563eb', marginTop: 4 }}>{stats.onLeave}</div>
+          </div>
+          <div style={{ background: '#fef2f2', border: '1px solid #fecaca', borderRadius: 14, padding: '12px 16px' }}>
+            <div style={{ fontSize: '0.75rem', fontWeight: 600, color: '#b91c1c', textTransform: 'uppercase', letterSpacing: '0.04em' }}>Absent</div>
+            <div style={{ fontSize: '1.4rem', fontWeight: 800, color: '#dc2626', marginTop: 4 }}>{stats.absent}</div>
+          </div>
+        </div>
+
+        {/* Search & Filters */}
+        <div style={{ display: 'flex', gap: 12, flexWrap: 'wrap', marginBottom: 16 }}>
+          <div style={{ position: 'relative', flex: '1 1 220px', minWidth: 0 }}>
+            <Search size={15} style={{ position: 'absolute', left: 12, top: '50%', transform: 'translateY(-50%)', color: 'var(--text-muted)' }} />
+            <input
+              className="input-field"
+              style={{ paddingLeft: 34 }}
+              placeholder="Search by employee name or department..."
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+            />
+            {searchTerm && (
+              <button
+                onClick={() => setSearchTerm('')}
+                style={{ position: 'absolute', right: 10, top: '50%', transform: 'translateY(-50%)', background: 'none', border: 'none', cursor: 'pointer', color: 'var(--text-muted)' }}
+              >
+                <X size={14} />
+              </button>
+            )}
+          </div>
+
+          <select
+            className="input-field"
+            style={{ flex: '1 1 180px', minWidth: 0 }}
+            value={deptFilter}
+            onChange={(e) => setDeptFilter(e.target.value)}
+          >
+            <option value="">All Departments</option>
+            {departments.map((dept) => (
+              <option key={dept} value={dept}>{dept}</option>
+            ))}
+          </select>
+
+          <select
+            className="input-field"
+            style={{ flex: '1 1 180px', minWidth: 0 }}
+            value={statusFilter}
+            onChange={(e) => setStatusFilter(e.target.value)}
+          >
+            <option value="">All Statuses</option>
+            <option value="Present">Present</option>
+            <option value="Present (Not Clocked Out)">Present (Not Clocked Out)</option>
+            <option value="On Leave">On Leave</option>
+            <option value="Absent">Absent</option>
+          </select>
+
+          {(searchTerm || deptFilter || statusFilter) && (
+            <button
+              className="btn btn-secondary btn-sm"
+              onClick={() => { setSearchTerm(''); setDeptFilter(''); setStatusFilter(''); }}
+              style={{ borderRadius: 10 }}
+            >
+              Clear Filters
+            </button>
+          )}
+        </div>
+
+        {/* Table Area */}
+        {loading ? (
+          <div style={{ padding: '60px 20px', textAlign: 'center', color: '#64748b' }}>
+            <div className="animate-spin" style={{ width: 28, height: 28, border: '3px solid #e2e8f0', borderTopColor: '#2563eb', borderRadius: '50%', margin: '0 auto 12px' }} />
+            <p style={{ fontSize: '0.9rem', fontWeight: 500 }}>Loading attendance overview for {formatDisplayDate(targetDate)}...</p>
+          </div>
+        ) : error ? (
+          <div style={{ padding: '40px 20px', textAlign: 'center', background: '#fef2f2', borderRadius: 12, border: '1px solid #fecaca' }}>
+            <p style={{ color: '#dc2626', fontWeight: 600, marginBottom: 12 }}>{error}</p>
+            <button className="btn btn-primary btn-sm" onClick={() => loadOverview(targetDate)}>
+              Retry
+            </button>
+          </div>
+        ) : (
+          <>
+            <div style={{ overflowX: 'auto' }}>
+              <table className="data-table">
+                <thead>
+                  <tr>
+                    <th
+                      onClick={() => handleSort('employee_name')}
+                      style={{ cursor: 'pointer', userSelect: 'none', whiteSpace: 'nowrap' }}
+                    >
+                      <div style={{ display: 'inline-flex', alignItems: 'center', gap: 6 }}>
+                        Employee
+                        {sortField === 'employee_name' ? (
+                          sortDirection === 'asc' ? <ArrowUp size={14} /> : <ArrowDown size={14} />
+                        ) : (
+                          <ArrowUpDown size={14} style={{ opacity: 0.3 }} />
+                        )}
+                      </div>
+                    </th>
+                    <th
+                      onClick={() => handleSort('department')}
+                      style={{ cursor: 'pointer', userSelect: 'none', whiteSpace: 'nowrap' }}
+                    >
+                      <div style={{ display: 'inline-flex', alignItems: 'center', gap: 6 }}>
+                        Department
+                        {sortField === 'department' ? (
+                          sortDirection === 'asc' ? <ArrowUp size={14} /> : <ArrowDown size={14} />
+                        ) : (
+                          <ArrowUpDown size={14} style={{ opacity: 0.3 }} />
+                        )}
+                      </div>
+                    </th>
+                    <th
+                      onClick={() => handleSort('check_in')}
+                      style={{ cursor: 'pointer', userSelect: 'none', whiteSpace: 'nowrap' }}
+                    >
+                      <div style={{ display: 'inline-flex', alignItems: 'center', gap: 6 }}>
+                        Check-in
+                        {sortField === 'check_in' ? (
+                          sortDirection === 'asc' ? <ArrowUp size={14} /> : <ArrowDown size={14} />
+                        ) : (
+                          <ArrowUpDown size={14} style={{ opacity: 0.3 }} />
+                        )}
+                      </div>
+                    </th>
+                    <th
+                      onClick={() => handleSort('check_out')}
+                      style={{ cursor: 'pointer', userSelect: 'none', whiteSpace: 'nowrap' }}
+                    >
+                      <div style={{ display: 'inline-flex', alignItems: 'center', gap: 6 }}>
+                        Check-out
+                        {sortField === 'check_out' ? (
+                          sortDirection === 'asc' ? <ArrowUp size={14} /> : <ArrowDown size={14} />
+                        ) : (
+                          <ArrowUpDown size={14} style={{ opacity: 0.3 }} />
+                        )}
+                      </div>
+                    </th>
+                    <th
+                      onClick={() => handleSort('status')}
+                      style={{ cursor: 'pointer', userSelect: 'none', whiteSpace: 'nowrap' }}
+                    >
+                      <div style={{ display: 'inline-flex', alignItems: 'center', gap: 6 }}>
+                        Status
+                        {sortField === 'status' ? (
+                          sortDirection === 'asc' ? <ArrowUp size={14} /> : <ArrowDown size={14} />
+                        ) : (
+                          <ArrowUpDown size={14} style={{ opacity: 0.3 }} />
+                        )}
+                      </div>
+                    </th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {sortedEmployees.map((emp) => (
+                    <tr key={emp.employee_id || emp.employee_name}>
+                      <td style={{ whiteSpace: 'nowrap' }}>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+                          <div
+                            style={{
+                              width: 32,
+                              height: 32,
+                              borderRadius: '50%',
+                              background: '#eff6ff',
+                              color: '#2563eb',
+                              display: 'flex',
+                              alignItems: 'center',
+                              justifyContent: 'center',
+                              fontWeight: 700,
+                              fontSize: '0.75rem',
+                              flexShrink: 0,
+                            }}
+                          >
+                            {getInitials(emp.employee_name)}
+                          </div>
+                          <div>
+                            <div style={{ fontWeight: 600, color: '#0f172a' }}>
+                              {emp.employee_name}
+                            </div>
+                          </div>
+                        </div>
+                      </td>
+                      <td style={{ whiteSpace: 'nowrap', color: emp.department ? '#334155' : 'var(--text-muted)' }}>
+                        {emp.department || '—'}
+                      </td>
+                      <td style={{ whiteSpace: 'nowrap', fontWeight: emp.check_in ? 600 : 400, color: emp.check_in ? '#0f172a' : 'var(--text-muted)' }}>
+                        {formatISTTime(emp.check_in)}
+                      </td>
+                      <td style={{ whiteSpace: 'nowrap', fontWeight: emp.check_out ? 600 : 400, color: emp.check_out ? '#0f172a' : 'var(--text-muted)' }}>
+                        {formatISTTime(emp.check_out)}
+                      </td>
+                      <td style={{ whiteSpace: 'nowrap' }}>
+                        <DailyStatusBadge status={emp.status} leaveType={emp.leave_type} />
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+
+            {sortedEmployees.length === 0 && (
+              <div className="empty-state" style={{ padding: '48px 24px', textAlign: 'center' }}>
+                <Users size={44} style={{ color: 'var(--text-muted)', marginBottom: 12 }} />
+                <p style={{ fontWeight: 600, color: 'var(--text-secondary)', fontSize: '0.95rem' }}>No employees found.</p>
+                {(searchTerm || deptFilter || statusFilter) && (
+                  <p style={{ color: 'var(--text-muted)', fontSize: '0.8125rem', marginTop: 4 }}>
+                    Try adjusting or clearing your search / filter criteria.
+                  </p>
+                )}
+              </div>
+            )}
+          </>
+        )}
+      </div>
+    </div>
+  );
 }
 
 function formatHours(hours) {
@@ -117,7 +696,18 @@ export default function Attendance() {
   const { user } = useAuth();
   const canApprove = !!user?.permissions?.['attendance:approve'];
   const isAdmin = user?.role_name === 'Admin';
-  const [tab, setTab] = useState('log');
+  const [searchParams, setSearchParams] = useSearchParams();
+  const initialTab = searchParams.get('tab') || 'log';
+  const [tab, setTab] = useState(initialTab);
+
+  const handleTabChange = (newTab) => {
+    setTab(newTab);
+    setSearchParams((prev) => {
+      const p = new URLSearchParams(prev);
+      p.set('tab', newTab);
+      return p;
+    });
+  };
 
   const [clockedIn, setClockedIn] = useState(false);
   const [loading, setLoading] = useState(false);
@@ -535,13 +1125,14 @@ export default function Attendance() {
       <div style={{ display: 'flex', gap: 10, marginBottom: 24, flexWrap: 'wrap' }}>
         {[
           { key: 'log', label: 'My Timesheet', icon: Clock },
+          ...(canApprove ? [{ key: 'daily-overview', label: 'Daily Overview', icon: CalendarDays }] : []),
           { key: 'regularization', label: `Regularization ${isAdmin && pendingRegularizations.length > 0 ? `(${pendingRegularizations.length})` : ''}`, icon: CalendarClock },
           { key: 'overtime', label: `Overtime ${canApprove && pendingOvertime.length > 0 ? `(${pendingOvertime.length})` : ''}`, icon: Timer },
           ...(canApprove ? [{ key: 'employee-records', label: 'Employee Records', icon: Users }] : []),
         ].map((item) => (
           <button
             key={item.key}
-            onClick={() => setTab(item.key)}
+            onClick={() => handleTabChange(item.key)}
             style={{
               display: 'inline-flex',
               alignItems: 'center',
@@ -563,6 +1154,11 @@ export default function Attendance() {
           </button>
         ))}
       </div>
+
+      {/* Daily Overview Tab (Admin/Manager) */}
+      {tab === 'daily-overview' && canApprove && (
+        <DailyAttendanceOverview />
+      )}
 
       {/* My Timesheet Tab */}
       {tab === 'log' && (

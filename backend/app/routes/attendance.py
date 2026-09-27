@@ -324,3 +324,20 @@ def delete_holiday(
         raise HTTPException(status_code=404, detail="Holiday not found")
     db.delete(holiday)
     db.commit()
+
+
+@router.get("/daily-overview")
+def get_daily_overview(
+    target_date: date | None = None,
+    db: Session = Depends(get_db),
+    company_id: UUID = Depends(get_company_id),
+    current_user: UserAccount = Depends(get_current_user),
+):
+    """Day-wise view across ALL employees: who clocked in/out at what time,
+    who's on leave, who's absent. Admin/Manager/HR Manager only — same
+    attendance:approve gate as /records and /employee-overview."""
+    if not current_user.merged_permissions.get("attendance:approve"):
+        raise HTTPException(status_code=403, detail="Insufficient permissions")
+    d = target_date or date.today()
+    svc = AttendanceService(db, company_id)
+    return svc.get_daily_overview(d)

@@ -415,3 +415,50 @@ class AttendanceService:
             "shift_info": shift_info,
             "days": days,
         }
+
+    def get_daily_overview(self, target_date: date) -> dict:
+        """Company-wide view for one day: every active employee with their
+        clock-in/out times (or leave/absent status). Flip of get_employee_overview
+        — one day, all employees, instead of one employee, all days."""
+        from app.repositories.employee_repo import EmployeeRepository
+        from app.repositories.leave_repo import LeaveRequestRepository
+
+        employees = EmployeeRepository(self.db, self.company_id).get_directory(limit=1000)
+        records = self.repo.get_by_date_range(target_date, target_date, employee_id=None)
+
+        records_by_emp: dict[UUID, list] = defaultdict(list)
+        for rec in records:
+            if _local_date(rec.clock_in) == target_date:
+                records_by_emp[rec.employee_id].append(rec)
+
+        leaves = LeaveRequestRepository(self.db, self.company_id).get_overlapping_range(target_date, target_date)
+        leave_by_emp = {
+            lr.employee_id: lr.leave_type.name if lr.leave_type else "Leave"
+            for lr in leaves if lr.status == "approved"
+        }
+
+        rows = []
+        for emp in employees:
+            sessions = sorted(records_by_emp.get(emp.id, []), key=lambda r: r.clock_in)
+            first_in = sessions[0].clock_in if sessions else None
+            last_out = sessions[-1].clock_out if sessions and sessions[-1].clock_out else None
+
+            if leave_by_emp.get(emp.id):
+                status = "On Leave"
+            elif sessions:
+                status = "Present" if last_out else "Present (Not Clocked Out)"
+            else:
+                status = "Absent"
+
+            rows.append({
+                "employee_id": str(emp.id),
+                "employee_name": emp.full_name,
+                "department": emp.department.name if emp.department else None,
+                "check_in": first_in,
+                "check_out": last_out,
+                "session_count": len(sessions),
+                "status": status,
+                "leave_type": leave_by_emp.get(emp.id),
+            })
+
+        return {"date": target_date, "employees": rows}
