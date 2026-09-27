@@ -106,7 +106,9 @@ export default function Dashboard() {
   const canApprove = !!user?.permissions?.['leave:approve'];
   const canSeeLiveStatus = !!user?.permissions?.['attendance:approve'];
   const canPostAnnouncement = !!user?.permissions?.['settings:write'];
-  const isAdminOrManager = user?.role === 'admin' || user?.role === 'super_admin' || canApprove;
+  const isAdmin = user?.role_name === 'Admin' || !!user?.permissions?.['settings:write'];
+  const isManager = user?.role_name === 'Manager' || canApprove || canSeeLiveStatus;
+  const isAdminOrManager = isAdmin || isManager;
 
   const [summary, setSummary] = useState(null);
   const [attendanceOverview, setAttendanceOverview] = useState([]);
@@ -132,6 +134,7 @@ export default function Dashboard() {
   const loadAnnouncements = (limit = announcementLimit) => getAnnouncements(limit).then((r) => setAnnouncements(r.data)).catch(() => { });
 
   useEffect(() => {
+    if (!user) return; // wait for AuthContext to resolve before fetching
     getDashboardSummary().then((r) => setSummary(r.data)).catch(() => { });
     getAttendanceOverview(7).then((r) => setAttendanceOverview(r.data)).catch(() => { });
     getLeaveSummary().then((r) => setLeaveSummary(processLeaveSummary(r.data))).catch(() => { });
@@ -162,7 +165,7 @@ export default function Dashboard() {
         })
         .catch(() => { });
     }
-  }, [user]);
+  }, [user?.id, canApprove, canSeeLiveStatus]);
 
   useEffect(() => {
     loadAnnouncements(announcementLimit);

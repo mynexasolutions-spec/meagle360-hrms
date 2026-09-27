@@ -30,6 +30,7 @@ const ActionTracker = lazy(() => import('./pages/ActionTracker'));
 const OfferLetterStudio = lazy(() => import('./pages/OfferLetterStudio'));
 const RelievingLetterStudio = lazy(() => import('./pages/RelievingLetterStudio'));
 const Subscriptions = lazy(() => import('./pages/Subscriptions'));
+const Helpdesk = lazy(() => import('./pages/Helpdesk'));
 
 function ProtectedRoute({ children }) {
   const { user, loading, isPlanExpired } = useAuth();
@@ -66,7 +67,10 @@ function PublicPlatformRoute({ children }) {
 // Gate a route behind one or more permission keys (any-of). Complements the
 // sidebar's nav filtering with real route-level enforcement.
 function RequirePermission({ permission, children }) {
-  const { user } = useAuth();
+  const { user, loading } = useAuth();
+  if (loading) return null;
+  const isAdmin = user?.role_name === 'Admin' || user?.role?.name === 'Admin' || !!user?.permissions?.['settings:write'];
+  if (isAdmin) return children;
   const perms = user?.permissions || {};
   const required = Array.isArray(permission) ? permission : [permission];
   const allowed = required.some((p) => perms[p]);
@@ -95,67 +99,61 @@ function AppRoutes() {
         </Route>
 
         {/* Dashboard Routes */}
-        <Route element={<ProtectedRoute><DashboardLayout /></ProtectedRoute>}>
-          <Route path="/" element={<Dashboard />} />
+        <Route path="/" element={<ProtectedRoute><DashboardLayout /></ProtectedRoute>}>
+          <Route index element={<Dashboard />} />
           <Route
-            path="/employees"
+            path="employees"
             element={
-              <RequirePermission permission="settings:write">
+              <RequirePermission permission={['employees:read', 'settings:write']}>
                 <EmployeeDirectory />
               </RequirePermission>
             }
           />
-          <Route path="/employees/:id" element={<EmployeeProfile />} />
-          <Route path="/offer-letter" element={<OfferLetterStudio />} />
-          <Route path="/relieving-letter" element={<RelievingLetterStudio />} />
-          <Route path="/attendance" element={<Attendance />} />
-          <Route path="/leave" element={<LeaveManagement />} />
+          <Route path="employees/:id" element={<EmployeeProfile />} />
+          <Route path="offer-letter" element={<RequirePermission permission="settings:write"><OfferLetterStudio /></RequirePermission>} />
+          <Route path="relieving-letter" element={<RequirePermission permission="settings:write"><RelievingLetterStudio /></RequirePermission>} />
+          <Route path="attendance" element={<Attendance />} />
+          <Route path="leave" element={<LeaveManagement />} />
+          <Route path="expenses" element={<ExpenseManagement />} />
           <Route
-            path="/expenses"
+            path="shifts"
             element={
-              <RequirePermission permission="expenses:read">
-                <ExpenseManagement />
-              </RequirePermission>
-            }
-          />
-          <Route
-            path="/shifts"
-            element={
-              <RequirePermission permission="shifts:read">
+              <RequirePermission permission={['shifts:read', 'attendance:approve', 'settings:write']}>
                 <ShiftManagement />
               </RequirePermission>
             }
           />
-          <Route path="/org-chart" element={<Navigate to="/employees?tab=organization" replace />} />
-          <Route path="/documents" element={<Documents />} />
-          <Route path="/profile" element={<MyProfile />} />
-          <Route path="/my-payslips" element={<MyPayslips />} />
-          <Route path="/action-tracker" element={<ActionTracker />} />
+          <Route path="org-chart" element={<Navigate to="/employees?tab=organization" replace />} />
+          <Route path="documents" element={<Documents />} />
+          <Route path="profile" element={<MyProfile />} />
+          <Route path="my-payslips" element={<MyPayslips />} />
+          <Route path="action-tracker" element={<ActionTracker />} />
           <Route
-            path="/payroll"
+            path="payroll"
             element={
-              <RequirePermission permission="payroll:read">
+              <RequirePermission permission={['payroll:read', 'settings:write']}>
                 <PayrollManagement />
               </RequirePermission>
             }
           />
           <Route
-            path="/reports"
+            path="reports"
             element={
-              <RequirePermission permission={['leave:approve', 'settings:write']}>
+              <RequirePermission permission={['leave:approve', 'attendance:approve', 'settings:write']}>
                 <ReportsAnalytics />
               </RequirePermission>
             }
           />
           <Route
-            path="/settings"
+            path="settings"
             element={
               <RequirePermission permission="settings:write">
                 <Settings />
               </RequirePermission>
             }
           />
-          <Route path="/subscriptions" element={<Subscriptions />} />
+          <Route path="subscriptions" element={<Subscriptions />} />
+          <Route path="helpdesk" element={<Helpdesk />} />
         </Route>
 
         {/* Catch-all */}

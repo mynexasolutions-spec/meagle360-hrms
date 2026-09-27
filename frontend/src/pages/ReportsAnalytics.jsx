@@ -22,11 +22,12 @@ export default function ReportsAnalytics() {
   }, []);
 
   useEffect(() => {
-    getAttendanceOverview(30).then((r) => setAttendanceTrend(r.data)).catch(() => {});
-    getLeaveSummary().then((r) => setLeaveSummary(r.data)).catch(() => {});
+    getAttendanceOverview(30).then((r) => setAttendanceTrend(Array.isArray(r.data) ? r.data : [])).catch(() => {});
+    getLeaveSummary().then((r) => setLeaveSummary(Array.isArray(r.data) ? r.data : [])).catch(() => {});
     getDirectory(0, 1000).then((r) => {
       const counts = {};
-      r.data.forEach((e) => {
+      const list = Array.isArray(r.data) ? r.data : [];
+      list.forEach((e) => {
         const dept = e.department_name || 'Unassigned';
         counts[dept] = (counts[dept] || 0) + 1;
       });

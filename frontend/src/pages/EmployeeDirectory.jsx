@@ -72,14 +72,15 @@ export default function EmployeeDirectory() {
     if (canInvite) {
       getRoles().then((res) => setRoles(res.data)).catch(() => { });
     }
-  }, []);
+  }, [user?.id, canInvite]);
 
   const loadEmployees = async () => {
     try {
       const res = await getDirectory();
-      setEmployees(res.data);
+      setEmployees(Array.isArray(res?.data) ? res.data : []);
     } catch (e) {
       console.error(e);
+      setEmployees([]);
     }
   };
 

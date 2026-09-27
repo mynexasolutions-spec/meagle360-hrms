@@ -168,12 +168,13 @@ export default function Attendance() {
   const [otForm, setOtForm] = useState({ request_date: '', hours: '', reason: '' });
 
   useEffect(() => {
+    if (!user) return;
     if (user?.employee_id) {
       loadRecords();
+      loadTimesheet();
     }
     loadRegularizations();
     loadOvertime();
-    loadTimesheet();
     if (canApprove) {
       getDirectory().then((res) => setErEmployees(res.data)).catch(() => {});
       getDepartments().then((res) => setErDepartments(res.data)).catch(() => {});
@@ -183,11 +184,13 @@ export default function Attendance() {
     if (isAdmin) {
       getMyCompany().then((res) => setCompany(res.data)).catch(() => {});
     }
-  }, [user?.employee_id]);
+  }, [user?.id, user?.employee_id, canApprove, isAdmin]);
 
   useEffect(() => {
-    loadTimesheet();
-  }, [selectedYear, selectedMonth]);
+    if (user?.employee_id) {
+      loadTimesheet();
+    }
+  }, [selectedYear, selectedMonth, user?.employee_id]);
 
   useEffect(() => {
     if (erEmployeeId) loadErData();

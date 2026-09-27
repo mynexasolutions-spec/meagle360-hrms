@@ -127,6 +127,7 @@ export default function MyPayslips() {
   const [printingId, setPrintingId] = useState(null);
 
   useEffect(() => {
+    if (!user) return;
     getMyPayslips()
       .then((r) => {
         setPayslips(r.data || []);
@@ -139,7 +140,7 @@ export default function MyPayslips() {
     getMyCompany()
       .then((r) => setCompany(r.data))
       .catch(() => { });
-  }, []);
+  }, [user?.id]);
 
   useEffect(() => {
     if (user?.employee_id) {

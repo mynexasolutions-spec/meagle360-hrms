@@ -13,6 +13,7 @@ import {
   Wallet,
   Crown,
   AlertTriangle,
+  LifeBuoy,
 } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 
@@ -22,15 +23,16 @@ import { useAuth } from '../context/AuthContext';
 // Items with no `permission` are visible to everyone.
 const NAV_CONFIG = [
   { path: '/', label: 'Dashboard', icon: LayoutDashboard },
-  { path: '/employees', label: 'Employee Directory', icon: Users, permission: 'settings:write' },
-  { path: '/attendance', label: 'Attendance', icon: Clock, permission: 'attendance:read' },
-  { path: '/leave', label: 'Leave', icon: CalendarDays, permission: 'leave:read' },
-  { path: '/expenses', label: 'Expenses', icon: Receipt, permission: 'expenses:read' },
-  { path: '/payroll', label: 'Payroll', icon: Wallet, permission: 'payroll:read' },
-  { path: '/my-payslips', label: 'My Payslips', icon: Wallet, hideIfPermission: 'payroll:read', hideIfAdmin: true },
-  { path: '/shifts', label: 'Shifts', icon: GitBranch, permission: 'shifts:read' },
+  { path: '/employees', label: 'Employee Directory', icon: Users, permission: ['employees:read', 'settings:write'] },
+  { path: '/attendance', label: 'Attendance', icon: Clock },
+  { path: '/leave', label: 'Leave', icon: CalendarDays },
+  { path: '/expenses', label: 'Expenses', icon: Receipt },
+  { path: '/payroll', label: 'Payroll', icon: Wallet, permission: ['payroll:read', 'settings:write'] },
+  { path: '/my-payslips', label: 'My Payslips', icon: Wallet, hideIfAdmin: true, hideIfPermission: 'settings:write' },
+  { path: '/shifts', label: 'Shifts', icon: GitBranch, permission: ['shifts:read', 'attendance:approve', 'settings:write'] },
   { path: '/documents', label: 'Documents', icon: FileText, hideIfAdmin: true, hideIfPermission: 'settings:write' },
   { path: '/reports', label: 'Reports & Analytics', icon: BarChart3, permission: ['leave:approve', 'settings:write'] },
+  { path: '/helpdesk', label: 'Helpdesk', icon: LifeBuoy },
   { path: '/settings', label: 'Settings', icon: Settings, permission: 'settings:write' },
   { path: '/profile', label: 'My Profile', icon: UserCircle },
   { path: '/subscriptions', label: 'Subscriptions', icon: Crown, permission: 'settings:write' },
@@ -47,6 +49,7 @@ function isItemVisible(item, permissions, roleName, isPlanExpired) {
     const hideList = Array.isArray(item.hideIfPermission) ? item.hideIfPermission : [item.hideIfPermission];
     if (hideList.some((p) => perms[p])) return false;
   }
+  if (isAdmin) return true;
   if (!item.permission) return true;
   const list = Array.isArray(item.permission) ? item.permission : [item.permission];
   return list.some((p) => perms[p]);

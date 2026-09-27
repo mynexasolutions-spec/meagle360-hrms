@@ -40,7 +40,7 @@ export function AuthProvider({ children }) {
           const userData = res.data;
           setUser(userData);
           // Check subscription proactively if user is Admin
-          if (userData?.role?.name === 'Admin' || userData?.permissions?.['settings:write']) {
+          if (userData?.role_name === 'Admin' || userData?.permissions?.['settings:write']) {
             await fetchSubscription();
           }
         })

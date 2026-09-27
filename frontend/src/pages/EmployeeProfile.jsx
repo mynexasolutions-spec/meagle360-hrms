@@ -101,7 +101,7 @@ export default function EmployeeProfile() {
       getGratuityStatus(id).then((res) => setGratuity(res.data)).catch(() => {});
       getFnfForEmployee(id).then((res) => setFnf(res.data)).catch(() => {});
     }
-  }, [id]);
+  }, [id, user?.id, canManageRoles, canViewPayroll]);
 
   const load = async () => {
     setLoading(true);

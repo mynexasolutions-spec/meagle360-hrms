@@ -51,7 +51,7 @@ export default function Login() {
       console.log('[Login] getMe() succeeded:', meRes.data);
 
       let subData = null;
-      if (meRes.data?.role?.name === 'Admin' || meRes.data?.permissions?.['settings:write']) {
+      if (meRes.data?.role_name === 'Admin' || meRes.data?.permissions?.['settings:write']) {
         try {
           const subRes = await getMySubscription();
           subData = subRes.data;

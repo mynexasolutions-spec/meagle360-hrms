@@ -35,7 +35,7 @@ export default function ShiftManagement() {
       }
       setEmployees(emps);
     }).catch(() => {});
-  }, [isAdmin, user?.employee_id]);
+  }, [user?.id, isAdmin, user?.employee_id]);
 
   const loadData = async () => {
     try {

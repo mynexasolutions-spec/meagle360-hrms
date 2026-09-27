@@ -24,8 +24,9 @@ export default function ExpenseManagement() {
   const [submitBtnHover, setSubmitBtnHover] = useState(false);
 
   useEffect(() => {
+    if (!user) return;
     loadData();
-  }, []);
+  }, [user?.id, canApprove]);
 
   const loadData = async () => {
     try {

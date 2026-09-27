@@ -49,7 +49,7 @@ export default function ActionTracker() {
     if (canCreateTask) {
       client.get('/employees/').then((r) => setEmployees(r.data || [])).catch(() => {});
     }
-  }, [canCreateTask]);
+  }, [user?.id, canCreateTask]);
 
   const loadData = async () => {
     setLoading(true);

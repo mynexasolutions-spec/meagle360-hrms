@@ -18,8 +18,8 @@ if db_url and db_url.startswith("postgres://"):
 engine = create_engine(
     db_url,
     pool_pre_ping=True,
-    pool_size=3,
-    max_overflow=2,
+    pool_size=10,
+    max_overflow=10,
     pool_recycle=300,
     echo=settings.DEBUG,
 )

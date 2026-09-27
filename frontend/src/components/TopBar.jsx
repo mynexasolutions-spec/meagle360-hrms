@@ -17,15 +17,16 @@ export default function TopBar({ onToggleSidebar }) {
   const canApprove = !!user?.permissions?.['leave:approve'];
 
   useEffect(() => {
+    if (!user) return;
     if (canApprove) {
       getPendingRequests()
-        .then((res) => setPendingCount(res.data.length))
+        .then((res) => setPendingCount(Array.isArray(res.data) ? res.data.length : 0))
         .catch(() => setPendingCount(0));
     }
     getMyCompany()
       .then((res) => setCompany(res.data))
       .catch(() => setCompany(null));
-  }, [canApprove]);
+  }, [user?.id, canApprove]);
 
   useEffect(() => {
     const handleClickOutside = (e) => {
@@ -120,7 +121,11 @@ export default function TopBar({ onToggleSidebar }) {
         )}
       </button>
 
-      <button className="btn-icon btn-ghost topbar-help topbar-icon-btn" title="Help">
+      <button
+        className="btn-icon btn-ghost topbar-help topbar-icon-btn"
+        title="Help & Support"
+        onClick={() => navigate('/helpdesk')}
+      >
         <HelpCircle size={20} />
       </button>
 

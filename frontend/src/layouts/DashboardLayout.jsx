@@ -1,8 +1,9 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, Suspense } from 'react';
 import { Outlet, useLocation, Link } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import Sidebar from '../components/Sidebar';
 import TopBar from '../components/TopBar';
+import LoadingScreen from '../components/LoadingScreen';
 import { ChevronRight, X } from 'lucide-react';
 
 import BottomNav from '../components/BottomNav';
@@ -185,7 +186,9 @@ export default function DashboardLayout() {
       <div className={`app-main ${!sidebarOpen ? 'sidebar-collapsed' : ''}`}>
         <TopBar onToggleSidebar={handleToggleSidebar} />
         <main className="app-content">
-          <Outlet />
+          <Suspense fallback={<LoadingScreen subtitle="Loading workspace..." />}>
+            <Outlet />
+          </Suspense>
         </main>
       </div>
 

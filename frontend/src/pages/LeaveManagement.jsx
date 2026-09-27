@@ -39,32 +39,42 @@ export default function LeaveManagement() {
   });
 
   useEffect(() => {
+    if (!user) return;
+    setTab(isAdmin ? 'approvals' : 'my-leave');
     loadData();
-  }, []);
+  }, [user?.id, isAdmin, canApprove, canManageBalances]);
 
   useEffect(() => {
     if (tab === 'history' && (canApprove || isAdmin)) loadHistory();
-  }, [tab, historyFilters]);
+  }, [tab, historyFilters, canApprove, isAdmin]);
 
   const loadData = async () => {
+    if (!user) return;
     try {
-      const [pendRes, typesRes] = await Promise.all([
-        getPendingRequests().catch(() => ({ data: [] })),
+      const promises = [
         getLeaveTypes().catch(() => ({ data: [] })),
-      ]);
-      setPending(pendRes.data);
-      setTypes(typesRes.data);
+      ];
+      if (canApprove || isAdmin) {
+        promises.push(getPendingRequests().catch(() => ({ data: [] })));
+      } else {
+        promises.push(Promise.resolve({ data: [] }));
+      }
+
+      const [typesRes, pendRes] = await Promise.all(promises);
+      setTypes(typesRes.data || []);
+      setPending(pendRes.data || []);
+
       if (!isAdmin) {
         const [balRes, myRes] = await Promise.all([
           getLeaveBalance().catch(() => ({ data: [] })),
           getMyRequests().catch(() => ({ data: [] })),
         ]);
-        setBalances(balRes.data);
-        setMyRequests(myRes.data);
+        setBalances(balRes.data || []);
+        setMyRequests(myRes.data || []);
       }
       if (canManageBalances || canApprove) {
         const eRes = await getEmployees(0, 500).catch(() => ({ data: [] }));
-        setEmployees(eRes.data);
+        setEmployees(eRes.data || []);
       }
     } catch (e) {
       console.error(e);
