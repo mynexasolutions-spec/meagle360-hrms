@@ -19,6 +19,25 @@ import {
 } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import Modal from './Modal';
+import logoImg from '../assets/logo.jpg';
+
+function MeagleAiLogoIcon({ size = 19 }) {
+  return (
+    <img
+      src={logoImg}
+      alt="Meagle 360 AI"
+      style={{
+        width: size + 2,
+        height: size + 2,
+        borderRadius: 5,
+        objectFit: 'cover',
+        flexShrink: 0,
+        display: 'block',
+        boxShadow: '0 1px 3px rgba(0, 0, 0, 0.25)',
+      }}
+    />
+  );
+}
 
 // permission: a permission key the user must have, or an array (any-of).
 // hideIfPermission: a permission key (or array) which, if present, hides this item.
@@ -36,11 +55,11 @@ const NAV_CONFIG = [
   { path: '/documents', label: 'Documents', icon: FileText, hideIfAdmin: true, hideIfPermission: 'settings:write' },
   { path: '/reports', label: 'Reports & Analytics', icon: BarChart3, permission: ['leave:approve', 'settings:write'] },
   {
-    path: '#ai-assistant',
-    label: 'AI Assistant',
-    icon: Sparkles,
-    badge: 'Soon',
-    disabled: true,
+    path: '/ai-assistant',
+    label: 'Meagle 360 AI',
+    icon: MeagleAiLogoIcon,
+    badge: 'AI',
+    permission: ['attendance:approve', 'leave:approve', 'employees:read', 'settings:write'],
   },
   { path: '/helpdesk', label: 'Helpdesk', icon: LifeBuoy },
   { path: '/settings', label: 'Settings', icon: Settings, permission: 'settings:write' },
@@ -125,7 +144,12 @@ export default function Sidebar({ sidebarOpen, permissions, roleName }) {
               className={({ isActive }) => `sidebar-link${isActive ? ' active' : ''}`}
             >
               <item.icon size={19} />
-              {sidebarOpen && <span>{item.label}</span>}
+              {sidebarOpen && (
+                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', width: '100%', minWidth: 0, gap: '8px' }}>
+                  <span className="truncate">{item.label}</span>
+                  {item.badge && <span className="sidebar-badge-soon">{item.badge}</span>}
+                </div>
+              )}
             </NavLink>
           );
         })}

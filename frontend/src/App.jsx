@@ -31,6 +31,7 @@ const OfferLetterStudio = lazy(() => import('./pages/OfferLetterStudio'));
 const RelievingLetterStudio = lazy(() => import('./pages/RelievingLetterStudio'));
 const Subscriptions = lazy(() => import('./pages/Subscriptions'));
 const Helpdesk = lazy(() => import('./pages/Helpdesk'));
+const AiAssistant = lazy(() => import('./pages/AiAssistant'));
 
 function ProtectedRoute({ children }) {
   const { user, loading, isPlanExpired } = useAuth();
@@ -154,6 +155,14 @@ function AppRoutes() {
           />
           <Route path="subscriptions" element={<Subscriptions />} />
           <Route path="helpdesk" element={<Helpdesk />} />
+          <Route
+            path="ai-assistant"
+            element={
+              <RequirePermission permission={['attendance:approve', 'leave:approve', 'employees:read', 'settings:write']}>
+                <AiAssistant />
+              </RequirePermission>
+            }
+          />
         </Route>
 
         {/* Catch-all */}

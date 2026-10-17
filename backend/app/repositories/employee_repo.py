@@ -18,6 +18,7 @@ class EmployeeRepository(BaseRepository[Employee]):
             self._scoped_query()
             .options(
                 joinedload(Employee.department),
+                joinedload(Employee.designation),
                 joinedload(Employee.site),
                 joinedload(Employee.user_account).joinedload(UserAccount.role),
                 joinedload(Employee.user_account).joinedload(UserAccount.role_links),

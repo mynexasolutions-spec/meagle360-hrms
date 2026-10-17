@@ -184,8 +184,21 @@ export default function DashboardLayout() {
 
       {/* Main Content Area */}
       <div className={`app-main ${!sidebarOpen ? 'sidebar-collapsed' : ''}`}>
-        <TopBar onToggleSidebar={handleToggleSidebar} />
-        <main className="app-content">
+        {location.pathname !== '/ai-assistant' && <TopBar onToggleSidebar={handleToggleSidebar} />}
+        <main
+          className="app-content"
+          style={
+            location.pathname === '/ai-assistant'
+              ? {
+                  padding: '14px 20px',
+                  height: '100vh',
+                  maxHeight: '100vh',
+                  overflow: 'hidden',
+                  boxSizing: 'border-box',
+                }
+              : undefined
+          }
+        >
           <Suspense fallback={<LoadingScreen subtitle="Loading workspace..." />}>
             <Outlet />
           </Suspense>

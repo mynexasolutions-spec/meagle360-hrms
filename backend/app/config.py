@@ -39,6 +39,15 @@ class Settings(BaseSettings):
     APP_BASE_URL: str = ""
     ALLOWED_ORIGINS: str = ""
 
+    # ── AI Assistant (Groq / OpenAI / Gemini) ─────────────────
+    AI_PROVIDER: str = "groq"
+    GROQ_API_KEY: str = ""
+    AI_MODEL: str = "openai/gpt-oss-120b"
+    AI_FALLBACK_MODEL: str = "openai/gpt-oss-20b"
+    AI_WHISPER_MODEL: str = "whisper-large-v3-turbo"
+    OPENAI_API_KEY: str = ""
+    GEMINI_API_KEY: str = ""
+
     model_config = {
         "env_file": ".env",
         "env_file_encoding": "utf-8",

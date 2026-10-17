@@ -41,3 +41,4 @@ yarn-error.log*
 # Editor / misc
 *.bak
 *.orig
+backup_before_loadtest_cleanup_20260930_1626.dump

@@ -160,7 +160,10 @@ class LeaveRequestRepository(BaseRepository[LeaveRequest]):
         used by the daily attendance overview."""
         return (
             self._scoped_query()
-            .options(joinedload(LeaveRequest.leave_type))
+            .options(
+                joinedload(LeaveRequest.leave_type),
+                joinedload(LeaveRequest.employee),
+            )
             .filter(
                 LeaveRequest.status.in_(["approved", "pending"]),
                 LeaveRequest.start_date <= end,

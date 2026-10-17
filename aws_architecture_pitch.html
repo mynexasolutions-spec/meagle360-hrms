@@ -1,0 +1,597 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>AWS Cloud Architecture, Scaling & Pitch Document | Meagle360 HRMS</title>
+  
+  <!-- Google Fonts & Tailwind CDN -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com">
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+  <script src="https://cdn.tailwindcss.com"></script>
+  
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          fontFamily: {
+            sans: ['"Plus Jakarta Sans"', 'sans-serif'],
+            mono: ['"JetBrains Mono"', 'monospace'],
+          },
+          colors: {
+            aws: {
+              orange: '#FF9900',
+              squid: '#232F3E',
+              blue: '#0073BB',
+              dark: '#141F2E',
+            }
+          }
+        }
+      }
+    }
+  </script>
+
+  <style>
+    @media print {
+      body {
+        background-color: #ffffff !important;
+        color: #111827 !important;
+        font-size: 11pt;
+      }
+      .no-print {
+        display: none !important;
+      }
+      .page-break {
+        page-break-before: always;
+        break-before: page;
+      }
+      .card-box {
+        border: 1px solid #d1d5db !important;
+        background: #ffffff !important;
+        box-shadow: none !important;
+        color: #111827 !important;
+      }
+      .prompt-box {
+        background: #f3f4f6 !important;
+        border-left: 4px solid #f59e0b !important;
+        color: #111827 !important;
+      }
+      .answer-box {
+        background: #ffffff !important;
+        border: 1px solid #e5e7eb !important;
+        color: #111827 !important;
+      }
+      pre, code {
+        background-color: #f3f4f6 !important;
+        color: #111827 !important;
+      }
+    }
+
+    .gradient-hero {
+      background: linear-gradient(135deg, #0f172a 0%, #1e293b 50%, #0f172a 100%);
+    }
+
+    .custom-scroll::-webkit-scrollbar {
+      width: 6px;
+      height: 6px;
+    }
+    .custom-scroll::-webkit-scrollbar-thumb {
+      background: #334155;
+      border-radius: 4px;
+    }
+  </style>
+</head>
+
+<body class="bg-slate-950 text-slate-100 font-sans antialiased min-h-screen">
+
+  <!-- Print Button Bar (Floating) -->
+  <div class="no-print fixed bottom-6 right-6 z-50 flex items-center gap-3">
+    <button onclick="window.print()" class="flex items-center gap-2 bg-gradient-to-r from-amber-500 to-orange-500 hover:from-amber-600 hover:to-orange-600 text-slate-950 font-bold px-6 py-3.5 rounded-full shadow-2xl transition-all transform hover:scale-105 cursor-pointer">
+      <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 17h2a2 2 0 002-2v-4a2 2 0 00-2-2H5a2 2 0 00-2 2v4a2 2 0 002 2h2m2 4h6a2 2 0 002-2v-4a2 2 0 00-2-2H9a2 2 0 00-2 2v4a2 2 0 002 2zm8-12V5a2 2 0 00-2-2H9a2 2 0 00-2 2v4h10z"></path>
+      </svg>
+      <span>Print / Save as PDF</span>
+    </button>
+  </div>
+
+  <div class="max-w-5xl mx-auto px-5 py-10 space-y-12">
+
+    <!-- ========================================== -->
+    <!-- HEADER & COVER SECTION -->
+    <!-- ========================================== -->
+    <header class="gradient-hero border border-slate-800 rounded-3xl p-8 md:p-12 shadow-2xl relative overflow-hidden">
+      <div class="absolute -right-16 -top-16 w-64 h-64 bg-amber-500/10 rounded-full blur-3xl pointer-events-none"></div>
+      <div class="absolute -left-16 -bottom-16 w-64 h-64 bg-blue-500/10 rounded-full blur-3xl pointer-events-none"></div>
+
+      <div class="relative z-10 space-y-4">
+        <div class="flex flex-wrap items-center justify-between gap-4">
+          <span class="px-4 py-1.5 rounded-full text-xs font-bold tracking-wider uppercase bg-amber-500/10 border border-amber-500/30 text-amber-400">
+            Complete Architecture Pitch & Q&A Transcript
+          </span>
+          <span class="text-xs font-mono text-slate-400">Stack: FastAPI (Python) + React + PostgreSQL</span>
+        </div>
+
+        <h1 class="text-3xl md:text-5xl font-extrabold tracking-tight text-white leading-tight">
+          Meagle360 HRMS • AWS Cloud Infrastructure & Scaling Pitch
+        </h1>
+        
+        <p class="text-base md:text-lg text-slate-300 max-w-3xl leading-relaxed">
+          Yeh document team aur group ke samne pitch karne ke liye banaya gaya hai. Isme saare prompts, detailed technical answers (Hinglish version), visual flowcharts, Hostinger comparison, aur scaling analysis word-by-word compiled hain.
+        </p>
+
+        <div class="pt-4 flex flex-wrap items-center gap-6 text-xs md:text-sm text-slate-400 border-t border-slate-800/80">
+          <div><strong class="text-white">Project:</strong> Meagle360 HRMS</div>
+          <div><strong class="text-white">Purpose:</strong> Group Presentation & Infrastructure Proposal</div>
+          <div><strong class="text-white">Format:</strong> Full Q&A Transcript + Visual Architecture</div>
+        </div>
+      </div>
+    </header>
+
+    <!-- ========================================== -->
+    <!-- MASTER VISUAL ARCHITECTURE FLOWCHART -->
+    <!-- ========================================== -->
+    <section class="card-box bg-slate-900/80 border border-slate-800 rounded-2xl p-6 md:p-8 shadow-xl space-y-6">
+      <div class="flex items-center gap-3">
+        <div class="w-10 h-10 rounded-xl bg-amber-500/10 flex items-center justify-center text-amber-400 font-bold text-lg border border-amber-500/20">
+          ⚡
+        </div>
+        <div>
+          <h2 class="text-2xl font-bold text-white">Full-Stack High Availability Architecture Diagram</h2>
+          <p class="text-sm text-slate-400">HRMS Request flow from Users to Load Balancer, Multi-AZ EC2, and RDS PostgreSQL</p>
+        </div>
+      </div>
+
+      <!-- VISUAL ARCHITECTURE FLOWCHART -->
+      <div class="bg-slate-950 p-6 rounded-xl border border-slate-800/80 space-y-6">
+        
+        <!-- Top: Users -->
+        <div class="flex flex-col items-center">
+          <div class="bg-slate-800 border border-slate-700 px-6 py-2.5 rounded-lg font-semibold text-sm text-slate-200 flex items-center gap-2">
+            <span>👥</span> Users / Employees / HR (Browser & Mobile Apps)
+          </div>
+          <div class="w-0.5 h-6 bg-amber-500/60 my-1"></div>
+          <div class="text-xs font-mono text-amber-400">HTTPS (SSL via AWS ACM - Port 443)</div>
+          <div class="w-0.5 h-6 bg-amber-500/60 my-1"></div>
+        </div>
+
+        <!-- Middle: AWS Application Load Balancer -->
+        <div class="bg-gradient-to-r from-blue-900/40 via-blue-800/20 to-blue-900/40 border border-blue-600/40 p-4 rounded-xl text-center">
+          <div class="font-bold text-blue-300 text-base flex items-center justify-center gap-2">
+            <span>🌐</span> AWS Application Load Balancer (ALB)
+          </div>
+          <p class="text-xs text-slate-400 mt-1">Health Checks, SSL Termination, & Traffic Distribution across Multi-AZ</p>
+        </div>
+
+        <!-- Branches: Multi-AZ Compute -->
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-6 relative">
+          
+          <!-- AZ 1 -->
+          <div class="bg-slate-900/90 border border-slate-700 p-5 rounded-xl space-y-3 relative">
+            <div class="flex items-center justify-between text-xs font-mono text-emerald-400">
+              <span>Availability Zone A (Datacenter 1)</span>
+              <span class="bg-emerald-500/10 px-2 py-0.5 rounded border border-emerald-500/30">Primary</span>
+            </div>
+            <div class="bg-slate-950 border border-slate-800 p-3 rounded-lg">
+              <div class="font-semibold text-sm text-white flex items-center gap-2">
+                <span>🖥️</span> EC2 Instance 1 (FastAPI Backend)
+              </div>
+              <div class="text-xs text-slate-400 mt-1">Nginx + Uvicorn Service (Port 8000)</div>
+            </div>
+          </div>
+
+          <!-- AZ 2 -->
+          <div class="bg-slate-900/90 border border-slate-700 p-5 rounded-xl space-y-3 relative">
+            <div class="flex items-center justify-between text-xs font-mono text-blue-400">
+              <span>Availability Zone B (Datacenter 2)</span>
+              <span class="bg-blue-500/10 px-2 py-0.5 rounded border border-blue-500/30">Auto Scale-Out</span>
+            </div>
+            <div class="bg-slate-950 border border-slate-800 p-3 rounded-lg">
+              <div class="font-semibold text-sm text-white flex items-center gap-2">
+                <span>🖥️</span> EC2 Instance 2 (FastAPI Backend)
+              </div>
+              <div class="text-xs text-slate-400 mt-1">Auto-spawned during 9:00 AM Punch-in Rush</div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Bottom: RDS Database Layer -->
+        <div class="flex flex-col items-center">
+          <div class="w-0.5 h-6 bg-slate-700 my-1"></div>
+          <div class="text-xs font-mono text-slate-400">Internal Secure VPC Subnet (Port 5432 - No Public Access)</div>
+          <div class="w-0.5 h-6 bg-slate-700 my-1"></div>
+          
+          <div class="w-full bg-gradient-to-r from-purple-950/40 via-purple-900/20 to-purple-950/40 border border-purple-600/40 p-5 rounded-xl">
+            <div class="flex flex-col md:flex-row items-center justify-between gap-4">
+              <div class="space-y-1 text-center md:text-left">
+                <div class="font-bold text-purple-300 text-base flex items-center justify-center md:justify-start gap-2">
+                  <span>🗄️</span> Amazon RDS for PostgreSQL (Multi-AZ Managed Cluster)
+                </div>
+                <div class="text-xs text-slate-400">Primary Database (AZ-A) ── Synchronous Replication ──► Standby Replica (AZ-B)</div>
+              </div>
+              <div class="flex gap-2 text-xs font-mono">
+                <span class="bg-purple-500/20 text-purple-300 px-3 py-1 rounded border border-purple-500/30">Auto Daily Backups</span>
+                <span class="bg-purple-500/20 text-purple-300 px-3 py-1 rounded border border-purple-500/30">60s Auto-Failover</span>
+              </div>
+            </div>
+          </div>
+        </div>
+
+      </div>
+    </section>
+
+    <!-- ================================================================= -->
+    <!-- COMPLETE PROMPT-BY-PROMPT Q&A HINGLISH TRANSCRIPT -->
+    <!-- ================================================================= -->
+
+    <!-- ========================================== -->
+    <!-- QUESTION 1 -->
+    <!-- ========================================== -->
+    <div class="space-y-4 page-break">
+      <!-- Prompt Card -->
+      <div class="prompt-box bg-slate-900 border-l-4 border-amber-500 p-5 rounded-r-xl shadow-md">
+        <div class="text-xs font-mono text-amber-400 font-bold uppercase tracking-wider mb-1">PROMPT 1 (User Request)</div>
+        <p class="text-base text-slate-100 font-semibold italic">
+          "acha agar main aws lagata hoon apne project main toh ise kya faide honge??"
+        </p>
+      </div>
+
+      <!-- Answer Card -->
+      <div class="answer-box bg-slate-900/80 border border-slate-800 p-6 md:p-8 rounded-2xl space-y-5">
+        <div class="text-xs font-mono text-emerald-400 font-bold uppercase tracking-wider">RESPONSE / PITCH CONTENT</div>
+        
+        <p class="text-sm text-slate-300 leading-relaxed">
+          Agar aap apne <strong class="text-white">HRMS project (FastAPI Backend + React Frontend + PostgreSQL)</strong> mein <strong class="text-white">AWS (Amazon Web Services)</strong> use karte hain, toh aapko production-level reliability, security aur scalability ke ye main faide milenge:
+        </p>
+
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-4 text-xs text-slate-300">
+          <div class="bg-slate-950 p-4 rounded-xl border border-slate-800 space-y-2">
+            <div class="font-bold text-amber-400 text-sm">1. Document & Payslip Storage (Amazon S3)</div>
+            <p>Salary slips (PDFs) aur profile photos local disk par save karne par server crash hone se data loss ka risk hota hai. S3 99.999999999% durability deta hai pre-signed secure URLs ke sath.</p>
+          </div>
+          <div class="bg-slate-950 p-4 rounded-xl border border-slate-800 space-y-2">
+            <div class="font-bold text-purple-400 text-sm">2. Managed Database (Amazon RDS - PostgreSQL)</div>
+            <p>Manual database dumps aur slow queries ki tension khatam. Automated daily backups, point-in-time recovery aur 1-click restore milta hai.</p>
+          </div>
+          <div class="bg-slate-950 p-4 rounded-xl border border-slate-800 space-y-2">
+            <div class="font-bold text-blue-400 text-sm">3. High Availability & 24/7 Uptime (EC2)</div>
+            <p>HRMS punch-in aur leave management 24/7 bina crash hue 99.99% uptime ke sath chalta hai.</p>
+          </div>
+          <div class="bg-slate-950 p-4 rounded-xl border border-slate-800 space-y-2">
+            <div class="font-bold text-emerald-400 text-sm">4. Peak Traffic & Auto-Scaling</div>
+            <p>Month-end Payroll Run ya Subah 9:00 AM Login Rush ke waqt auto-scaling extra server add kar leta hai aur rush khatam hone par band karke cost bacha leta hai.</p>
+          </div>
+        </div>
+
+        <div class="overflow-x-auto pt-2">
+          <table class="w-full text-left text-xs border border-slate-800 rounded-lg">
+            <thead class="bg-slate-950 text-slate-400 uppercase font-mono">
+              <tr>
+                <th class="p-3">Component</th>
+                <th class="p-3">HRMS Implementation</th>
+                <th class="p-3 text-amber-400">Best AWS Service</th>
+              </tr>
+            </thead>
+            <tbody class="divide-y divide-slate-800 text-slate-300">
+              <tr><td class="p-3 font-semibold text-white">Frontend</td><td class="p-3">React + Vite UI</td><td class="p-3 text-amber-300">AWS S3 + CloudFront / Amplify</td></tr>
+              <tr><td class="p-3 font-semibold text-white">Backend API</td><td class="p-3">FastAPI + Uvicorn</td><td class="p-3 text-amber-300">AWS EC2 / App Runner / ECS</td></tr>
+              <tr><td class="p-3 font-semibold text-white">Database</td><td class="p-3">PostgreSQL</td><td class="p-3 text-amber-300">Amazon RDS for PostgreSQL</td></tr>
+              <tr><td class="p-3 font-semibold text-white">Security</td><td class="p-3">SSL Certificate & Network</td><td class="p-3 text-amber-300">ACM + AWS VPC</td></tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+
+    <!-- ========================================== -->
+    <!-- QUESTION 2 -->
+    <!-- ========================================== -->
+    <div class="space-y-4 page-break">
+      <!-- Prompt Card -->
+      <div class="prompt-box bg-slate-900 border-l-4 border-amber-500 p-5 rounded-r-xl shadow-md">
+        <div class="text-xs font-mono text-amber-400 font-bold uppercase tracking-wider mb-1">PROMPT 2 (User Request)</div>
+        <p class="text-base text-slate-100 font-semibold italic">
+          "files aur pdfs waale cheez ko chodo kyunki woh hum filal kahin store toh karna nahi rahe uske aalwa aws ka kya kya use karna padega aur coding architectur main kya kya changes honge yeh batao bss.kuch chedna ya change nahi karna hai"
+        </p>
+      </div>
+
+      <!-- Answer Card -->
+      <div class="answer-box bg-slate-900/80 border border-slate-800 p-6 md:p-8 rounded-2xl space-y-5">
+        <div class="text-xs font-mono text-emerald-400 font-bold uppercase tracking-wider">RESPONSE / PITCH CONTENT</div>
+
+        <h3 class="text-lg font-bold text-white">1. AWS ki kaun-kaun si services use karni padengi?</h3>
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-4 text-xs text-slate-300">
+          <div class="bg-slate-950 p-4 rounded-xl border border-slate-800">
+            <strong class="text-amber-400 text-sm block mb-1">① AWS EC2 (Ubuntu Linux Server):</strong>
+            FastAPI backend (Uvicorn/Gunicorn) run karega aur Nginx reverse proxy React frontend ke production build (<code class="text-slate-200">dist</code>) ko serve karega.
+          </div>
+          <div class="bg-slate-950 p-4 rounded-xl border border-slate-800">
+            <strong class="text-purple-400 text-sm block mb-1">② Amazon RDS (PostgreSQL Database):</strong>
+            Aapka database alag managed RDS par chalega taaki backend server restart ya heavy load se database affect na ho aur auto-backup rahe.
+          </div>
+        </div>
+
+        <h3 class="text-lg font-bold text-white pt-2">2. Coding / Architecture mein kya-kya changes aayenge?</h3>
+        <p class="text-xs text-emerald-400 font-semibold">
+          ★ Business Logic, Python APIs, JWT Auth, React components aur UI logic mein 0% CHANGE hoga. Sirf Configuration level changes honge:
+        </p>
+
+        <div class="space-y-3 text-xs text-slate-300 font-mono">
+          <div class="bg-slate-950 p-3.5 rounded-lg border border-slate-800">
+            <strong class="text-amber-400 font-sans block text-sm mb-1">① Environment Variables (.env) Update</strong>
+            Backend: <code class="text-slate-300">DATABASE_URL = postgresql://user:pass@mydb.xxxx.rds.amazonaws.com:5432/hrms_db</code><br/>
+            Frontend: <code class="text-slate-300">VITE_API_BASE_URL = https://api.yourdomain.com</code> (Localhost ki jagah live URL)
+          </div>
+          <div class="bg-slate-950 p-3.5 rounded-lg border border-slate-800">
+            <strong class="text-amber-400 font-sans block text-sm mb-1">② CORS Origins Config (backend/app/main.py)</strong>
+            Backend allowed origins list mein production frontend URL add hoga taaki browser request block na kare.
+          </div>
+          <div class="bg-slate-950 p-3.5 rounded-lg border border-slate-800">
+            <strong class="text-amber-400 font-sans block text-sm mb-1">③ Process Manager & Reverse Proxy (Server Side Setup)</strong>
+            <code class="text-slate-300">systemd (hrms-backend.service)</code> service FastAPI ko 24/7 background mein run karegi aur <code class="text-slate-300">nginx.conf</code> traffic route karega.
+          </div>
+          <div class="bg-slate-950 p-3.5 rounded-lg border border-slate-800">
+            <strong class="text-amber-400 font-sans block text-sm mb-1">④ Database Schema Sync (Alembic)</strong>
+            Command: <code class="text-emerald-400">alembic upgrade head</code> run karke schema sync karna hoga.
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ========================================== -->
+    <!-- QUESTION 3 -->
+    <!-- ========================================== -->
+    <div class="space-y-4 page-break">
+      <!-- Prompt Card -->
+      <div class="prompt-box bg-slate-900 border-l-4 border-amber-500 p-5 rounded-r-xl shadow-md">
+        <div class="text-xs font-mono text-amber-400 font-bold uppercase tracking-wider mb-1">PROMPT 3 (User Request)</div>
+        <p class="text-base text-slate-100 font-semibold italic">
+          "acha aur yeh batao yeh services kaam kaisi karti hain aur kaise mere project ke liye beneficial hain free tier main."
+        </p>
+      </div>
+
+      <!-- Answer Card -->
+      <div class="answer-box bg-slate-900/80 border border-slate-800 p-6 md:p-8 rounded-2xl space-y-5">
+        <div class="text-xs font-mono text-emerald-400 font-bold uppercase tracking-wider">RESPONSE / PITCH CONTENT</div>
+
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-5 text-xs text-slate-300">
+          <!-- EC2 Working -->
+          <div class="bg-slate-950 p-5 rounded-xl border border-slate-800 space-y-3">
+            <h4 class="font-bold text-amber-400 text-sm">1. AWS EC2 (Elastic Compute Cloud)</h4>
+            <p><strong>Kaam kaise karta hai:</strong> AWS ke data center mein 24/7 chalne wala Ubuntu Linux virtual computer hai. SSH login karke Git pull, FastAPI backend aur Nginx start karte hain.</p>
+            <p><strong>Free Tier:</strong> <span class="text-emerald-400 font-bold">750 hours/month</span> free (<code class="text-slate-200">t2.micro / t3.micro</code>). Yani 1 server pure mahine 24/7 non-stop FREE chalega.</p>
+            <p><strong>Faida:</strong> Laptop band karne par bhi HRMS live rahega. Render/Railway jaisa cold-start ya sleep issue nahi hota.</p>
+          </div>
+
+          <!-- RDS Working -->
+          <div class="bg-slate-950 p-5 rounded-xl border border-slate-800 space-y-3">
+            <h4 class="font-bold text-purple-400 text-sm">2. Amazon RDS (Relational Database Service)</h4>
+            <p><strong>Kaam kaise karta hai:</strong> Dedicated pre-configured PostgreSQL server hai. Endpoint URL, username aur password deta hai jisse FastAPI connect hota hai.</p>
+            <p><strong>Free Tier:</strong> <span class="text-emerald-400 font-bold">750 hours/month</span> + <strong>20 GB SSD Storage</strong> + <strong>20 GB Backup Storage</strong> 12 mahine tak free.</p>
+            <p><strong>Faida:</strong> Zero DB maintenance. 20GB space HRMS text data (lakhon records) ke liye more than enough hai.</p>
+          </div>
+        </div>
+
+        <div class="overflow-x-auto pt-2">
+          <table class="w-full text-left text-xs border border-slate-800 rounded-lg">
+            <thead class="bg-slate-950 text-slate-400 uppercase font-mono">
+              <tr>
+                <th class="p-3">Feature</th>
+                <th class="p-3 text-rose-400">Free Hosting (Render / Railway Free)</th>
+                <th class="p-3 text-emerald-400">AWS Free Tier (EC2 + RDS)</th>
+              </tr>
+            </thead>
+            <tbody class="divide-y divide-slate-800 text-slate-300">
+              <tr><td class="p-3 font-semibold text-white">Cost</td><td class="p-3">₹0</td><td class="p-3 text-emerald-400 font-bold">₹0 (12 Months)</td></tr>
+              <tr><td class="p-3 font-semibold text-white">Server Sleep</td><td class="p-3">15 min idle hone par so jata hai, pehli request par 60s slow load</td><td class="p-3 text-emerald-400 font-bold">No Sleep: 24/7 active instantly</td></tr>
+              <tr><td class="p-3 font-semibold text-white">Database</td><td class="p-3">500MB basic limits</td><td class="p-3 text-emerald-400 font-bold">20 GB Fast SSD Managed PostgreSQL</td></tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+
+    <!-- ========================================== -->
+    <!-- QUESTION 4 -->
+    <!-- ========================================== -->
+    <div class="space-y-4 page-break">
+      <!-- Prompt Card -->
+      <div class="prompt-box bg-slate-900 border-l-4 border-amber-500 p-5 rounded-r-xl shadow-md">
+        <div class="text-xs font-mono text-amber-400 font-bold uppercase tracking-wider mb-1">PROMPT 4 (User Request)</div>
+        <p class="text-base text-slate-100 font-semibold italic">
+          "acha aur hostinger vps 2 ke mukaable yeh kaise beneficial hai?"
+        </p>
+      </div>
+
+      <!-- Answer Card -->
+      <div class="answer-box bg-slate-900/80 border border-slate-800 p-6 md:p-8 rounded-2xl space-y-5">
+        <div class="text-xs font-mono text-emerald-400 font-bold uppercase tracking-wider">RESPONSE / PITCH CONTENT</div>
+
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-5 text-xs text-slate-300">
+          <div class="bg-slate-950 p-5 rounded-xl border border-slate-800 space-y-2">
+            <h4 class="font-bold text-amber-400 text-sm">Kahan AWS better hai?</h4>
+            <ul class="space-y-1.5 list-disc list-inside text-slate-300">
+              <li><strong>Cost in Year 1:</strong> AWS 100% Free hai (₹0 vs Hostinger paid subscription).</li>
+              <li><strong>Database Isolation (RDS):</strong> Backend crash hone par bhi DB safe rehta hai aur auto-backup hota hai.</li>
+              <li><strong>Industry Standard:</strong> Enterprise & startups AWS architecture ko resume aur client pitch mein highest value dete hain.</li>
+              <li><strong>1-Click Scalability:</strong> Instant vertical resize & horizontal auto-scaling bina manual data migration ke.</li>
+            </ul>
+          </div>
+
+          <div class="bg-slate-950 p-5 rounded-xl border border-slate-800 space-y-2">
+            <h4 class="font-bold text-blue-400 text-sm">Kahan Hostinger VPS 2 better hai?</h4>
+            <ul class="space-y-1.5 list-disc list-inside text-slate-300">
+              <li><strong>Hardware Power:</strong> 2 vCPU + 8 GB RAM + 100 GB NVMe Disk milta hai (AWS Free Tier mein 1GB RAM hota hai).</li>
+              <li><strong>Heavy Builds:</strong> <code class="text-slate-200">npm run build</code> bina swap memory ke smoothly run ho jata hai.</li>
+              <li><strong>Fixed Billing:</strong> Predictable monthly billing bina surprise overage ke.</li>
+            </ul>
+          </div>
+        </div>
+
+        <div class="bg-slate-950 p-4 rounded-xl border border-slate-800 text-xs text-slate-300">
+          <strong class="text-white">Verdict:</strong> Agar zero budget mein industry standard architecture aur isolated database setup karna hai toh <strong>AWS Free Tier</strong> choose karein. Agar heavy RAM (8GB) single machine par simple run karni hai toh <strong>Hostinger</strong> choose karein.
+        </div>
+      </div>
+    </div>
+
+    <!-- ========================================== -->
+    <!-- QUESTION 5 -->
+    <!-- ========================================== -->
+    <div class="space-y-4 page-break">
+      <!-- Prompt Card -->
+      <div class="prompt-box bg-slate-900 border-l-4 border-amber-500 p-5 rounded-r-xl shadow-md">
+        <div class="text-xs font-mono text-amber-400 font-bold uppercase tracking-wider mb-1">PROMPT 5 (User Request)</div>
+        <p class="text-base text-slate-100 font-semibold italic">
+          "acha aur horizontal ya vertical scaling konsa ki zarurat hai iss project main aur wahan aws kaise beneficial hai aur high availability main??"
+        </p>
+      </div>
+
+      <!-- Answer Card -->
+      <div class="answer-box bg-slate-900/80 border border-slate-800 p-6 md:p-8 rounded-2xl space-y-5">
+        <div class="text-xs font-mono text-emerald-400 font-bold uppercase tracking-wider">RESPONSE / PITCH CONTENT</div>
+
+        <div class="bg-slate-950 p-4 rounded-xl border border-slate-800 text-xs text-slate-300 space-y-2">
+          <div class="font-bold text-white text-sm">Aapke HRMS ke liye Verdict:</div>
+          <p>• <strong>Abhi ke liye (Upto 500-1,000 Employees):</strong> <span class="text-amber-400 font-semibold">Vertical Scaling</span> (Instance size badhana) sabse best, cheap aur hassle-free hai.</p>
+          <p>• <strong>Heavy Traffic Spikes ke liye (Attendance Rush / Large Org):</strong> <span class="text-emerald-400 font-semibold">Horizontal Scaling</span> (Multiple servers + Load Balancer) zaroori ho jaati hai.</p>
+          <p>• <strong>FastAPI ka fayda:</strong> Aapka backend <strong>Stateless JWT</strong> par bana hai, iska matlab yeh 100% Horizontal Scaling ready hai!</p>
+        </div>
+
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-4 text-xs text-slate-300">
+          <div class="bg-slate-950 p-4 rounded-xl border border-slate-800 space-y-2">
+            <div class="font-bold text-amber-400 text-sm">Scaling mein AWS ka Fayda</div>
+            <p><strong>Vertical:</strong> 2 minutes mein instance stop ➔ resize to <code class="text-slate-200">t3.large</code> ➔ start. Koi reinstall nahi.</p>
+            <p><strong>Horizontal (Auto Scaling Group):</strong> Subah 9:00 AM rush mein auto extra servers add honge, aur 10:30 AM par terminate ho jayenge taaki bill na aaye.</p>
+          </div>
+          <div class="bg-slate-950 p-4 rounded-xl border border-slate-800 space-y-2">
+            <div class="font-bold text-blue-400 text-sm">High Availability (HA) ke 3 Pillars</div>
+            <p><strong>1. Zero-Downtime:</strong> ALB rolling updates se bina maintenance screen naye features live hote hain.</p>
+            <p><strong>2. Self-Healing:</strong> Crash hone par healthy instance par traffic route ho jata hai.</p>
+            <p><strong>3. Multi-AZ Failover:</strong> PostgreSQL standby replica 60s mein master ban jata hai.</p>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ========================================== -->
+    <!-- QUESTION 6 -->
+    <!-- ========================================== -->
+    <div class="space-y-4 page-break">
+      <!-- Prompt Card -->
+      <div class="prompt-box bg-slate-900 border-l-4 border-amber-500 p-5 rounded-r-xl shadow-md">
+        <div class="text-xs font-mono text-amber-400 font-bold uppercase tracking-wider mb-1">PROMPT 6 (User Request)</div>
+        <p class="text-base text-slate-100 font-semibold italic">
+          "inn sab cheezo ke liye hum aws main konsi services use karni hogi?"
+        </p>
+      </div>
+
+      <!-- Answer Card -->
+      <div class="answer-box bg-slate-900/80 border border-slate-800 p-6 md:p-8 rounded-2xl space-y-5">
+        <div class="text-xs font-mono text-emerald-400 font-bold uppercase tracking-wider">RESPONSE / PITCH CONTENT</div>
+
+        <p class="text-xs text-slate-300">In sabhi features ko achieve karne ke liye AWS ki 6 core services use hongi:</p>
+
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-4 text-xs text-slate-300">
+          <div class="bg-slate-950 p-4 rounded-xl border border-slate-800 space-y-1">
+            <span class="font-bold text-white text-sm">1. Amazon EC2 & Auto Scaling Group (ASG)</span>
+            <p class="text-slate-400">FastAPI servers host karne aur traffic ke hisaab se auto scale-out/scale-in karne ke liye.</p>
+          </div>
+          <div class="bg-slate-950 p-4 rounded-xl border border-slate-800 space-y-1">
+            <span class="font-bold text-white text-sm">2. AWS Launch Template</span>
+            <p class="text-slate-400">Naye automated servers ka blueprint/recipe (Ubuntu OS + dependencies + startup scripts).</p>
+          </div>
+          <div class="bg-slate-950 p-4 rounded-xl border border-slate-800 space-y-1">
+            <span class="font-bold text-white text-sm">3. AWS Application Load Balancer (ALB)</span>
+            <p class="text-slate-400">Traffic distribute karne, continuous health check karne aur SSL handle karne ke liye.</p>
+          </div>
+          <div class="bg-slate-950 p-4 rounded-xl border border-slate-800 space-y-1">
+            <span class="font-bold text-white text-sm">4. Amazon RDS (PostgreSQL Multi-AZ)</span>
+            <p class="text-slate-400">Managed database with standby replica auto-failover in secondary datacenter.</p>
+          </div>
+          <div class="bg-slate-950 p-4 rounded-xl border border-slate-800 space-y-1">
+            <span class="font-bold text-white text-sm">5. Amazon CloudWatch</span>
+            <p class="text-slate-400">CPU/RAM monitor karne aur "CPU > 70%" par auto-scaling trigger alarms bhejne ke liye.</p>
+          </div>
+          <div class="bg-slate-950 p-4 rounded-xl border border-slate-800 space-y-1">
+            <span class="font-bold text-white text-sm">6. AWS Certificate Manager (ACM) & VPC</span>
+            <p class="text-slate-400">100% Free SSL/HTTPS certificates aur private isolated database network ke liye.</p>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ========================================== -->
+    <!-- QUESTION 7 -->
+    <!-- ========================================== -->
+    <div class="space-y-4 page-break">
+      <!-- Prompt Card -->
+      <div class="prompt-box bg-slate-900 border-l-4 border-amber-500 p-5 rounded-r-xl shadow-md">
+        <div class="text-xs font-mono text-amber-400 font-bold uppercase tracking-wider mb-1">PROMPT 7 (User Request)</div>
+        <p class="text-base text-slate-100 font-semibold italic">
+          "i think joh isme sabse zyada dhyaan dene waali cheeze hai woh ho jaayi amazon clouwatch alarm rule aur aws launch template agar main sahi hi toh??"
+        </p>
+      </div>
+
+      <!-- Answer Card -->
+      <div class="answer-box bg-slate-900/80 border border-slate-800 p-6 md:p-8 rounded-2xl space-y-5">
+        <div class="text-xs font-mono text-emerald-400 font-bold uppercase tracking-wider">RESPONSE / PITCH CONTENT</div>
+
+        <p class="text-sm text-emerald-400 font-bold">
+          ★ Aapka intuition bilkul 100% accurate aur spot-on hai! Horizontal Auto-Scaling architecture mein yeh dono hi sabse critical aur sensitive components hote hain:
+        </p>
+
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-5 text-xs text-slate-300">
+          
+          <!-- Launch Template -->
+          <div class="bg-slate-950 p-5 rounded-xl border border-amber-500/30 space-y-3">
+            <h4 class="font-bold text-amber-400 text-sm flex items-center gap-2">
+              <span>🚀</span> 1. AWS Launch Template (Naye Server ka Blueprint)
+            </h4>
+            <ul class="space-y-2 list-disc list-inside text-slate-300">
+              <li><strong>User Data Script:</strong> Git pull, Python virtualenv, aur <code class="text-slate-200">systemctl start hrms-backend</code> bina error ke automate hona chahiye.</li>
+              <li><strong>Golden AMI / Docker:</strong> Pre-built image use karne se naya server 30 seconds mein ready hota hai (warna pip install mein 10 min lag jayenge).</li>
+              <li><strong class="text-rose-400">Instance Flapping Risk:</strong> Agar script mein error hua, toh AWS server launch ➔ fail ➔ terminate ➔ launch ke infinite loop mein phas sakta hai.</li>
+            </ul>
+          </div>
+
+          <!-- CloudWatch Alarm Rules -->
+          <div class="bg-slate-950 p-5 rounded-xl border border-blue-500/30 space-y-3">
+            <h4 class="font-bold text-blue-400 text-sm flex items-center gap-2">
+              <span>⏱️</span> 2. CloudWatch Alarm Rules (Scaling Trigger)
+            </h4>
+            <ul class="space-y-2 list-disc list-inside text-slate-300">
+              <li><strong>Threshold Calibration:</strong> Scale-out <code class="text-emerald-400">CPU > 70% for 2 mins</code> rakhein (taaki server crash se pehle naya ready ho). Scale-in <code class="text-blue-400">CPU < 30% for 5 mins</code>.</li>
+              <li><strong>Cooldown / Warm-up Time:</strong> Naye instance ko boot hone ke liye 2-3 minute ka warm-up period zaroor dein, warna CloudWatch lagatar 5 naye servers launch karke bill badha dega.</li>
+              <li><strong>ALB Health Endpoint:</strong> Backend mein halka <code class="text-slate-200">GET /api/v1/health</code> endpoint hona chahiye jo 200 OK return kare.</li>
+            </ul>
+          </div>
+
+        </div>
+
+        <div class="bg-gradient-to-r from-slate-900 to-slate-950 p-4 rounded-xl border border-slate-800 text-xs text-slate-300 flex items-center gap-3">
+          <span class="text-2xl">💡</span>
+          <span>
+            <strong class="text-white">Pitch Golden Line:</strong> 
+            <em>"Launch Template ensure karta hai ki naye servers 100% flawlessly boot hon, aur CloudWatch Alarms ensure karta hai ki scaling sahi time par ho aur bill control mein rahe."</em>
+          </span>
+        </div>
+      </div>
+    </div>
+
+    <!-- ========================================== -->
+    <!-- FINAL PITCH SUMMARY FOOTER -->
+    <!-- ========================================== -->
+    <footer class="gradient-hero border border-slate-800 rounded-3xl p-8 shadow-2xl text-center space-y-3">
+      <h3 class="text-xl font-bold text-white">Meagle360 HRMS • Cloud Infrastructure Proposal</h3>
+      <p class="text-xs text-slate-400 max-w-xl mx-auto">
+        Ready for executive review and team discussion. Use the Print button to generate an official presentation PDF.
+      </p>
+      <div class="text-xs font-mono text-amber-400/80 pt-2">
+        Generated on September 30, 2026 • Verified Technical Architecture
+      </div>
+    </footer>
+
+  </div>
+
+</body>
+</html>
