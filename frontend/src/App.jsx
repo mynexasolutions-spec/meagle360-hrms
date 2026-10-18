@@ -155,14 +155,7 @@ function AppRoutes() {
           />
           <Route path="subscriptions" element={<Subscriptions />} />
           <Route path="helpdesk" element={<Helpdesk />} />
-          <Route
-            path="ai-assistant"
-            element={
-              <RequirePermission permission={['attendance:approve', 'leave:approve', 'employees:read', 'settings:write']}>
-                <AiAssistant />
-              </RequirePermission>
-            }
-          />
+          <Route path="ai-assistant" element={<AiAssistant />} />
         </Route>
 
         {/* Catch-all */}

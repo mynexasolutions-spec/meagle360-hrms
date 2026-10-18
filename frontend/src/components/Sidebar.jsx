@@ -59,7 +59,6 @@ const NAV_CONFIG = [
     label: 'Meagle 360 AI',
     icon: MeagleAiLogoIcon,
     badge: 'AI',
-    permission: ['attendance:approve', 'leave:approve', 'employees:read', 'settings:write'],
   },
   { path: '/helpdesk', label: 'Helpdesk', icon: LifeBuoy },
   { path: '/settings', label: 'Settings', icon: Settings, permission: 'settings:write' },

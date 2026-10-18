@@ -5,6 +5,9 @@ export const sendAiChat = (message, history = []) =>
 
 export const getAiDailyDigest = () => client.get('/ai/daily-digest');
 
+export const executeAiAction = (payload) =>
+  client.post('/ai/execute-action', payload);
+
 export const transcribeVoiceAudio = (audioBlob, filename = 'voice.webm') => {
   const formData = new FormData();
   formData.append('file', audioBlob, filename);

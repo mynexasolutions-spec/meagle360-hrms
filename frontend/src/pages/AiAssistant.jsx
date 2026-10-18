@@ -10,16 +10,25 @@ import {
   Bot,
   User,
   Square,
-  Globe,
   Trash2,
   Building2,
   Users,
   CalendarOff,
+  CalendarPlus,
   Clock,
   ClipboardCheck,
   ArrowUpRight,
+  Check,
+  X,
+  CalendarDays,
+  AlertCircle,
 } from 'lucide-react';
-import { sendAiChat, getAiDailyDigest, transcribeVoiceAudio } from '../api/ai';
+import {
+  sendAiChat,
+  getAiDailyDigest,
+  transcribeVoiceAudio,
+  executeAiAction,
+} from '../api/ai';
 import { useAuth } from '../context/AuthContext';
 import botAvatarVideo from '../assets/meagle-bot-bust-transparent.webm';
 
@@ -59,15 +68,16 @@ function BotAvatar({ size = 36, glow = false }) {
   );
 }
 
-const QUICK_PROMPTS = [
+// ── Admin / Manager Prompts & Hero Pills ──────────────────────────────────
+const ADMIN_QUICK_PROMPTS = [
   { label: 'Who is present today?', query: 'Who is present today' },
   { label: 'Who is on leave today?', query: 'Who is on leave today' },
   { label: "Today's late comers", query: 'Who clocked in late today' },
   { label: 'Who is absent today?', query: 'Who is absent today' },
-  { label: 'Pending approvals', query: 'What leave or attendance approvals are pending?' },
+  { label: 'Pending approvals', query: 'What leave approvals are pending?' },
 ];
 
-const HERO_FLOATING_PILLS = [
+const ADMIN_HERO_PILLS = [
   {
     id: 'present',
     label: 'Who is present today in Engineering?',
@@ -116,7 +126,7 @@ const HERO_FLOATING_PILLS = [
   {
     id: 'approvals',
     label: 'What leave approvals are pending?',
-    query: 'What leave or attendance approvals are pending?',
+    query: 'What leave approvals are pending?',
     tag: 'Approvals',
     icon: ClipboardCheck,
     iconBg: '#dbeafe',
@@ -130,20 +140,96 @@ const HERO_FLOATING_PILLS = [
   },
 ];
 
+// ── Employee Personal Self-Service Prompts & Hero Pills ───────────────────
+const EMPLOYEE_QUICK_PROMPTS = [
+  { label: 'My leave balance', query: 'What is my leave balance?' },
+  { label: 'My attendance this month', query: 'How is my attendance this month?' },
+  { label: 'Apply sick leave tomorrow', query: 'Apply sick leave for tomorrow' },
+  { label: 'Apply casual leave tomorrow', query: 'Apply casual leave for tomorrow' },
+  { label: 'My applied leaves status', query: 'What is the status of my applied leaves?' },
+];
+
+const EMPLOYEE_HERO_PILLS = [
+  {
+    id: 'my_balance',
+    label: 'What is my leave balance?',
+    query: 'What is my leave balance?',
+    tag: 'My Leaves',
+    icon: CalendarDays,
+    iconBg: '#e0e7ff',
+    iconColor: '#4338ca',
+    borderHover: '#818cf8',
+    glowHover: 'rgba(99, 102, 241, 0.18)',
+    badgeBg: '#eef2ff',
+    badgeColor: '#3730a3',
+    digestKey: 'my_leave_balance',
+    digestSuffix: 'Days Left',
+  },
+  {
+    id: 'my_attendance',
+    label: 'How is my attendance this month?',
+    query: 'How is my attendance this month?',
+    tag: 'My Attendance',
+    icon: Clock,
+    iconBg: '#dcfce7',
+    iconColor: '#15803d',
+    borderHover: '#4ade80',
+    glowHover: 'rgba(34, 197, 94, 0.16)',
+    badgeBg: '#f0fdf4',
+    badgeColor: '#166534',
+    digestKey: 'my_days_present',
+    digestSuffix: 'Days Present',
+  },
+  {
+    id: 'apply_leave',
+    label: 'Apply leave for tomorrow',
+    query: 'I want to apply for leave tomorrow',
+    tag: 'Apply Leave',
+    icon: CalendarPlus,
+    iconBg: '#dbeafe',
+    iconColor: '#1d4ed8',
+    borderHover: '#60a5fa',
+    glowHover: 'rgba(37, 99, 235, 0.16)',
+    badgeBg: '#eff6ff',
+    badgeColor: '#1e40af',
+    digestKey: null,
+    digestSuffix: '',
+  },
+  {
+    id: 'my_leave_status',
+    label: 'What is the status of my applied leaves?',
+    query: 'What is the status of my applied leaves?',
+    tag: 'Status',
+    icon: ClipboardCheck,
+    iconBg: '#fef3c7',
+    iconColor: '#b45309',
+    borderHover: '#fbbf24',
+    glowHover: 'rgba(245, 158, 11, 0.16)',
+    badgeBg: '#fffbeb',
+    badgeColor: '#92400e',
+    digestKey: 'my_pending_leaves',
+    digestSuffix: 'Pending',
+  },
+];
+
 const TOOL_LABELS = {
   get_daily_attendance: 'Daily Attendance Record',
   get_late_comers: 'Shift & Punctuality Check',
   get_employees_on_leave: 'Leave Calendar & Requests',
   find_employee: 'Fuzzy Employee Lookup',
   get_pending_approvals: 'Approval Queue',
+  prepare_leave_approval_action: 'Leave Approval Action',
+  get_my_leave_summary: 'My Leave Balance & Requests',
+  get_my_attendance_summary: 'My Personal Attendance',
+  prepare_my_leave_application: 'Leave Application Assistant',
 };
 
 const createWelcomeMessage = () => ({
   id: 'welcome',
   role: 'assistant',
-  content:
-    "Hello! I'm **Meagle 360 AI**.\n\nYou can type or use the **Mic 🎤** in **English or Hinglish** to ask:\n- *\"Who is present today in the Engineering department?\"*\n- *\"Aaj kaun chhutti pe hai?\"*\n- *\"Who came late today?\"*\n- *\"Check Rahul's attendance status\"*",
+  content: 'Welcome to Meagle 360 AI',
   tools_used: [],
+  pending_actions: [],
   timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
 });
 
@@ -154,10 +240,8 @@ function formatMessageHtml(text) {
 
   for (const rawLine of lines) {
     const trimmed = rawLine.trim();
-    // Skip any horizontal dash/pipe divider lines like |---|---| or ---
     if (/^[|\s:\-_]{3,}$/.test(trimmed)) continue;
 
-    // Convert any residual pipe table row | A | B | C | into a clean bullet row
     let processedLine = rawLine;
     if (trimmed.startsWith('|') && trimmed.endsWith('|')) {
       const cells = trimmed
@@ -222,6 +306,481 @@ function stripMarkdownForSpeech(text) {
     .replace(/\n+/g, '. ');
 }
 
+function calcDaysBetween(startStr, endStr) {
+  if (!startStr || !endStr) return 1;
+  const s = new Date(startStr);
+  const e = new Date(endStr);
+  const diff = Math.round((e - s) / (1000 * 60 * 60 * 24)) + 1;
+  return diff > 0 ? diff : 1;
+}
+
+// ── Interactive Action Card Component (Rendered Below AI Message) ─────────
+function ActionConfirmationCard({ card, onActionComplete }) {
+  const [status, setStatus] = useState(card.status || 'pending'); // 'pending' | 'submitting' | 'completed' | 'cancelled'
+  const [resultMessage, setResultMessage] = useState(card.resultMessage || '');
+  const [decisionMade, setDecisionMade] = useState(card.decisionMade || '');
+  const [errorText, setErrorText] = useState('');
+
+  // Editable state for Employee Leave Application preview card
+  const [leaveTypeId, setLeaveTypeId] = useState(card.leave_type_id || '');
+  const [startDate, setStartDate] = useState(card.start_date || '');
+  const [endDate, setEndDate] = useState(card.end_date || '');
+
+  const selectedOption = (card.leave_type_options || []).find((o) => o.id === leaveTypeId);
+  const displayLeaveTypeName = selectedOption ? selectedOption.name : card.leave_type_name;
+  const displayBalance =
+    selectedOption !== undefined ? selectedOption.balance : card.available_balance;
+  const computedDays = calcDaysBetween(startDate, endDate);
+
+  const handleConfirmApply = async () => {
+    setErrorText('');
+    setStatus('submitting');
+    try {
+      const res = await executeAiAction({
+        action_type: 'apply_leave',
+        leave_type_id: leaveTypeId,
+        start_date: startDate,
+        end_date: endDate,
+        reason: card.reason,
+      });
+      setStatus('completed');
+      setDecisionMade('applied');
+      setResultMessage(res.data?.message || 'Leave request submitted successfully!');
+      if (onActionComplete) onActionComplete(res.data?.message);
+    } catch (err) {
+      setStatus('pending');
+      setErrorText(err.response?.data?.detail || 'Could not submit leave request.');
+    }
+  };
+
+  const handleApproveOrReject = async (decision) => {
+    setErrorText('');
+    setStatus('submitting');
+    try {
+      const res = await executeAiAction({
+        action_type: 'approve_leave',
+        leave_request_id: card.leave_request_id,
+        decision,
+      });
+      setStatus('completed');
+      setDecisionMade(decision);
+      setResultMessage(res.data?.message || `Leave request ${decision}.`);
+      if (onActionComplete) onActionComplete(res.data?.message);
+    } catch (err) {
+      setStatus('pending');
+      setErrorText(err.response?.data?.detail || `Failed to ${decision} leave request.`);
+    }
+  };
+
+  if (status === 'cancelled') {
+    return (
+      <div
+        style={{
+          marginTop: 10,
+          padding: '10px 14px',
+          borderRadius: 12,
+          background: '#f8fafc',
+          border: '1px solid #cbd5e1',
+          color: '#64748b',
+          fontSize: '0.82rem',
+          fontWeight: 600,
+          display: 'flex',
+          alignItems: 'center',
+          gap: 8,
+        }}
+      >
+        <X size={15} />
+        <span>Action cancelled. No changes were made.</span>
+      </div>
+    );
+  }
+
+  if (status === 'completed') {
+    const isRejected = decisionMade === 'rejected';
+    return (
+      <div
+        style={{
+          marginTop: 10,
+          padding: '12px 14px',
+          borderRadius: 12,
+          background: isRejected ? '#fef2f2' : '#f0fdf4',
+          border: isRejected ? '1px solid #fecaca' : '1px solid #bbf7d0',
+          color: isRejected ? '#991b1b' : '#166534',
+          fontSize: '0.84rem',
+          fontWeight: 600,
+          display: 'flex',
+          alignItems: 'center',
+          gap: 8,
+        }}
+      >
+        <CheckCircle2 size={17} style={{ color: isRejected ? '#dc2626' : '#16a34a', flexShrink: 0 }} />
+        <span>{resultMessage}</span>
+      </div>
+    );
+  }
+
+  // ── 1. Employee Leave Application Confirmation Card ────────────────────
+  if (card.action_type === 'apply_leave') {
+    return (
+      <div
+        style={{
+          marginTop: 12,
+          padding: '14px 16px',
+          borderRadius: 14,
+          background: 'linear-gradient(135deg, #ffffff 0%, #f8fafc 100%)',
+          border: '1.5px solid #c7d2fe',
+          boxShadow: '0 6px 18px -4px rgba(79, 70, 229, 0.12)',
+        }}
+      >
+        <div
+          style={{
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'space-between',
+            marginBottom: 10,
+            gap: 8,
+          }}
+        >
+          <div style={{ display: 'flex', alignItems: 'center', gap: 7 }}>
+            <CalendarPlus size={16} style={{ color: '#4f46e5' }} />
+            <span style={{ fontSize: '0.84rem', fontWeight: 800, color: '#1e1b4b' }}>
+              {card.title || 'Confirm Leave Application'}
+            </span>
+          </div>
+          <span
+            style={{
+              fontSize: '0.7rem',
+              fontWeight: 700,
+              padding: '2px 8px',
+              borderRadius: 999,
+              background: '#eef2ff',
+              color: '#4338ca',
+              border: '1px solid #c7d2fe',
+            }}
+          >
+            {computedDays} {computedDays === 1 ? 'Day' : 'Days'}
+          </span>
+        </div>
+
+        <div
+          style={{
+            display: 'grid',
+            gridTemplateColumns: 'repeat(auto-fit, minmax(145px, 1fr))',
+            gap: 10,
+            marginBottom: 12,
+          }}
+        >
+          <div>
+            <label
+              style={{
+                display: 'block',
+                fontSize: '0.68rem',
+                fontWeight: 700,
+                color: '#64748b',
+                marginBottom: 3,
+                textTransform: 'uppercase',
+              }}
+            >
+              Leave Type
+            </label>
+            {card.leave_type_options?.length > 0 ? (
+              <select
+                value={leaveTypeId}
+                onChange={(e) => setLeaveTypeId(e.target.value)}
+                disabled={status === 'submitting'}
+                style={{
+                  width: '100%',
+                  padding: '6px 8px',
+                  borderRadius: 8,
+                  border: '1px solid #cbd5e1',
+                  fontSize: '0.8rem',
+                  fontWeight: 600,
+                  color: '#0f172a',
+                  background: '#ffffff',
+                }}
+              >
+                {card.leave_type_options.map((opt) => (
+                  <option key={opt.id} value={opt.id}>
+                    {opt.name} ({opt.is_paid ? `${opt.balance}d left` : 'Unpaid'})
+                  </option>
+                ))}
+              </select>
+            ) : (
+              <div style={{ fontSize: '0.84rem', fontWeight: 700, color: '#0f172a' }}>
+                {displayLeaveTypeName}
+              </div>
+            )}
+          </div>
+
+          <div>
+            <label
+              style={{
+                display: 'block',
+                fontSize: '0.68rem',
+                fontWeight: 700,
+                color: '#64748b',
+                marginBottom: 3,
+                textTransform: 'uppercase',
+              }}
+            >
+              Start Date
+            </label>
+            <input
+              type="date"
+              value={startDate}
+              onChange={(e) => {
+                setStartDate(e.target.value);
+                if (endDate < e.target.value) setEndDate(e.target.value);
+              }}
+              disabled={status === 'submitting'}
+              style={{
+                width: '100%',
+                padding: '5px 8px',
+                borderRadius: 8,
+                border: '1px solid #cbd5e1',
+                fontSize: '0.8rem',
+                fontWeight: 600,
+                color: '#0f172a',
+                background: '#ffffff',
+              }}
+            />
+          </div>
+
+          <div>
+            <label
+              style={{
+                display: 'block',
+                fontSize: '0.68rem',
+                fontWeight: 700,
+                color: '#64748b',
+                marginBottom: 3,
+                textTransform: 'uppercase',
+              }}
+            >
+              End Date
+            </label>
+            <input
+              type="date"
+              value={endDate}
+              min={startDate}
+              onChange={(e) => setEndDate(e.target.value)}
+              disabled={status === 'submitting'}
+              style={{
+                width: '100%',
+                padding: '5px 8px',
+                borderRadius: 8,
+                border: '1px solid #cbd5e1',
+                fontSize: '0.8rem',
+                fontWeight: 600,
+                color: '#0f172a',
+                background: '#ffffff',
+              }}
+            />
+          </div>
+        </div>
+
+        {displayBalance !== null && displayBalance !== undefined && (
+          <div style={{ fontSize: '0.75rem', color: '#475569', marginBottom: 10 }}>
+            Available Balance for <strong>{displayLeaveTypeName}</strong>:{' '}
+            <strong style={{ color: '#1d4ed8' }}>{displayBalance} day(s)</strong>
+          </div>
+        )}
+
+        {errorText && (
+          <div
+            style={{
+              marginBottom: 10,
+              padding: '7px 10px',
+              borderRadius: 8,
+              background: '#fef2f2',
+              border: '1px solid #fecaca',
+              color: '#dc2626',
+              fontSize: '0.76rem',
+              fontWeight: 600,
+              display: 'flex',
+              alignItems: 'center',
+              gap: 6,
+            }}
+          >
+            <AlertCircle size={14} />
+            <span>{errorText}</span>
+          </div>
+        )}
+
+        <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
+          <button
+            type="button"
+            disabled={status === 'submitting'}
+            onClick={handleConfirmApply}
+            style={{
+              display: 'inline-flex',
+              alignItems: 'center',
+              gap: 6,
+              padding: '7px 14px',
+              borderRadius: 10,
+              border: 'none',
+              background: 'linear-gradient(135deg, #16a34a 0%, #15803d 100%)',
+              color: '#ffffff',
+              fontSize: '0.8rem',
+              fontWeight: 700,
+              cursor: status === 'submitting' ? 'not-allowed' : 'pointer',
+              boxShadow: '0 4px 10px rgba(22, 163, 74, 0.25)',
+            }}
+          >
+            <Check size={15} />
+            <span>{status === 'submitting' ? 'Submitting...' : 'Confirm & Apply Leave'}</span>
+          </button>
+
+          <button
+            type="button"
+            disabled={status === 'submitting'}
+            onClick={() => setStatus('cancelled')}
+            style={{
+              display: 'inline-flex',
+              alignItems: 'center',
+              gap: 5,
+              padding: '7px 12px',
+              borderRadius: 10,
+              border: '1px solid #cbd5e1',
+              background: '#ffffff',
+              color: '#475569',
+              fontSize: '0.78rem',
+              fontWeight: 600,
+              cursor: status === 'submitting' ? 'not-allowed' : 'pointer',
+            }}
+          >
+            <X size={14} />
+            <span>Cancel</span>
+          </button>
+        </div>
+      </div>
+    );
+  }
+
+  // ── 2. Admin / Manager Leave Approval Card ─────────────────────────────
+  return (
+    <div
+      style={{
+        marginTop: 10,
+        padding: '13px 16px',
+        borderRadius: 14,
+        background: 'linear-gradient(135deg, #ffffff 0%, #f8fafc 100%)',
+        border: '1.5px solid #bfdbfe',
+        boxShadow: '0 6px 18px -4px rgba(37, 99, 235, 0.10)',
+      }}
+    >
+      <div
+        style={{
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'space-between',
+          flexWrap: 'wrap',
+          gap: 8,
+          marginBottom: 8,
+        }}
+      >
+        <div>
+          <div style={{ fontSize: '0.88rem', fontWeight: 800, color: '#0f172a' }}>
+            {card.employee_name}{' '}
+            {card.department && (
+              <span style={{ fontSize: '0.76rem', fontWeight: 600, color: '#64748b' }}>
+                ({card.department})
+              </span>
+            )}
+          </div>
+          <div style={{ fontSize: '0.78rem', color: '#334155', marginTop: 2 }}>
+            <strong>{card.leave_type_name}</strong> • {card.start_date} to {card.end_date} (
+            <strong>{card.days} day{card.days > 1 ? 's' : ''}</strong>)
+            {card.available_balance !== null && card.available_balance !== undefined && (
+              <span style={{ color: '#2563eb', marginLeft: 6 }}>
+                • Balance: {card.available_balance}d
+              </span>
+            )}
+          </div>
+        </div>
+
+        <span
+          style={{
+            fontSize: '0.68rem',
+            fontWeight: 700,
+            padding: '2px 8px',
+            borderRadius: 999,
+            background: '#fef3c7',
+            color: '#b45309',
+            border: '1px solid #fde68a',
+          }}
+        >
+          Pending Approval
+        </span>
+      </div>
+
+      {errorText && (
+        <div
+          style={{
+            marginBottom: 8,
+            padding: '6px 10px',
+            borderRadius: 8,
+            background: '#fef2f2',
+            border: '1px solid #fecaca',
+            color: '#dc2626',
+            fontSize: '0.75rem',
+            fontWeight: 600,
+          }}
+        >
+          {errorText}
+        </div>
+      )}
+
+      <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
+        <button
+          type="button"
+          disabled={status === 'submitting'}
+          onClick={() => handleApproveOrReject('approved')}
+          style={{
+            display: 'inline-flex',
+            alignItems: 'center',
+            gap: 6,
+            padding: '6px 14px',
+            borderRadius: 9,
+            border: 'none',
+            background: 'linear-gradient(135deg, #16a34a 0%, #15803d 100%)',
+            color: '#ffffff',
+            fontSize: '0.78rem',
+            fontWeight: 700,
+            cursor: status === 'submitting' ? 'not-allowed' : 'pointer',
+            boxShadow: '0 3px 10px rgba(22, 163, 74, 0.22)',
+          }}
+        >
+          <Check size={14} />
+          <span>{status === 'submitting' ? 'Processing...' : 'Approve Leave'}</span>
+        </button>
+
+        <button
+          type="button"
+          disabled={status === 'submitting'}
+          onClick={() => handleApproveOrReject('rejected')}
+          style={{
+            display: 'inline-flex',
+            alignItems: 'center',
+            gap: 5,
+            padding: '6px 12px',
+            borderRadius: 9,
+            border: '1px solid #fecaca',
+            background: '#fef2f2',
+            color: '#dc2626',
+            fontSize: '0.78rem',
+            fontWeight: 700,
+            cursor: status === 'submitting' ? 'not-allowed' : 'pointer',
+          }}
+        >
+          <X size={14} />
+          <span>Reject</span>
+        </button>
+      </div>
+    </div>
+  );
+}
+
 export default function AiAssistant() {
   const { user } = useAuth();
   const [messages, setMessages] = useState([createWelcomeMessage()]);
@@ -232,13 +791,23 @@ export default function AiAssistant() {
   const [hoveredCard, setHoveredCard] = useState(null);
   const [isInputFocused, setIsInputFocused] = useState(false);
 
+  // Determine Role Mode: Admin/Manager vs Employee
+  const roleLower = (user?.role_name || user?.role?.name || '').toLowerCase();
+  const perms = user?.permissions || {};
+  const isAdminOrManager =
+    ['admin', 'hr manager', 'manager'].includes(roleLower) ||
+    Boolean(perms['attendance:approve'] || perms['leave:approve'] || perms['settings:write']);
+
+  const activeHeroPills = isAdminOrManager ? ADMIN_HERO_PILLS : EMPLOYEE_HERO_PILLS;
+  const activeQuickPrompts = isAdminOrManager ? ADMIN_QUICK_PROMPTS : EMPLOYEE_QUICK_PROMPTS;
+
   const firstName = user?.full_name ? user.full_name.trim().split(/\s+/)[0] : 'there';
   const currentHour = new Date().getHours();
   const timeGreeting =
     currentHour < 12 ? 'Good Morning' : currentHour < 17 ? 'Good Afternoon' : 'Good Evening';
   const isWelcomeOnly = messages.length === 1 && messages[0]?.id === 'welcome';
 
-  // Voice Input & Output state (en-IN keeps all speech in Roman English/Hinglish script)
+  // Voice Input & Output state
   const [isRecording, setIsRecording] = useState(false);
   const [transcribing, setTranscribing] = useState(false);
   const [voiceLang] = useState('en-IN');
@@ -326,15 +895,15 @@ export default function AiAssistant() {
       let textToSend = (textOverride !== null ? textOverride : input).trim();
       if (!textToSend || loading) return;
 
-      // If a department filter is selected in the UI and not already mentioned in the query, append it
+      // Only append department filter in Admin/Manager mode
       if (
+        isAdminOrManager &&
         selectedDept &&
         !textToSend.toLowerCase().includes(selectedDept.toLowerCase()) &&
-        !textToSend.toLowerCase().includes('approval')
+        !textToSend.toLowerCase().includes('approval') &&
+        !textToSend.toLowerCase().includes('approve')
       ) {
         textToSend = `${textToSend.replace(/\?+$/, '')} in the ${selectedDept} department?`;
-      } else if (textOverride !== null && !textToSend.endsWith('?')) {
-        textToSend = `${textToSend}?`;
       }
 
       stopSpeaking();
@@ -365,6 +934,7 @@ export default function AiAssistant() {
           role: 'assistant',
           content: data.reply,
           tools_used: data.tools_used || [],
+          pending_actions: data.pending_actions || [],
           provider: data.provider,
           mode: data.mode,
           timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
@@ -386,6 +956,7 @@ export default function AiAssistant() {
             content: `**Error:** ${detail}`,
             isError: true,
             tools_used: [],
+            pending_actions: [],
             timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
           },
         ]);
@@ -393,7 +964,7 @@ export default function AiAssistant() {
         setLoading(false);
       }
     },
-    [input, loading, messages, autoSpeak, selectedDept, speakReply, stopSpeaking]
+    [input, loading, messages, autoSpeak, isAdminOrManager, selectedDept, speakReply, stopSpeaking]
   );
 
   // ── Voice Recording (Groq Whisper + Browser SpeechRecognition Fallback) ──
@@ -443,7 +1014,6 @@ export default function AiAssistant() {
     const SpeechRecognition =
       window.SpeechRecognition || window.webkitSpeechRecognition;
 
-    // If Groq Whisper is not configured in backend/.env yet, use direct Browser SpeechRecognition
     if (!llmReady && SpeechRecognition) {
       setIsRecording(true);
       setVoiceStatusText('Listening... Speak in English or Hinglish');
@@ -472,7 +1042,6 @@ export default function AiAssistant() {
       return;
     }
 
-    // Primary path: MediaRecorder -> /api/ai/transcribe (Groq Whisper) with browser fallback
     try {
       const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
       audioChunksRef.current = [];
@@ -548,7 +1117,7 @@ export default function AiAssistant() {
 
   return (
     <div style={{ maxWidth: '1240px', margin: '0 auto', height: '100%' }}>
-      {/* Unified Full-Height Chat Card (Full-Screen Studio Mode - Zero Page Scroll) */}
+      {/* Unified Full-Height Chat Card */}
       <div
         className="glass-card"
         style={{
@@ -563,7 +1132,7 @@ export default function AiAssistant() {
           boxShadow: '0 20px 50px -12px rgba(79, 70, 229, 0.10), 0 4px 16px -2px rgba(15, 23, 42, 0.05)',
         }}
       >
-        {/* Sleek Glassmorphic Header with Glowing Gradient Line */}
+        {/* Sleek Glassmorphic Header */}
         <div
           style={{
             position: 'relative',
@@ -580,7 +1149,6 @@ export default function AiAssistant() {
             gap: '10px',
           }}
         >
-          {/* Glowing Bottom Accent Border */}
           <div
             style={{
               position: 'absolute',
@@ -620,9 +1188,8 @@ export default function AiAssistant() {
                     border: '1px solid #bfdbfe',
                   }}
                 >
-                  Chat & Voice
+                  {isAdminOrManager ? 'Admin & Manager Copilot' : 'Personal HR Copilot'}
                 </span>
-                {/* Live Pulse Status Badge */}
                 <span
                   style={{
                     display: 'inline-flex',
@@ -647,53 +1214,58 @@ export default function AiAssistant() {
                       display: 'inline-block',
                     }}
                   />
-                  Online • Real-time HR Data
+                  Online • Voice & Chat
                 </span>
               </div>
               <p style={{ margin: '1px 0 0 0', fontSize: '0.73rem', color: '#64748b', fontWeight: 500 }}>
-                Meagle 360 AI Copilot{digest?.date_formatted ? ` • ${digest.date_formatted}` : ''}
+                {isAdminOrManager
+                  ? 'Live Team Attendance & Leave Approvals'
+                  : 'My Leaves, Personal Attendance & Instant Leave Apply'}
+                {digest?.date_formatted ? ` • ${digest.date_formatted}` : ''}
               </p>
             </div>
           </div>
 
-          {/* Right Controls: Department Filter + Mic Language + Voice Reply + Clear Chat */}
+          {/* Right Controls: Department Filter (Admin/Manager only) + Voice Reply + Clear Chat */}
           <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
-            <div
-              style={{
-                display: 'flex',
-                alignItems: 'center',
-                gap: '6px',
-                padding: '5px 10px',
-                borderRadius: 10,
-                background: selectedDept ? '#eff6ff' : 'rgba(255, 255, 255, 0.85)',
-                border: selectedDept ? '1px solid #93c5fd' : '1px solid #cbd5e1',
-                fontSize: '0.75rem',
-                boxShadow: '0 1px 2px rgba(15, 23, 42, 0.03)',
-              }}
-              title="Filter queries by Department"
-            >
-              <Building2 size={14} style={{ color: selectedDept ? '#2563eb' : '#64748b' }} />
-              <select
-                value={selectedDept}
-                onChange={(e) => setSelectedDept(e.target.value)}
+            {isAdminOrManager && (
+              <div
                 style={{
-                  border: 'none',
-                  background: 'transparent',
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '6px',
+                  padding: '5px 10px',
+                  borderRadius: 10,
+                  background: selectedDept ? '#eff6ff' : 'rgba(255, 255, 255, 0.85)',
+                  border: selectedDept ? '1px solid #93c5fd' : '1px solid #cbd5e1',
                   fontSize: '0.75rem',
-                  fontWeight: 700,
-                  color: selectedDept ? '#1d4ed8' : '#0f172a',
-                  outline: 'none',
-                  cursor: 'pointer',
+                  boxShadow: '0 1px 2px rgba(15, 23, 42, 0.03)',
                 }}
+                title="Filter queries by Department"
               >
-                <option value="">All Departments</option>
-                {departments.map((dept) => (
-                  <option key={dept} value={dept}>
-                    {dept}
-                  </option>
-                ))}
-              </select>
-            </div>
+                <Building2 size={14} style={{ color: selectedDept ? '#2563eb' : '#64748b' }} />
+                <select
+                  value={selectedDept}
+                  onChange={(e) => setSelectedDept(e.target.value)}
+                  style={{
+                    border: 'none',
+                    background: 'transparent',
+                    fontSize: '0.75rem',
+                    fontWeight: 700,
+                    color: selectedDept ? '#1d4ed8' : '#0f172a',
+                    outline: 'none',
+                    cursor: 'pointer',
+                  }}
+                >
+                  <option value="">All Departments</option>
+                  {departments.map((dept) => (
+                    <option key={dept} value={dept}>
+                      {dept}
+                    </option>
+                  ))}
+                </select>
+              </div>
+            )}
 
             <button
               type="button"
@@ -746,7 +1318,7 @@ export default function AiAssistant() {
           </div>
         </div>
 
-        {/* Quick Prompt Bar (Shown during active chat so Welcome Hero stays clutter-free) */}
+        {/* Quick Prompt Bar */}
         {!isWelcomeOnly && (
           <div
             style={{
@@ -763,7 +1335,7 @@ export default function AiAssistant() {
             <span style={{ fontSize: '0.72rem', fontWeight: 700, color: '#475569', whiteSpace: 'nowrap' }}>
               Quick Ask:
             </span>
-            {QUICK_PROMPTS.map((item) => (
+            {activeQuickPrompts.map((item) => (
               <button
                 key={item.label}
                 type="button"
@@ -784,13 +1356,15 @@ export default function AiAssistant() {
                 }}
               >
                 {item.label}
-                {selectedDept && !item.query.includes('approval') ? ` (${selectedDept})` : ''}
+                {isAdminOrManager && selectedDept && !item.query.includes('approval')
+                  ? ` (${selectedDept})`
+                  : ''}
               </button>
             ))}
           </div>
         )}
 
-        {/* Expanded Messages Stream / Centered Hero Empty State with Subtle AI Mesh & Dot Pattern */}
+        {/* Messages Stream / Hero Empty State */}
         <div
           ref={streamContainerRef}
           style={{
@@ -823,7 +1397,6 @@ export default function AiAssistant() {
                 gap: '16px',
               }}
             >
-              {/* Hero Mascot + Gradient Greeting */}
               <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '10px' }}>
                 <div style={{ position: 'relative', display: 'inline-flex', alignItems: 'center', justifyContent: 'center' }}>
                   <BotAvatar size={58} glow={true} />
@@ -850,7 +1423,6 @@ export default function AiAssistant() {
                   </span>
                 </div>
 
-                {/* Gradient Hero Title & Subtitle */}
                 <div>
                   <h2
                     style={{
@@ -874,13 +1446,16 @@ export default function AiAssistant() {
                       lineHeight: 1.4,
                     }}
                   >
-                    Ask live questions about daily attendance, leave records, late check-ins, or pending approvals
-                    {selectedDept ? ` in ${selectedDept}` : ' across all departments'}.
+                    {isAdminOrManager
+                      ? `Ask live questions about daily attendance, leave records, late check-ins, or approve pending leaves${
+                          selectedDept ? ` in ${selectedDept}` : ' across all departments'
+                        }.`
+                      : 'Speak or type in English or Hinglish to check your leave balance, review your own attendance, or apply for leave.'}
                   </p>
                 </div>
               </div>
 
-              {/* 4 Professional Floating Capsule Pills (2x2 Balanced Layout) */}
+              {/* 4 Role-Specific Floating Capsule Pills */}
               <div
                 style={{
                   display: 'flex',
@@ -892,7 +1467,7 @@ export default function AiAssistant() {
                   width: '100%',
                 }}
               >
-                {HERO_FLOATING_PILLS.map((pill) => {
+                {activeHeroPills.map((pill) => {
                   const IconComponent = pill.icon;
                   const isHovered = hoveredCard === pill.id;
                   const liveCount =
@@ -916,13 +1491,9 @@ export default function AiAssistant() {
                         gap: '9px',
                         padding: '8px 14px 8px 10px',
                         borderRadius: '999px',
-                        background: isHovered
-                          ? '#ffffff'
-                          : 'rgba(255, 255, 255, 0.92)',
+                        background: isHovered ? '#ffffff' : 'rgba(255, 255, 255, 0.92)',
                         backdropFilter: 'blur(8px)',
-                        border: isHovered
-                          ? `1.5px solid ${pill.borderHover}`
-                          : '1px solid #cbd5e1',
+                        border: isHovered ? `1.5px solid ${pill.borderHover}` : '1px solid #cbd5e1',
                         boxShadow: isHovered
                           ? `0 8px 20px -4px ${pill.glowHover}, 0 0 0 3px ${pill.glowHover}`
                           : '0 2px 6px rgba(15, 23, 42, 0.04)',
@@ -1039,6 +1610,24 @@ export default function AiAssistant() {
                         dangerouslySetInnerHTML={{ __html: formatMessageHtml(msg.content) }}
                       />
 
+                      {/* Interactive Action Cards Below AI Message (Leave Apply / Leave Approve) */}
+                      {!isUser && msg.pending_actions?.length > 0 && (
+                        <div style={{ marginTop: 8 }}>
+                          {msg.pending_actions.map((card) => (
+                            <ActionConfirmationCard
+                              key={card.action_id}
+                              card={card}
+                              onActionComplete={(confirmationText) => {
+                                loadDigest();
+                                if (autoSpeak && confirmationText) {
+                                  speakReply(msg.id, confirmationText);
+                                }
+                              }}
+                            />
+                          ))}
+                        </div>
+                      )}
+
                       {/* Footer: Verified Tool Badges + Speak Button + Timestamp */}
                       <div
                         style={{
@@ -1146,7 +1735,11 @@ export default function AiAssistant() {
           {loading && (
             <div style={{ display: 'flex', alignItems: 'center', gap: '10px', color: '#64748b', fontSize: '0.875rem' }}>
               <BotAvatar size={36} />
-              <span>Checking live HRMS attendance & leave records...</span>
+              <span>
+                {isAdminOrManager
+                  ? 'Checking live HRMS attendance & leave records...'
+                  : 'Checking your personal leave & attendance records...'}
+              </span>
             </div>
           )}
 
@@ -1190,7 +1783,7 @@ export default function AiAssistant() {
           </div>
         )}
 
-        {/* Floating Glowing Command Capsule Input Bar */}
+        {/* Input Bar */}
         <form
           onSubmit={(e) => {
             e.preventDefault();
@@ -1260,9 +1853,11 @@ export default function AiAssistant() {
               onBlur={() => setIsInputFocused(false)}
               onChange={(e) => setInput(e.target.value)}
               placeholder={
-                selectedDept
-                  ? `Ask about ${selectedDept} (e.g. 'Who is present today?', 'Who came late?')...`
-                  : "Ask e.g. 'Who is present today in Engineering?', 'Who is on leave today?'..."
+                isAdminOrManager
+                  ? selectedDept
+                    ? `Ask about ${selectedDept} (e.g. 'Who is present today?', 'Approve pending leaves')...`
+                    : "Ask e.g. 'Who is present today in Engineering?', 'Approve Rahul's leave'..."
+                  : "Ask e.g. 'What is my leave balance?', 'How is my attendance?', 'Apply sick leave for tomorrow'..."
               }
               disabled={loading || isRecording}
               style={{
