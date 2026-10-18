@@ -19,25 +19,45 @@ import {
 } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import Modal from './Modal';
-import logoImg from '../assets/logo.jpg';
+import botAvatarVideo from '../assets/meagle-bot-bust-transparent.webm';
 
 function MeagleAiLogoIcon({ size = 19 }) {
+  const box = size + 5;
   return (
-    <img
-      src={logoImg}
-      alt="Meagle 360 AI"
+    <span
+      aria-label="Meagle 360 AI"
       style={{
-        width: size + 2,
-        height: size + 2,
-        borderRadius: 5,
-        objectFit: 'cover',
+        width: box,
+        height: box,
+        borderRadius: '50%',
+        overflow: 'hidden',
         flexShrink: 0,
-        display: 'block',
-        boxShadow: '0 1px 3px rgba(0, 0, 0, 0.25)',
+        display: 'inline-block',
+        background: 'linear-gradient(135deg, #eff6ff 0%, #e0e7ff 100%)',
+        border: '1px solid #c7d2fe',
+        boxShadow: '0 1px 3px rgba(79, 70, 229, 0.25)',
       }}
-    />
+    >
+      <video
+        src={`${botAvatarVideo}#t=0.5`}
+        muted
+        playsInline
+        preload="auto"
+        style={{
+          width: '100%',
+          height: '100%',
+          objectFit: 'cover',
+          objectPosition: 'center 18%',
+          transform: 'scale(1.35)',
+          transformOrigin: 'center 25%',
+          display: 'block',
+          pointerEvents: 'none',
+        }}
+      />
+    </span>
   );
 }
+
 
 // permission: a permission key the user must have, or an array (any-of).
 // hideIfPermission: a permission key (or array) which, if present, hides this item.

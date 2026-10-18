@@ -20,6 +20,7 @@ from app.services.ai.agent_service import AIAgentService
 from app.services.ai.llm_client import LLMClient, LLMProviderError
 from app.services.ai.tools import AIToolbox, get_ist_today
 from app.services.leave_service import LeaveService
+from app.services.payroll_service import PayrollService
 
 router = APIRouter(prefix="/api/ai", tags=["AI Assistant"])
 
@@ -31,7 +32,13 @@ def is_admin_or_manager(current_user: UserAccount) -> bool:
         return True
 
     perms = current_user.merged_permissions or {}
-    admin_manager_keys = ("attendance:approve", "leave:approve", "settings:write")
+    admin_manager_keys = (
+        "attendance:approve",
+        "leave:approve",
+        "settings:write",
+        "payroll:read",
+        "payroll:write",
+    )
     return any(bool(perms.get(k)) for k in admin_manager_keys)
 
 
@@ -62,7 +69,7 @@ def execute_ai_action(
     company_id: UUID = Depends(get_company_id),
     current_user: UserAccount = Depends(get_current_user),
 ):
-    """Execute a user-confirmed AI action card (Apply Leave for Employee, Approve/Reject Leave for Admin)."""
+    """Execute a user-confirmed AI action card (Apply Leave, Approve/Reject Leave, Finalize Payroll)."""
     leave_svc = LeaveService(db, company_id)
 
     if payload.action_type == "apply_leave":
@@ -136,6 +143,39 @@ def execute_ai_action(
                     "employee_name": emp_name,
                     "leave_type_name": lt_name,
                     "decision": decision,
+                },
+            )
+        except ValueError as exc:
+            raise HTTPException(status_code=400, detail=str(exc))
+
+    if payload.action_type == "finalize_payroll":
+        if not is_admin_or_manager(current_user):
+            raise HTTPException(
+                status_code=status.HTTP_403_FORBIDDEN,
+                detail="Only Organization Admins and HR Managers can finalize payroll runs.",
+            )
+        if not payload.payroll_run_id:
+            raise HTTPException(status_code=400, detail="payroll_run_id is required.")
+
+        try:
+            payroll_svc = PayrollService(db, company_id)
+            run_uuid = UUID(str(payload.payroll_run_id))
+            finalized_run = payroll_svc.finalize_run(run_uuid, current_user.employee_id)
+            if not finalized_run:
+                raise HTTPException(status_code=404, detail="Payroll run not found.")
+            month_label = date(finalized_run.year, finalized_run.month, 1).strftime("%B %Y")
+            return AIExecuteActionResponse(
+                status="completed",
+                action_type="finalize_payroll",
+                message=(
+                    f"Payroll run for {month_label} has been finalized! "
+                    "All payslips are now locked and published for employees."
+                ),
+                data={
+                    "payroll_run_id": str(finalized_run.id),
+                    "month": finalized_run.month,
+                    "year": finalized_run.year,
+                    "status": finalized_run.status,
                 },
             )
         except ValueError as exc:

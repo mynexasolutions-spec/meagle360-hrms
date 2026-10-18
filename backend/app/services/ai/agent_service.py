@@ -16,8 +16,10 @@ from app.services.ai.tools import (
     ADMIN_TOOL_SCHEMAS,
     EMPLOYEE_TOOL_SCHEMAS,
     AIToolbox,
+    extract_date_window_from_query,
     get_ist_now,
     get_ist_today,
+    parse_month_year,
 )
 
 logger = logging.getLogger(__name__)
@@ -39,21 +41,26 @@ def build_system_prompt(is_admin_or_manager: bool = True) -> str:
             f"- Current IST Time: {time_str}\n"
             f"- Yesterday: {yesterday_str} | Tomorrow: {tomorrow_str}\n\n"
             "STRICT RULES FOR EMPLOYEE MODE:\n"
-            "1. LANGUAGE: Always reply in clear, concise, friendly English, regardless of whether "
-            "the employee asks in English, Hindi, or Hinglish.\n"
+            "1. LANGUAGE: Always reply in clear, concise, friendly Roman English (or Roman Hinglish if natural), "
+            "regardless of whether the employee asks in English, Hindi, or Hinglish. NEVER use Hindi Devanagari "
+            "script characters (क, ख, ग, etc.) anywhere in your response.\n"
             "2. PERSONAL SCOPE ONLY: You can ONLY access this logged-in employee's own data:\n"
+            "   - Their own Salary / Payslip breakdown (`get_my_payslip_summary`)\n"
             "   - Their own Leave Balance & Leave Request status (`get_my_leave_summary`)\n"
             "   - Their own Personal Attendance record & check-in/out times (`get_my_attendance_summary`)\n"
             "   - Preparing a Leave Application for them (`prepare_my_leave_application`)\n"
-            "3. PRIVACY GUARDRAIL: If the employee asks about company-wide attendance, another employee's "
-            "attendance, or who is present/late in a department, politely tell them that company/team "
-            "attendance is restricted to Organization Admins and Managers, and offer to check their own "
-            "attendance, leave balance, or help them apply for leave.\n"
-            "4. APPLYING FOR LEAVE: Whenever the employee says they want to apply for leave, take a day off, "
+            "3. PRIVACY GUARDRAIL: If the employee asks about company-wide attendance, company-wide payroll, "
+            "another employee's salary/attendance, or who is present/late in a department, politely tell them "
+            "that company/team records and other employees' salaries are restricted to Organization Admins and "
+            "Managers, and offer to check their own salary/payslip, attendance, leave balance, or help them apply for leave.\n"
+            "4. MY SALARY / PAYSLIP: Whenever the employee asks about their salary, payslip, tankhwah, net pay, "
+            "deductions, or LOP (e.g. 'meri is mahine ki salary kitni bani hai?', 'show my payslip'), ALWAYS call "
+            "`get_my_payslip_summary`.\n"
+            "5. APPLYING FOR LEAVE: Whenever the employee says they want to apply for leave, take a day off, "
             "or book chhutti (e.g. 'apply sick leave tomorrow', 'mujhe kal chhutti chahiye', 'apply casual leave "
             "from 20 Oct to 22 Oct'), ALWAYS call `prepare_my_leave_application` so an interactive "
             "'Confirm & Apply Leave' button card appears below your reply.\n"
-            "5. FORMATTING: Never output Markdown tables (`|---|`) or horizontal divider lines (`---`). "
+            "6. FORMATTING: Never output Markdown tables (`|---|`) or horizontal divider lines (`---`). "
             "Use clean bullet points (`- **Label:** Value`) so replies look great and read smoothly aloud."
         )
 
@@ -63,38 +70,50 @@ def build_system_prompt(is_admin_or_manager: bool = True) -> str:
         f"- Current IST Time: {time_str}\n"
         f"- Yesterday: {yesterday_str} | Tomorrow: {tomorrow_str}\n\n"
         "STRICT RULES:\n"
-        "1. LANGUAGE: Always reply in clear, concise, professional English, regardless of whether "
-        "the user asks in English, Hindi, or Hinglish.\n"
+        "1. LANGUAGE (NO HINDI LETTERS): Always reply strictly in Roman alphabet (clear, concise, professional "
+        "English / Hinglish). NEVER output any Hindi Devanagari script characters (क, ख, ग, etc.).\n"
         "2. VOICE & TYPO TOLERANCE: User queries often come from speech-to-text (Whisper/Mic) and may "
         "contain phonetic typos or Hinglish (e.g. 'pleasant'/'preset'/'prasent' -> 'present', "
         "'engine ring' -> 'Engineering', 'let'/'leit' -> 'late', 'chuti'/'live' -> 'leave', "
-        "or misspelled Indian names like 'Rahu'/'Sidhart'). Always interpret imperfect transcripts "
-        "generously as HR/attendance/leave/employee queries and call the matching tool.\n"
-        "3. LEAVE APPROVALS: When the Admin/Manager asks to approve or reject a leave (e.g. "
+        "'pay roll'/'perol'/'tankhwah' -> 'payroll'/'salary', or misspelled Indian names like 'Rahu'/'Sidhart'). "
+        "Always interpret imperfect transcripts generously and call the matching tool.\n"
+        "3. PAYROLL GENERATION & SALARY BREAKDOWN: Whenever the Admin/Manager asks to generate/create/run "
+        "payroll OR asks how much salary was calculated in payroll for everyone or a specific employee "
+        "(e.g. 'payroll bana do', 'is mahine ka payroll bana do', 'kiske payroll mein kitni salary bani hai', "
+        "'Rahul ki kitni salary bani hai', 'show payroll breakdown for October'), ALWAYS call "
+        "`run_or_get_monthly_payroll`.\n"
+        "   - State clearly whether the Draft payroll run was newly generated or already existed (and its status: DRAFT or FINALIZED).\n"
+        "   - Show the summary totals (Total Payslips, Total Gross, Total Deductions, Total Net Payout).\n"
+        "   - List each employee's salary breakdown in clean bullet points: **Employee Name** (Department) — "
+        "Gross: ₹X, Deductions: ₹Y, LOP: Z days (₹W), **Net Pay: ₹N** (or full itemized earnings/deductions if a single employee was queried).\n"
+        "   - If `unassigned_or_skipped_employees` has entries, include a clear note at the end listing those active employees who do not have a Salary Structure assigned yet.\n"
+        "   - If `payroll_status` is 'draft', remind the Admin they can click the **Finalize Payroll Run** button on the card below.\n"
+        "4. LEAVE APPROVALS & STRICT DATE FILTERING: When the Admin/Manager asks to approve or reject a leave (e.g. "
         "'Approve Rahul's leave', 'Emily ki leave approve kar do', 'Reject pending leave') or asks "
         "what leave approvals are pending, call `prepare_leave_approval_action` or `get_pending_approvals`. "
-        "This attaches interactive 'Approve Leave' / 'Reject' action buttons below your message. Tell the "
-        "Admin to click the button below to confirm.\n"
-        "4. ACCURACY: Never guess or fabricate employee names, counts, times, or dates. Every number, "
-        "name, and timestamp in your answer MUST come strictly from the tool output.\n"
-        "5. PINPOINT FILTERING: If the user asks about a specific department (e.g. 'in Engineering') or "
+        "   - CRITICAL: If the user asks whether any leave request came in a specific date range or relative period "
+        "(e.g. 'pichle 2 din mein koi leave request aayi thi?', 'last 2 days', 'yesterday', 'today'), ONLY report "
+        "leave requests that fall within that exact date range. If there are 0 leave requests in that date range, "
+        "directly say that no leave requests were found for those dates — NEVER list, mention, or show leave requests from other dates!\n"
+        "5. ACCURACY: Never guess or fabricate employee names, salary figures, counts, times, or dates. Every number, "
+        "name, and amount in your answer MUST come strictly from the tool output.\n"
+        "6. PINPOINT FILTERING: If the user asks about a specific department (e.g. 'in Engineering') or "
         "a specific status ('who is present', 'who is absent', 'who is late'), pass `department_filter` "
         "and/or `status_filter` to the tool and ONLY answer what was asked — do not dump the full company overview unless asked for an overview.\n"
-        "6. FORMATTING (NO TABLES, NO DASH LINES): NEVER output Markdown tables (`|---|`), pipe characters (`|`), "
-        "or horizontal divider lines (`---`). Always start your answer with a 1-line summary header that includes the "
-        "exact Date (`date_formatted` from the tool output) and the Total Count, followed by clean bullet points:\n"
-        "   **Absent Employees on 17 Oct 2026 (Saturday) — 19 Total:**\n"
-        "   - **Employee Name** (Department) — Status / Time details\n"
-        "   Keep answers concise and natural so they look clean on screen and sound smooth when spoken aloud."
+        "7. FORMATTING (NO TABLES, NO DASH LINES): NEVER output Markdown tables (`|---|`), pipe characters (`|`), "
+        "or horizontal divider lines (`---`). Always start your answer with a 1-line summary header followed by clean bullet points."
     )
 
 
 def _sanitize_reply(text: str) -> str:
-    """Convert any residual Markdown table rows into clean bullet lines and remove '---' dividers."""
+    """Convert any residual Markdown table rows into clean bullet lines, remove '---' dividers,
+    and strip any stray Devanagari Unicode characters so output is strictly Roman script."""
     if not text:
         return ""
+    # Strip any stray Devanagari script characters while preserving ₹ (U+20B9) and Roman text
+    cleaned_text = re.sub(r"[\u0900-\u097F]+", "", text)
     out_lines: list[str] = []
-    lines = text.splitlines()
+    lines = cleaned_text.splitlines()
     for line in lines:
         stripped = line.strip()
         if re.match(r"^[\|\s:\-_]{3,}$", stripped):
@@ -104,8 +123,12 @@ def _sanitize_reply(text: str) -> str:
             if not cells:
                 continue
             lower_cells = [re.sub(r"\*+", "", c).strip().lower() for c in cells]
-            if any(h in lower_cells for h in ("employee", "employee name", "name")) and any(
-                h in lower_cells for h in ("department", "status", "check-in", "check in", "late by", "leave type")
+            if any(h in lower_cells for h in ("employee", "employee name", "name", "component")) and any(
+                h in lower_cells
+                for h in (
+                    "department", "status", "check-in", "check in", "late by",
+                    "leave type", "net pay", "gross", "salary", "amount",
+                )
             ):
                 continue
             first = cells[0]
@@ -162,6 +185,7 @@ class AIAgentService:
                 "mode": "empty",
             }
 
+        self.toolbox.current_user_query = clean_msg
         tools_used: list[str] = []
 
         # If LLM key is configured, run full function-calling loop with graceful fallback
@@ -257,7 +281,7 @@ class AIAgentService:
     def _run_employee_deterministic_fallback(self, user_message: str) -> dict[str, Any]:
         q = user_message.lower().strip()
 
-        # Guardrail if employee asks about company/department attendance or other employees
+        # Guardrail if employee asks about company/department attendance, company payroll, or other employees
         if any(
             phrase in q
             for phrase in (
@@ -273,18 +297,95 @@ class AIAgentService:
                 "kaun aaya",
                 "kaun chhutti",
                 "kaun late",
+                "kiske payroll",
+                "kiski salary",
+                "sabki salary",
+                "everyone's salary",
+                "payroll bana",
+                "generate payroll",
+                "run payroll",
             )
         ):
             return {
                 "reply": (
-                    "Company-wide and department attendance records are restricted to **Organization Admins and Managers**.\n\n"
+                    "Company-wide attendance, payroll runs, and other employees' salary records are restricted to "
+                    "**Organization Admins and HR Managers**.\n\n"
                     "As an Employee, I can help you with:\n"
+                    "- **Your Salary / Payslip:** *\"Meri is mahine ki salary kitni bani hai?\"* or *\"Show my payslip\"*\n"
                     "- **Your Leave Balance:** *\"What is my leave balance?\"*\n"
                     "- **Your Attendance:** *\"How is my attendance this month?\"*\n"
-                    "- **Apply for Leave:** *\"Apply sick leave for tomorrow\"* or *\"Apply casual leave from 20 Oct to 22 Oct\"*\n"
-                    "- **Leave Status:** *\"What is the status of my applied leaves?\"*"
+                    "- **Apply for Leave:** *\"Apply sick leave for tomorrow\"* or *\"Apply casual leave from 20 Oct to 22 Oct\"*"
                 ),
                 "tools_used": [],
+                "pending_actions": [],
+                "role_mode": "employee",
+                "provider": "local-db-engine",
+                "mode": "deterministic_fallback",
+            }
+
+        # 0. Personal Salary / Payslip Intent (Idea D)
+        if any(
+            w in q
+            for w in (
+                "salary",
+                "payslip",
+                "pay slip",
+                "payroll",
+                "tankhwah",
+                "tankhah",
+                "net pay",
+                "gross pay",
+                "deduction",
+                "ctc",
+                "kitni bani",
+                "kitna bana",
+                "meri salary",
+            )
+        ):
+            m_val, y_val = parse_month_year(query_text=user_message)
+            data = self.toolbox.get_my_payslip_summary(month=m_val, year=y_val)
+            if data.get("error"):
+                return {
+                    "reply": f"**Unable to fetch payslip:** {data['error']}",
+                    "tools_used": ["get_my_payslip_summary"],
+                    "pending_actions": [],
+                    "role_mode": "employee",
+                    "provider": "local-db-engine",
+                    "mode": "deterministic_fallback",
+                }
+            if data.get("source") == "not_assigned":
+                return {
+                    "reply": data["message"],
+                    "tools_used": ["get_my_payslip_summary"],
+                    "pending_actions": [],
+                    "role_mode": "employee",
+                    "provider": "local-db-engine",
+                    "mode": "deterministic_fallback",
+                }
+
+            status_badge = str(data.get("payroll_status", "generated")).upper()
+            lines = [
+                f"**Your Salary & Payslip Breakdown for {data['month_label']} ({data['employee_name']}) — [{status_badge}]:**",
+                f"- **Working Days:** {data['working_days']} days | **LOP Days:** {data['lop_days']} days (LOP Deduction: **₹{data['lop_amount']:,.2f}**)",
+                f"- **Basic Pay:** ₹{data['basic_pay']:,.2f}",
+                f"- **Gross Earnings:** ₹{data['gross_earnings']:,.2f}",
+                f"- **Total Deductions:** ₹{data['total_deductions']:,.2f}",
+                f"- **Net Take-Home Salary (Net Pay):** **₹{data['net_pay']:,.2f}**",
+            ]
+            if data.get("earnings_breakdown"):
+                earn_str = ", ".join(
+                    f"{e['component']}: ₹{e['amount']:,.2f}" for e in data["earnings_breakdown"]
+                )
+                lines.append(f"- **Earnings Components:** {earn_str}")
+            if data.get("deductions_breakdown"):
+                ded_str = ", ".join(
+                    f"{d['component']}: ₹{d['amount']:,.2f}" for d in data["deductions_breakdown"]
+                )
+                lines.append(f"- **Deduction Components:** {ded_str}")
+
+            return {
+                "reply": "\n".join(lines),
+                "tools_used": ["get_my_payslip_summary"],
                 "pending_actions": [],
                 "role_mode": "employee",
                 "provider": "local-db-engine",
@@ -458,35 +559,171 @@ class AIAgentService:
     # ══════════════════════════════════════════════════════════════════════
     def _run_admin_deterministic_fallback(self, user_message: str) -> dict[str, Any]:
         q = user_message.lower().strip()
+        self.toolbox.current_user_query = user_message
         today = get_ist_today()
 
-        target_date = today
-        if any(w in q for w in ("yesterday", "kal")):
-            target_date = today - timedelta(days=1)
+        date_window = extract_date_window_from_query(user_message)
+        if date_window:
+            win_start, win_end = date_window
+            target_date = win_start if win_start == win_end else today
         else:
-            iso_match = re.search(r"\b(\d{4}-\d{2}-\d{2})\b", q)
-            if iso_match:
-                try:
-                    from datetime import date as dt_date
-                    target_date = dt_date.fromisoformat(iso_match.group(1))
-                except ValueError:
-                    pass
+            target_date = today
+            if any(w in q for w in ("yesterday", "kal")):
+                target_date = today - timedelta(days=1)
+            else:
+                iso_match = re.search(r"\b(\d{4}-\d{2}-\d{2})\b", q)
+                if iso_match:
+                    try:
+                        from datetime import date as dt_date
+                        target_date = dt_date.fromisoformat(iso_match.group(1))
+                    except ValueError:
+                        pass
 
         date_str = target_date.isoformat()
         dept_filter = self.toolbox.detect_department(q)
         dept_label = f" in **{dept_filter}**" if dept_filter else ""
 
+        # 0. Payroll Generation & Salary Breakdown Intent (Ideas A, B, C)
+        if any(
+            w in q
+            for w in (
+                "payroll",
+                "pay roll",
+                "perol",
+                "salary",
+                "salaries",
+                "tankhwah",
+                "tankhah",
+                "payslip",
+                "pay slip",
+                "net pay",
+                "gross pay",
+                "ctc",
+            )
+        ):
+            m_val, y_val = parse_month_year(query_text=user_message)
+            # Detect if a specific employee name was mentioned (e.g., "Rahul ki kitni salary bani hai")
+            cleaned_emp = re.sub(
+                r"\b(payroll|pay|roll|perol|salary|salaries|tankhwah|tankhah|payslip|slip|net|gross|ctc|bana|banao|banade|banado|create|generate|run|show|tell|check|what|is|the|for|of|in|this|last|previous|month|year|mahine|mahina|pichle|pichhle|kiske|kiski|kiska|kitni|kitna|bani|bana|hai|hain|aur|batao|bata|do|de|mein|me|m|sabki|sabka|all|everyone|employees|employee|department|engineering|sales|hr|finance|product|marketing|operations|jan|january|feb|february|mar|march|apr|april|may|jun|june|jul|july|aug|august|sep|sept|september|oct|october|nov|november|dec|december|20\d{2})\b",
+                " ",
+                q,
+            )
+            cleaned_emp = re.sub(r"\b(ka|ki|ke|ko|se|ne|ho|to|or|and)\b", " ", cleaned_emp)
+            cleaned_emp = " ".join(cleaned_emp.split()).strip(" ?.,!'\"s")
+            emp_query = cleaned_emp if len(cleaned_emp) >= 3 else None
+
+            data = self.toolbox.run_or_get_monthly_payroll(
+                month=m_val,
+                year=y_val,
+                employee_name_query=emp_query,
+                department_filter=dept_filter,
+                create_if_missing=True,
+            )
+
+            if data.get("error"):
+                lines = [f"**Payroll Notice for {data.get('month_label', '')}:** {data['error']}"]
+                unassigned = data.get("unassigned_employees") or []
+                if unassigned:
+                    emp_names = ", ".join(
+                        f"**{u['employee_name']}** ({u['department']})" for u in unassigned[:12]
+                    )
+                    lines.append(
+                        f"- **Active Employees Missing Salary Structure ({data.get('unassigned_employees_count', len(unassigned))}):** {emp_names}"
+                    )
+                return {
+                    "reply": "\n".join(lines),
+                    "tools_used": ["run_or_get_monthly_payroll"],
+                    "pending_actions": self.toolbox.pending_actions,
+                    "role_mode": "admin",
+                    "provider": "local-db-engine",
+                    "mode": "deterministic_fallback",
+                }
+
+            s = data["summary"]
+            action_tag = (
+                "Newly Generated Draft"
+                if data["action_taken"] == "created_new_draft_run"
+                else f"Status: {str(data['payroll_status']).upper()}"
+            )
+            lines = [
+                f"**Payroll Summary{dept_label} for {data['month_label']} ({action_tag}) — {s['payslip_count']} Payslip(s):**",
+                f"- **Total Gross Earnings:** ₹{s['total_gross_earnings']:,.2f} | **Total Deductions:** ₹{s['total_deductions']:,.2f} | **Total Net Payout:** **₹{s['total_net_pay']:,.2f}**",
+            ]
+
+            emp_list = data.get("employee_salaries") or []
+            if emp_query and len(emp_list) == 1:
+                emp_item = emp_list[0]
+                lines.append(
+                    f"\n**Detailed Salary Breakdown for {emp_item['employee_name']} ({emp_item['department']} • `{emp_item['payslip_number']}`):**"
+                )
+                lines.append(
+                    f"- **Working Days:** {emp_item['working_days']}d | **LOP Days:** {emp_item['lop_days']}d (LOP Deduction: ₹{emp_item['lop_amount']:,.2f})"
+                )
+                lines.append(
+                    f"- **Basic Pay:** ₹{emp_item['basic_pay']:,.2f} | **Gross Pay:** ₹{emp_item['gross_earnings']:,.2f} | **Total Deductions:** ₹{emp_item['total_deductions']:,.2f} | **Net Take-Home Pay:** **₹{emp_item['net_pay']:,.2f}**"
+                )
+                if emp_item.get("earnings_breakdown"):
+                    earn_txt = ", ".join(
+                        f"{c['component']}: ₹{c['amount']:,.2f}" for c in emp_item["earnings_breakdown"]
+                    )
+                    lines.append(f"- **Earnings:** {earn_txt}")
+                if emp_item.get("deductions_breakdown"):
+                    ded_txt = ", ".join(
+                        f"{c['component']}: ₹{c['amount']:,.2f}" for c in emp_item["deductions_breakdown"]
+                    )
+                    lines.append(f"- **Deductions:** {ded_txt}")
+            elif emp_list:
+                lines.append(f"\n**Employee-wise Salary Breakdown ({len(emp_list)}):**")
+                for emp_item in emp_list[:35]:
+                    lop_txt = (
+                        f", LOP: {emp_item['lop_days']}d (-₹{emp_item['lop_amount']:,.2f})"
+                        if emp_item["lop_days"] > 0
+                        else ""
+                    )
+                    lines.append(
+                        f"- **{emp_item['employee_name']}** ({emp_item['department']}) — "
+                        f"Gross: ₹{emp_item['gross_earnings']:,.2f}, Deductions: ₹{emp_item['total_deductions']:,.2f}{lop_txt} • "
+                        f"**Net Pay: ₹{emp_item['net_pay']:,.2f}**"
+                    )
+            else:
+                lines.append(f"\nNo matching payslip records found for `\"{emp_query or 'this filter'}\"`.")
+
+            skipped = data.get("unassigned_or_skipped_employees") or []
+            if skipped:
+                skipped_names = ", ".join(
+                    f"**{sk['employee_name']}** ({sk['department']})" for sk in skipped[:10]
+                )
+                more_cnt = max(0, len(skipped) - 10)
+                more_str = f" and {more_cnt} more" if more_cnt > 0 else ""
+                lines.append(
+                    f"\n- **Note (Missing Salary Structure — {s['unassigned_or_skipped_count']} Active Employee(s) Skipped):** {skipped_names}{more_str}"
+                )
+
+            if data.get("payroll_status") == "draft":
+                lines.append(
+                    "\nThis payroll run is currently in **DRAFT** status. Click **Finalize Payroll Run** on the card below to lock and publish all payslips."
+                )
+
+            return {
+                "reply": "\n".join(lines),
+                "tools_used": ["run_or_get_monthly_payroll"],
+                "pending_actions": self.toolbox.pending_actions,
+                "role_mode": "admin",
+                "provider": "local-db-engine",
+                "mode": "deterministic_fallback",
+            }
+
         # 1. Explicit Leave Approve / Reject or Pending Approvals intent
         if any(w in q for w in ("pending", "approval", "queue", "approve", "reject")):
-            # Check if a specific employee name was mentioned for approval
+            # Check if a specific employee name was mentioned for approval (excluding relative date/time words)
             cleaned_emp = re.sub(
-                r"\b(approve|reject|pending|leave|leaves|request|requests|approvals|what|are|show|all|the|for|of|ki|ka|ko|kar|do|kardo|please|chhutti|chutti)\b",
+                r"\b(approve|reject|pending|leave|leaves|request|requests|approvals|what|are|show|all|the|for|of|in|on|ki|ka|ko|ke|se|mein|main|me|kar|do|kardo|please|chhutti|chutti|pichle|pichhle|last|past|previous|agle|next|din|dino|days|day|week|hafte|month|mahine|aaj|kal|today|yesterday|tomorrow|koi|kisi|aayi|aaya|aya|thi|tha|the|hai|hain|\d+)\b",
                 " ",
                 q,
             )
             cleaned_emp = " ".join(cleaned_emp.split()).strip(" ?.,!'\"s")
 
-            if cleaned_emp and len(cleaned_emp) >= 2:
+            if cleaned_emp and len(cleaned_emp) >= 2 and not date_window:
                 intended = "rejected" if "reject" in q else "approved"
                 prep = self.toolbox.prepare_leave_approval_action(
                     employee_name_query=cleaned_emp,
@@ -511,9 +748,30 @@ class AIAgentService:
                         "mode": "deterministic_fallback",
                     }
 
-            data = self.toolbox.get_pending_approvals(attach_action_cards=True)
+            win_s = date_window[0].isoformat() if date_window else None
+            win_e = date_window[1].isoformat() if date_window else None
+            data = self.toolbox.get_pending_approvals(
+                attach_action_cards=True,
+                start_date=win_s,
+                end_date=win_e,
+            )
             l_cnt = data["pending_leave_requests_count"]
             r_cnt = data["pending_regularizations_count"]
+            if date_window and l_cnt == 0:
+                s_d, e_d = date_window
+                range_lbl = (
+                    s_d.strftime("%d %b %Y")
+                    if s_d == e_d
+                    else f"{s_d.strftime('%d %b %Y')} to {e_d.strftime('%d %b %Y')}"
+                )
+                return {
+                    "reply": f"No pending leave requests{dept_label} were found for **{range_lbl}**.",
+                    "tools_used": ["get_pending_approvals"],
+                    "pending_actions": [],
+                    "role_mode": "admin",
+                    "provider": "local-db-engine",
+                    "mode": "deterministic_fallback",
+                }
             lines = [
                 "Here is the current **Pending Approvals Summary**:",
                 f"- **Pending Leave Requests:** {l_cnt}",
@@ -567,27 +825,33 @@ class AIAgentService:
 
         # 3. Leave intent
         if any(w in q for w in ("leave", "on live", "chhutti", "chutti", "chuti", "vacation", "off today")):
+            s_d, e_d = date_window if date_window else (target_date, target_date)
             data = self.toolbox.get_employees_on_leave(
-                start_date=date_str,
-                end_date=date_str,
+                start_date=s_d.isoformat(),
+                end_date=e_d.isoformat(),
                 department_filter=dept_filter,
             )
             leaves = data["leaves"]
+            range_lbl = (
+                s_d.strftime("%d %b %Y")
+                if s_d == e_d
+                else f"{s_d.strftime('%d %b %Y')} to {e_d.strftime('%d %b %Y')}"
+            )
             if not leaves:
-                reply = f"No employees{dept_label} are on approved or pending leave for **{target_date.strftime('%d %b %Y')}**."
+                reply = f"No leave requests{dept_label} were found for **{range_lbl}**."
             else:
                 lines = [
-                    f"For **{target_date.strftime('%d %b %Y')}**{dept_label}, there are **{data['approved_count']} approved** and **{data['pending_count']} pending** leave request(s):"
+                    f"For **{range_lbl}**{dept_label}, there are **{data['approved_count']} approved** and **{data['pending_count']} pending** leave request(s):"
                 ]
                 for lr in leaves:
                     lines.append(
-                        f"- **{lr['employee_name']}** ({lr['department']}) — **{lr['leave_type']}** [{lr['status'].upper()}] ({lr['start_date']} to {lr['end_date']})"
+                        f"- **{lr['employee_name']}** ({lr['department']}) — **{lr['leave_type']}** [{lr['status'].upper()}] ({lr['start_date']} to {lr['end_date']}, {lr['days']} day(s))"
                     )
                 reply = "\n".join(lines)
             return {
                 "reply": reply,
                 "tools_used": ["get_employees_on_leave"],
-                "pending_actions": [],
+                "pending_actions": self.toolbox.pending_actions,
                 "role_mode": "admin",
                 "provider": "local-db-engine",
                 "mode": "deterministic_fallback",

@@ -16,7 +16,10 @@ class AIChatRequest(BaseModel):
 
 class AIActionCard(BaseModel):
     action_id: str
-    action_type: str = Field(..., description="'approve_leave' or 'apply_leave'")
+    action_type: str = Field(
+        ...,
+        description="'approve_leave', 'apply_leave', or 'finalize_payroll'",
+    )
     title: str
     leave_request_id: str | None = None
     employee_name: str | None = None
@@ -24,13 +27,24 @@ class AIActionCard(BaseModel):
     department: str | None = None
     leave_type_id: str | None = None
     leave_type_name: str = "Leave"
-    start_date: str
-    end_date: str
+    start_date: str | None = None
+    end_date: str | None = None
     days: int = 1
     available_balance: float | None = None
     reason: str | None = None
     intended_decision: str | None = None
     leave_type_options: list[dict[str, Any]] = Field(default_factory=list)
+    # Payroll action card fields
+    payroll_run_id: str | None = None
+    month: int | None = None
+    year: int | None = None
+    month_label: str | None = None
+    payroll_status: str | None = None
+    payslip_count: int | None = None
+    total_gross_earnings: float | None = None
+    total_deductions: float | None = None
+    total_net_pay: float | None = None
+    unassigned_employees_count: int | None = None
 
 
 class AIChatResponse(BaseModel):
@@ -43,7 +57,10 @@ class AIChatResponse(BaseModel):
 
 
 class AIExecuteActionRequest(BaseModel):
-    action_type: str = Field(..., description="'approve_leave' or 'apply_leave'")
+    action_type: str = Field(
+        ...,
+        description="'approve_leave', 'apply_leave', or 'finalize_payroll'",
+    )
     # For approve_leave:
     leave_request_id: str | None = None
     decision: str | None = Field(default="approved", description="'approved' or 'rejected'")
@@ -52,6 +69,10 @@ class AIExecuteActionRequest(BaseModel):
     start_date: str | None = None
     end_date: str | None = None
     reason: str | None = None
+    # For finalize_payroll:
+    payroll_run_id: str | None = None
+    month: int | None = None
+    year: int | None = None
 
 
 class AIExecuteActionResponse(BaseModel):

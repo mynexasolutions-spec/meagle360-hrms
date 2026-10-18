@@ -159,7 +159,7 @@ class LLMClient:
         filename: str = "voice.webm",
         content_type: str = "audio/webm",
     ) -> str:
-        """Transcribe Hindi/Hinglish/English audio using Groq Whisper."""
+        """Transcribe Hindi/Hinglish/English audio using Groq Whisper (strictly Roman alphabet)."""
         groq_key = (self.settings.GROQ_API_KEY or self.api_key or "").strip()
         if not groq_key:
             raise LLMProviderError(
@@ -175,7 +175,9 @@ class LLMClient:
             "prompt": (
                 "Transcribe strictly in Roman English alphabet (English and Hinglish, never Devanagari): "
                 "Who is present today, Aaj kaun present hai, kaun leave pe hai, aaj kaun chhutti pe hai, "
-                "late comers, pending approvals, Engineering, Sales, HR, Finance, Product, Rahul Sharma."
+                "late comers, pending approvals, payroll bana do, is mahine ka payroll, "
+                "kiske payroll mein kitni salary bani hai, tankhwah, payslip, LOP, deduction, net pay, "
+                "Engineering, Sales, HR, Finance, Product, Rahul Sharma."
             ),
             "response_format": "json",
             "temperature": "0",
@@ -200,3 +202,4 @@ class LLMClient:
 
         body = resp.json()
         return (body.get("text") or "").strip()
+

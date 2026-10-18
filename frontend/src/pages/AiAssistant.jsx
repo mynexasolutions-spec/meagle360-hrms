@@ -60,7 +60,7 @@ function BotAvatar({ size = 36, glow = false }) {
         style={{
           width: '100%',
           height: '100%',
-          objectFit: 'cover',
+          objectFit: 'contain',
           display: 'block',
         }}
       />
@@ -70,10 +70,13 @@ function BotAvatar({ size = 36, glow = false }) {
 
 // ── Admin / Manager Prompts & Hero Pills ──────────────────────────────────
 const ADMIN_QUICK_PROMPTS = [
+  {
+    label: 'Generate payroll & salaries',
+    query: 'Is mahine ka payroll bana do aur batao kiske payroll mein kitni salary bani hai',
+  },
   { label: 'Who is present today?', query: 'Who is present today' },
   { label: 'Who is on leave today?', query: 'Who is on leave today' },
   { label: "Today's late comers", query: 'Who clocked in late today' },
-  { label: 'Who is absent today?', query: 'Who is absent today' },
   { label: 'Pending approvals', query: 'What leave approvals are pending?' },
 ];
 
@@ -142,10 +145,10 @@ const ADMIN_HERO_PILLS = [
 
 // ── Employee Personal Self-Service Prompts & Hero Pills ───────────────────
 const EMPLOYEE_QUICK_PROMPTS = [
+  { label: 'My salary / payslip', query: 'Meri is mahine ki salary kitni bani hai?' },
   { label: 'My leave balance', query: 'What is my leave balance?' },
   { label: 'My attendance this month', query: 'How is my attendance this month?' },
   { label: 'Apply sick leave tomorrow', query: 'Apply sick leave for tomorrow' },
-  { label: 'Apply casual leave tomorrow', query: 'Apply casual leave for tomorrow' },
   { label: 'My applied leaves status', query: 'What is the status of my applied leaves?' },
 ];
 
@@ -219,9 +222,11 @@ const TOOL_LABELS = {
   find_employee: 'Fuzzy Employee Lookup',
   get_pending_approvals: 'Approval Queue',
   prepare_leave_approval_action: 'Leave Approval Action',
+  run_or_get_monthly_payroll: 'Payroll Engine & Salary Breakdown',
   get_my_leave_summary: 'My Leave Balance & Requests',
   get_my_attendance_summary: 'My Personal Attendance',
   prepare_my_leave_application: 'Leave Application Assistant',
+  get_my_payslip_summary: 'My Payslip & Salary Breakdown',
 };
 
 const createWelcomeMessage = () => ({
@@ -369,6 +374,28 @@ function ActionConfirmationCard({ card, onActionComplete }) {
     } catch (err) {
       setStatus('pending');
       setErrorText(err.response?.data?.detail || `Failed to ${decision} leave request.`);
+    }
+  };
+
+  const handleFinalizePayroll = async () => {
+    setErrorText('');
+    setStatus('submitting');
+    try {
+      const res = await executeAiAction({
+        action_type: 'finalize_payroll',
+        payroll_run_id: card.payroll_run_id,
+        month: card.month,
+        year: card.year,
+      });
+      setStatus('completed');
+      setDecisionMade('finalized');
+      setResultMessage(
+        res.data?.message || `Payroll run for ${card.month_label || 'this month'} finalized!`
+      );
+      if (onActionComplete) onActionComplete(res.data?.message);
+    } catch (err) {
+      setStatus('pending');
+      setErrorText(err.response?.data?.detail || 'Failed to finalize payroll run.');
     }
   };
 
@@ -657,7 +684,183 @@ function ActionConfirmationCard({ card, onActionComplete }) {
     );
   }
 
-  // ── 2. Admin / Manager Leave Approval Card ─────────────────────────────
+  // ── 2. Admin / HR Finalize Payroll Confirmation Card ───────────────────
+  if (card.action_type === 'finalize_payroll') {
+    const fmtInr = (val) =>
+      Number(val || 0).toLocaleString('en-IN', {
+        minimumFractionDigits: 2,
+        maximumFractionDigits: 2,
+      });
+
+    return (
+      <div
+        style={{
+          marginTop: 12,
+          padding: '14px 16px',
+          borderRadius: 14,
+          background: 'linear-gradient(135deg, #ffffff 0%, #f8fafc 100%)',
+          border: '1.5px solid #bfdbfe',
+          boxShadow: '0 6px 18px -4px rgba(37, 99, 235, 0.12)',
+        }}
+      >
+        <div
+          style={{
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'space-between',
+            flexWrap: 'wrap',
+            gap: 8,
+            marginBottom: 10,
+          }}
+        >
+          <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+            <ClipboardCheck size={17} style={{ color: '#2563eb' }} />
+            <span style={{ fontSize: '0.88rem', fontWeight: 800, color: '#0f172a' }}>
+              {card.title || `Draft Payroll Run — ${card.month_label || ''}`}
+            </span>
+          </div>
+          <span
+            style={{
+              fontSize: '0.7rem',
+              fontWeight: 700,
+              padding: '2px 9px',
+              borderRadius: 999,
+              background: '#fef3c7',
+              color: '#b45309',
+              border: '1px solid #fde68a',
+            }}
+          >
+            DRAFT • {card.payslip_count || 0} Payslip(s)
+          </span>
+        </div>
+
+        <div
+          style={{
+            display: 'grid',
+            gridTemplateColumns: 'repeat(auto-fit, minmax(135px, 1fr))',
+            gap: 10,
+            marginBottom: 12,
+            padding: '10px 12px',
+            borderRadius: 10,
+            background: '#f8fafc',
+            border: '1px solid #e2e8f0',
+          }}
+        >
+          <div>
+            <div style={{ fontSize: '0.68rem', fontWeight: 700, color: '#64748b', textTransform: 'uppercase' }}>
+              Total Gross
+            </div>
+            <div style={{ fontSize: '0.86rem', fontWeight: 800, color: '#0f172a', marginTop: 2 }}>
+              ₹{fmtInr(card.total_gross_earnings)}
+            </div>
+          </div>
+          <div>
+            <div style={{ fontSize: '0.68rem', fontWeight: 700, color: '#64748b', textTransform: 'uppercase' }}>
+              Total Deductions
+            </div>
+            <div style={{ fontSize: '0.86rem', fontWeight: 800, color: '#b91c1c', marginTop: 2 }}>
+              -₹{fmtInr(card.total_deductions)}
+            </div>
+          </div>
+          <div>
+            <div style={{ fontSize: '0.68rem', fontWeight: 700, color: '#64748b', textTransform: 'uppercase' }}>
+              Total Net Payout
+            </div>
+            <div style={{ fontSize: '0.9rem', fontWeight: 800, color: '#15803d', marginTop: 2 }}>
+              ₹{fmtInr(card.total_net_pay)}
+            </div>
+          </div>
+        </div>
+
+        {card.unassigned_employees_count > 0 && (
+          <div
+            style={{
+              marginBottom: 10,
+              padding: '7px 10px',
+              borderRadius: 8,
+              background: '#fffbeb',
+              border: '1px solid #fde68a',
+              color: '#92400e',
+              fontSize: '0.76rem',
+              fontWeight: 600,
+              display: 'flex',
+              alignItems: 'center',
+              gap: 6,
+            }}
+          >
+            <AlertCircle size={14} style={{ flexShrink: 0 }} />
+            <span>
+              {card.unassigned_employees_count} active employee(s) do not have a Salary Structure assigned yet.
+            </span>
+          </div>
+        )}
+
+        {errorText && (
+          <div
+            style={{
+              marginBottom: 10,
+              padding: '6px 10px',
+              borderRadius: 8,
+              background: '#fef2f2',
+              border: '1px solid #fecaca',
+              color: '#dc2626',
+              fontSize: '0.75rem',
+              fontWeight: 600,
+            }}
+          >
+            {errorText}
+          </div>
+        )}
+
+        <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
+          <button
+            type="button"
+            disabled={status === 'submitting'}
+            onClick={handleFinalizePayroll}
+            style={{
+              display: 'inline-flex',
+              alignItems: 'center',
+              gap: 6,
+              padding: '7px 14px',
+              borderRadius: 9,
+              border: 'none',
+              background: 'linear-gradient(135deg, #16a34a 0%, #15803d 100%)',
+              color: '#ffffff',
+              fontSize: '0.8rem',
+              fontWeight: 700,
+              cursor: status === 'submitting' ? 'not-allowed' : 'pointer',
+              boxShadow: '0 3px 10px rgba(22, 163, 74, 0.24)',
+            }}
+          >
+            <Check size={14} />
+            <span>{status === 'submitting' ? 'Finalizing...' : 'Finalize Payroll Run'}</span>
+          </button>
+
+          <a
+            href="/payroll"
+            style={{
+              display: 'inline-flex',
+              alignItems: 'center',
+              gap: 5,
+              padding: '7px 12px',
+              borderRadius: 9,
+              border: '1px solid #cbd5e1',
+              background: '#ffffff',
+              color: '#1e293b',
+              fontSize: '0.78rem',
+              fontWeight: 700,
+              textDecoration: 'none',
+            }}
+          >
+            <span>Open Payroll Studio</span>
+            <ArrowUpRight size={14} />
+          </a>
+        </div>
+      </div>
+    );
+  }
+
+  // ── 3. Admin / Manager Leave Approval Card ─────────────────────────────
   return (
     <div
       style={{
@@ -796,7 +999,13 @@ export default function AiAssistant() {
   const perms = user?.permissions || {};
   const isAdminOrManager =
     ['admin', 'hr manager', 'manager'].includes(roleLower) ||
-    Boolean(perms['attendance:approve'] || perms['leave:approve'] || perms['settings:write']);
+    Boolean(
+      perms['attendance:approve'] ||
+        perms['leave:approve'] ||
+        perms['settings:write'] ||
+        perms['payroll:read'] ||
+        perms['payroll:write']
+    );
 
   const activeHeroPills = isAdminOrManager ? ADMIN_HERO_PILLS : EMPLOYEE_HERO_PILLS;
   const activeQuickPrompts = isAdminOrManager ? ADMIN_QUICK_PROMPTS : EMPLOYEE_QUICK_PROMPTS;
@@ -901,7 +1110,8 @@ export default function AiAssistant() {
         selectedDept &&
         !textToSend.toLowerCase().includes(selectedDept.toLowerCase()) &&
         !textToSend.toLowerCase().includes('approval') &&
-        !textToSend.toLowerCase().includes('approve')
+        !textToSend.toLowerCase().includes('approve') &&
+        !textToSend.toLowerCase().includes('payroll')
       ) {
         textToSend = `${textToSend.replace(/\?+$/, '')} in the ${selectedDept} department?`;
       }
@@ -1370,7 +1580,7 @@ export default function AiAssistant() {
           style={{
             flex: 1,
             minHeight: 0,
-            overflowY: isWelcomeOnly ? 'hidden' : 'auto',
+            overflowY: 'auto',
             padding: isWelcomeOnly ? '10px 24px' : '18px 24px',
             display: 'flex',
             flexDirection: 'column',
@@ -1397,30 +1607,9 @@ export default function AiAssistant() {
                 gap: '16px',
               }}
             >
-              <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '10px' }}>
+              <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '12px' }}>
                 <div style={{ position: 'relative', display: 'inline-flex', alignItems: 'center', justifyContent: 'center' }}>
-                  <BotAvatar size={58} glow={true} />
-                  <span
-                    style={{
-                      position: 'absolute',
-                      bottom: -4,
-                      right: -9,
-                      display: 'inline-flex',
-                      alignItems: 'center',
-                      gap: '3px',
-                      padding: '2px 8px',
-                      borderRadius: 999,
-                      background: 'linear-gradient(135deg, #2563eb 0%, #7c3aed 100%)',
-                      color: '#ffffff',
-                      fontSize: '0.6rem',
-                      fontWeight: 800,
-                      letterSpacing: '0.02em',
-                      boxShadow: '0 4px 10px rgba(79, 70, 229, 0.3)',
-                      border: '2px solid #ffffff',
-                    }}
-                  >
-                    <Sparkles size={9} /> AI
-                  </span>
+                  <BotAvatar size={74} glow={true} />
                 </div>
 
                 <div>
@@ -1458,24 +1647,16 @@ export default function AiAssistant() {
               {/* 4 Role-Specific Floating Capsule Pills */}
               <div
                 style={{
-                  display: 'flex',
-                  flexWrap: 'wrap',
-                  alignItems: 'center',
-                  justifyContent: 'center',
+                  display: 'grid',
+                  gridTemplateColumns: 'repeat(2, minmax(0, 1fr))',
                   gap: '10px',
-                  maxWidth: '680px',
+                  maxWidth: '620px',
                   width: '100%',
                 }}
               >
                 {activeHeroPills.map((pill) => {
                   const IconComponent = pill.icon;
                   const isHovered = hoveredCard === pill.id;
-                  const liveCount =
-                    pill.digestKey &&
-                    digest?.summary &&
-                    typeof digest.summary[pill.digestKey] === 'number'
-                      ? digest.summary[pill.digestKey]
-                      : null;
 
                   return (
                     <button
@@ -1486,11 +1667,13 @@ export default function AiAssistant() {
                       onMouseLeave={() => setHoveredCard(null)}
                       onClick={() => handleSendMessage(pill.query)}
                       style={{
-                        display: 'inline-flex',
-                        alignItems: 'center',
-                        gap: '9px',
-                        padding: '8px 14px 8px 10px',
-                        borderRadius: '999px',
+                         display: 'flex',
+                         alignItems: 'center',
+                         gap: '9px',
+                         width: '100%',
+                         minHeight: 48,
+                         padding: '8px 12px 8px 10px',
+                         borderRadius: '14px',
                         background: isHovered ? '#ffffff' : 'rgba(255, 255, 255, 0.92)',
                         backdropFilter: 'blur(8px)',
                         border: isHovered ? `1.5px solid ${pill.borderHover}` : '1px solid #cbd5e1',
@@ -1518,30 +1701,19 @@ export default function AiAssistant() {
                         <IconComponent size={14} />
                       </span>
 
-                      <span
-                        style={{
-                          fontSize: '0.82rem',
-                          fontWeight: 700,
-                          color: isHovered ? '#0f172a' : '#1e293b',
-                          whiteSpace: 'nowrap',
-                        }}
-                      >
-                        {pill.label}
-                      </span>
-
-                      <span
-                        style={{
-                          fontSize: '0.66rem',
-                          fontWeight: 700,
-                          padding: '2px 7px',
-                          borderRadius: 999,
-                          background: pill.badgeBg,
-                          color: pill.badgeColor,
-                          whiteSpace: 'nowrap',
-                        }}
-                      >
-                        {liveCount !== null ? `${liveCount} ${pill.digestSuffix}` : pill.tag}
-                      </span>
+                       <span
+                         style={{
+                           flex: 1,
+                           minWidth: 0,
+                           textAlign: 'left',
+                           fontSize: '0.82rem',
+                           fontWeight: 700,
+                           lineHeight: 1.3,
+                           color: isHovered ? '#0f172a' : '#1e293b',
+                         }}
+                       >
+                         {pill.label}
+                       </span>
 
                       <ArrowUpRight
                         size={14}
