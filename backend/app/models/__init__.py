@@ -86,3 +86,9 @@ __all__ = [
     "ActionItem",
     "Notification",
 ]
+
+from app.models.pms import (
+    PmsConfig, CompetencyParameter, RatingSlab, KpiTemplate, ReviewCycle,
+    ReviewParticipant, ReviewAssignment, Rating, Goal, GoalProgress,
+    PayrollRevision, PmsAuditLog,
+)

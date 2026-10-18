@@ -16,6 +16,7 @@ import {
   AlertTriangle,
   LifeBuoy,
   Sparkles,
+  Award,
 } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import Modal from './Modal';
@@ -71,6 +72,7 @@ const NAV_CONFIG = [
   { path: '/expenses', label: 'Expenses', icon: Receipt },
   { path: '/payroll', label: 'Payroll', icon: Wallet, permission: ['payroll:read', 'settings:write'] },
   { path: '/my-payslips', label: 'My Payslips', icon: Wallet, hideIfAdmin: true, hideIfPermission: 'settings:write' },
+  { path: '/performance', label: 'Performance (PMS)', icon: Award },
   { path: '/shifts', label: 'Shifts', icon: GitBranch, permission: ['shifts:read', 'attendance:approve', 'settings:write'] },
   { path: '/documents', label: 'Documents', icon: FileText, hideIfAdmin: true, hideIfPermission: 'settings:write' },
   { path: '/reports', label: 'Reports & Analytics', icon: BarChart3, permission: ['leave:approve', 'settings:write'] },

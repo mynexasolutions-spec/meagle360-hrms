@@ -11,7 +11,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 
 from app.config import get_settings
-from app.routes import auth, company, department, designation, employee, attendance, leave, shift, platform, dashboard, announcement, overtime, audit, role, expense, site, payroll, action_tracker, helpdesk, ai
+from app.routes import auth, company, department, designation, employee, attendance, leave, shift, platform, dashboard, announcement, overtime, audit, role, expense, site, payroll, action_tracker, helpdesk, ai, pms, pms_cycles, pms_ratings, pms_results
 from app.middleware.plan_expiry import PlanExpiryMiddleware
 
 settings = get_settings()
@@ -78,6 +78,10 @@ app.include_router(audit.router)
 app.include_router(action_tracker.router)
 app.include_router(helpdesk.router)
 app.include_router(ai.router)
+app.include_router(pms.router)
+app.include_router(pms_cycles.router)
+app.include_router(pms_ratings.router)
+app.include_router(pms_results.router)
 
 
 # Unhandled exceptions otherwise escape past CORSMiddleware entirely (FastAPI's

@@ -32,6 +32,7 @@ const RelievingLetterStudio = lazy(() => import('./pages/RelievingLetterStudio')
 const Subscriptions = lazy(() => import('./pages/Subscriptions'));
 const Helpdesk = lazy(() => import('./pages/Helpdesk'));
 const AiAssistant = lazy(() => import('./pages/AiAssistant'));
+const PerformanceManagement = lazy(() => import('./pages/PerformanceManagement'));
 
 function ProtectedRoute({ children }) {
   const { user, loading, isPlanExpired } = useAuth();
@@ -155,6 +156,7 @@ function AppRoutes() {
           />
           <Route path="subscriptions" element={<Subscriptions />} />
           <Route path="helpdesk" element={<Helpdesk />} />
+          <Route path="performance" element={<PerformanceManagement />} />
           <Route path="ai-assistant" element={<AiAssistant />} />
         </Route>
 
