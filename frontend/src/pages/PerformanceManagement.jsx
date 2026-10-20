@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useAuth } from '../context/AuthContext';
+import { usePopup } from '../context/PopupContext';
 import {
   getPmsConfig,
   updatePmsConfig,
@@ -138,6 +139,7 @@ const SCORE_LABELS = {
 
 export default function PerformanceManagement() {
   const { user, loading: authLoading } = useAuth();
+  const { showPrompt, showConfirm, showAlert } = usePopup();
 
   const isAdmin =
     user?.role_name === 'Admin' ||
@@ -432,7 +434,12 @@ export default function PerformanceManagement() {
   };
 
   const handleReturnMemberGoals = async (employeeId) => {
-    const reason = window.prompt('Reason for returning goals to draft:');
+    const reason = await showPrompt({
+      title: 'Return Goals to Draft',
+      message: 'Please provide feedback explaining why these goals are being returned to draft.',
+      placeholder: 'Enter return reason or needed adjustments...',
+      confirmText: 'Return Goals',
+    });
     if (!reason) return;
     try {
       await returnGoals(selectedCycleId, employeeId, reason);
@@ -597,7 +604,12 @@ export default function PerformanceManagement() {
   };
 
   const handleRejectRevision = async (rev) => {
-    const reason = window.prompt('Reason for rejecting this hike suggestion:');
+    const reason = await showPrompt({
+      title: 'Reject Hike Suggestion',
+      message: `Provide a reason for rejecting the hike recommendation for ${rev.employee_name}:`,
+      placeholder: 'Enter reason for rejection...',
+      confirmText: 'Reject Revision',
+    });
     if (!reason) return;
     try {
       await rejectPayrollRevision(rev.id, reason);
@@ -609,12 +621,13 @@ export default function PerformanceManagement() {
   };
 
   const handleApplyRevision = async (rev) => {
-    if (
-      !window.confirm(
-        `Apply ${rev.approved_hike_percent}% hike for ${rev.employee_name} effective ${rev.effective_date}? This creates a new salary assignment.`
-      )
-    )
-      return;
+    const ok = await showConfirm({
+      title: 'Apply Salary Revision',
+      message: `Apply ${rev.approved_hike_percent}% hike for ${rev.employee_name} effective ${rev.effective_date}? This will create a new salary assignment.`,
+      type: 'warning',
+      confirmText: 'Apply Hike',
+    });
+    if (!ok) return;
     try {
       await applyPayrollRevision(rev.id);
       flash(`Hike applied to payroll for ${rev.employee_name}.`);

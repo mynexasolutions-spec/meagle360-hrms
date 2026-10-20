@@ -39,7 +39,7 @@ export default function StatCard({ icon: Icon, label, value, trend, trendDirecti
         <Icon size={20} style={{ color }} />
       </div>
       <div style={{ minWidth: 0, flex: 1 }}>
-        <div className="stat-card-label" style={{ color: 'var(--text-muted)', marginBottom: 3, fontWeight: 600 }}>
+        <div className="stat-card-label" style={{ color: 'var(--text-secondary)', marginBottom: 3, fontWeight: 600 }}>
           {label}
         </div>
         <div className="stat-card-value" style={{ fontWeight: 800, lineHeight: 1.15, color: 'var(--text-primary)', letterSpacing: '-0.01em' }}>

@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useAuth } from '../context/AuthContext';
+import { usePopup } from '../context/PopupContext';
 import {
   getMyTickets,
   getStaffTickets,
@@ -73,6 +74,7 @@ const STATUS_CONFIG = {
 
 export default function Helpdesk() {
   const { user, loading: authLoading } = useAuth();
+  const { showAlert, showToast } = usePopup();
 
   // Derived role flags — safe to compute every render (will be correct once authLoading=false)
   const isAdmin = user?.role_name === 'Admin' || !!user?.permissions?.['settings:write'];
@@ -153,7 +155,11 @@ export default function Helpdesk() {
   const handleCreateTicket = async (e) => {
     e.preventDefault();
     if (!createForm.subject.trim() || !createForm.description.trim()) {
-      alert('Please fill out all required fields.');
+      showAlert({
+        title: 'Missing Fields',
+        message: 'Please fill out all required fields before submitting the ticket.',
+        type: 'warning',
+      });
       return;
     }
 
@@ -172,7 +178,11 @@ export default function Helpdesk() {
       }
     } catch (err) {
       console.error('Failed to create ticket:', err);
-      alert(err.response?.data?.detail || 'Failed to create ticket. Please try again.');
+      showAlert({
+        title: 'Ticket Creation Failed',
+        message: err.response?.data?.detail || 'Failed to create ticket. Please try again.',
+        type: 'error',
+      });
     } finally {
       setSubmitting(false);
     }
@@ -196,7 +206,11 @@ export default function Helpdesk() {
       loadData();
     } catch (err) {
       console.error('Failed to send reply:', err);
-      alert(err.response?.data?.detail || 'Failed to send reply. Please try again.');
+      showAlert({
+        title: 'Reply Failed',
+        message: err.response?.data?.detail || 'Failed to send reply. Please try again.',
+        type: 'error',
+      });
     } finally {
       setSendingReply(false);
     }
@@ -211,7 +225,11 @@ export default function Helpdesk() {
       loadData();
     } catch (err) {
       console.error('Failed to update status:', err);
-      alert(err.response?.data?.detail || 'Failed to update ticket status.');
+      showAlert({
+        title: 'Status Update Failed',
+        message: err.response?.data?.detail || 'Failed to update ticket status.',
+        type: 'error',
+      });
     } finally {
       setUpdatingStatus(false);
     }

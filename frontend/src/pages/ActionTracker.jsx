@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useAuth } from '../context/AuthContext';
+import { usePopup } from '../context/PopupContext';
 import { getActionItems, createActionItem, updateActionItemStatus, deleteActionItem } from '../api/actionTracker';
 import client from '../api/client';
 import Modal from '../components/Modal';
@@ -20,6 +21,7 @@ import {
 
 export default function ActionTracker() {
   const { user } = useAuth();
+  const { showAlert, showConfirm, showToast } = usePopup();
   const isAdmin = user?.role_name === 'Admin' || !!user?.permissions?.['settings:write'];
   const isManager = !!user?.permissions?.['attendance:approve'] || !!user?.permissions?.['leave:approve'];
   const canCreateTask = isAdmin || isManager;
@@ -74,7 +76,11 @@ export default function ActionTracker() {
       setNewTaskForm({ title: '', description: '', assigned_to_id: '', priority: 'medium', due_date: '' });
       loadData();
     } catch (err) {
-      alert(err.response?.data?.detail || 'Failed to create action task');
+      showAlert({
+        title: 'Task Creation Failed',
+        message: err.response?.data?.detail || 'Failed to create action task',
+        type: 'error',
+      });
     }
   };
 
@@ -93,17 +99,31 @@ export default function ActionTracker() {
       setSelectedTask(null);
       loadData();
     } catch (err) {
-      alert(err.response?.data?.detail || 'Failed to update task status');
+      showAlert({
+        title: 'Status Update Failed',
+        message: err.response?.data?.detail || 'Failed to update task status',
+        type: 'error',
+      });
     }
   };
 
   const handleDeleteTask = async (id) => {
-    if (!window.confirm('Are you sure you want to delete this action item?')) return;
+    const ok = await showConfirm({
+      title: 'Delete Action Item',
+      message: 'Are you sure you want to delete this action item? This cannot be undone.',
+      type: 'danger',
+      confirmText: 'Delete Task',
+    });
+    if (!ok) return;
     try {
       await deleteActionItem(id);
       loadData();
     } catch (err) {
-      alert(err.response?.data?.detail || 'Failed to delete task');
+      showAlert({
+        title: 'Delete Failed',
+        message: err.response?.data?.detail || 'Failed to delete task',
+        type: 'error',
+      });
     }
   };
 

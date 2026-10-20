@@ -2,6 +2,7 @@ import { lazy, Suspense } from 'react';
 import { BrowserRouter, Routes, Route, Navigate, useLocation } from 'react-router-dom';
 import { AuthProvider, useAuth } from './context/AuthContext';
 import { PlatformAuthProvider, usePlatformAuth } from './context/PlatformAuthContext';
+import { PopupProvider } from './context/PopupContext';
 import DashboardLayout from './layouts/DashboardLayout';
 import AuthLayout from './layouts/AuthLayout';
 import PlatformLayout from './layouts/PlatformLayout';
@@ -172,7 +173,9 @@ export default function App() {
     <BrowserRouter>
       <AuthProvider>
         <PlatformAuthProvider>
-          <AppRoutes />
+          <PopupProvider>
+            <AppRoutes />
+          </PopupProvider>
         </PlatformAuthProvider>
       </AuthProvider>
     </BrowserRouter>

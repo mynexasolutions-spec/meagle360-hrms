@@ -1016,11 +1016,11 @@ export default function AiAssistant() {
     currentHour < 12 ? 'Good Morning' : currentHour < 17 ? 'Good Afternoon' : 'Good Evening';
   const isWelcomeOnly = messages.length === 1 && messages[0]?.id === 'welcome';
 
-  // Voice Input & Output state
+  // Voice Input & Output state (Default autoSpeak: false so AI replies in text first, voice only on clicking 'Listen')
   const [isRecording, setIsRecording] = useState(false);
   const [transcribing, setTranscribing] = useState(false);
   const [voiceLang] = useState('en-IN');
-  const [autoSpeak, setAutoSpeak] = useState(true);
+  const [autoSpeak, setAutoSpeak] = useState(false);
   const [speakingMsgId, setSpeakingMsgId] = useState(null);
   const [voiceStatusText, setVoiceStatusText] = useState('');
 
@@ -1151,7 +1151,7 @@ export default function AiAssistant() {
         };
         setMessages((prev) => [...prev, aiMsg]);
 
-        if (autoSpeak || triggeredByVoice) {
+        if (autoSpeak) {
           speakReply(aiMsgId, data.reply);
         }
       } catch (err) {

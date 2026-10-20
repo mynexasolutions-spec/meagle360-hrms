@@ -19,6 +19,7 @@ import {
 import Modal from '../components/Modal';
 import RelievingLetterModal from '../components/RelievingLetterModal';
 import { useAuth } from '../context/AuthContext';
+import { usePopup } from '../context/PopupContext';
 
 function money(n) {
   return Number(n ?? 0).toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
@@ -65,6 +66,7 @@ export default function EmployeeProfile() {
   const { id } = useParams();
   const navigate = useNavigate();
   const { user } = useAuth();
+  const { showAlert, showConfirm, showToast } = usePopup();
   const canManage = !!user?.permissions?.['employees:write'];
   const canManageRoles = !!user?.permissions?.['settings:write'];
   const canViewPayroll = !!user?.permissions?.['payroll:read'];
@@ -150,7 +152,11 @@ export default function EmployeeProfile() {
       setShowRoles(false);
       load();
     } catch (err) {
-      alert(err.response?.data?.detail || 'Failed to update roles');
+      showAlert({
+        title: 'Roles Update Failed',
+        message: err.response?.data?.detail || 'Failed to update roles',
+        type: 'error',
+      });
     }
   };
 
@@ -196,28 +202,52 @@ export default function EmployeeProfile() {
       setShowFnf(false);
       load();
     } catch (err) {
-      alert(err.response?.data?.detail || 'Failed to initiate Full & Final settlement');
+      showAlert({
+        title: 'Settlement Failed',
+        message: err.response?.data?.detail || 'Failed to initiate Full & Final settlement',
+        type: 'error',
+      });
     }
   };
 
   const handleProcessFnf = async () => {
-    if (!confirm('Mark this Full & Final settlement as processed/paid?')) return;
+    const ok = await showConfirm({
+      title: 'Process Settlement',
+      message: 'Mark this Full & Final settlement as processed/paid?',
+      type: 'warning',
+      confirmText: 'Yes, Mark Paid',
+    });
+    if (!ok) return;
     try {
       const res = await processFnf(fnf.id);
       setFnf(res.data);
     } catch (err) {
-      alert(err.response?.data?.detail || 'Failed to process settlement');
+      showAlert({
+        title: 'Settlement Processing Failed',
+        message: err.response?.data?.detail || 'Failed to process settlement',
+        type: 'error',
+      });
     }
   };
 
   const toggleStatus = async () => {
     const next = employee.employment_status === 'active' ? 'inactive' : 'active';
-    if (!confirm(`Mark ${employee.full_name} as ${next}?`)) return;
+    const ok = await showConfirm({
+      title: 'Update Employment Status',
+      message: `Mark ${employee.full_name} as ${next}?`,
+      type: 'warning',
+      confirmText: `Set ${next.toUpperCase()}`,
+    });
+    if (!ok) return;
     try {
       await updateEmployee(id, { employment_status: next });
       load();
     } catch (err) {
-      alert(err.response?.data?.detail || 'Failed to update status');
+      showAlert({
+        title: 'Status Update Failed',
+        message: err.response?.data?.detail || 'Failed to update status',
+        type: 'error',
+      });
     }
   };
 
@@ -239,7 +269,11 @@ export default function EmployeeProfile() {
       setDocForm({ doc_type: '', file_url: '' });
       load();
     } catch (err) {
-      alert(err.response?.data?.detail || 'Failed to upload document');
+      showAlert({
+        title: 'Upload Failed',
+        message: err.response?.data?.detail || 'Failed to upload document',
+        type: 'error',
+      });
     }
   };
 

@@ -167,7 +167,10 @@ def update_employee(
     current_user: UserAccount = Depends(require_permissions("employees:write")),
 ):
     svc = EmployeeService(db, company_id)
-    emp = svc.update_employee(employee_id, data.model_dump(exclude_unset=True), current_user.employee_id)
+    try:
+        emp = svc.update_employee(employee_id, data.model_dump(exclude_unset=True), current_user.employee_id)
+    except ValueError as e:
+        raise HTTPException(status_code=400, detail=str(e))
     if not emp:
         raise HTTPException(status_code=404, detail="Employee not found")
     return emp

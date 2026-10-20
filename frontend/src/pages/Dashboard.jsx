@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
+import { usePopup } from '../context/PopupContext';
 import { getDashboardSummary, getAttendanceOverview, getLeaveSummary, getLiveStatus, getLeaveInsight, getOnLeaveToday } from '../api/dashboard';
 import { getAnnouncements, createAnnouncement } from '../api/announcements';
 import { getLeaveBalance, getPendingRequests } from '../api/leave';
@@ -103,6 +104,7 @@ function timeAgo(dateStr) {
 
 export default function Dashboard() {
   const { user } = useAuth();
+  const { showAlert } = usePopup();
   const canApprove = !!user?.permissions?.['leave:approve'];
   const canSeeLiveStatus = !!user?.permissions?.['attendance:approve'];
   const canPostAnnouncement = !!user?.permissions?.['settings:write'];
@@ -188,7 +190,12 @@ export default function Dashboard() {
         setClockedIn(true);
       }
     } catch (e) {
-      alert(e.response?.data?.detail || `Failed to clock ${clockedIn ? 'out' : 'in'}`);
+      const msg = e.response?.data?.detail || `Failed to clock ${clockedIn ? 'out' : 'in'}`;
+      showAlert({
+        title: msg.toLowerCase().includes('wait') ? 'Clock-In Cooldown Active' : 'Attendance Notice',
+        message: msg,
+        type: 'warning',
+      });
     } finally {
       setClockLoading(false);
     }
@@ -270,7 +277,7 @@ export default function Dashboard() {
             >
               {greeting()}, {user?.full_name?.split(' ')[0] || 'there'}
             </h1>
-            <p style={{ color: '#64748b', fontSize: '0.8125rem', margin: '2px 0 0 0' }}>Here's what's happening in your organization today.</p>
+            <p style={{ color: 'var(--text-secondary)', fontSize: '0.85rem', fontWeight: 500, margin: '2px 0 0 0' }}>Here's what's happening in your organization today.</p>
           </div>
         </div>
 
@@ -306,7 +313,7 @@ export default function Dashboard() {
             <div style={{ fontSize: '0.88rem', fontWeight: 700, color: '#0f172a' }}>
               {today.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
             </div>
-            <div style={{ fontSize: '0.70rem', color: '#64748b', marginTop: 1 }}>
+            <div style={{ fontSize: '0.72rem', color: 'var(--text-secondary)', fontWeight: 500, marginTop: 1 }}>
               {today.toLocaleDateString(undefined, { day: '2-digit', month: 'short', year: 'numeric', weekday: 'short' })}
             </div>
           </div>
@@ -397,8 +404,8 @@ export default function Dashboard() {
                     </linearGradient>
                   </defs>
                   <CartesianGrid strokeDasharray="3 3" stroke="#f1f5f9" vertical={false} />
-                  <XAxis dataKey="date" tick={{ fontSize: 10, fill: '#64748b' }} tickFormatter={(d) => d.slice(5)} />
-                  <YAxis tick={{ fontSize: 10, fill: '#64748b' }} axisLine={false} tickLine={false} width={28} />
+                  <XAxis dataKey="date" tick={{ fontSize: 10, fill: '#475569', fontWeight: 500 }} tickFormatter={(d) => d.slice(5)} />
+                  <YAxis tick={{ fontSize: 10, fill: '#475569', fontWeight: 500 }} axisLine={false} tickLine={false} width={28} />
                   <Tooltip contentStyle={{ background: '#ffffff', border: '1px solid #e2e8f0', borderRadius: 12, fontSize: 12, boxShadow: '0 4px 14px rgba(0,0,0,0.06)' }} />
                   <Legend wrapperStyle={{ fontSize: 11, paddingTop: 6 }} />
                   <Area type="monotone" dataKey="present" stroke="#059669" strokeWidth={2.5} fillOpacity={1} fill="url(#presentGrad)" name="Present" />

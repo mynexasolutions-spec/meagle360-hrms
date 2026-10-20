@@ -24,9 +24,9 @@
   --accent-violet: #8b5cf6;
   --accent-violet-light: #ede9fe;
 
-  --text-primary: #111827;
-  --text-secondary: #4b5563;
-  --text-muted: #9ca3af;
+  --text-primary: #0f172a;
+  --text-secondary: #334155;
+  --text-muted: #64748b;
   --text-inverse: #ffffff;
 
   --border-color: #e5e7eb;
@@ -587,7 +587,8 @@ input[type="password"]::-ms-clear {
 }
 
 .stat-card-label {
-  font-size: 0.75rem;
+  font-size: 0.8125rem;
+  letter-spacing: 0.01em;
 }
 
 .stat-card-value {
@@ -688,7 +689,8 @@ input[type="password"]::-ms-clear {
 
 .dashboard-card-sub {
   font-size: 0.8125rem;
-  color: #64748b;
+  color: var(--text-secondary);
+  font-weight: 500;
   margin: 2px 0 0 0;
 }
 
@@ -4572,4 +4574,27 @@ input[type="password"]::-ms-clear {
   -webkit-print-color-adjust: exact !important;
   print-color-adjust: exact !important;
   color-adjust: exact !important;
+}
+
+
+@keyframes scaleIn {
+  from {
+    opacity: 0;
+    transform: scale(0.94) translateY(6px);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1) translateY(0);
+  }
+}
+
+@keyframes slideInRight {
+  from {
+    opacity: 0;
+    transform: translateX(30px);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(0);
+  }
 }

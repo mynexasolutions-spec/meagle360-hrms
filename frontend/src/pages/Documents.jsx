@@ -1,11 +1,13 @@
 import { useState, useEffect } from 'react';
 import { useAuth } from '../context/AuthContext';
+import { usePopup } from '../context/PopupContext';
 import { getEmployeeDocuments, addEmployeeDocument } from '../api/employees';
 import { FileText, Plus, ExternalLink, ShieldCheck, Download, Clock } from 'lucide-react';
 import Modal from '../components/Modal';
 
 export default function Documents() {
   const { user } = useAuth();
+  const { showAlert, showToast } = usePopup();
   const [documents, setDocuments] = useState([]);
   const [showAdd, setShowAdd] = useState(false);
   const [form, setForm] = useState({ doc_type: '', file_url: '' });
@@ -28,7 +30,11 @@ export default function Documents() {
       setForm({ doc_type: '', file_url: '' });
       loadDocuments();
     } catch (err) {
-      alert(err.response?.data?.detail || 'Failed to add document');
+      showAlert({
+        title: 'Upload Failed',
+        message: err.response?.data?.detail || 'Failed to add document',
+        type: 'error',
+      });
     }
   };
 

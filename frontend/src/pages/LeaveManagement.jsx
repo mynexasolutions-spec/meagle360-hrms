@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useAuth } from '../context/AuthContext';
+import { usePopup } from '../context/PopupContext';
 import {
   getLeaveTypes, getLeaveBalance, getMyRequests,
   getPendingRequests, requestLeave, approveReject, adjustBalance,
@@ -11,6 +12,7 @@ import Modal from '../components/Modal';
 
 export default function LeaveManagement() {
   const { user } = useAuth();
+  const { showAlert, showToast } = usePopup();
   const isAdmin = user?.role_name === 'Admin';
   const canApprove = !!user?.permissions?.['leave:approve'];
   const canManageBalances = !!user?.permissions?.['settings:write'];
@@ -99,16 +101,25 @@ export default function LeaveManagement() {
     e.preventDefault();
     if (requestSaving) return;
     if (form.end_date < form.start_date) {
-      alert("End date cannot be before start date.");
+      showAlert({
+        title: 'Invalid Date Range',
+        message: 'End date cannot be before start date.',
+        type: 'warning',
+      });
       return;
     }
     setRequestSaving(true);
     try {
       await requestLeave(form);
       setShowRequest(false);
+      showToast({ title: 'Leave Applied', message: 'Leave request submitted successfully.', type: 'success' });
       loadData();
     } catch (err) {
-      alert(err.response?.data?.detail || 'Failed');
+      showAlert({
+        title: 'Request Failed',
+        message: err.response?.data?.detail || 'Failed to submit leave request',
+        type: 'error',
+      });
     } finally {
       setRequestSaving(false);
     }
@@ -117,9 +128,14 @@ export default function LeaveManagement() {
   const handleApproval = async (id, status) => {
     try {
       await approveReject(id, status);
+      showToast({ title: 'Status Updated', message: `Leave request ${status}`, type: 'success' });
       loadData();
     } catch (err) {
-      alert(err.response?.data?.detail || 'Failed');
+      showAlert({
+        title: 'Action Failed',
+        message: err.response?.data?.detail || 'Failed to update leave status',
+        type: 'error',
+      });
     }
   };
 
@@ -128,7 +144,11 @@ export default function LeaveManagement() {
       await updateLeaveType(lt.id, { is_paid: !lt.is_paid });
       loadData();
     } catch (err) {
-      alert(err.response?.data?.detail || 'Failed to update leave type');
+      showAlert({
+        title: 'Update Failed',
+        message: err.response?.data?.detail || 'Failed to update leave type',
+        type: 'error',
+      });
     }
   };
 
@@ -138,13 +158,25 @@ export default function LeaveManagement() {
       const res = await accrueMonthly();
       const r = res.data;
       if (r.already_run) {
-        alert(`Already run for ${r.period} — no leave types were pending accrual.`);
+        showAlert({
+          title: 'Monthly Accrual',
+          message: `Already run for ${r.period} — no leave types were pending accrual.`,
+          type: 'info',
+        });
       } else {
-        alert(`Accrued ${r.leave_types_accrued.join(', ')} for ${r.employees_processed} employees (${r.period}).`);
+        showAlert({
+          title: 'Accrual Complete',
+          message: `Accrued ${r.leave_types_accrued.join(', ')} for ${r.employees_processed} employees (${r.period}).`,
+          type: 'success',
+        });
       }
       loadData();
     } catch (err) {
-      alert(err.response?.data?.detail || 'Failed to run monthly accrual');
+      showAlert({
+        title: 'Accrual Failed',
+        message: err.response?.data?.detail || 'Failed to run monthly accrual',
+        type: 'error',
+      });
     } finally {
       setAccruing(false);
     }

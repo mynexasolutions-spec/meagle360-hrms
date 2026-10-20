@@ -15,6 +15,7 @@ import {
   Wallet, Plus, Pencil, Trash2, Play, Lock, Users, Receipt, Settings2, Landmark, HandCoins,
 } from 'lucide-react';
 import Modal from '../components/Modal';
+import { usePopup } from '../context/PopupContext';
 
 const MONTH_NAMES = [
   'January', 'February', 'March', 'April', 'May', 'June',
@@ -32,6 +33,7 @@ function money(n) {
 }
 
 export default function PayrollManagement() {
+  const { showAlert, showConfirm, showToast } = usePopup();
   const [tab, setTab] = useState('components');
 
   const tabsList = [
@@ -120,12 +122,22 @@ function ComponentsTab() {
   };
 
   const handleDelete = async (c) => {
-    if (!confirm(`Delete "${c.name}"? This cannot be undone.`)) return;
+    const ok = await showConfirm({
+      title: 'Delete Component',
+      message: `Delete "${c.name}"? This cannot be undone.`,
+      type: 'danger',
+      confirmText: 'Delete Component',
+    });
+    if (!ok) return;
     try {
       await deleteSalaryComponent(c.id);
       load();
     } catch (err) {
-      alert(err.response?.data?.detail || 'Failed to delete — it may be in use by a salary structure');
+      showAlert({
+        title: 'Delete Failed',
+        message: err.response?.data?.detail || 'Failed to delete — it may be in use by a salary structure',
+        type: 'error',
+      });
     }
   };
 
@@ -324,12 +336,22 @@ function StructuresTab() {
   };
 
   const handleDelete = async (s) => {
-    if (!confirm(`Delete structure "${s.name}"?`)) return;
+    const ok = await showConfirm({
+      title: 'Delete Salary Structure',
+      message: `Delete structure "${s.name}"? This action cannot be undone.`,
+      type: 'danger',
+      confirmText: 'Delete Structure',
+    });
+    if (!ok) return;
     try {
       await deleteSalaryStructure(s.id);
       load();
     } catch (err) {
-      alert(err.response?.data?.detail || 'Failed to delete — employees may still be assigned to it');
+      showAlert({
+        title: 'Delete Failed',
+        message: err.response?.data?.detail || 'Failed to delete — employees may still be assigned to it',
+        type: 'error',
+      });
     }
   };
 
@@ -609,29 +631,53 @@ function RunsTab() {
       setShowRunModal(false);
       loadRuns();
     } catch (err) {
-      alert(err.response?.data?.detail || 'Failed to run payroll');
+      showAlert({
+        title: 'Payroll Run Failed',
+        message: err.response?.data?.detail || 'Failed to run payroll',
+        type: 'error',
+      });
     }
   };
 
   const handleFinalize = async () => {
-    if (!confirm(`Finalize payroll for ${MONTH_NAMES[selectedRun.month - 1]} ${selectedRun.year}? This locks every payslip and cannot be undone.`)) return;
+    const ok = await showConfirm({
+      title: 'Finalize Payroll Run',
+      message: `Finalize payroll for ${MONTH_NAMES[selectedRun.month - 1]} ${selectedRun.year}? This locks every payslip and cannot be undone.`,
+      type: 'warning',
+      confirmText: 'Yes, Finalize Payroll',
+    });
+    if (!ok) return;
     try {
       const res = await finalizeRun(selectedRun.id);
       setSelectedRun(res.data);
       loadRuns();
     } catch (err) {
-      alert(err.response?.data?.detail || 'Failed to finalize');
+      showAlert({
+        title: 'Finalize Failed',
+        message: err.response?.data?.detail || 'Failed to finalize payroll run',
+        type: 'error',
+      });
     }
   };
 
   const handleDeleteRun = async (run) => {
-    if (!confirm('Delete this draft payroll run?')) return;
+    const ok = await showConfirm({
+      title: 'Delete Draft Payroll Run',
+      message: 'Delete this draft payroll run? All draft calculations will be removed.',
+      type: 'danger',
+      confirmText: 'Delete Run',
+    });
+    if (!ok) return;
     try {
       await deleteRun(run.id);
       if (selectedRun?.id === run.id) setSelectedRun(null);
       loadRuns();
     } catch (err) {
-      alert(err.response?.data?.detail || 'Failed to delete');
+      showAlert({
+        title: 'Delete Failed',
+        message: err.response?.data?.detail || 'Failed to delete payroll run',
+        type: 'error',
+      });
     }
   };
 
@@ -843,7 +889,13 @@ function TaxSlabsTab() {
   const load = () => getTaxSlabs().then((r) => setSlabs(r.data)).catch(() => { });
 
   const handleDelete = async (s) => {
-    if (!confirm('Delete this tax slab?')) return;
+    const ok = await showConfirm({
+      title: 'Delete Tax Slab',
+      message: 'Delete this tax slab? This cannot be undone.',
+      type: 'danger',
+      confirmText: 'Delete Slab',
+    });
+    if (!ok) return;
     await deleteTaxSlab(s.id);
     load();
   };
@@ -951,7 +1003,13 @@ function PtSlabsTab() {
   const load = () => getPtSlabs().then((r) => setSlabs(r.data)).catch(() => { });
 
   const handleDelete = async (s) => {
-    if (!confirm('Delete this PT slab?')) return;
+    const ok = await showConfirm({
+      title: 'Delete PT Slab',
+      message: 'Delete this Professional Tax (PT) slab? This cannot be undone.',
+      type: 'danger',
+      confirmText: 'Delete PT Slab',
+    });
+    if (!ok) return;
     await deletePtSlab(s.id);
     load();
   };
@@ -1065,7 +1123,13 @@ function LoansTab() {
   const loadLoans = () => getEmployeeLoans(selectedEmployeeId).then((r) => setLoans(r.data)).catch(() => setLoans([]));
 
   const handleClose = async (loan) => {
-    if (!confirm('Mark this loan as closed (forgive remaining balance)?')) return;
+    const ok = await showConfirm({
+      title: 'Close Loan Account',
+      message: 'Mark this loan as closed (forgive remaining balance)? This will stop future salary deductions for this loan.',
+      type: 'warning',
+      confirmText: 'Yes, Close Loan',
+    });
+    if (!ok) return;
     await closeLoan(loan.id);
     loadLoans();
   };
@@ -1207,7 +1271,11 @@ function PolicyTab() {
       setPolicy(res.data);
       setSaved(true);
     } catch (err) {
-      alert(err.response?.data?.detail || 'Failed to save policy');
+      showAlert({
+        title: 'Save Failed',
+        message: err.response?.data?.detail || 'Failed to save payroll policy',
+        type: 'error',
+      });
     } finally {
       setSaving(false);
     }

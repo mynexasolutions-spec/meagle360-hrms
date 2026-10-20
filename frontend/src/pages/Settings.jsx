@@ -9,10 +9,12 @@ import { getAuditLogs } from '../api/audit';
 import { getMyCompany, updateMyCompany, uploadCompanyBranding } from '../api/company';
 import client from '../api/client';
 import Modal from '../components/Modal';
+import { usePopup } from '../context/PopupContext';
 
 const WEEKDAY_LABELS = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'];
 
 export default function Settings() {
+  const { showAlert, showConfirm, showToast } = usePopup();
   const [tab, setTab] = useState('branding');
   const [holidays, setHolidays] = useState([]);
   const [departments, setDepartments] = useState([]);
@@ -79,14 +81,22 @@ export default function Settings() {
       const res = await updateMyCompany({ weekly_off_days: next });
       setCompany(res.data);
     } catch (err) {
-      alert(err.response?.data?.detail || 'Failed to update weekly off days');
+      showAlert({
+        title: 'Update Failed',
+        message: err.response?.data?.detail || 'Failed to update weekly off days',
+        type: 'error',
+      });
     }
   };
 
   const handleSaveRegLimit = async () => {
     const value = Number(regLimitInput);
     if (!Number.isInteger(value) || value < 0) {
-      alert('Please enter a whole number of 0 or more');
+      showAlert({
+        title: 'Invalid Limit',
+        message: 'Please enter a whole number of 0 or more.',
+        type: 'warning',
+      });
       return;
     }
     setSavingRegLimit(true);
@@ -94,19 +104,33 @@ export default function Settings() {
       const res = await updateMyCompany({ max_monthly_regularizations: value });
       setCompany(res.data);
     } catch (err) {
-      alert(err.response?.data?.detail || 'Failed to update regularization limit');
+      showAlert({
+        title: 'Update Failed',
+        message: err.response?.data?.detail || 'Failed to update regularization limit',
+        type: 'error',
+      });
     } finally {
       setSavingRegLimit(false);
     }
   };
 
   const handleDeleteHoliday = async (h) => {
-    if (!confirm(`Delete "${h.name}" (${h.holiday_date})?`)) return;
+    const ok = await showConfirm({
+      title: 'Delete Holiday',
+      message: `Delete "${h.name}" (${h.holiday_date})?`,
+      type: 'danger',
+      confirmText: 'Delete Holiday',
+    });
+    if (!ok) return;
     try {
       await deleteHoliday(h.id);
       loadAll();
     } catch (err) {
-      alert(err.response?.data?.detail || 'Failed to delete holiday');
+      showAlert({
+        title: 'Delete Failed',
+        message: err.response?.data?.detail || 'Failed to delete holiday',
+        type: 'error',
+      });
     }
   };
 
@@ -121,7 +145,11 @@ export default function Settings() {
       setBrandingSuccess('Company logo uploaded to Cloudinary successfully!');
       setTimeout(() => setBrandingSuccess(''), 4000);
     } catch (err) {
-      alert(err.response?.data?.detail || 'Failed to upload company logo');
+      showAlert({
+        title: 'Upload Failed',
+        message: err.response?.data?.detail || 'Failed to upload company logo',
+        type: 'error',
+      });
     } finally {
       setUploadingLogo(false);
     }
@@ -138,7 +166,11 @@ export default function Settings() {
       setBrandingSuccess('Authorized signature uploaded to Cloudinary successfully!');
       setTimeout(() => setBrandingSuccess(''), 4000);
     } catch (err) {
-      alert(err.response?.data?.detail || 'Failed to upload authorized signature');
+      showAlert({
+        title: 'Upload Failed',
+        message: err.response?.data?.detail || 'Failed to upload authorized signature',
+        type: 'error',
+      });
     } finally {
       setUploadingSignature(false);
     }
@@ -154,7 +186,11 @@ export default function Settings() {
       setBrandingSuccess('Company branding details saved successfully!');
       setTimeout(() => setBrandingSuccess(''), 4000);
     } catch (err) {
-      alert(err.response?.data?.detail || 'Failed to update branding details');
+      showAlert({
+        title: 'Save Failed',
+        message: err.response?.data?.detail || 'Failed to update branding details',
+        type: 'error',
+      });
     } finally {
       setSavingBranding(false);
     }

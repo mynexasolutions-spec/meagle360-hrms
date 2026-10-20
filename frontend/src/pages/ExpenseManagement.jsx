@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useAuth } from '../context/AuthContext';
+import { usePopup } from '../context/PopupContext';
 import {
   getExpenseCategories, submitExpenseClaim, getMyExpenseClaims,
   getPendingExpenseClaims, getAllExpenseClaims, approveRejectExpense, reimburseExpense,
@@ -12,6 +13,7 @@ const EMPTY_FORM = { category_id: '', amount: '', expense_date: '', description:
 
 export default function ExpenseManagement() {
   const { user } = useAuth();
+  const { showAlert, showToast } = usePopup();
   const canSubmit = !!user?.permissions?.['expenses:write'];
   const canApprove = !!user?.permissions?.['expenses:approve'];
   const [tab, setTab] = useState('my-claims');
@@ -57,7 +59,11 @@ export default function ExpenseManagement() {
       setForm(EMPTY_FORM);
       loadData();
     } catch (err) {
-      alert(err.response?.data?.detail || 'Failed to submit expense claim');
+      showAlert({
+        title: 'Submission Failed',
+        message: err.response?.data?.detail || 'Failed to submit expense claim',
+        type: 'error',
+      });
     }
   };
 
@@ -66,7 +72,11 @@ export default function ExpenseManagement() {
       await approveRejectExpense(id, status);
       loadData();
     } catch (err) {
-      alert(err.response?.data?.detail || 'Failed');
+      showAlert({
+        title: 'Action Failed',
+        message: err.response?.data?.detail || 'Failed to complete expense action',
+        type: 'error',
+      });
     }
   };
 
@@ -75,7 +85,11 @@ export default function ExpenseManagement() {
       await reimburseExpense(id);
       loadData();
     } catch (err) {
-      alert(err.response?.data?.detail || 'Failed');
+      showAlert({
+        title: 'Action Failed',
+        message: err.response?.data?.detail || 'Failed to complete expense action',
+        type: 'error',
+      });
     }
   };
 

@@ -125,6 +125,19 @@ class EmployeeService:
         return employee
 
     def update_employee(self, employee_id: UUID, data: dict, actor_employee_id: UUID | None = None):
+        if "manager_id" in data and data["manager_id"] is not None:
+            new_mgr_id = data["manager_id"]
+            if new_mgr_id == employee_id:
+                raise ValueError("An employee cannot be their own manager.")
+            curr_id = new_mgr_id
+            seen = {employee_id}
+            while curr_id:
+                if curr_id in seen:
+                    raise ValueError("Cannot assign manager: circular reporting hierarchy detected.")
+                seen.add(curr_id)
+                mgr = self.repo.get(curr_id)
+                curr_id = mgr.manager_id if mgr else None
+
         employee = self.repo.update(employee_id, data)
         if employee:
             safe_details = {k: str(v) for k, v in data.items()}
@@ -142,16 +155,20 @@ class EmployeeService:
     def get_org_chart(self) -> list[dict]:
         """Build org chart tree from top-level employees."""
         top = self.repo.get_top_level_employees()
-        return [self._build_tree(emp) for emp in top]
+        visited = set()
+        return [self._build_tree(emp, visited) for emp in top]
 
-    def _build_tree(self, employee: Employee) -> dict:
+    def _build_tree(self, employee: Employee, visited: set | None = None) -> dict:
+        if visited is None:
+            visited = set()
+        visited.add(employee.id)
         reports = self.repo.get_direct_reports(employee.id)
         return {
             "id": str(employee.id),
             "full_name": employee.full_name,
             "employee_code": employee.employee_code,
             "department_name": employee.department.name if employee.department else None,
-            "direct_reports": [self._build_tree(r) for r in reports],
+            "direct_reports": [self._build_tree(r, visited) for r in reports if r.id not in visited],
         }
 
     def add_document(self, employee_id: UUID, data: dict) -> EmployeeDocument:

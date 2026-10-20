@@ -1,6 +1,7 @@
 import { useState, useEffect, useMemo } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
+import { usePopup } from '../context/PopupContext';
 import { getEmployeeOverview, getDailyOverview, clockIn, clockOut, getClockStatus } from '../api/attendance';
 import {
   requestRegularization, getMyRegularizations, getPendingRegularizations, approveRegularization,
@@ -694,6 +695,7 @@ function MonthOverviewTable({ data }) {
 
 export default function Attendance() {
   const { user } = useAuth();
+  const { showAlert, showToast } = usePopup();
   const canApprove = !!user?.permissions?.['attendance:approve'];
   const isAdmin = user?.role_name === 'Admin';
   const [searchParams, setSearchParams] = useSearchParams();
@@ -812,7 +814,11 @@ export default function Attendance() {
   const handleSaveRegLimit = async () => {
     const value = Number(regLimitInput);
     if (!Number.isInteger(value) || value < 0) {
-      alert('Please enter a whole number of 0 or more');
+      showAlert({
+        title: 'Invalid Regularization Limit',
+        message: 'Please enter a whole number of 0 or more.',
+        type: 'warning',
+      });
       return;
     }
     setSavingRegLimit(true);
@@ -824,7 +830,11 @@ export default function Attendance() {
       setRegLimitSaved(true);
       setTimeout(() => setRegLimitSaved(false), 2500);
     } catch (err) {
-      alert(err.response?.data?.detail || 'Failed to update regularization limit');
+      showAlert({
+        title: 'Update Failed',
+        message: err.response?.data?.detail || 'Failed to update regularization limit',
+        type: 'error',
+      });
     } finally {
       setSavingRegLimit(false);
     }
@@ -935,7 +945,12 @@ export default function Attendance() {
         loadRecords();
         loadTimesheet();
       } catch (e) {
-        alert(e.response?.data?.detail || 'Failed to clock in');
+        const msg = e.response?.data?.detail || 'Failed to clock in';
+        showAlert({
+          title: msg.toLowerCase().includes('wait') ? 'Clock-In Cooldown Active' : 'Clock-In Notice',
+          message: msg,
+          type: 'warning',
+        });
       } finally {
         setLoading(false);
       }
@@ -956,7 +971,12 @@ export default function Attendance() {
       loadRecords();
       loadTimesheet();
     } catch (e) {
-      alert(e.response?.data?.detail || 'Failed to clock out');
+      const msg = e.response?.data?.detail || 'Failed to clock out';
+      showAlert({
+        title: 'Clock-Out Notice',
+        message: msg,
+        type: 'warning',
+      });
     } finally {
       setLoading(false);
     }
@@ -975,7 +995,11 @@ export default function Attendance() {
       setRegForm({ record_date: '', requested_clock_in: '', requested_clock_out: '', reason: '' });
       loadRegularizations();
     } catch (err) {
-      alert(err.response?.data?.detail || 'Failed to submit request');
+      showAlert({
+        title: 'Submission Failed',
+        message: err.response?.data?.detail || 'Failed to submit request',
+        type: 'error',
+      });
     }
   };
 
@@ -985,7 +1009,11 @@ export default function Attendance() {
       loadRegularizations();
       loadTimesheet();
     } catch (err) {
-      alert(err.response?.data?.detail || 'Failed');
+      showAlert({
+        title: 'Action Failed',
+        message: err.response?.data?.detail || 'Failed to complete action',
+        type: 'error',
+      });
     }
   };
 
@@ -997,7 +1025,11 @@ export default function Attendance() {
       setOtForm({ request_date: '', hours: '', reason: '' });
       loadOvertime();
     } catch (err) {
-      alert(err.response?.data?.detail || 'Failed to submit request');
+      showAlert({
+        title: 'Submission Failed',
+        message: err.response?.data?.detail || 'Failed to submit request',
+        type: 'error',
+      });
     }
   };
 
@@ -1006,7 +1038,11 @@ export default function Attendance() {
       await approveOvertime(id, status);
       loadOvertime();
     } catch (err) {
-      alert(err.response?.data?.detail || 'Failed');
+      showAlert({
+        title: 'Action Failed',
+        message: err.response?.data?.detail || 'Failed to complete action',
+        type: 'error',
+      });
     }
   };
 

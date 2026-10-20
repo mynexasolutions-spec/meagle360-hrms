@@ -4,9 +4,11 @@ import client from '../api/client';
 import Modal from '../components/Modal';
 
 import { useAuth } from '../context/AuthContext';
+import { usePopup } from '../context/PopupContext';
 
 export default function ShiftManagement() {
   const { user } = useAuth();
+  const { showAlert, showConfirm, showToast } = usePopup();
   const isAdmin = user?.role_name === 'Admin' || !!user?.permissions?.['settings:write'];
   const isManager = !!user?.permissions?.['attendance:approve'] || !!user?.permissions?.['employees:read'];
   const canManageShifts = isAdmin || isManager;
@@ -58,7 +60,11 @@ export default function ShiftManagement() {
       setForm({ shift_type: '', start_time: '', end_time: '' });
       loadData();
     } catch (err) {
-      alert(err.response?.data?.detail || 'Failed');
+      showAlert({
+        title: 'Shift Creation Failed',
+        message: err.response?.data?.detail || 'Failed to create shift',
+        type: 'error',
+      });
     }
   };
 
@@ -70,17 +76,31 @@ export default function ShiftManagement() {
       setForm({ shift_type: '', start_time: '', end_time: '' });
       loadData();
     } catch (err) {
-      alert(err.response?.data?.detail || 'Failed to update shift');
+      showAlert({
+        title: 'Update Failed',
+        message: err.response?.data?.detail || 'Failed to update shift',
+        type: 'error',
+      });
     }
   };
 
   const handleDeleteShift = async (shift) => {
-    if (!confirm(`Delete the "${shift.shift_type}" shift template?`)) return;
+    const ok = await showConfirm({
+      title: 'Delete Shift Template',
+      message: `Delete the "${shift.shift_type}" shift template? This action cannot be undone.`,
+      type: 'danger',
+      confirmText: 'Delete Shift',
+    });
+    if (!ok) return;
     try {
       await client.delete(`/shifts/${shift.id}`);
       loadData();
     } catch (err) {
-      alert(err.response?.data?.detail || 'Failed to delete shift');
+      showAlert({
+        title: 'Delete Failed',
+        message: err.response?.data?.detail || 'Failed to delete shift template',
+        type: 'error',
+      });
     }
   };
 
@@ -92,7 +112,11 @@ export default function ShiftManagement() {
       setAssignForm({ employee_id: '', shift_id: '', effective_from: new Date().toISOString().slice(0, 10) });
       loadData();
     } catch (err) {
-      alert(err.response?.data?.detail || 'Failed to assign shift');
+      showAlert({
+        title: 'Assignment Failed',
+        message: err.response?.data?.detail || 'Failed to assign shift',
+        type: 'error',
+      });
     }
   };
 
@@ -112,17 +136,31 @@ export default function ShiftManagement() {
       setEditingRoster(null);
       loadData();
     } catch (err) {
-      alert(err.response?.data?.detail || 'Failed to update shift assignment');
+      showAlert({
+        title: 'Update Failed',
+        message: err.response?.data?.detail || 'Failed to update shift assignment',
+        type: 'error',
+      });
     }
   };
 
   const handleDeleteRoster = async (item) => {
-    if (!confirm(`Are you sure you want to remove the shift assignment for ${item.employee_name || 'this employee'}?`)) return;
+    const ok = await showConfirm({
+      title: 'Remove Shift Assignment',
+      message: `Are you sure you want to remove the shift assignment for ${item.employee_name || 'this employee'}?`,
+      type: 'danger',
+      confirmText: 'Remove Assignment',
+    });
+    if (!ok) return;
     try {
       await client.delete(`/shifts/assign/${item.id}`);
       loadData();
     } catch (err) {
-      alert(err.response?.data?.detail || 'Failed to remove shift assignment');
+      showAlert({
+        title: 'Remove Failed',
+        message: err.response?.data?.detail || 'Failed to remove shift assignment',
+        type: 'error',
+      });
     }
   };
 
