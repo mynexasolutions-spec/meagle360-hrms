@@ -5,6 +5,8 @@ export const sendAiChat = (message, history = []) =>
 
 export const getAiDailyDigest = () => client.get('/ai/daily-digest');
 
+export const getAiQuota = () => client.get('/ai/quota');
+
 export const executeAiAction = (payload) =>
   client.post('/ai/execute-action', payload);
 

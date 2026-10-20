@@ -8,16 +8,23 @@ from sqlalchemy.orm import Session
 
 from app.database import get_db
 from app.dependencies import get_company_id, get_current_user
+from app.models.company import Company
 from app.models.user_account import UserAccount
 from app.schemas.ai import (
     AIChatRequest,
     AIChatResponse,
     AIExecuteActionRequest,
     AIExecuteActionResponse,
+    AIQuotaResponse,
     AITranscribeResponse,
 )
 from app.services.ai.agent_service import AIAgentService
 from app.services.ai.llm_client import LLMClient, LLMProviderError
+from app.services.ai.quota_service import (
+    enforce_chat_quota,
+    get_user_chat_quota,
+    record_chat_usage,
+)
 from app.services.ai.tools import AIToolbox, get_ist_today
 from app.services.leave_service import LeaveService
 from app.services.payroll_service import PayrollService
@@ -50,6 +57,9 @@ def chat_with_assistant(
     current_user: UserAccount = Depends(get_current_user),
 ):
     """Process a natural-language HR query using role-scoped tools (Admin/Manager vs Employee)."""
+    company = db.query(Company).filter(Company.id == company_id).first()
+    enforce_chat_quota(db, current_user, company)
+
     admin_mode = is_admin_or_manager(current_user)
     agent = AIAgentService(
         db=db,
@@ -59,7 +69,12 @@ def chat_with_assistant(
     )
     history_dicts = [{"role": h.role, "content": h.content} for h in payload.history]
     result = agent.chat(user_message=payload.message, history=history_dicts)
-    return AIChatResponse(**result)
+
+    # Record usage towards daily quota
+    record_chat_usage(db, company_id=company_id, user_id=current_user.id, message_type="chat")
+    quota = get_user_chat_quota(db, current_user, company)
+
+    return AIChatResponse(**result, quota=quota)
 
 
 @router.post("/execute-action", response_model=AIExecuteActionResponse)
@@ -227,6 +242,9 @@ def get_daily_digest(
     today_iso = today.isoformat()
     llm = LLMClient()
 
+    company = db.query(Company).filter(Company.id == company_id).first()
+    quota = get_user_chat_quota(db, current_user, company)
+
     if not admin_mode:
         leave_summary = toolbox.get_my_leave_summary(year=today.year)
         att_summary = toolbox.get_my_attendance_summary(month=today.month, year=today.year)
@@ -244,6 +262,7 @@ def get_daily_digest(
             "llm_configured": llm.is_configured,
             "provider": llm.provider,
             "model": llm.model if llm.is_configured else "local-db-engine",
+            "quota": quota,
         }
 
     attendance = toolbox.get_daily_attendance(target_date=today_iso)
@@ -266,4 +285,16 @@ def get_daily_digest(
         "llm_configured": llm.is_configured,
         "provider": llm.provider,
         "model": llm.model if llm.is_configured else "local-db-engine",
+        "quota": quota,
     }
+
+
+@router.get("/quota", response_model=AIQuotaResponse)
+def get_ai_chat_quota(
+    db: Session = Depends(get_db),
+    company_id: UUID = Depends(get_company_id),
+    current_user: UserAccount = Depends(get_current_user),
+):
+    """Return the current user's daily AI chat usage and quota."""
+    company = db.query(Company).filter(Company.id == company_id).first()
+    return get_user_chat_quota(db, current_user, company)

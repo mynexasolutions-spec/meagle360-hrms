@@ -47,6 +47,15 @@ class AIActionCard(BaseModel):
     unassigned_employees_count: int | None = None
 
 
+class AIQuotaResponse(BaseModel):
+    is_demo: bool = True
+    daily_limit: int | None = 10
+    chats_today: int = 0
+    chats_remaining: int | None = 10
+    limit_reached: bool = False
+    resets_at: str = "12:00 AM IST"
+
+
 class AIChatResponse(BaseModel):
     reply: str
     tools_used: list[str] = Field(default_factory=list)
@@ -54,6 +63,7 @@ class AIChatResponse(BaseModel):
     role_mode: str = "admin"
     provider: str = "groq"
     mode: str = "llm"
+    quota: AIQuotaResponse | None = None
 
 
 class AIExecuteActionRequest(BaseModel):

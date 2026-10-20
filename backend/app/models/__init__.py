@@ -44,6 +44,7 @@ from app.models.employee_loan import EmployeeLoan
 from app.models.fnf_settlement import FnfSettlement
 from app.models.action_item import ActionItem
 from app.models.notification import Notification
+from app.models.ai_chat_usage import AIChatUsage
 
 __all__ = [
     "Base",
@@ -68,6 +69,7 @@ __all__ = [
     "AuditLog",
     "UserAccountRole",
     "ExpenseCategory",
+    "AIChatUsage",
     "ExpenseClaim",
     "Site",
     "SalaryComponent",

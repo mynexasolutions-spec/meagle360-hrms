@@ -26,44 +26,106 @@ import {
 import {
   sendAiChat,
   getAiDailyDigest,
+  getAiQuota,
   transcribeVoiceAudio,
   executeAiAction,
 } from '../api/ai';
 import { useAuth } from '../context/AuthContext';
 import botAvatarVideo from '../assets/meagle-bot-bust-transparent.webm';
 
-function BotAvatar({ size = 36, glow = false }) {
+function BotAvatar({ size = 36, glow = false, isSpeaking = false }) {
   return (
     <div
       style={{
-        width: size,
-        height: size,
-        borderRadius: Math.round(size * 0.28),
-        background: 'linear-gradient(135deg, #eff6ff 0%, #e0e7ff 100%)',
-        border: glow ? '2px solid #818cf8' : '1px solid #bfdbfe',
-        display: 'flex',
+        position: 'relative',
+        display: 'inline-flex',
         alignItems: 'center',
         justifyContent: 'center',
-        overflow: 'hidden',
+        width: size,
+        height: size,
         flexShrink: 0,
-        boxShadow: glow
-          ? '0 10px 30px -4px rgba(79, 70, 229, 0.32), 0 0 0 6px rgba(99, 102, 241, 0.10)'
-          : '0 2px 8px rgba(37, 99, 235, 0.14)',
       }}
     >
-      <video
-        src={botAvatarVideo}
-        autoPlay
-        loop
-        muted
-        playsInline
+      <style>{`
+        @keyframes appleAuraRotate {
+          0% { transform: rotate(0deg); }
+          100% { transform: rotate(360deg); }
+        }
+        @keyframes appleAuraPulse {
+          0%, 100% {
+            opacity: 0.65;
+            transform: scale(0.98);
+          }
+          50% {
+            opacity: 0.95;
+            transform: scale(1.10);
+          }
+        }
+        @keyframes miniBarPulse {
+          0%, 100% { height: 3px; }
+          50% { height: 11px; }
+        }
+      `}</style>
+
+      {/* Apple Intelligence / Siri Style Chameleon Aura Glow */}
+      {isSpeaking && (
+        <div
+          style={{
+            position: 'absolute',
+            inset: -6,
+            borderRadius: Math.round(size * 0.36),
+            background:
+              'conic-gradient(from 0deg, #6366f1, #06b6d4, #a855f7, #ec4899, #3b82f6, #6366f1)',
+            filter: `blur(${Math.max(8, Math.round(size * 0.18))}px)`,
+            opacity: 0.85,
+            animation: 'appleAuraRotate 4s linear infinite, appleAuraPulse 2s ease-in-out infinite',
+            pointerEvents: 'none',
+            zIndex: 0,
+          }}
+        />
+      )}
+
+      {/* Main Avatar Container (Clean, Stable, Sharp) */}
+      <div
         style={{
+          position: 'relative',
+          zIndex: 1,
           width: '100%',
           height: '100%',
-          objectFit: 'contain',
-          display: 'block',
+          borderRadius: Math.round(size * 0.28),
+          background: 'linear-gradient(135deg, #eff6ff 0%, #e0e7ff 100%)',
+          border: isSpeaking
+            ? '2px solid #818cf8'
+            : glow
+            ? '2px solid #818cf8'
+            : '1px solid #bfdbfe',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          overflow: 'hidden',
+          flexShrink: 0,
+          boxShadow: isSpeaking
+            ? '0 0 0 3px rgba(129, 140, 248, 0.35), 0 10px 28px -4px rgba(99, 102, 241, 0.40)'
+            : glow
+            ? '0 10px 30px -4px rgba(79, 70, 229, 0.32), 0 0 0 6px rgba(99, 102, 241, 0.10)'
+            : '0 2px 8px rgba(37, 99, 235, 0.14)',
+          transition: 'border 0.3s ease, box-shadow 0.3s ease',
         }}
-      />
+      >
+        <video
+          src={botAvatarVideo}
+          autoPlay
+          loop
+          muted
+          playsInline
+          style={{
+            width: '100%',
+            height: '100%',
+            objectFit: 'contain',
+            display: 'block',
+          }}
+        />
+      </div>
     </div>
   );
 }
@@ -1016,6 +1078,9 @@ export default function AiAssistant() {
     currentHour < 12 ? 'Good Morning' : currentHour < 17 ? 'Good Afternoon' : 'Good Evening';
   const isWelcomeOnly = messages.length === 1 && messages[0]?.id === 'welcome';
 
+  // Daily Demo Quota state (10 chats/day)
+  const [quota, setQuota] = useState(null);
+
   // Voice Input & Output state (Default autoSpeak: false so AI replies in text first, voice only on clicking 'Listen')
   const [isRecording, setIsRecording] = useState(false);
   const [transcribing, setTranscribing] = useState(false);
@@ -1034,8 +1099,20 @@ export default function AiAssistant() {
     try {
       const res = await getAiDailyDigest();
       setDigest(res.data);
+      if (res.data?.quota) {
+        setQuota(res.data.quota);
+      }
     } catch {
       // ignore digest error gracefully
+    }
+
+    try {
+      const qRes = await getAiQuota();
+      if (qRes.data) {
+        setQuota(qRes.data);
+      }
+    } catch {
+      // ignore quota load error gracefully
     }
   }, []);
 
@@ -1098,11 +1175,41 @@ export default function AiAssistant() {
     setVoiceStatusText('');
   }, [stopSpeaking]);
 
+  // ── Meagle AI Voice Intro Handler ─────────────────────────────────────
+  const handleToggleIntro = useCallback(() => {
+    if (speakingMsgId === 'intro') {
+      stopSpeaking();
+      return;
+    }
+
+    const introScript = isAdminOrManager
+      ? `Hello ${firstName}! I am Meagle, your intelligent AI copilot for Meagle 360 HRMS. You can ask me real-time questions about daily attendance, who is on leave, late check-ins, or manage leave approvals and payroll across all departments. Just tap any prompt or speak with me!`
+      : `Hello ${firstName}! I am Meagle, your personal HRMS copilot. I am here to help you check your attendance records, review leave balances, view your payslips, or submit leave requests anytime. How can I help you today?`;
+
+    speakReply('intro', introScript);
+  }, [speakingMsgId, stopSpeaking, speakReply, isAdminOrManager, firstName]);
+
   // ── Send Message to /api/ai/chat ──────────────────────────────────────
   const handleSendMessage = useCallback(
     async (textOverride = null, triggeredByVoice = false) => {
       let textToSend = (textOverride !== null ? textOverride : input).trim();
       if (!textToSend || loading) return;
+
+      if (quota?.is_demo && quota?.limit_reached) {
+        setMessages((prev) => [
+          ...prev,
+          {
+            id: `limit-${Date.now()}`,
+            role: 'assistant',
+            content: `⚠️ **Daily Demo Limit Reached (10/10):** Aapne aaj ki demo chat limit poori kar li hai! Yeh kal subah 12:00 AM IST par reset ho jayegi. Full access ke liye upgrade karein ya contact karein.`,
+            isError: true,
+            tools_used: [],
+            pending_actions: [],
+            timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+          },
+        ]);
+        return;
+      }
 
       // Only append department filter in Admin/Manager mode
       if (
@@ -1138,6 +1245,9 @@ export default function AiAssistant() {
       try {
         const res = await sendAiChat(textToSend, historyPayload);
         const data = res.data;
+        if (data.quota) {
+          setQuota(data.quota);
+        }
         const aiMsgId = `ai-${Date.now()}`;
         const aiMsg = {
           id: aiMsgId,
@@ -1155,6 +1265,16 @@ export default function AiAssistant() {
           speakReply(aiMsgId, data.reply);
         }
       } catch (err) {
+        if (err.response?.status === 429) {
+          setQuota((prev) => ({
+            ...(prev || {}),
+            is_demo: true,
+            daily_limit: 10,
+            chats_today: 10,
+            chats_remaining: 0,
+            limit_reached: true,
+          }));
+        }
         const detail =
           err.response?.data?.detail ||
           'Unable to reach the AI Assistant right now. Please try again.';
@@ -1174,7 +1294,7 @@ export default function AiAssistant() {
         setLoading(false);
       }
     },
-    [input, loading, messages, autoSpeak, isAdminOrManager, selectedDept, speakReply, stopSpeaking]
+    [input, loading, messages, autoSpeak, isAdminOrManager, selectedDept, speakReply, stopSpeaking, quota]
   );
 
   // ── Voice Recording (Groq Whisper + Browser SpeechRecognition Fallback) ──
@@ -1346,17 +1466,16 @@ export default function AiAssistant() {
         <div
           style={{
             position: 'relative',
-            padding: '12px 22px',
+            padding: '10px 20px',
             flexShrink: 0,
             background:
-              'linear-gradient(135deg, rgba(255,255,255,0.92) 0%, rgba(238,242,255,0.65) 55%, rgba(245,243,255,0.75) 100%)',
+              'linear-gradient(135deg, rgba(255,255,255,0.94) 0%, rgba(238,242,255,0.7) 55%, rgba(245,243,255,0.8) 100%)',
             backdropFilter: 'blur(14px)',
             WebkitBackdropFilter: 'blur(14px)',
             display: 'flex',
-            flexWrap: 'wrap',
             alignItems: 'center',
             justifyContent: 'space-between',
-            gap: '10px',
+            gap: '12px',
           }}
         >
           <div
@@ -1371,10 +1490,11 @@ export default function AiAssistant() {
             }}
           />
 
-          <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-            <BotAvatar size={40} glow={true} />
+          {/* Left Brand & Subtitle */}
+          <div style={{ display: 'flex', alignItems: 'center', gap: '10px', minWidth: 0, flexShrink: 0 }}>
+            <BotAvatar size={38} glow={true} isSpeaking={speakingMsgId !== null} />
             <div>
-              <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
                 <h1
                   style={{
                     margin: 0,
@@ -1396,6 +1516,7 @@ export default function AiAssistant() {
                     background: 'linear-gradient(135deg, #eff6ff 0%, #eef2ff 100%)',
                     color: '#2563eb',
                     border: '1px solid #bfdbfe',
+                    whiteSpace: 'nowrap',
                   }}
                 >
                   {isAdminOrManager ? 'Admin & Manager Copilot' : 'Personal HR Copilot'}
@@ -1412,6 +1533,7 @@ export default function AiAssistant() {
                     background: '#f0fdf4',
                     color: '#15803d',
                     border: '1px solid #bbf7d0',
+                    whiteSpace: 'nowrap',
                   }}
                 >
                   <span
@@ -1427,7 +1549,7 @@ export default function AiAssistant() {
                   Online • Voice & Chat
                 </span>
               </div>
-              <p style={{ margin: '1px 0 0 0', fontSize: '0.73rem', color: '#64748b', fontWeight: 500 }}>
+              <p style={{ margin: '1px 0 0 0', fontSize: '0.72rem', color: '#64748b', fontWeight: 500, whiteSpace: 'nowrap' }}>
                 {isAdminOrManager
                   ? 'Live Team Attendance & Leave Approvals'
                   : 'My Leaves, Personal Attendance & Instant Leave Apply'}
@@ -1437,7 +1559,7 @@ export default function AiAssistant() {
           </div>
 
           {/* Right Controls: Department Filter (Admin/Manager only) + Voice Reply + Clear Chat */}
-          <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexShrink: 0, flexWrap: 'wrap' }}>
             {isAdminOrManager && (
               <div
                 style={{
@@ -1578,6 +1700,7 @@ export default function AiAssistant() {
         <div
           ref={streamContainerRef}
           style={{
+            position: 'relative',
             flex: 1,
             minHeight: 0,
             overflowY: 'auto',
@@ -1594,6 +1717,47 @@ export default function AiAssistant() {
             backgroundSize: '100% 100%, 100% 100%, 100% 100%, 22px 22px',
           }}
         >
+          {/* Top-Right Floating Demo Quota in Hero Banner */}
+          {isWelcomeOnly && quota?.is_demo && (
+            <div
+              style={{
+                position: 'absolute',
+                top: 14,
+                right: 20,
+                display: 'inline-flex',
+                alignItems: 'center',
+                gap: '6px',
+                padding: '6px 14px',
+                borderRadius: '10px',
+                background: quota.limit_reached
+                  ? 'rgba(254, 226, 226, 0.95)'
+                  : (quota.chats_remaining ?? 10) <= 2
+                  ? 'rgba(254, 243, 199, 0.95)'
+                  : 'rgba(239, 246, 255, 0.95)',
+                border: quota.limit_reached
+                  ? '1px solid #fca5a5'
+                  : (quota.chats_remaining ?? 10) <= 2
+                  ? '1px solid #fde68a'
+                  : '1px solid #bfdbfe',
+                color: quota.limit_reached
+                  ? '#dc2626'
+                  : (quota.chats_remaining ?? 10) <= 2
+                  ? '#d97706'
+                  : '#1d4ed8',
+                fontSize: '0.74rem',
+                fontWeight: 700,
+                boxShadow: '0 2px 8px rgba(15, 23, 42, 0.05)',
+                backdropFilter: 'blur(8px)',
+                zIndex: 4,
+                userSelect: 'none',
+              }}
+              title="Daily demo limit: 10 chats/day. Resets daily at 12:00 AM IST."
+            >
+              <Sparkles size={13} />
+              <span>Demo Quota: <strong>{quota.chats_remaining ?? 0}/{quota.daily_limit || 10}</strong> left today</span>
+            </div>
+          )}
+
           {isWelcomeOnly ? (
             <div
               style={{
@@ -1607,10 +1771,57 @@ export default function AiAssistant() {
                 gap: '16px',
               }}
             >
-              <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '12px' }}>
+              <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '8px' }}>
                 <div style={{ position: 'relative', display: 'inline-flex', alignItems: 'center', justifyContent: 'center' }}>
-                  <BotAvatar size={74} glow={true} />
+                  <BotAvatar
+                    size={76}
+                    glow={true}
+                    isSpeaking={speakingMsgId !== null}
+                  />
                 </div>
+
+                {/* Option 2: Clean, Centered Intro Chip directly below character */}
+                <button
+                  type="button"
+                  onClick={handleToggleIntro}
+                  style={{
+                    display: 'inline-flex',
+                    alignItems: 'center',
+                    gap: '5px',
+                    padding: '3px 10px',
+                    borderRadius: '999px',
+                    background: speakingMsgId === 'intro' ? '#fee2e2' : 'rgba(255, 255, 255, 0.92)',
+                    border: speakingMsgId === 'intro' ? '1px solid #f87171' : '1px solid #c7d2fe',
+                    color: speakingMsgId === 'intro' ? '#dc2626' : '#4338ca',
+                    fontSize: '0.72rem',
+                    fontWeight: 600,
+                    cursor: 'pointer',
+                    boxShadow: speakingMsgId === 'intro'
+                      ? '0 2px 8px rgba(239, 68, 68, 0.22)'
+                      : '0 2px 6px rgba(99, 102, 241, 0.08)',
+                    transition: 'all 0.2s ease',
+                    userSelect: 'none',
+                  }}
+                  title={speakingMsgId === 'intro' ? 'Stop Meagle AI Intro' : 'Click to hear Meagle AI voice intro'}
+                >
+                  {speakingMsgId === 'intro' ? (
+                    <>
+                      <Square size={10} fill="#dc2626" />
+                      <span>Stop Intro</span>
+                      <span style={{ display: 'inline-flex', alignItems: 'flex-end', gap: '2px', height: '10px', marginLeft: '1px' }}>
+                        <span style={{ width: '2px', background: '#dc2626', borderRadius: '1px', animation: 'miniBarPulse 0.7s ease-in-out infinite' }} />
+                        <span style={{ width: '2px', background: '#dc2626', borderRadius: '1px', animation: 'miniBarPulse 0.7s ease-in-out 0.2s infinite' }} />
+                        <span style={{ width: '2px', background: '#dc2626', borderRadius: '1px', animation: 'miniBarPulse 0.7s ease-in-out 0.4s infinite' }} />
+                      </span>
+                    </>
+                  ) : (
+                    <>
+                      <Volume2 size={12} />
+                      <span>Listen Intro</span>
+                    </>
+                  )}
+                </button>
+              </div>
 
                 <div>
                   <h2
@@ -1642,7 +1853,6 @@ export default function AiAssistant() {
                       : 'Speak or type in English or Hinglish to check your leave balance, review your own attendance, or apply for leave.'}
                   </p>
                 </div>
-              </div>
 
               {/* 4 Role-Specific Floating Capsule Pills */}
               <div
@@ -1745,7 +1955,7 @@ export default function AiAssistant() {
                       gap: '10px',
                     }}
                   >
-                    {!isUser && <BotAvatar size={38} />}
+                    {!isUser && <BotAvatar size={38} isSpeaking={speakingMsgId === msg.id} />}
 
                     <div
                       style={{
@@ -1955,6 +2165,55 @@ export default function AiAssistant() {
           </div>
         )}
 
+        {/* Daily Demo Limit Reached Paywall Banner */}
+        {quota?.is_demo && quota?.limit_reached && (
+          <div
+            style={{
+              padding: '10px 20px 0',
+              flexShrink: 0,
+              background: '#fffbeb',
+            }}
+          >
+            <div
+              style={{
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'space-between',
+                flexWrap: 'wrap',
+                gap: '10px',
+                padding: '9px 14px',
+                borderRadius: '12px',
+                background: 'linear-gradient(135deg, #fef3c7 0%, #fee2e2 100%)',
+                border: '1px solid #fca5a5',
+              }}
+            >
+              <div style={{ display: 'flex', alignItems: 'center', gap: '9px' }}>
+                <AlertCircle size={17} style={{ color: '#dc2626', flexShrink: 0 }} />
+                <div>
+                  <div style={{ fontSize: '0.81rem', fontWeight: 800, color: '#991b1b' }}>
+                    Daily Demo Limit Reached ({quota.daily_limit || 10}/{quota.daily_limit || 10} chats)
+                  </div>
+                  <div style={{ fontSize: '0.73rem', color: '#7f1d1d' }}>
+                    Aapne aaj ki 10 demo chats complete kar li hain. Yeh kal 12:00 AM IST par reset ho jayegi.
+                  </div>
+                </div>
+              </div>
+              <span
+                style={{
+                  fontSize: '0.72rem',
+                  fontWeight: 700,
+                  color: '#991b1b',
+                  background: 'rgba(255,255,255,0.85)',
+                  padding: '3px 10px',
+                  borderRadius: 8,
+                }}
+              >
+                Auto-resets at 12:00 AM IST
+              </span>
+            </div>
+          </div>
+        )}
+
         {/* Input Bar */}
         <form
           onSubmit={(e) => {
@@ -1991,7 +2250,7 @@ export default function AiAssistant() {
           >
             <button
               type="button"
-              disabled={loading || transcribing}
+              disabled={loading || transcribing || Boolean(quota?.is_demo && quota?.limit_reached)}
               onClick={isRecording ? stopVoiceRecording : startVoiceRecording}
               style={{
                 width: 40,
@@ -2005,12 +2264,15 @@ export default function AiAssistant() {
                 display: 'flex',
                 alignItems: 'center',
                 justifyContent: 'center',
-                cursor: 'pointer',
+                cursor: Boolean(quota?.is_demo && quota?.limit_reached) ? 'not-allowed' : 'pointer',
+                opacity: Boolean(quota?.is_demo && quota?.limit_reached) ? 0.45 : 1,
                 flexShrink: 0,
                 transition: 'all 0.2s ease',
               }}
               title={
-                isRecording
+                Boolean(quota?.is_demo && quota?.limit_reached)
+                  ? 'Daily demo limit reached'
+                  : isRecording
                   ? 'Stop recording and send'
                   : 'Ask with your Voice (English or Hinglish)'
               }
@@ -2025,13 +2287,15 @@ export default function AiAssistant() {
               onBlur={() => setIsInputFocused(false)}
               onChange={(e) => setInput(e.target.value)}
               placeholder={
-                isAdminOrManager
+                quota?.is_demo && quota?.limit_reached
+                  ? 'Daily demo limit (10 chats) reached. Resets at 12:00 AM IST.'
+                  : isAdminOrManager
                   ? selectedDept
                     ? `Ask about ${selectedDept} (e.g. 'Who is present today?', 'Approve pending leaves')...`
                     : "Ask e.g. 'Who is present today in Engineering?', 'Approve Rahul's leave'..."
                   : "Ask e.g. 'What is my leave balance?', 'How is my attendance?', 'Apply sick leave for tomorrow'..."
               }
-              disabled={loading || isRecording}
+              disabled={loading || isRecording || Boolean(quota?.is_demo && quota?.limit_reached)}
               style={{
                 flex: 1,
                 height: 40,
@@ -2040,21 +2304,21 @@ export default function AiAssistant() {
                 background: 'transparent',
                 fontSize: '0.93rem',
                 fontWeight: 500,
-                color: '#0f172a',
+                color: Boolean(quota?.is_demo && quota?.limit_reached) ? '#94a3b8' : '#0f172a',
                 outline: 'none',
               }}
             />
 
             <button
               type="submit"
-              disabled={!input.trim() || loading || isRecording}
+              disabled={!input.trim() || loading || isRecording || Boolean(quota?.is_demo && quota?.limit_reached)}
               style={{
                 height: 40,
                 padding: '0 18px',
                 borderRadius: 13,
                 border: 'none',
                 background:
-                  !input.trim() || loading || isRecording
+                  !input.trim() || loading || isRecording || Boolean(quota?.is_demo && quota?.limit_reached)
                     ? 'linear-gradient(135deg, #94a3b8 0%, #64748b 100%)'
                     : 'linear-gradient(135deg, #2563eb 0%, #4f46e5 55%, #7c3aed 100%)',
                 color: '#ffffff',
@@ -2063,10 +2327,10 @@ export default function AiAssistant() {
                 gap: '7px',
                 fontSize: '0.86rem',
                 fontWeight: 700,
-                cursor: !input.trim() || loading ? 'not-allowed' : 'pointer',
-                opacity: !input.trim() || loading ? 0.55 : 1,
+                cursor: !input.trim() || loading || Boolean(quota?.is_demo && quota?.limit_reached) ? 'not-allowed' : 'pointer',
+                opacity: !input.trim() || loading || Boolean(quota?.is_demo && quota?.limit_reached) ? 0.55 : 1,
                 boxShadow:
-                  !input.trim() || loading || isRecording
+                  !input.trim() || loading || isRecording || Boolean(quota?.is_demo && quota?.limit_reached)
                     ? 'none'
                     : '0 4px 14px rgba(79, 70, 229, 0.35)',
                 transition: 'all 0.2s ease',

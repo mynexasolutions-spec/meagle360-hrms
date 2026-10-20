@@ -1,5 +1,5 @@
-import { useState } from 'react';
-import { NavLink } from 'react-router-dom';
+import { useState, useEffect } from 'react';
+import { NavLink, useLocation } from 'react-router-dom';
 import {
   LayoutDashboard,
   Users,
@@ -17,6 +17,10 @@ import {
   LifeBuoy,
   Sparkles,
   Award,
+  ChevronDown,
+  UserCheck,
+  Briefcase,
+  Settings2,
 } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import Modal from './Modal';
@@ -59,33 +63,74 @@ function MeagleAiLogoIcon({ size = 19 }) {
   );
 }
 
-
-// permission: a permission key the user must have, or an array (any-of).
-// hideIfPermission: a permission key (or array) which, if present, hides this item.
-// hideIfAdmin: if true, hides this item for Admin users.
-// Items with no `permission` are visible to everyone.
-const NAV_CONFIG = [
-  { path: '/', label: 'Dashboard', icon: LayoutDashboard },
-  { path: '/employees', label: 'Employee Directory', icon: Users, permission: ['employees:read', 'settings:write'] },
-  { path: '/attendance', label: 'Attendance', icon: Clock },
-  { path: '/leave', label: 'Leave', icon: CalendarDays },
-  { path: '/expenses', label: 'Expenses', icon: Receipt },
-  { path: '/payroll', label: 'Payroll', icon: Wallet, permission: ['payroll:read', 'settings:write'] },
-  { path: '/my-payslips', label: 'My Payslips', icon: Wallet, hideIfAdmin: true, hideIfPermission: 'settings:write' },
-  { path: '/performance', label: 'Performance (PMS)', icon: Award },
-  { path: '/shifts', label: 'Shifts', icon: GitBranch, permission: ['shifts:read', 'attendance:approve', 'settings:write'] },
-  { path: '/documents', label: 'Documents', icon: FileText, hideIfAdmin: true, hideIfPermission: 'settings:write' },
-  { path: '/reports', label: 'Reports & Analytics', icon: BarChart3, permission: ['leave:approve', 'settings:write'] },
+// Option 2 (Zoho People Style Grouping):
+// 1. Quick Access (Direct links)
+// 2. My Space (Self-Service)
+// 3. Team & HR Ops (Management)
+// 4. Administration (System & Billing)
+const NAV_GROUPS = [
   {
-    path: '/ai-assistant',
-    label: 'Meagle 360 AI',
-    icon: MeagleAiLogoIcon,
-    badge: 'AI',
+    type: 'direct',
+    items: [
+      { path: '/', label: 'Dashboard', icon: LayoutDashboard },
+    ],
   },
-  { path: '/helpdesk', label: 'Helpdesk', icon: LifeBuoy },
-  { path: '/settings', label: 'Settings', icon: Settings, permission: 'settings:write' },
-  { path: '/profile', label: 'My Profile', icon: UserCircle },
-  { path: '/subscriptions', label: 'Subscriptions', icon: Crown, permission: 'settings:write' },
+  {
+    id: 'my-space',
+    type: 'group',
+    label: 'My Space',
+    icon: UserCheck,
+    items: [
+      { path: '/profile', label: 'My Profile', icon: UserCircle },
+      { path: '/attendance', label: 'Attendance', icon: Clock },
+      { path: '/leave', label: 'Leave', icon: CalendarDays },
+      { path: '/my-payslips', label: 'My Payslips', icon: Wallet, hideIfAdmin: true, hideIfPermission: 'settings:write' },
+      { path: '/expenses', label: 'Expenses', icon: Receipt },
+      { path: '/documents', label: 'Documents', icon: FileText, hideIfAdmin: true, hideIfPermission: 'settings:write' },
+      { path: '/helpdesk', label: 'Helpdesk', icon: LifeBuoy },
+    ],
+  },
+  {
+    id: 'hr-ops',
+    type: 'group',
+    label: 'Team & HR Ops',
+    icon: Briefcase,
+    items: [
+      { path: '/employees', label: 'Employee Directory', icon: Users, permission: ['employees:read', 'settings:write'] },
+      { path: '/shifts', label: 'Shifts', icon: GitBranch, permission: ['shifts:read', 'attendance:approve', 'settings:write'] },
+      { path: '/payroll', label: 'Payroll', icon: Wallet, permission: ['payroll:read', 'settings:write'] },
+      {
+        path: '/performance',
+        label: 'Performance (PMS)',
+        icon: Award,
+        permission: ['leave:approve', 'attendance:approve', 'shifts:read', 'payroll:read', 'employees:read', 'settings:write'],
+      },
+      { path: '/reports', label: 'Reports & Analytics', icon: BarChart3, permission: ['leave:approve', 'settings:write'] },
+    ],
+  },
+  {
+    id: 'administration',
+    type: 'group',
+    label: 'Administration',
+    icon: Settings2,
+    items: [
+      { path: '/settings', label: 'Settings', icon: Settings, permission: 'settings:write' },
+      { path: '/subscriptions', label: 'Subscriptions', icon: Crown, permission: 'settings:write' },
+    ],
+  },
+  {
+    type: 'direct',
+    isBottomAi: true,
+    items: [
+      {
+        path: '/ai-assistant',
+        label: 'Meagle 360 AI',
+        subtitle: 'Early Access Preview',
+        icon: MeagleAiLogoIcon,
+        badge: 'AI',
+      },
+    ],
+  },
 ];
 
 function isItemVisible(item, permissions, roleName, isPlanExpired) {
@@ -107,15 +152,100 @@ function isItemVisible(item, permissions, roleName, isPlanExpired) {
 
 export default function Sidebar({ sidebarOpen, permissions, roleName }) {
   const { isPlanExpired } = useAuth();
+  const location = useLocation();
   const [showAiModal, setShowAiModal] = useState(false);
 
-  const visibleItems = NAV_CONFIG.filter((item) =>
-    isItemVisible(item, permissions, roleName, isPlanExpired)
-  );
+  // Default state (Hybrid approach):
+  // 'My Space' is open by default for quick daily actions (attendance, leave, payslips).
+  // 'Team & HR Ops' and 'Administration' are closed by default to avoid clutter,
+  // but will auto-expand whenever the active route is inside them.
+  const [openGroups, setOpenGroups] = useState({
+    'my-space': true,
+    'hr-ops': false,
+    'administration': false,
+  });
+
+  // Automatically ensure the group containing the active page is open
+  useEffect(() => {
+    NAV_GROUPS.forEach((group) => {
+      if (group.type === 'group' && group.items) {
+        const matches = group.items.some((item) => {
+          if (item.path === '/') return location.pathname === '/';
+          return location.pathname === item.path || location.pathname.startsWith(item.path + '/');
+        });
+        if (matches) {
+          setOpenGroups((prev) => ({ ...prev, [group.id]: true }));
+        }
+      }
+    });
+  }, [location.pathname]);
+
+  const toggleGroup = (groupId) => {
+    setOpenGroups((prev) => ({
+      ...prev,
+      [groupId]: !prev[groupId],
+    }));
+  };
+
+  const renderLinkItem = (item) => {
+    if (item.disabled) {
+      return (
+        <button
+          key={item.path || item.label}
+          type="button"
+          onClick={() => setShowAiModal(true)}
+          className="sidebar-link sidebar-link-disabled"
+          title="AI Assistant is coming soon — ask questions about attendance, leave, and your team in natural language."
+        >
+          <item.icon size={18} />
+          {sidebarOpen && (
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', width: '100%', minWidth: 0, gap: '8px' }}>
+              <span className="truncate">{item.label}</span>
+              {item.badge && <span className="sidebar-badge-soon">{item.badge}</span>}
+            </div>
+          )}
+        </button>
+      );
+    }
+
+    return (
+      <NavLink
+        key={item.path}
+        to={item.path}
+        end={item.path === '/'}
+        title={!sidebarOpen ? `${item.label}${item.subtitle ? ` (${item.subtitle})` : ''}` : undefined}
+        className={({ isActive }) => `sidebar-link${isActive ? ' active' : ''}`}
+      >
+        <item.icon size={18} />
+        {sidebarOpen && (
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', width: '100%', minWidth: 0, gap: '8px' }}>
+            <div style={{ display: 'flex', flexDirection: 'column', minWidth: 0, lineHeight: 1.25 }}>
+              <span className="truncate">{item.label}</span>
+              {item.subtitle && (
+                <span
+                  className="truncate"
+                  style={{
+                    fontSize: '0.675rem',
+                    fontWeight: 600,
+                    color: '#6366f1',
+                    letterSpacing: '0.01em',
+                    marginTop: '2px',
+                  }}
+                >
+                  {item.subtitle}
+                </span>
+              )}
+            </div>
+            {item.badge && <span className="sidebar-badge-soon">{item.badge}</span>}
+          </div>
+        )}
+      </NavLink>
+    );
+  };
 
   return (
     <>
-      <nav style={{ flex: 1, padding: '20px 12px', overflowY: 'auto' }}>
+      <nav style={{ flex: 1, padding: '16px 10px', overflowY: 'auto' }}>
         {isPlanExpired && sidebarOpen && (
           <div
             style={{
@@ -136,42 +266,74 @@ export default function Sidebar({ sidebarOpen, permissions, roleName }) {
             <span>Plan Expired — Locked</span>
           </div>
         )}
-        {visibleItems.map((item) => {
-          if (item.disabled) {
+
+        {NAV_GROUPS.map((group, gIdx) => {
+          const visibleItems = group.items.filter((item) =>
+            isItemVisible(item, permissions, roleName, isPlanExpired)
+          );
+
+          if (visibleItems.length === 0) return null;
+
+          // Direct links (Dashboard at top, Meagle 360 AI at bottom)
+          if (group.type === 'direct') {
             return (
-              <button
-                key={item.path || item.label}
-                type="button"
-                onClick={() => setShowAiModal(true)}
-                className="sidebar-link sidebar-link-disabled"
-                title="AI Assistant is coming soon — ask questions about attendance, leave, and your team in natural language."
+              <div
+                key={`direct-${gIdx}`}
+                style={{
+                  marginBottom: group.isBottomAi ? 0 : '6px',
+                  marginTop: group.isBottomAi ? '16px' : 0,
+                  paddingTop: group.isBottomAi ? '10px' : 0,
+                  borderTop: group.isBottomAi ? '1px solid #f1f5f9' : 'none',
+                }}
               >
-                <item.icon size={19} />
-                {sidebarOpen && (
-                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', width: '100%', minWidth: 0, gap: '8px' }}>
-                    <span className="truncate">{item.label}</span>
-                    {item.badge && <span className="sidebar-badge-soon">{item.badge}</span>}
-                  </div>
-                )}
-              </button>
+                {visibleItems.map((item) => renderLinkItem(item))}
+              </div>
             );
           }
 
+          // Collapsible dropdown group (My Space, Team & HR Ops, Administration)
+          const isOpen = openGroups[group.id] ?? true;
+          const hasActiveChild = visibleItems.some((item) => {
+            if (item.path === '/') return location.pathname === '/';
+            return location.pathname === item.path || location.pathname.startsWith(item.path + '/');
+          });
+
           return (
-            <NavLink
-              key={item.path}
-              to={item.path}
-              end={item.path === '/'}
-              className={({ isActive }) => `sidebar-link${isActive ? ' active' : ''}`}
-            >
-              <item.icon size={19} />
-              {sidebarOpen && (
-                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', width: '100%', minWidth: 0, gap: '8px' }}>
-                  <span className="truncate">{item.label}</span>
-                  {item.badge && <span className="sidebar-badge-soon">{item.badge}</span>}
-                </div>
+            <div className="sidebar-group" key={group.id}>
+              {sidebarOpen ? (
+                <>
+                  <button
+                    type="button"
+                    onClick={() => toggleGroup(group.id)}
+                    className={`sidebar-group-header ${isOpen ? 'open' : ''} ${hasActiveChild ? 'has-active' : ''}`}
+                    aria-expanded={isOpen}
+                    title={`Toggle ${group.label}`}
+                  >
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '8px', minWidth: 0 }}>
+                      <group.icon size={15} style={{ flexShrink: 0, opacity: 0.9 }} />
+                      <span className="truncate">{group.label}</span>
+                    </div>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                      {hasActiveChild && !isOpen && <span className="sidebar-active-dot" />}
+                      <ChevronDown size={14} className="group-chevron" />
+                    </div>
+                  </button>
+
+                  {isOpen && (
+                    <div className="sidebar-group-items">
+                      {visibleItems.map((item) => renderLinkItem(item))}
+                    </div>
+                  )}
+                </>
+              ) : (
+                <>
+                  <div className="sidebar-group-divider" />
+                  <div className="sidebar-group-items">
+                    {visibleItems.map((item) => renderLinkItem(item))}
+                  </div>
+                </>
               )}
-            </NavLink>
+            </div>
           );
         })}
       </nav>
@@ -221,5 +383,3 @@ export default function Sidebar({ sidebarOpen, permissions, roleName }) {
     </>
   );
 }
-
-
