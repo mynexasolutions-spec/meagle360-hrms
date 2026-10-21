@@ -67,4 +67,5 @@ class AttendanceRecord(Base, TimestampMixin):
     clock_out_latitude: Mapped[float | None] = mapped_column(Float, nullable=True)
     clock_out_longitude: Mapped[float | None] = mapped_column(Float, nullable=True)
     # ── Relationships ────────────────────────────────────
-    employee = relationship("Employee", back_populates="attendance_records")
+    employee = relationship("Employee", back_populates="attendance_records", foreign_keys=[employee_id])
+    geofence_reviewer = relationship("Employee", foreign_keys=[geofence_reviewed_by])

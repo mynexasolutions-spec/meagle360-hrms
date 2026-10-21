@@ -102,7 +102,12 @@ class Employee(Base, TimestampMixin):
     direct_reports = relationship("Employee", back_populates="manager")
     user_account = relationship("UserAccount", back_populates="employee", uselist=False)
     documents = relationship("EmployeeDocument", back_populates="employee", cascade="all, delete-orphan")
-    attendance_records = relationship("AttendanceRecord", back_populates="employee", cascade="all, delete-orphan")
+    attendance_records = relationship(
+        "AttendanceRecord",
+        back_populates="employee",
+        cascade="all, delete-orphan",
+        foreign_keys="AttendanceRecord.employee_id",
+    )
     leave_balances = relationship("LeaveBalance", back_populates="employee", cascade="all, delete-orphan")
     leave_requests = relationship("LeaveRequest", back_populates="employee", cascade="all, delete-orphan")
     employee_shifts = relationship("EmployeeShift", back_populates="employee", cascade="all, delete-orphan")
