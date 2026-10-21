@@ -18,7 +18,7 @@ MIN_RADIUS_M = 50
 MAX_RADIUS_M = 5000
 DEFAULT_RADIUS_M = 100
 MAX_EMPLOYEE_LOCATIONS = 3  # approved + pending per employee
-MAX_ACCURACY_M = 200  # readings worse than this are not trusted
+MAX_ACCURACY_M = 1500  # readings worse than this are not trusted (allows laptops on Wi-Fi)
 GEOFENCED_SOURCES = {"web", "mobile"}  # biometric devices are fixed in place
 MODES = {"block", "flag"}
 

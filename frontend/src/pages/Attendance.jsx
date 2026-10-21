@@ -948,9 +948,11 @@ export default function Attendance() {
         try { geofenceOn = (await getGeofenceConfig()).data.enabled; } catch { /* treat as off */ }
         if (geofenceOn) {
           try {
-            Object.assign(payload, await getCurrentPosition());
+            const coords = await getCurrentPosition();
+            console.log('[Geofence] Position captured:', coords);
+            Object.assign(payload, coords);
           } catch (geoErr) {
-            // Backend decides: blocks in 'block' mode, flags in 'flag' mode.
+            console.warn('[Geofence] Location error:', geoErr);
             showToast({ message: geoErr.message, type: 'warning' });
           }
         }
