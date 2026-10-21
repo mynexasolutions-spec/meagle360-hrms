@@ -204,7 +204,7 @@ export default function GeofenceSettings() {
       )}
 
       {form && (
-        <Modal title={form.enabling ? 'Enable geofencing — set your office' : form.id ? 'Edit office' : 'Add office'} onClose={() => setForm(null)}>
+        <Modal title={form.enabling ? 'Enable geofencing — set your office' : form.id ? 'Edit office' : 'Add office'} onClose={() => setForm(null)} maxWidth="620px">
           <form onSubmit={submitForm}>
             <div className="input-group">
               <label className="input-label">Office name</label>
