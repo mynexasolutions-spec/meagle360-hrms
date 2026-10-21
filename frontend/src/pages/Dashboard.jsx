@@ -6,6 +6,8 @@ import { getDashboardSummary, getAttendanceOverview, getLeaveSummary, getLiveSta
 import { getAnnouncements, createAnnouncement } from '../api/announcements';
 import { getLeaveBalance, getPendingRequests } from '../api/leave';
 import { getHolidays, clockIn, clockOut, getEmployeeOverview, getClockStatus } from '../api/attendance';
+import { getGeofenceConfig } from '../api/geofence';
+import { getCurrentPosition } from '../utils/geo';
 import {
   Users, CheckCircle, Umbrella, FileClock, Megaphone, CalendarHeart,
   Clock, CalendarPlus, Upload, Wifi, Plus, UserPlus, DollarSign,
@@ -183,10 +185,44 @@ export default function Dashboard() {
     setClockLoading(true);
     try {
       if (clockedIn) {
-        await clockOut({});
+        const outPayload = {};
+        try {
+          if ((await getGeofenceConfig()).data.enabled) {
+            const pos = await getCurrentPosition(5000);
+            outPayload.latitude = pos.latitude;
+            outPayload.longitude = pos.longitude;
+          }
+        } catch { /* best-effort */ }
+        await clockOut(outPayload);
         setClockedIn(false);
       } else {
-        await clockIn({ source: 'web' });
+        const payload = { source: 'web' };
+        let geofenceOn = false;
+        try { geofenceOn = (await getGeofenceConfig()).data.enabled; } catch { /* off */ }
+        if (geofenceOn) {
+          try {
+            const coords = await getCurrentPosition();
+            console.log('[Geofence] Dashboard position captured:', coords);
+            Object.assign(payload, coords);
+          } catch (geoErr) {
+            console.warn('[Geofence] Dashboard location error:', geoErr);
+            showAlert({
+              title: 'Location Permission Needed',
+              message: (geoErr.message || 'Location access is required.') + ' Click the tune/lock icon in your address bar and turn on Location.',
+              type: 'warning',
+            });
+          }
+        }
+        const res = await clockIn(payload);
+        if (res.data?.geofence_review_status === 'pending') {
+          showAlert({
+            title: 'Clock-In Flagged',
+            message: res.data.geofence_status === 'outside'
+              ? `You clocked in ${Math.round(res.data.distance_m)} m from ${res.data.geofence_location_name || 'an approved location'}. It has been sent to your admin for review.`
+              : 'Your location could not be verified. Your clock-in has been sent to your admin for review.',
+            type: 'warning',
+          });
+        }
         setClockedIn(true);
       }
     } catch (e) {
