@@ -9,6 +9,7 @@ import { getAuditLogs } from '../api/audit';
 import { getMyCompany, updateMyCompany, uploadCompanyBranding } from '../api/company';
 import client from '../api/client';
 import Modal from '../components/Modal';
+import GeofenceSettings from '../components/GeofenceSettings';
 import { usePopup } from '../context/PopupContext';
 
 const WEEKDAY_LABELS = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'];
@@ -201,6 +202,7 @@ export default function Settings() {
     { id: 'holidays', label: 'Holidays', icon: Calendar },
     { id: 'departments', label: 'Departments', icon: Building },
     { id: 'sites', label: 'Sites', icon: MapPin },
+    { id: 'geofence', label: 'Geofencing', icon: MapPin },
     { id: 'payroll-policy', label: 'Payroll Policy', icon: Wallet },
     { id: 'audit-log', label: 'Audit Log', icon: ScrollText },
   ];
@@ -621,6 +623,9 @@ export default function Settings() {
           {sites.length === 0 && <div className="empty-state"><MapPin size={48} /><p>No sites registered yet</p></div>}
         </div>
       )}
+
+      {/* Geofencing */}
+      {tab === 'geofence' && <GeofenceSettings />}
 
       {/* Payroll Policy */}
       {tab === 'payroll-policy' && (

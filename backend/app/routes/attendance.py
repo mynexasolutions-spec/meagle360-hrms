@@ -42,6 +42,9 @@ def clock_in(
             source=data.source,
             location=data.location,
             summary=data.summary,
+            latitude=data.latitude,
+            longitude=data.longitude,
+            accuracy_m=data.accuracy_m,
         )
         return record
     except ValueError as e:
@@ -71,7 +74,12 @@ def clock_out(
     svc = AttendanceService(db, company_id)
     try:
         summary = data.summary if data else None
-        return svc.clock_out(current_user.employee_id, summary=summary)
+        return svc.clock_out(
+            current_user.employee_id,
+            summary=summary,
+            latitude=data.latitude if data else None,
+            longitude=data.longitude if data else None,
+        )
     except ValueError as e:
         raise HTTPException(status_code=400, detail=str(e))
 

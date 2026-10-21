@@ -35,7 +35,8 @@ class AttendanceService:
         self.company_id = company_id
 
     def clock_in(
-        self, employee_id: UUID, source: str = "web", location: str | None = None, summary: str | None = None
+        self, employee_id: UUID, source: str = "web", location: str | None = None, summary: str | None = None,
+        latitude: float | None = None, longitude: float | None = None, accuracy_m: float | None = None,
     ) -> AttendanceRecord:
         """Clock in — create a new open attendance record."""
         # Check for existing open record
@@ -60,6 +61,12 @@ class AttendanceService:
                     f"You must wait at least 5 minutes after clocking out before clocking in again. Please wait ~{remaining_minutes} more minute(s)."
                 )
 
+        # Geofencing (no-op unless enabled for the company). May raise ValueError
+        # to block an out-of-range clock-in; otherwise returns record fields.
+        from app.services.geofence_service import GeofenceService
+        geo_svc = GeofenceService(self.db, self.company_id)
+        geo = geo_svc.evaluate_clock_in(employee_id, source, latitude, longitude, accuracy_m)
+
         record = AttendanceRecord(
             company_id=self.company_id,
             employee_id=employee_id,
@@ -68,12 +75,21 @@ class AttendanceService:
             location=location,
             summary=summary,
         )
+        if geo:
+            for key, value in geo.items():
+                setattr(record, key, value)
         self.db.add(record)
+        self.db.flush()
+        if geo and geo.get("geofence_review_status") == "pending":
+            geo_svc.notify_flagged(employee_id, record)
         self.db.commit()
         self.db.refresh(record)
         return record
 
-    def clock_out(self, employee_id: UUID, summary: str | None = None) -> AttendanceRecord:
+    def clock_out(
+        self, employee_id: UUID, summary: str | None = None,
+        latitude: float | None = None, longitude: float | None = None,
+    ) -> AttendanceRecord:
         """Clock out — close the open attendance record."""
         record = self.repo.get_open_record(employee_id)
         if not record:
@@ -96,6 +112,9 @@ class AttendanceService:
             )
 
         record.clock_out = now
+        if latitude is not None and longitude is not None:
+            record.clock_out_latitude = latitude
+            record.clock_out_longitude = longitude
         if summary:
             record.summary = summary
         self.db.commit()

@@ -3,7 +3,7 @@
 import uuid
 from datetime import datetime
 
-from sqlalchemy import DateTime, ForeignKey, String
+from sqlalchemy import DateTime, Float, ForeignKey, String
 from sqlalchemy.dialects.postgresql import UUID
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
@@ -44,5 +44,27 @@ class AttendanceRecord(Base, TimestampMixin):
         String(1000), nullable=True
     )  # Optional day summary / work notes
 
+    # Geofencing (populated only when the company has geofencing enabled)
+    latitude: Mapped[float | None] = mapped_column(Float, nullable=True)
+    longitude: Mapped[float | None] = mapped_column(Float, nullable=True)
+    accuracy_m: Mapped[float | None] = mapped_column(Float, nullable=True)
+    distance_m: Mapped[float | None] = mapped_column(Float, nullable=True)
+    geofence_status: Mapped[str | None] = mapped_column(
+        String(20), nullable=True
+    )  # inside, outside, unavailable
+    geofence_location_name: Mapped[str | None] = mapped_column(String(255), nullable=True)
+    # Review of flagged (outside/unavailable) records: pending, approved, rejected
+    geofence_review_status: Mapped[str | None] = mapped_column(
+        String(20), nullable=True, index=True
+    )
+    geofence_reviewed_by: Mapped[uuid.UUID | None] = mapped_column(
+        UUID(as_uuid=True), ForeignKey("employee.id", ondelete="SET NULL"), nullable=True
+    )
+    geofence_reviewed_at: Mapped[datetime | None] = mapped_column(
+        DateTime(timezone=True), nullable=True
+    )
+    geofence_review_note: Mapped[str | None] = mapped_column(String(500), nullable=True)
+    clock_out_latitude: Mapped[float | None] = mapped_column(Float, nullable=True)
+    clock_out_longitude: Mapped[float | None] = mapped_column(Float, nullable=True)
     # ── Relationships ────────────────────────────────────
     employee = relationship("Employee", back_populates="attendance_records")

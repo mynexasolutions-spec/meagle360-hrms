@@ -9,10 +9,15 @@ class ClockInRequest(BaseModel):
     source: str = "web"
     location: str | None = None
     summary: str | None = None
+    latitude: float | None = None
+    longitude: float | None = None
+    accuracy_m: float | None = None
 
 
 class ClockOutRequest(BaseModel):
     summary: str | None = None
+    latitude: float | None = None
+    longitude: float | None = None
 
 
 class AttendanceRecordResponse(BaseModel):
@@ -24,6 +29,13 @@ class AttendanceRecordResponse(BaseModel):
     location: str | None
     summary: str | None = None
     created_at: datetime
+    latitude: float | None = None
+    longitude: float | None = None
+    accuracy_m: float | None = None
+    distance_m: float | None = None
+    geofence_status: str | None = None
+    geofence_location_name: str | None = None
+    geofence_review_status: str | None = None
 
     class Config:
         from_attributes = True

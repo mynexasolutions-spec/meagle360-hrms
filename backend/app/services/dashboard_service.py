@@ -3,7 +3,7 @@
 from uuid import UUID
 from datetime import date, timedelta
 from decimal import Decimal
-from sqlalchemy import func
+from sqlalchemy import func, or_
 from sqlalchemy.orm import Session
 
 from sqlalchemy.orm import joinedload
@@ -117,6 +117,8 @@ class DashboardService:
                     AttendanceRecord.company_id == self.company_id,
                     AttendanceRecord.clock_in >= day_start,
                     AttendanceRecord.clock_in <= day_end,
+                    or_(AttendanceRecord.geofence_review_status.is_(None),
+                        AttendanceRecord.geofence_review_status != "rejected"),
                 )
                 .scalar()
                 or 0
@@ -157,6 +159,8 @@ class DashboardService:
                 AttendanceRecord.company_id == self.company_id,
                 AttendanceRecord.clock_in >= start_dt,
                 AttendanceRecord.clock_in <= end_dt,
+                or_(AttendanceRecord.geofence_review_status.is_(None),
+                    AttendanceRecord.geofence_review_status != "rejected"),
             )
             .order_by(AttendanceRecord.clock_in.asc())
             .all()

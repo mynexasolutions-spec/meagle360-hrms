@@ -50,6 +50,10 @@ class Company(Base, TimestampMixin):
     # an employee can submit in a calendar month — admin-configurable so it
     # isn't a hardcoded constant.
     max_monthly_regularizations: Mapped[int] = mapped_column(Integer, nullable=False, default=5)
+    # Geofenced clock-in - off by default. Mode: "block" rejects out-of-range
+    # clock-ins, "flag" records them for admin review.
+    geofence_enabled: Mapped[bool] = mapped_column(Boolean, nullable=False, default=False)
+    geofence_mode: Mapped[str] = mapped_column(String(10), nullable=False, default="flag")
 
     # ── Statutory policy (India Labour Codes, 2025) — every threshold and
     # rate here is a company-level setting, not hardcoded, since the rollout

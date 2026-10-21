@@ -17,6 +17,9 @@ import {
   CalendarDays, RefreshCw, ArrowUpDown, ArrowUp, ArrowDown,
 } from 'lucide-react';
 import Modal from '../components/Modal';
+import MyClockInLocations from '../components/MyClockInLocations';
+import { getGeofenceConfig } from '../api/geofence';
+import { getCurrentPosition } from '../utils/geo';
 
 const MONTH_NAMES = [
   'January', 'February', 'March', 'April', 'May', 'June',
@@ -940,7 +943,27 @@ export default function Attendance() {
       // Clock In directly without showing summary modal
       setLoading(true);
       try {
-        await clockIn({ source: 'web' });
+        const payload = { source: 'web' };
+        let geofenceOn = false;
+        try { geofenceOn = (await getGeofenceConfig()).data.enabled; } catch { /* treat as off */ }
+        if (geofenceOn) {
+          try {
+            Object.assign(payload, await getCurrentPosition());
+          } catch (geoErr) {
+            // Backend decides: blocks in 'block' mode, flags in 'flag' mode.
+            showToast({ message: geoErr.message, type: 'warning' });
+          }
+        }
+        const res = await clockIn(payload);
+        if (res.data?.geofence_review_status === 'pending') {
+          showAlert({
+            title: 'Clock-In Flagged',
+            message: res.data.geofence_status === 'outside'
+              ? `You clocked in ${Math.round(res.data.distance_m)} m from ${res.data.geofence_location_name || 'an approved location'}. It has been sent to your admin for review.`
+              : 'Your location could not be verified. Your clock-in has been sent to your admin for review.',
+            type: 'warning',
+          });
+        }
         setClockedIn(true);
         loadRecords();
         loadTimesheet();
@@ -966,7 +989,15 @@ export default function Attendance() {
     setLoading(true);
     setShowClockModal(false);
     try {
-      await clockOut({ summary: daySummary || null });
+      const outPayload = { summary: daySummary || null };
+      try {
+        if ((await getGeofenceConfig()).data.enabled) {
+          const pos = await getCurrentPosition(5000);
+          outPayload.latitude = pos.latitude;
+          outPayload.longitude = pos.longitude;
+        }
+      } catch { /* clock-out location is best-effort */ }
+      await clockOut(outPayload);
       setClockedIn(false);
       loadRecords();
       loadTimesheet();
@@ -1093,6 +1124,7 @@ export default function Attendance() {
           <Clock size={18} />
           {loading ? 'Processing...' : clockedIn ? 'Clock Out' : 'Clock In'}
         </button>
+        <MyClockInLocations />
       </div>
 
       {/* Status Banner — Executive clean layout */}

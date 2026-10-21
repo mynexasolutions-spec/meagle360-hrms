@@ -2,7 +2,7 @@
 
 from uuid import UUID
 from datetime import date, datetime, timedelta, timezone
-from sqlalchemy import func
+from sqlalchemy import func, or_
 from sqlalchemy.orm import Session
 
 from app.models.attendance_record import AttendanceRecord
@@ -47,6 +47,9 @@ class AttendanceRepository(BaseRepository[AttendanceRecord]):
         q = self._scoped_query().filter(
             AttendanceRecord.clock_in >= start_dt,
             AttendanceRecord.clock_in <= end_dt,
+            # Clock-ins rejected in geofence review do not count as attendance
+            or_(AttendanceRecord.geofence_review_status.is_(None),
+                AttendanceRecord.geofence_review_status != "rejected"),
         )
         if employee_id:
             q = q.filter(AttendanceRecord.employee_id == employee_id)
@@ -96,7 +99,9 @@ class AttendanceRepository(BaseRepository[AttendanceRecord]):
             self._scoped_query()
             .filter(
                 AttendanceRecord.clock_in >= start_dt,
-                AttendanceRecord.clock_in <= end_dt
+                AttendanceRecord.clock_in <= end_dt,
+                or_(AttendanceRecord.geofence_review_status.is_(None),
+                    AttendanceRecord.geofence_review_status != "rejected"),
             )
             .distinct(AttendanceRecord.employee_id)
             .count()
