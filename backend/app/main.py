@@ -11,7 +11,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 
 from app.config import get_settings
-from app.routes import auth, company, department, designation, employee, attendance, leave, shift, platform, dashboard, announcement, overtime, audit, role, expense, site, payroll, action_tracker, helpdesk, ai, pms, pms_cycles, pms_ratings, pms_results, geofence
+from app.routes import auth, company, department, designation, employee, attendance, leave, shift, platform, dashboard, announcement, overtime, audit, role, expense, site, payroll, action_tracker, helpdesk, ai, pms, pms_cycles, pms_ratings, pms_results, geofence, face
 from app.middleware.plan_expiry import PlanExpiryMiddleware
 
 settings = get_settings()
@@ -68,6 +68,7 @@ app.include_router(employee.router)
 app.include_router(role.router)
 app.include_router(attendance.router)
 app.include_router(geofence.router)
+app.include_router(face.router)
 app.include_router(leave.router)
 app.include_router(shift.router)
 app.include_router(dashboard.router)

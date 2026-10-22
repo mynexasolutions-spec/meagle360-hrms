@@ -84,8 +84,8 @@ export default function DashboardLayout() {
             />
             {showLabels && (
               <div className="sidebar-brand-text animate-fade-in" style={{ minWidth: 0 }}>
-                <div style={{ fontSize: '0.975rem', fontWeight: 800, color: '#0f172a', letterSpacing: '-0.01em', whiteSpace: 'nowrap' }}>HRMS Portal</div>
-                <div style={{ fontSize: '0.6875rem', fontWeight: 700, color: '#2563eb', whiteSpace: 'nowrap' }}>MEAGLE360</div>
+                <div className="sidebar-brand-title" style={{ fontWeight: 800, color: '#0f172a', letterSpacing: '-0.01em', whiteSpace: 'nowrap' }}>HRMS Portal</div>
+                <div className="sidebar-brand-sub" style={{ fontWeight: 700, color: '#2563eb', whiteSpace: 'nowrap' }}>MEAGLE360</div>
               </div>
             )}
           </div>
@@ -137,10 +137,10 @@ export default function DashboardLayout() {
             </div>
             {showLabels && (
               <div style={{ flex: 1, minWidth: 0 }} className="sidebar-user-text animate-fade-in">
-                <div className="truncate" style={{ fontSize: '0.8125rem', fontWeight: 800, color: '#0f172a' }}>
+                <div className="sidebar-user-name truncate" style={{ fontWeight: 800, color: '#0f172a' }}>
                   {user?.full_name || 'User'}
                 </div>
-                <div className="truncate" style={{ fontSize: '0.6875rem', fontWeight: 600, color: '#64748b' }}>
+                <div className="sidebar-user-role truncate" style={{ fontWeight: 600, color: '#64748b' }}>
                   {user?.role_name || 'Employee'}
                 </div>
               </div>

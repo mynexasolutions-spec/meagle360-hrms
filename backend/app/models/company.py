@@ -54,6 +54,8 @@ class Company(Base, TimestampMixin):
     # clock-ins, "flag" records them for admin review.
     geofence_enabled: Mapped[bool] = mapped_column(Boolean, nullable=False, default=False)
     geofence_mode: Mapped[str] = mapped_column(String(10), nullable=False, default="flag")
+    # Selfie verification at clock-in - off by default.
+    face_verification_enabled: Mapped[bool] = mapped_column(Boolean, nullable=False, default=False)
 
     # ── Statutory policy (India Labour Codes, 2025) — every threshold and
     # rate here is a company-level setting, not hardcoded, since the rollout

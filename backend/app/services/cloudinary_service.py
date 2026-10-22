@@ -43,3 +43,31 @@ def upload_branding_image(file_bytes: bytes, company_id: str, image_type: str) -
         resource_type="image",
     )
     return result["secure_url"]
+
+
+def upload_face_reference_photo(file_bytes: bytes, company_id: str, employee_id: str) -> str:
+    """Uploads approved/pending employee passport reference photo to Cloudinary.
+    Overwrites previous photo for the same employee so storage is bounded."""
+    _ensure_configured()
+    result = cloudinary.uploader.upload(
+        file_bytes,
+        folder=f"meagle360/face_profiles/{company_id}",
+        public_id=f"face_{employee_id}",
+        overwrite=True,
+        resource_type="image",
+    )
+    return result["secure_url"]
+
+
+def delete_face_reference_photo(company_id: str, employee_id: str) -> None:
+    """Deletes employee passport reference photo from Cloudinary when deactivated/removed."""
+    _ensure_configured()
+    try:
+        cloudinary.uploader.destroy(
+            f"meagle360/face_profiles/{company_id}/face_{employee_id}",
+            resource_type="image",
+        )
+    except Exception:
+        pass
+
+

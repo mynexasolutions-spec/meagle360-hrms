@@ -1,483 +1,515 @@
-"""Attendance service — clock-in/out, regularization requests, summaries."""
-
-from uuid import UUID
-from datetime import datetime, timezone, date, timedelta
-from collections import defaultdict
-import calendar
-from sqlalchemy.orm import Session
-
-from app.models.attendance_record import AttendanceRecord
-from app.models.attendance_regularization import AttendanceRegularization
-from app.models.company import Company
-from app.repositories.attendance_repo import AttendanceRepository
-from app.repositories.attendance_regularization_repo import AttendanceRegularizationRepository
-from app.services.audit_service import log_action
-
-# Company operates in IST; clock_in is stored in UTC. A clock-in at 4 AM IST
-# is still "yesterday" in UTC, so grouping attendance records by calendar
-# day must shift to IST first — otherwise a late-night/early-morning
-# clock-in silently lands under the wrong day (and, e.g., wouldn't line up
-# with that day's approved-leave suppression).
-IST_OFFSET = timedelta(hours=5, minutes=30)
-
-
-def _local_date(dt) -> date:
-    if isinstance(dt, datetime):
-        return (dt + IST_OFFSET).date()
-    return dt
-
-
-class AttendanceService:
-    def __init__(self, db: Session, company_id: UUID):
-        self.repo = AttendanceRepository(db, company_id)
-        self.regularization_repo = AttendanceRegularizationRepository(db, company_id)
-        self.db = db
-        self.company_id = company_id
-
-    def clock_in(
-        self, employee_id: UUID, source: str = "web", location: str | None = None, summary: str | None = None,
-        latitude: float | None = None, longitude: float | None = None, accuracy_m: float | None = None,
-    ) -> AttendanceRecord:
-        """Clock in — create a new open attendance record."""
-        # Check for existing open record
-        open_record = self.repo.get_open_record(employee_id)
-        if open_record:
-            raise ValueError("Employee already clocked in. Please clock out first.")
-
-        now = datetime.now(timezone.utc)
-        last_closed = self.repo.get_last_closed_record(employee_id)
-        if last_closed:
-            clock_out_time = last_closed.clock_out
-            if clock_out_time.tzinfo is None:
-                clock_out_time = clock_out_time.replace(tzinfo=timezone.utc)
-
-            elapsed_seconds = (now - clock_out_time).total_seconds()
-            min_required_seconds = 5 * 60  # 5 minutes
-
-            if elapsed_seconds < min_required_seconds:
-                remaining_seconds = int(min_required_seconds - elapsed_seconds)
-                remaining_minutes = (remaining_seconds // 60) + 1
-                raise ValueError(
-                    f"You must wait at least 5 minutes after clocking out before clocking in again. Please wait ~{remaining_minutes} more minute(s)."
-                )
-
-        # Geofencing (no-op unless enabled for the company). May raise ValueError
-        # to block an out-of-range clock-in; otherwise returns record fields.
-        from app.services.geofence_service import GeofenceService
-        geo_svc = GeofenceService(self.db, self.company_id)
-        geo = geo_svc.evaluate_clock_in(employee_id, source, latitude, longitude, accuracy_m)
-
-        record = AttendanceRecord(
-            company_id=self.company_id,
-            employee_id=employee_id,
-            clock_in=now,
-            source=source,
-            location=location,
-            summary=summary,
-        )
-        if geo:
-            for key, value in geo.items():
-                setattr(record, key, value)
-        self.db.add(record)
-        self.db.flush()
-        if geo and geo.get("geofence_review_status") == "pending":
-            geo_svc.notify_flagged(employee_id, record)
-        self.db.commit()
-        self.db.refresh(record)
-        return record
-
-    def clock_out(
-        self, employee_id: UUID, summary: str | None = None,
-        latitude: float | None = None, longitude: float | None = None,
-    ) -> AttendanceRecord:
-        """Clock out — close the open attendance record."""
-        record = self.repo.get_open_record(employee_id)
-        if not record:
-            raise ValueError("No open clock-in found.")
-
-        now = datetime.now(timezone.utc)
-        # Ensure clock_in is offset-aware for comparison
-        clock_in_time = record.clock_in
-        if clock_in_time.tzinfo is None:
-            clock_in_time = clock_in_time.replace(tzinfo=timezone.utc)
-
-        elapsed_seconds = (now - clock_in_time).total_seconds()
-        min_required_seconds = 5 * 60  # 5 minutes
-
-        if elapsed_seconds < min_required_seconds:
-            remaining_seconds = int(min_required_seconds - elapsed_seconds)
-            remaining_minutes = (remaining_seconds // 60) + 1
-            raise ValueError(
-                f"You must wait at least 5 minutes after clocking in before clocking out. Please wait ~{remaining_minutes} more minute(s)."
-            )
-
-        record.clock_out = now
-        if latitude is not None and longitude is not None:
-            record.clock_out_latitude = latitude
-            record.clock_out_longitude = longitude
-        if summary:
-            record.summary = summary
-        self.db.commit()
-        self.db.refresh(record)
-        return record
-
-    def get_status(self, employee_id: UUID) -> dict:
-        """Whether the employee currently has an open clock-in — checked
-        against any open record, not just today's, so a session left open
-        across a day boundary (a missed clock-out, a stale/orphaned record)
-        still correctly shows as "clocked in" instead of silently letting
-        the UI offer a fresh Clock In that the backend then rejects."""
-        record = self.repo.get_open_record(employee_id)
-        return {
-            "clocked_in": record is not None,
-            "clock_in": record.clock_in if record else None,
-        }
-
-    def get_records(self, employee_id: UUID | None = None, skip: int = 0, limit: int = 50):
-        if employee_id:
-            return self.repo.get_by_employee(employee_id, skip, limit)
-        return self.repo.get_all(skip, limit)
-
-    def get_by_date_range(self, start, end, employee_id=None):
-        return self.repo.get_by_date_range(start, end, employee_id)
-
-    def count_present_today(self) -> int:
-        return self.repo.count_present_today()
-
-    # ── Regularization requests ──────────────────────────
-    def request_regularization(self, employee_id: UUID, data: dict) -> AttendanceRegularization:
-        # Enforce the admin-configurable monthly limit (Company.max_monthly_regularizations)
-        req_date = data["record_date"]
-        start_of_month = req_date.replace(day=1)
-        # Next month start
-        if req_date.month == 12:
-            end_of_month = req_date.replace(year=req_date.year + 1, month=1, day=1)
-        else:
-            end_of_month = req_date.replace(month=req_date.month + 1, day=1)
-
-        monthly_count = (
-            self.db.query(AttendanceRegularization)
-            .filter(
-                AttendanceRegularization.company_id == self.company_id,
-                AttendanceRegularization.employee_id == employee_id,
-                AttendanceRegularization.record_date >= start_of_month,
-                AttendanceRegularization.record_date < end_of_month,
-                AttendanceRegularization.status.in_(["pending", "approved"]),
-            )
-            .count()
-        )
-
-        company = self.db.query(Company).filter(Company.id == self.company_id).first()
-        max_monthly_limit = company.max_monthly_regularizations if company else 5
-        if monthly_count >= max_monthly_limit:
-            raise ValueError(f"Monthly regularization limit reached ({max_monthly_limit} requests per month allowed).")
-
-        req = AttendanceRegularization(
-            company_id=self.company_id,
-            employee_id=employee_id,
-            record_date=data["record_date"],
-            requested_clock_in=data["requested_clock_in"],
-            requested_clock_out=data.get("requested_clock_out"),
-            reason=data["reason"],
-            status="pending",
-        )
-        self.db.add(req)
-        self.db.commit()
-        self.db.refresh(req)
-        return req
-
-    def get_my_regularizations(self, employee_id: UUID, skip=0, limit=50):
-        return self.regularization_repo.get_by_employee(employee_id, skip, limit)
-
-    def get_pending_regularizations(self, skip=0, limit=50):
-        return self.regularization_repo.get_pending(skip, limit)
-
-    def get_regularization_history(
-        self,
-        year: int | None = None,
-        month: int | None = None,
-        employee_id: UUID | None = None,
-        status: str | None = None,
-        skip: int = 0,
-        limit: int = 200,
-    ):
-        return self.regularization_repo.get_history(year, month, employee_id, status, skip, limit)
-
-    def count_pending_regularizations(self) -> int:
-        return self.regularization_repo.count_pending()
-
-    def approve_reject_regularization(
-        self, request_id: UUID, status: str, reviewer_employee_id: UUID
-    ) -> AttendanceRegularization | None:
-        req = self.regularization_repo.get_by_id(request_id)
-        if not req:
-            return None
-        if req.status != "pending":
-            raise ValueError(f"Request is already {req.status}")
-
-        req.status = status
-        req.reviewed_by_employee_id = reviewer_employee_id
-
-        if status == "approved":
-            record = AttendanceRecord(
-                company_id=self.company_id,
-                employee_id=req.employee_id,
-                clock_in=req.requested_clock_in,
-                clock_out=req.requested_clock_out,
-                source="regularization",
-            )
-            self.db.add(record)
-
-        log_action(
-            self.db, self.company_id, reviewer_employee_id,
-            f"attendance_regularization.{status}", "attendance_regularization", req.id,
-        )
-        self.db.commit()
-        self.db.refresh(req)
-        return req
-
-    # ── Timesheet (grouped daily view) ───────────────────
-    def get_timesheet(self, year: int, month: int, employee_id: UUID) -> dict:
-        """Return attendance records grouped by date for a given month."""
-        _, last_day = calendar.monthrange(year, month)
-        start = date(year, month, 1)
-        end = date(year, month, last_day)
-
-        records = self.repo.get_by_date_range(start, end, employee_id)
-
-        # Group records by date
-        by_date: dict[date, list] = defaultdict(list)
-        for rec in records:
-            by_date[_local_date(rec.clock_in)].append(rec)
-
-        days = []
-        month_total_minutes = 0.0
-
-        for d in sorted(by_date.keys()):
-            sessions = []
-            day_total_minutes = 0.0
-            all_complete = True
-
-            for rec in sorted(by_date[d], key=lambda r: r.clock_in):
-                if rec.clock_out:
-                    duration = (rec.clock_out - rec.clock_in).total_seconds() / 60.0
-                else:
-                    duration = None
-                    all_complete = False
-
-                sessions.append({
-                    "clock_in": rec.clock_in,
-                    "clock_out": rec.clock_out,
-                    "duration_minutes": round(duration, 1) if duration is not None else None,
-                    "source": rec.source,
-                    "summary": rec.summary,
-                })
-
-                if duration is not None:
-                    day_total_minutes += duration
-
-            total_hours = round(day_total_minutes / 60.0, 2)
-            month_total_minutes += day_total_minutes
-
-            days.append({
-                "date": d,
-                "sessions": sessions,
-                "total_hours": total_hours,
-                "is_complete": all_complete,
-            })
-
-        return {
-            "year": year,
-            "month": month,
-            "month_total_hours": round(month_total_minutes / 60.0, 2),
-            "days": days,
-        }
-
-    # ── Employee overview (attendance + leave + holidays + overtime) ─────
-    def get_employee_overview(self, employee_id: UUID, year: int, month: int) -> dict:
-        """Full month view for one employee: attendance sessions, leave,
-        holidays, and overtime merged per calendar day. Unlike get_timesheet
-        (which only lists days that have attendance records), this walks
-        every day of the month so leave/holiday days show up even with no
-        clock-in — the single source of truth for both the self Timesheet
-        tab and the Admin/Manager "Employee Records" lookup."""
-        from app.repositories.leave_repo import LeaveRequestRepository
-        from app.repositories.overtime_repo import OvertimeRepository
-        from app.models.holiday_calendar import HolidayCalendar
-
-        _, last_day = calendar.monthrange(year, month)
-        start = date(year, month, 1)
-        end = date(year, month, last_day)
-
-        records = self.repo.get_by_date_range(start, end, employee_id)
-        by_date: dict[date, list] = defaultdict(list)
-        for rec in records:
-            by_date[_local_date(rec.clock_in)].append(rec)
-
-        leave_requests = LeaveRequestRepository(self.db, self.company_id).get_by_employee_and_date_range(
-            employee_id, start, end
-        )
-        leave_by_date: dict[date, dict] = {}
-        for lr in leave_requests:
-            d = max(lr.start_date, start)
-            last = min(lr.end_date, end)
-            while d <= last:
-                leave_by_date[d] = {
-                    "leave_type_name": lr.leave_type.name if lr.leave_type else None,
-                    "status": lr.status,
-                }
-                d += timedelta(days=1)
-
-        holidays = (
-            self.db.query(HolidayCalendar)
-            .filter(
-                HolidayCalendar.company_id == self.company_id,
-                HolidayCalendar.holiday_date >= start,
-                HolidayCalendar.holiday_date <= end,
-            )
-            .all()
-        )
-        holiday_by_date = {h.holiday_date: h.name for h in holidays}
-
-        overtime_requests = OvertimeRepository(self.db, self.company_id).get_by_employee_and_date_range(
-            employee_id, start, end
-        )
-        overtime_by_date: dict[date, list] = defaultdict(list)
-        for ot in overtime_requests:
-            overtime_by_date[ot.request_date].append({
-                "hours": float(ot.hours),
-                "status": ot.status,
-                "reason": ot.reason,
-            })
-
-        from app.repositories.shift_repo import EmployeeShiftRepository
-        emp_shifts = EmployeeShiftRepository(self.db, self.company_id).get_by_employee(employee_id)
-        active_shift = emp_shifts[0].shift if emp_shifts and emp_shifts[0].shift else None
-        shift_start = active_shift.start_time if active_shift else None
-
-        shift_info = None
-        if active_shift:
-            shift_info = {
-                "shift_type": active_shift.shift_type,
-                "start_time": active_shift.start_time.strftime("%H:%M") if active_shift.start_time else None,
-                "end_time": active_shift.end_time.strftime("%H:%M") if active_shift.end_time else None,
-            }
-
-        days = []
-        month_total_minutes = 0.0
-
-        d = start
-        while d <= end:
-            sessions = []
-            day_total_minutes = 0.0
-            all_complete = True
-
-            # An approved leave day overrides attendance entirely — any
-            # clock-in/out that date is noise (an accidental tap, a stale
-            # session) rather than real work, so it's excluded from both the
-            # timesheet display and the day's hours total.
-            day_records = [] if leave_by_date.get(d, {}).get("status") == "approved" else by_date.get(d, [])
-
-            for rec in sorted(day_records, key=lambda r: r.clock_in):
-                if rec.clock_out:
-                    duration = (rec.clock_out - rec.clock_in).total_seconds() / 60.0
-                else:
-                    duration = None
-                    all_complete = False
-
-                local_clock_in = rec.clock_in + IST_OFFSET
-                rec_time = local_clock_in.time()
-                rec_mins = rec_time.hour * 60 + rec_time.minute
-
-                punctuality = "On Time"
-                if shift_start:
-                    shift_mins = shift_start.hour * 60 + shift_start.minute
-                    if rec_mins > shift_mins + 15:
-                        punctuality = "Late"
-                    elif rec_mins < shift_mins - 15:
-                        punctuality = "Early"
-                else:
-                    # Default shift threshold: 9:15 AM
-                    if rec_mins > 9 * 60 + 15:
-                        punctuality = "Late"
-
-                sessions.append({
-                    "clock_in": rec.clock_in,
-                    "clock_out": rec.clock_out,
-                    "duration_minutes": round(duration, 1) if duration is not None else None,
-                    "source": rec.source,
-                    "summary": rec.summary,
-                    "punctuality_status": punctuality,
-                })
-                if duration is not None:
-                    day_total_minutes += duration
-
-            total_hours = round(day_total_minutes / 60.0, 2)
-            month_total_minutes += day_total_minutes
-
-            days.append({
-                "date": d,
-                "sessions": sessions,
-                "total_hours": total_hours,
-                "is_complete": all_complete if sessions else None,
-                "leave": leave_by_date.get(d),
-                "holiday": holiday_by_date.get(d),
-                "overtime": overtime_by_date.get(d, []),
-            })
-            d += timedelta(days=1)
-
-        return {
-            "employee_id": str(employee_id),
-            "year": year,
-            "month": month,
-            "month_total_hours": round(month_total_minutes / 60.0, 2),
-            "shift_info": shift_info,
-            "days": days,
-        }
-
-    def get_daily_overview(self, target_date: date) -> dict:
-        """Company-wide view for one day: every active employee with their
-        clock-in/out times (or leave/absent status). Flip of get_employee_overview
-        — one day, all employees, instead of one employee, all days."""
-        from app.repositories.employee_repo import EmployeeRepository
-        from app.repositories.leave_repo import LeaveRequestRepository
-
-        employees = EmployeeRepository(self.db, self.company_id).get_directory(limit=1000)
-        records = self.repo.get_by_date_range(target_date, target_date, employee_id=None)
-
-        records_by_emp: dict[UUID, list] = defaultdict(list)
-        for rec in records:
-            if _local_date(rec.clock_in) == target_date:
-                records_by_emp[rec.employee_id].append(rec)
-
-        leaves = LeaveRequestRepository(self.db, self.company_id).get_overlapping_range(target_date, target_date)
-        leave_by_emp = {
-            lr.employee_id: lr.leave_type.name if lr.leave_type else "Leave"
-            for lr in leaves if lr.status == "approved"
-        }
-
-        rows = []
-        for emp in employees:
-            sessions = sorted(records_by_emp.get(emp.id, []), key=lambda r: r.clock_in)
-            first_in = sessions[0].clock_in if sessions else None
-            last_out = sessions[-1].clock_out if sessions and sessions[-1].clock_out else None
-
-            if leave_by_emp.get(emp.id):
-                status = "On Leave"
-            elif sessions:
-                status = "Present" if last_out else "Present (Not Clocked Out)"
-            else:
-                status = "Absent"
-
-            rows.append({
-                "employee_id": str(emp.id),
-                "employee_name": emp.full_name,
-                "department": emp.department.name if emp.department else None,
-                "check_in": first_in,
-                "check_out": last_out,
-                "session_count": len(sessions),
-                "status": status,
-                "leave_type": leave_by_emp.get(emp.id),
-            })
-
-        return {"date": target_date, "employees": rows}
+"""Attendance service — clock-in/out, regularization requests, summaries."""
+
+from uuid import UUID
+from datetime import datetime, timezone, date, timedelta
+from collections import defaultdict
+import calendar
+from sqlalchemy.orm import Session
+
+from app.models.attendance_record import AttendanceRecord
+from app.models.attendance_regularization import AttendanceRegularization
+from app.models.company import Company
+from app.repositories.attendance_repo import AttendanceRepository
+from app.repositories.attendance_regularization_repo import AttendanceRegularizationRepository
+from app.services.audit_service import log_action
+
+# Company operates in IST; clock_in is stored in UTC. A clock-in at 4 AM IST
+# is still "yesterday" in UTC, so grouping attendance records by calendar
+# day must shift to IST first — otherwise a late-night/early-morning
+# clock-in silently lands under the wrong day (and, e.g., wouldn't line up
+# with that day's approved-leave suppression).
+IST_OFFSET = timedelta(hours=5, minutes=30)
+
+
+def _local_date(dt) -> date:
+    if isinstance(dt, datetime):
+        return (dt + IST_OFFSET).date()
+    return dt
+
+
+class AttendanceService:
+    def __init__(self, db: Session, company_id: UUID):
+        self.repo = AttendanceRepository(db, company_id)
+        self.regularization_repo = AttendanceRegularizationRepository(db, company_id)
+        self.db = db
+        self.company_id = company_id
+
+    def clock_in(
+        self, employee_id: UUID, source: str = "web", location: str | None = None, summary: str | None = None,
+        latitude: float | None = None, longitude: float | None = None, accuracy_m: float | None = None,
+        selfie: str | None = None, liveness_passed: bool = False,
+    ) -> AttendanceRecord:
+        """Clock in — create a new open attendance record."""
+        # Check for existing open record
+        open_record = self.repo.get_open_record(employee_id)
+        if open_record:
+            raise ValueError("Employee already clocked in. Please clock out first.")
+
+        now = datetime.now(timezone.utc)
+        last_closed = self.repo.get_last_closed_record(employee_id)
+        if last_closed:
+            clock_out_time = last_closed.clock_out
+            if clock_out_time.tzinfo is None:
+                clock_out_time = clock_out_time.replace(tzinfo=timezone.utc)
+
+            elapsed_seconds = (now - clock_out_time).total_seconds()
+            min_required_seconds = 5 * 60  # 5 minutes
+
+            if elapsed_seconds < min_required_seconds:
+                remaining_seconds = int(min_required_seconds - elapsed_seconds)
+                remaining_minutes = (remaining_seconds // 60) + 1
+                raise ValueError(
+                    f"You must wait at least 5 minutes after clocking out before clocking in again. Please wait ~{remaining_minutes} more minute(s)."
+                )
+
+        # Geofencing (no-op unless enabled for the company). May raise ValueError
+        # to block an out-of-range clock-in; otherwise returns record fields.
+        from app.services.geofence_service import GeofenceService
+        geo_svc = GeofenceService(self.db, self.company_id)
+        geo = geo_svc.evaluate_clock_in(employee_id, source, latitude, longitude, accuracy_m)
+
+        # Selfie verification (no-op unless enabled). A mismatch never blocks
+        # the clock-in - it is flagged for admin review. The selfie itself is
+        # discarded after matching; only the result is stored on the record.
+        from app.services.face_service import FaceService
+        face_svc = FaceService(self.db, self.company_id)
+        face = face_svc.evaluate_clock_in(employee_id, selfie, liveness_passed)
+
+        record = AttendanceRecord(
+            company_id=self.company_id,
+            employee_id=employee_id,
+            clock_in=now,
+            source=source,
+            location=location,
+            summary=summary,
+        )
+        if geo:
+            for key, value in geo.items():
+                setattr(record, key, value)
+        if face:
+            for key, value in face.items():
+                setattr(record, key, value)
+        self.db.add(record)
+        self.db.flush()
+        if geo and geo.get("geofence_review_status") == "pending":
+            geo_svc.notify_flagged(employee_id, record)
+        if face and face.get("face_review_status") == "pending":
+            face_svc.notify_flagged(employee_id, record)
+        self.db.commit()
+        self.db.refresh(record)
+        return record
+
+    def clock_out(
+        self, employee_id: UUID, summary: str | None = None,
+        latitude: float | None = None, longitude: float | None = None,
+    ) -> AttendanceRecord:
+        """Clock out — close the open attendance record."""
+        record = self.repo.get_open_record(employee_id)
+        if not record:
+            raise ValueError("No open clock-in found.")
+
+        now = datetime.now(timezone.utc)
+        # Ensure clock_in is offset-aware for comparison
+        clock_in_time = record.clock_in
+        if clock_in_time.tzinfo is None:
+            clock_in_time = clock_in_time.replace(tzinfo=timezone.utc)
+
+        elapsed_seconds = (now - clock_in_time).total_seconds()
+        min_required_seconds = 5 * 60  # 5 minutes
+
+        if elapsed_seconds < min_required_seconds:
+            remaining_seconds = int(min_required_seconds - elapsed_seconds)
+            remaining_minutes = (remaining_seconds // 60) + 1
+            raise ValueError(
+                f"You must wait at least 5 minutes after clocking in before clocking out. Please wait ~{remaining_minutes} more minute(s)."
+            )
+
+        record.clock_out = now
+        if latitude is not None and longitude is not None:
+            record.clock_out_latitude = latitude
+            record.clock_out_longitude = longitude
+        if summary:
+            record.summary = summary
+        self.db.commit()
+        self.db.refresh(record)
+        return record
+
+    def get_status(self, employee_id: UUID) -> dict:
+        """Whether the employee currently has an open clock-in — checked
+        against any open record, not just today's, so a session left open
+        across a day boundary (a missed clock-out, a stale/orphaned record)
+        still correctly shows as "clocked in" instead of silently letting
+        the UI offer a fresh Clock In that the backend then rejects."""
+        record = self.repo.get_open_record(employee_id)
+        return {
+            "clocked_in": record is not None,
+            "clock_in": record.clock_in if record else None,
+        }
+
+    def get_records(self, employee_id: UUID | None = None, skip: int = 0, limit: int = 50):
+        if employee_id:
+            return self.repo.get_by_employee(employee_id, skip, limit)
+        return self.repo.get_all(skip, limit)
+
+    def get_by_date_range(self, start, end, employee_id=None):
+        return self.repo.get_by_date_range(start, end, employee_id)
+
+    def count_present_today(self) -> int:
+        return self.repo.count_present_today()
+
+    # ── Regularization requests ──────────────────────────
+    def request_regularization(self, employee_id: UUID, data: dict) -> AttendanceRegularization:
+        # Enforce the admin-configurable monthly limit (Company.max_monthly_regularizations)
+        req_date = data["record_date"]
+        start_of_month = req_date.replace(day=1)
+        # Next month start
+        if req_date.month == 12:
+            end_of_month = req_date.replace(year=req_date.year + 1, month=1, day=1)
+        else:
+            end_of_month = req_date.replace(month=req_date.month + 1, day=1)
+
+        monthly_count = (
+            self.db.query(AttendanceRegularization)
+            .filter(
+                AttendanceRegularization.company_id == self.company_id,
+                AttendanceRegularization.employee_id == employee_id,
+                AttendanceRegularization.record_date >= start_of_month,
+                AttendanceRegularization.record_date < end_of_month,
+                AttendanceRegularization.status.in_(["pending", "approved"]),
+            )
+            .count()
+        )
+
+        company = self.db.query(Company).filter(Company.id == self.company_id).first()
+        max_monthly_limit = company.max_monthly_regularizations if company else 5
+        if monthly_count >= max_monthly_limit:
+            raise ValueError(f"Monthly regularization limit reached ({max_monthly_limit} requests per month allowed).")
+
+        req = AttendanceRegularization(
+            company_id=self.company_id,
+            employee_id=employee_id,
+            record_date=data["record_date"],
+            requested_clock_in=data["requested_clock_in"],
+            requested_clock_out=data.get("requested_clock_out"),
+            reason=data["reason"],
+            status="pending",
+        )
+        self.db.add(req)
+        self.db.commit()
+        self.db.refresh(req)
+        return req
+
+    def get_my_regularizations(self, employee_id: UUID, skip=0, limit=50):
+        return self.regularization_repo.get_by_employee(employee_id, skip, limit)
+
+    def get_pending_regularizations(self, skip=0, limit=50):
+        return self.regularization_repo.get_pending(skip, limit)
+
+    def get_regularization_history(
+        self,
+        year: int | None = None,
+        month: int | None = None,
+        employee_id: UUID | None = None,
+        status: str | None = None,
+        skip: int = 0,
+        limit: int = 200,
+    ):
+        return self.regularization_repo.get_history(year, month, employee_id, status, skip, limit)
+
+    def count_pending_regularizations(self) -> int:
+        return self.regularization_repo.count_pending()
+
+    def approve_reject_regularization(
+        self, request_id: UUID, status: str, reviewer_employee_id: UUID
+    ) -> AttendanceRegularization | None:
+        req = self.regularization_repo.get_by_id(request_id)
+        if not req:
+            return None
+        if req.status != "pending":
+            raise ValueError(f"Request is already {req.status}")
+
+        req.status = status
+        req.reviewed_by_employee_id = reviewer_employee_id
+
+        if status == "approved":
+            record = AttendanceRecord(
+                company_id=self.company_id,
+                employee_id=req.employee_id,
+                clock_in=req.requested_clock_in,
+                clock_out=req.requested_clock_out,
+                source="regularization",
+            )
+            self.db.add(record)
+
+        log_action(
+            self.db, self.company_id, reviewer_employee_id,
+            f"attendance_regularization.{status}", "attendance_regularization", req.id,
+        )
+        self.db.commit()
+        self.db.refresh(req)
+        return req
+
+    # ── Timesheet (grouped daily view) ───────────────────
+    def get_timesheet(self, year: int, month: int, employee_id: UUID) -> dict:
+        """Return attendance records grouped by date for a given month."""
+        _, last_day = calendar.monthrange(year, month)
+        start = date(year, month, 1)
+        end = date(year, month, last_day)
+
+        records = self.repo.get_by_date_range(start, end, employee_id)
+
+        # Group records by date
+        by_date: dict[date, list] = defaultdict(list)
+        for rec in records:
+            by_date[_local_date(rec.clock_in)].append(rec)
+
+        days = []
+        month_total_minutes = 0.0
+
+        for d in sorted(by_date.keys()):
+            sessions = []
+            day_total_minutes = 0.0
+            all_complete = True
+
+            for rec in sorted(by_date[d], key=lambda r: r.clock_in):
+                if rec.clock_out:
+                    duration = (rec.clock_out - rec.clock_in).total_seconds() / 60.0
+                else:
+                    duration = None
+                    all_complete = False
+
+                sessions.append({
+                    "clock_in": rec.clock_in,
+                    "clock_out": rec.clock_out,
+                    "duration_minutes": round(duration, 1) if duration is not None else None,
+                    "source": rec.source,
+                    "summary": rec.summary,
+                })
+
+                if duration is not None:
+                    day_total_minutes += duration
+
+            total_hours = round(day_total_minutes / 60.0, 2)
+            month_total_minutes += day_total_minutes
+
+            days.append({
+                "date": d,
+                "sessions": sessions,
+                "total_hours": total_hours,
+                "is_complete": all_complete,
+            })
+
+        return {
+            "year": year,
+            "month": month,
+            "month_total_hours": round(month_total_minutes / 60.0, 2),
+            "days": days,
+        }
+
+    # ── Employee overview (attendance + leave + holidays + overtime) ─────
+    def get_employee_overview(self, employee_id: UUID, year: int, month: int) -> dict:
+        """Full month view for one employee: attendance sessions, leave,
+        holidays, and overtime merged per calendar day. Unlike get_timesheet
+        (which only lists days that have attendance records), this walks
+        every day of the month so leave/holiday days show up even with no
+        clock-in — the single source of truth for both the self Timesheet
+        tab and the Admin/Manager "Employee Records" lookup."""
+        from app.repositories.leave_repo import LeaveRequestRepository
+        from app.repositories.overtime_repo import OvertimeRepository
+        from app.models.holiday_calendar import HolidayCalendar
+
+        _, last_day = calendar.monthrange(year, month)
+        start = date(year, month, 1)
+        end = date(year, month, last_day)
+
+        records = self.repo.get_by_date_range(start, end, employee_id)
+        by_date: dict[date, list] = defaultdict(list)
+        for rec in records:
+            by_date[_local_date(rec.clock_in)].append(rec)
+
+        leave_requests = LeaveRequestRepository(self.db, self.company_id).get_by_employee_and_date_range(
+            employee_id, start, end
+        )
+        leave_by_date: dict[date, dict] = {}
+        for lr in leave_requests:
+            d = max(lr.start_date, start)
+            last = min(lr.end_date, end)
+            while d <= last:
+                leave_by_date[d] = {
+                    "leave_type_name": lr.leave_type.name if lr.leave_type else None,
+                    "status": lr.status,
+                }
+                d += timedelta(days=1)
+
+        holidays = (
+            self.db.query(HolidayCalendar)
+            .filter(
+                HolidayCalendar.company_id == self.company_id,
+                HolidayCalendar.holiday_date >= start,
+                HolidayCalendar.holiday_date <= end,
+            )
+            .all()
+        )
+        holiday_by_date = {h.holiday_date: h.name for h in holidays}
+
+        overtime_requests = OvertimeRepository(self.db, self.company_id).get_by_employee_and_date_range(
+            employee_id, start, end
+        )
+        overtime_by_date: dict[date, list] = defaultdict(list)
+        for ot in overtime_requests:
+            overtime_by_date[ot.request_date].append({
+                "hours": float(ot.hours),
+                "status": ot.status,
+                "reason": ot.reason,
+            })
+
+        from app.repositories.shift_repo import EmployeeShiftRepository
+        emp_shifts = EmployeeShiftRepository(self.db, self.company_id).get_by_employee(employee_id)
+        active_shift = emp_shifts[0].shift if emp_shifts and emp_shifts[0].shift else None
+        shift_start = active_shift.start_time if active_shift else None
+
+        shift_info = None
+        if active_shift:
+            shift_info = {
+                "shift_type": active_shift.shift_type,
+                "start_time": active_shift.start_time.strftime("%H:%M") if active_shift.start_time else None,
+                "end_time": active_shift.end_time.strftime("%H:%M") if active_shift.end_time else None,
+            }
+
+        days = []
+        month_total_minutes = 0.0
+
+        d = start
+        while d <= end:
+            sessions = []
+            day_total_minutes = 0.0
+            all_complete = True
+
+            # An approved leave day overrides attendance entirely — any
+            # clock-in/out that date is noise (an accidental tap, a stale
+            # session) rather than real work, so it's excluded from both the
+            # timesheet display and the day's hours total.
+            day_records = [] if leave_by_date.get(d, {}).get("status") == "approved" else by_date.get(d, [])
+
+            for rec in sorted(day_records, key=lambda r: r.clock_in):
+                if rec.clock_out:
+                    duration = (rec.clock_out - rec.clock_in).total_seconds() / 60.0
+                else:
+                    duration = None
+                    all_complete = False
+
+                local_clock_in = rec.clock_in + IST_OFFSET
+                rec_time = local_clock_in.time()
+                rec_mins = rec_time.hour * 60 + rec_time.minute
+
+                punctuality = "On Time"
+                if shift_start:
+                    shift_mins = shift_start.hour * 60 + shift_start.minute
+                    if rec_mins > shift_mins + 15:
+                        punctuality = "Late"
+                    elif rec_mins < shift_mins - 15:
+                        punctuality = "Early"
+                else:
+                    # Default shift threshold: 9:15 AM
+                    if rec_mins > 9 * 60 + 15:
+                        punctuality = "Late"
+
+                sessions.append({
+                    "clock_in": rec.clock_in,
+                    "clock_out": rec.clock_out,
+                    "duration_minutes": round(duration, 1) if duration is not None else None,
+                    "source": rec.source,
+                    "summary": rec.summary,
+                    "punctuality_status": punctuality,
+                })
+                if duration is not None:
+                    day_total_minutes += duration
+
+            total_hours = round(day_total_minutes / 60.0, 2)
+            month_total_minutes += day_total_minutes
+
+            days.append({
+                "date": d,
+                "sessions": sessions,
+                "total_hours": total_hours,
+                "is_complete": all_complete if sessions else None,
+                "leave": leave_by_date.get(d),
+                "holiday": holiday_by_date.get(d),
+                "overtime": overtime_by_date.get(d, []),
+            })
+            d += timedelta(days=1)
+
+        return {
+            "employee_id": str(employee_id),
+            "year": year,
+            "month": month,
+            "month_total_hours": round(month_total_minutes / 60.0, 2),
+            "shift_info": shift_info,
+            "days": days,
+        }
+
+    def get_daily_overview(self, target_date: date) -> dict:
+        """Company-wide view for one day: every active employee with their
+        clock-in/out times (or leave/absent status). Flip of get_employee_overview
+        — one day, all employees, instead of one employee, all days."""
+        from app.repositories.employee_repo import EmployeeRepository
+        from app.repositories.leave_repo import LeaveRequestRepository
+
+        employees = EmployeeRepository(self.db, self.company_id).get_directory(limit=1000)
+        records = self.repo.get_by_date_range(target_date, target_date, employee_id=None)
+
+        records_by_emp: dict[UUID, list] = defaultdict(list)
+        for rec in records:
+            if _local_date(rec.clock_in) == target_date:
+                records_by_emp[rec.employee_id].append(rec)
+
+        leaves = LeaveRequestRepository(self.db, self.company_id).get_overlapping_range(target_date, target_date)
+        leave_by_emp = {
+            lr.employee_id: lr.leave_type.name if lr.leave_type else "Leave"
+            for lr in leaves if lr.status == "approved"
+        }
+
+        rows = []
+        for emp in employees:
+            sessions = sorted(records_by_emp.get(emp.id, []), key=lambda r: r.clock_in)
+            first_in = sessions[0].clock_in if sessions else None
+            last_out = sessions[-1].clock_out if sessions and sessions[-1].clock_out else None
+
+            if leave_by_emp.get(emp.id):
+                status = "On Leave"
+            elif sessions:
+                status = "Present" if last_out else "Present (Not Clocked Out)"
+            else:
+                status = "Absent"
+
+            face_status = None
+            face_review_status = None
+            if sessions:
+                if not last_out:
+                    # Currently active/open clock-in
+                    face_status = sessions[-1].face_status
+                    face_review_status = sessions[-1].face_review_status
+                else:
+                    # All closed: prioritize flagged sessions so admins see any flags
+                    flagged = next((s for s in reversed(sessions) if s.face_status == "flagged"), None)
+                    if flagged:
+                        face_status = flagged.face_status
+                        face_review_status = flagged.face_review_status
+                    else:
+                        face_status = sessions[-1].face_status
+                        face_review_status = sessions[-1].face_review_status
+
+            rows.append({
+                "employee_id": str(emp.id),
+                "employee_name": emp.full_name,
+                "department": emp.department.name if emp.department else None,
+                "check_in": first_in,
+                "check_out": last_out,
+                "session_count": len(sessions),
+                "status": status,
+                "leave_type": leave_by_emp.get(emp.id),
+                "face_status": face_status,
+                "face_review_status": face_review_status,
+            })
+
+        return {"date": target_date, "employees": rows}

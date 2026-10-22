@@ -48,6 +48,9 @@ class Settings(BaseSettings):
     OPENAI_API_KEY: str = ""
     GEMINI_API_KEY: str = ""
 
+    # -- Selfie verification (cosine similarity; higher = stricter) --
+    FACE_MATCH_THRESHOLD: float = 0.4
+
     model_config = {
         "env_file": ".env",
         "env_file_encoding": "utf-8",

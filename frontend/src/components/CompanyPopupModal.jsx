@@ -43,9 +43,8 @@ export default function CompanyPopupModal({
 
   // Determine badge styling based on type
   const isCooldown = typeof message === 'string' && (
-    message.toLowerCase().includes('clock') || 
     message.toLowerCase().includes('wait at least') ||
-    message.toLowerCase().includes('minute')
+    message.toLowerCase().includes('cooldown')
   );
 
   const getBadgeConfig = () => {

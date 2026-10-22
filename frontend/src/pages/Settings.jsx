@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import {
   Settings as SettingsIcon, Building, Shield, Calendar, ScrollText, MapPin, Wallet, Pencil, Trash2,
-  Image as ImageIcon, FileSignature, UploadCloud, CheckCircle2, Building2, Phone, Mail, Globe
+  Image as ImageIcon, FileSignature, UploadCloud, CheckCircle2, Building2, Phone, Mail, Globe, Camera
 } from 'lucide-react';
 import { getHolidays, createHoliday, updateHoliday, deleteHoliday } from '../api/attendance';
 import { getDepartments, createDepartment, getSites, createSite } from '../api/employees';
@@ -10,6 +10,7 @@ import { getMyCompany, updateMyCompany, uploadCompanyBranding } from '../api/com
 import client from '../api/client';
 import Modal from '../components/Modal';
 import GeofenceSettings from '../components/GeofenceSettings';
+import SelfieSettings from '../components/SelfieSettings';
 import { usePopup } from '../context/PopupContext';
 
 const WEEKDAY_LABELS = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'];
@@ -203,6 +204,7 @@ export default function Settings() {
     { id: 'departments', label: 'Departments', icon: Building },
     { id: 'sites', label: 'Sites', icon: MapPin },
     { id: 'geofence', label: 'Geofencing', icon: MapPin },
+    { id: 'selfie', label: 'Selfie Verification', icon: Camera },
     { id: 'payroll-policy', label: 'Payroll Policy', icon: Wallet },
     { id: 'audit-log', label: 'Audit Log', icon: ScrollText },
   ];
@@ -626,6 +628,9 @@ export default function Settings() {
 
       {/* Geofencing */}
       {tab === 'geofence' && <GeofenceSettings />}
+
+      {/* Selfie Verification */}
+      {tab === 'selfie' && <SelfieSettings />}
 
       {/* Payroll Policy */}
       {tab === 'payroll-policy' && (

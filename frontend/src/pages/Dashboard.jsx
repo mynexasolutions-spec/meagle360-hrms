@@ -8,6 +8,8 @@ import { getLeaveBalance, getPendingRequests } from '../api/leave';
 import { getHolidays, clockIn, clockOut, getEmployeeOverview, getClockStatus } from '../api/attendance';
 import { getGeofenceConfig } from '../api/geofence';
 import { getCurrentPosition } from '../utils/geo';
+import { getFaceConfig } from '../api/face';
+import SelfieClockInModal from '../components/SelfieClockInModal';
 import {
   Users, CheckCircle, Umbrella, FileClock, Megaphone, CalendarHeart,
   Clock, CalendarPlus, Upload, Wifi, Plus, UserPlus, DollarSign,
@@ -106,7 +108,7 @@ function timeAgo(dateStr) {
 
 export default function Dashboard() {
   const { user } = useAuth();
-  const { showAlert } = usePopup();
+  const { showAlert, showToast } = usePopup();
   const canApprove = !!user?.permissions?.['leave:approve'];
   const canSeeLiveStatus = !!user?.permissions?.['attendance:approve'];
   const canPostAnnouncement = !!user?.permissions?.['settings:write'];
@@ -124,6 +126,7 @@ export default function Dashboard() {
   const [holidays, setHolidays] = useState([]);
   const [clockedIn, setClockedIn] = useState(false);
   const [clockLoading, setClockLoading] = useState(false);
+  const [showSelfieModal, setShowSelfieModal] = useState(false);
   const [todayClockInTime, setTodayClockInTime] = useState(null);
   const [todayPunctuality, setTodayPunctuality] = useState('On Time');
   const [shiftInfo, setShiftInfo] = useState(null);
@@ -154,14 +157,25 @@ export default function Dashboard() {
     }
     if (user?.employee_id) {
       const now = new Date();
-      getClockStatus().then((r) => setClockedIn(!!r.data?.clocked_in)).catch(() => { });
+      getClockStatus()
+        .then((r) => {
+          setClockedIn(!!r.data?.clocked_in);
+          if (r.data?.clock_in) {
+            setTodayClockInTime(r.data.clock_in);
+          }
+        })
+        .catch(() => { });
       getEmployeeOverview({ employee_id: user.employee_id, year: now.getFullYear(), month: now.getMonth() + 1 })
         .then((r) => {
           setShiftInfo(r.data?.shift_info || null);
           const today = now.toISOString().slice(0, 10);
           const todayRow = r.data?.days?.find((d) => d.date === today);
           if (todayRow?.sessions?.length > 0) {
-            setTodayClockInTime(todayRow.sessions[0].clock_in);
+            const activeSession = todayRow.sessions.find((s) => !s.clock_out);
+            const latestSession = activeSession || todayRow.sessions[todayRow.sessions.length - 1];
+            if (latestSession?.clock_in) {
+              setTodayClockInTime((prev) => prev || latestSession.clock_in);
+            }
             setTodayPunctuality(todayRow.sessions[0].punctuality_status || 'On Time');
           } else {
             setTodayPunctuality('Not Clocked In');
@@ -181,10 +195,81 @@ export default function Dashboard() {
     setShowNewAnnouncement(false);
   };
 
-  const handleClock = async () => {
+  const executeDashboardClockIn = async (selfieData = null) => {
+    if (clockLoading) return;
     setClockLoading(true);
     try {
-      if (clockedIn) {
+      const payload = { source: 'web' };
+      let geofenceOn = false;
+      try { geofenceOn = (await getGeofenceConfig()).data.enabled; } catch { /* off */ }
+      if (geofenceOn) {
+        try {
+          const coords = await getCurrentPosition();
+          Object.assign(payload, coords);
+        } catch (geoErr) {
+          showAlert({
+            title: 'Location Permission Needed',
+            message: (geoErr.message || 'Location access is required.') + ' Click the tune/lock icon in your address bar and turn on Location.',
+            type: 'warning',
+          });
+        }
+      }
+      if (selfieData) {
+        Object.assign(payload, selfieData);
+      }
+      const res = await clockIn(payload);
+      if (res.data?.geofence_review_status === 'pending') {
+        showAlert({
+          title: 'Clock-In Flagged (Location)',
+          message: res.data.geofence_status === 'outside'
+            ? `You clocked in ${Math.round(res.data.distance_m)} m from ${res.data.geofence_location_name || 'an approved location'}. It has been sent to your admin for review.`
+            : 'Your location could not be verified. Your clock-in has been sent to your admin for review.',
+          type: 'warning',
+        });
+      }
+      if (res.data?.face_status === 'flagged') {
+        showAlert({
+          title: 'Clock-In Flagged (Selfie Verification)',
+          message: `Your live selfie did not match your approved passport photo (Reason: ${res.data.face_flag_reason || 'mismatch'}). Your clock-in has been recorded and submitted to your admin for review.`,
+          type: 'warning',
+        });
+      } else if (res.data?.face_status === 'verified') {
+        showToast({ message: 'Selfie verified! Clocked in successfully.', type: 'success' });
+      }
+      setClockedIn(true);
+      if (res.data?.clock_in) {
+        setTodayClockInTime(res.data.clock_in);
+      }
+      return res;
+    } catch (e) {
+      const msg = e.response?.data?.detail || 'Failed to clock in';
+      if (typeof msg === 'string' && msg.toLowerCase().includes('already clocked in')) {
+        setClockedIn(true);
+        showToast({ message: 'You are already clocked in!', type: 'info' });
+        getClockStatus().then((sRes) => {
+          setClockedIn(sRes.data.clocked_in);
+          if (sRes.data?.clock_in) setTodayClockInTime(sRes.data.clock_in);
+        }).catch(() => {});
+        return { data: { face_status: 'verified' } };
+      } else {
+        showAlert({
+          title: msg.toLowerCase().includes('wait') ? 'Clock-In Cooldown Active' : 'Attendance Notice',
+          message: msg,
+          type: 'warning',
+        });
+        throw e;
+      }
+    } finally {
+      setClockLoading(false);
+      setTimeout(() => setShowSelfieModal(false), 900);
+    }
+  };
+
+  const handleClock = async () => {
+    if (clockLoading) return;
+    if (clockedIn) {
+      setClockLoading(true);
+      try {
         const outPayload = {};
         try {
           if ((await getGeofenceConfig()).data.enabled) {
@@ -195,45 +280,25 @@ export default function Dashboard() {
         } catch { /* best-effort */ }
         await clockOut(outPayload);
         setClockedIn(false);
-      } else {
-        const payload = { source: 'web' };
-        let geofenceOn = false;
-        try { geofenceOn = (await getGeofenceConfig()).data.enabled; } catch { /* off */ }
-        if (geofenceOn) {
-          try {
-            const coords = await getCurrentPosition();
-            console.log('[Geofence] Dashboard position captured:', coords);
-            Object.assign(payload, coords);
-          } catch (geoErr) {
-            console.warn('[Geofence] Dashboard location error:', geoErr);
-            showAlert({
-              title: 'Location Permission Needed',
-              message: (geoErr.message || 'Location access is required.') + ' Click the tune/lock icon in your address bar and turn on Location.',
-              type: 'warning',
-            });
-          }
-        }
-        const res = await clockIn(payload);
-        if (res.data?.geofence_review_status === 'pending') {
-          showAlert({
-            title: 'Clock-In Flagged',
-            message: res.data.geofence_status === 'outside'
-              ? `You clocked in ${Math.round(res.data.distance_m)} m from ${res.data.geofence_location_name || 'an approved location'}. It has been sent to your admin for review.`
-              : 'Your location could not be verified. Your clock-in has been sent to your admin for review.',
-            type: 'warning',
-          });
-        }
-        setClockedIn(true);
+        setTodayClockInTime(null);
+      } catch (e) {
+        const msg = e.response?.data?.detail || 'Failed to clock out';
+        showAlert({
+          title: msg.toLowerCase().includes('wait') ? 'Clock-In Cooldown Active' : 'Attendance Notice',
+          message: msg,
+          type: 'warning',
+        });
+      } finally {
+        setClockLoading(false);
       }
-    } catch (e) {
-      const msg = e.response?.data?.detail || `Failed to clock ${clockedIn ? 'out' : 'in'}`;
-      showAlert({
-        title: msg.toLowerCase().includes('wait') ? 'Clock-In Cooldown Active' : 'Attendance Notice',
-        message: msg,
-        type: 'warning',
-      });
-    } finally {
-      setClockLoading(false);
+    } else {
+      let faceCfg = null;
+      try { faceCfg = (await getFaceConfig()).data; } catch { /* ignore */ }
+      if (faceCfg?.enabled && faceCfg?.my_profile?.status === 'approved') {
+        setShowSelfieModal(true);
+        return;
+      }
+      await executeDashboardClockIn();
     }
   };
 
@@ -1310,6 +1375,15 @@ export default function Dashboard() {
           onClose={() => setShowAllAnnouncements(false)}
           onNewAnnouncement={() => setShowNewAnnouncement(true)}
           onSelectAnnouncement={(a) => setSelectedAnnouncement(a)}
+        />
+      )}
+
+      {showSelfieModal && (
+        <SelfieClockInModal
+          isOpen={showSelfieModal}
+          onClose={() => setShowSelfieModal(false)}
+          onConfirm={executeDashboardClockIn}
+          loading={clockLoading}
         />
       )}
     </div>

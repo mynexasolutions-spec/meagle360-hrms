@@ -1,17 +1,49 @@
 import { useState, useEffect } from 'react';
 import { useAuth } from '../context/AuthContext';
+import { usePopup } from '../context/PopupContext';
 import { getEmployee } from '../api/employees';
-import { User, Mail, Briefcase, Calendar, Shield, MapPin, Building2, Phone, BadgeCheck } from 'lucide-react';
+import { getFaceConfig, deleteMyFaceProfile } from '../api/face';
+import PassportUploadModal from '../components/PassportUploadModal';
+import {
+  User, Mail, Briefcase, Calendar, Shield, MapPin, Building2, Phone, BadgeCheck,
+  Camera, CheckCircle2, AlertCircle, Trash2,
+} from 'lucide-react';
 
 export default function MyProfile() {
   const { user } = useAuth();
+  const { showConfirm, showToast } = usePopup();
   const [employee, setEmployee] = useState(null);
+  const [faceConfig, setFaceConfig] = useState(null);
+  const [showPassportModal, setShowPassportModal] = useState(false);
+
+  const loadFaceConfig = () => {
+    getFaceConfig().then((r) => setFaceConfig(r.data)).catch(() => {});
+  };
 
   useEffect(() => {
     if (user?.employee_id) {
       getEmployee(user.employee_id).then((r) => setEmployee(r.data)).catch(() => {});
     }
+    loadFaceConfig();
   }, [user?.employee_id]);
+
+  const handleDeactivateFace = async () => {
+    const ok = await showConfirm({
+      title: 'Disable Verification & Remove Photo?',
+      message: 'Your registered reference photo will be permanently removed, and your attendance clock-in status will be marked as "Unverified". Are you sure you want to proceed?',
+      type: 'warning',
+      confirmText: 'Yes, Disable & Remove',
+      cancelText: 'Cancel',
+    });
+    if (!ok) return;
+    try {
+      await deleteMyFaceProfile();
+      showToast({ message: 'Selfie verification disabled and photo removed.', type: 'success' });
+      loadFaceConfig();
+    } catch (err) {
+      showToast({ message: err.response?.data?.detail || 'Failed to remove photo.', type: 'error' });
+    }
+  };
 
   const initials = user?.full_name
     ?.split(' ')
@@ -102,6 +134,74 @@ export default function MyProfile() {
         </div>
       </div>
 
+      {/* Selfie Attendance Verification Card */}
+      <div className="section-card" style={{ marginBottom: 24, borderTop: '3px solid #0284c7' }}>
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: 12, marginBottom: 16 }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+            <Camera size={20} style={{ color: '#0284c7' }} />
+            <div>
+              <h3 style={{ margin: 0, fontSize: '1.05rem', fontWeight: 700, color: '#0f172a' }}>Selfie Attendance Verification</h3>
+              <p style={{ margin: '2px 0 0', fontSize: '0.8125rem', color: '#64748b' }}>Your facial recognition status for daily clock-in</p>
+            </div>
+          </div>
+
+          <div>
+            {faceConfig?.my_profile?.status === 'approved' && (
+              <span style={{ display: 'inline-flex', alignItems: 'center', gap: 6, padding: '4px 12px', borderRadius: 9999, background: '#dcfce7', color: '#15803d', border: '1px solid #bbf7d0', fontSize: '0.8125rem', fontWeight: 700 }}>
+                <CheckCircle2 size={14} /> Verified Profile
+              </span>
+            )}
+            {faceConfig?.my_profile?.status === 'pending' && (
+              <span style={{ display: 'inline-flex', alignItems: 'center', gap: 6, padding: '4px 12px', borderRadius: 9999, background: '#fef3c7', color: '#b45309', border: '1px solid #fde68a', fontSize: '0.8125rem', fontWeight: 700 }}>
+                <AlertCircle size={14} /> Under Review
+              </span>
+            )}
+            {(!faceConfig?.my_profile || faceConfig?.my_profile?.status === 'rejected') && (
+              <span style={{ display: 'inline-flex', alignItems: 'center', gap: 6, padding: '4px 12px', borderRadius: 9999, background: '#fef3c7', color: '#b45309', border: '1px solid #fde68a', fontSize: '0.8125rem', fontWeight: 700 }}>
+                <AlertCircle size={14} /> Unverified
+              </span>
+            )}
+          </div>
+        </div>
+
+        <div style={{ background: '#f8fafc', borderRadius: 14, padding: '16px 20px', border: '1px solid #e2e8f0', display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: 14 }}>
+          <div style={{ fontSize: '0.875rem', color: '#475569', maxWidth: 700 }}>
+            {faceConfig?.my_profile?.status === 'approved' && (
+              <span>Live selfie matching is active. Your reference photo has been verified. If you prefer not to use facial verification for daily clock-in, you can disable it and remove your photo below.</span>
+            )}
+            {faceConfig?.my_profile?.status === 'pending' && (
+              <span>Your passport photo has been submitted for admin approval. You can clock in normally in the meantime (marked as <b>Unverified</b>).</span>
+            )}
+            {(!faceConfig?.my_profile || faceConfig?.my_profile?.status === 'rejected') && (
+              <span>Selfie verification is inactive. Your clock-in attendance will be recorded as <b>Unverified</b>. To activate live selfie verification, please upload your passport photo.</span>
+            )}
+          </div>
+
+          <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap' }}>
+            {faceConfig?.my_profile && (
+              <button
+                type="button"
+                className="btn btn-secondary btn-sm"
+                style={{ color: '#dc2626', borderColor: '#fca5a5', background: '#ffffff', display: 'inline-flex', alignItems: 'center', gap: 6, fontWeight: 600, cursor: 'pointer' }}
+                onClick={handleDeactivateFace}
+              >
+                <Trash2 size={14} /> Disable &amp; Remove Photo
+              </button>
+            )}
+            {(!faceConfig?.my_profile || faceConfig?.my_profile?.status === 'rejected') && (
+              <button
+                type="button"
+                className="btn btn-primary btn-sm"
+                style={{ display: 'inline-flex', alignItems: 'center', gap: 6, fontWeight: 600, cursor: 'pointer' }}
+                onClick={() => setShowPassportModal(true)}
+              >
+                <Camera size={14} /> Upload Passport Photo
+              </button>
+            )}
+          </div>
+        </div>
+      </div>
+
       {/* Profile Details */}
       <div className="section-card" style={{ borderTop: '3px solid #2563eb' }}>
         <h3><User size={17} style={{ color: 'var(--accent-blue)' }} /> Profile Details</h3>
@@ -142,6 +242,15 @@ export default function MyProfile() {
           ))}
         </div>
       </div>
+
+      {showPassportModal && (
+        <PassportUploadModal
+          isOpen={showPassportModal}
+          onClose={() => setShowPassportModal(false)}
+          currentProfile={faceConfig?.my_profile}
+          onUploaded={() => loadFaceConfig()}
+        />
+      )}
     </div>
   );
 }

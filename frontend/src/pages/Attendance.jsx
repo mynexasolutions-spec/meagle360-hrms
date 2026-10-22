@@ -14,12 +14,15 @@ import { getMyCompany, updateMyCompany } from '../api/company';
 import {
   Clock, CheckCircle2, Plus, Check, X, CalendarClock, Timer,
   ChevronLeft, ChevronRight, Users, Search, FileText, SlidersHorizontal, Pencil,
-  CalendarDays, RefreshCw, ArrowUpDown, ArrowUp, ArrowDown,
+  CalendarDays, RefreshCw, ArrowUpDown, ArrowUp, ArrowDown, Camera, AlertCircle, ShieldAlert, Trash2,
 } from 'lucide-react';
 import Modal from '../components/Modal';
 import MyClockInLocations from '../components/MyClockInLocations';
 import { getGeofenceConfig } from '../api/geofence';
 import { getCurrentPosition } from '../utils/geo';
+import { getFaceConfig, deleteMyFaceProfile } from '../api/face';
+import PassportUploadModal from '../components/PassportUploadModal';
+import SelfieClockInModal from '../components/SelfieClockInModal';
 
 const MONTH_NAMES = [
   'January', 'February', 'March', 'April', 'May', 'June',
@@ -171,6 +174,73 @@ function DailyStatusBadge({ status, leaveType }) {
   return <span className="badge">{status}</span>;
 }
 
+function FaceVerificationBadge({ faceStatus }) {
+  if (faceStatus === 'verified') {
+    return (
+      <span
+        style={{
+          display: 'inline-flex',
+          alignItems: 'center',
+          gap: 5,
+          padding: '3px 10px',
+          borderRadius: 9999,
+          fontSize: '0.75rem',
+          fontWeight: 600,
+          background: '#dcfce7',
+          color: '#15803d',
+          border: '1px solid #bbf7d0',
+          whiteSpace: 'nowrap',
+        }}
+      >
+        <CheckCircle2 size={12} /> Verified
+      </span>
+    );
+  }
+  if (faceStatus === 'unverified') {
+    return (
+      <span
+        style={{
+          display: 'inline-flex',
+          alignItems: 'center',
+          gap: 5,
+          padding: '3px 10px',
+          borderRadius: 9999,
+          fontSize: '0.75rem',
+          fontWeight: 600,
+          background: '#fef3c7',
+          color: '#b45309',
+          border: '1px solid #fde68a',
+          whiteSpace: 'nowrap',
+        }}
+      >
+        <AlertCircle size={12} /> Unverified
+      </span>
+    );
+  }
+  if (faceStatus === 'flagged') {
+    return (
+      <span
+        style={{
+          display: 'inline-flex',
+          alignItems: 'center',
+          gap: 5,
+          padding: '3px 10px',
+          borderRadius: 9999,
+          fontSize: '0.75rem',
+          fontWeight: 600,
+          background: '#fee2e2',
+          color: '#b91c1c',
+          border: '1px solid #fecaca',
+          whiteSpace: 'nowrap',
+        }}
+      >
+        <ShieldAlert size={12} /> Flagged
+      </span>
+    );
+  }
+  return <span style={{ color: 'var(--text-muted)', fontSize: '0.85rem' }}>—</span>;
+}
+
 function DailyAttendanceOverview() {
   const todayStr = useMemo(() => getTodayISTDateString(), []);
   const [targetDate, setTargetDate] = useState(todayStr);
@@ -282,6 +352,10 @@ function DailyAttendanceOverview() {
       }
       if (sortField === 'status') {
         const cmp = (a.status || '').localeCompare(b.status || '');
+        return sortDirection === 'asc' ? cmp : -cmp;
+      }
+      if (sortField === 'face_status') {
+        const cmp = (a.face_status || '').localeCompare(b.face_status || '');
         return sortDirection === 'asc' ? cmp : -cmp;
       }
       return 0;
@@ -541,6 +615,19 @@ function DailyAttendanceOverview() {
                         )}
                       </div>
                     </th>
+                    <th
+                      onClick={() => handleSort('face_status')}
+                      style={{ cursor: 'pointer', userSelect: 'none', whiteSpace: 'nowrap' }}
+                    >
+                      <div style={{ display: 'inline-flex', alignItems: 'center', gap: 6 }}>
+                        Verification
+                        {sortField === 'face_status' ? (
+                          sortDirection === 'asc' ? <ArrowUp size={14} /> : <ArrowDown size={14} />
+                        ) : (
+                          <ArrowUpDown size={14} style={{ opacity: 0.3 }} />
+                        )}
+                      </div>
+                    </th>
                   </tr>
                 </thead>
                 <tbody>
@@ -583,6 +670,9 @@ function DailyAttendanceOverview() {
                       </td>
                       <td style={{ whiteSpace: 'nowrap' }}>
                         <DailyStatusBadge status={emp.status} leaveType={emp.leave_type} />
+                      </td>
+                      <td style={{ whiteSpace: 'nowrap' }}>
+                        <FaceVerificationBadge faceStatus={emp.face_status} />
                       </td>
                     </tr>
                   ))}
@@ -698,7 +788,7 @@ function MonthOverviewTable({ data }) {
 
 export default function Attendance() {
   const { user } = useAuth();
-  const { showAlert, showToast } = usePopup();
+  const { showAlert, showToast, showConfirm } = usePopup();
   const canApprove = !!user?.permissions?.['attendance:approve'];
   const isAdmin = user?.role_name === 'Admin';
   const [searchParams, setSearchParams] = useSearchParams();
@@ -767,6 +857,7 @@ export default function Attendance() {
     if (user?.employee_id) {
       loadRecords();
       loadTimesheet();
+      loadFaceConfig();
     }
     loadRegularizations();
     loadOvertime();
@@ -937,48 +1028,112 @@ export default function Attendance() {
 
   const [showClockModal, setShowClockModal] = useState(false);
   const [daySummary, setDaySummary] = useState('');
+  const [faceConfig, setFaceConfig] = useState(null);
+  const [showPassportModal, setShowPassportModal] = useState(false);
+  const [showSelfieModal, setShowSelfieModal] = useState(false);
 
-  const triggerClock = async () => {
-    if (!clockedIn) {
-      // Clock In directly without showing summary modal
-      setLoading(true);
-      try {
-        const payload = { source: 'web' };
-        let geofenceOn = false;
-        try { geofenceOn = (await getGeofenceConfig()).data.enabled; } catch { /* treat as off */ }
-        if (geofenceOn) {
-          try {
-            const coords = await getCurrentPosition();
-            console.log('[Geofence] Position captured:', coords);
-            Object.assign(payload, coords);
-          } catch (geoErr) {
-            console.warn('[Geofence] Location error:', geoErr);
-            showToast({ message: geoErr.message, type: 'warning' });
-          }
+  const loadFaceConfig = async () => {
+    try {
+      const { data } = await getFaceConfig();
+      setFaceConfig(data);
+    } catch (e) {
+      console.warn('[Attendance] Face config load error:', e);
+    }
+  };
+
+  const handleDeactivateFaceProfile = async () => {
+    const ok = await showConfirm({
+      title: 'Disable Verification & Remove Photo?',
+      message: 'Your registered reference photo will be permanently removed, and your attendance clock-in status will be marked as "Unverified". Are you sure you want to proceed?',
+      type: 'warning',
+      confirmText: 'Yes, Disable & Remove',
+      cancelText: 'Cancel',
+    });
+    if (!ok) return;
+    try {
+      await deleteMyFaceProfile();
+      showToast({ message: 'Selfie verification disabled and photo removed.', type: 'success' });
+      await loadFaceConfig();
+      await loadRecords();
+    } catch (err) {
+      showToast({ message: err.response?.data?.detail || 'Failed to remove photo.', type: 'error' });
+    }
+  };
+
+  const executeClockIn = async (selfieData = null) => {
+    if (loading) return;
+    setLoading(true);
+    try {
+      const payload = { source: 'web' };
+      let geofenceOn = false;
+      try { geofenceOn = (await getGeofenceConfig()).data.enabled; } catch { /* treat as off */ }
+      if (geofenceOn) {
+        try {
+          const coords = await getCurrentPosition();
+          console.log('[Geofence] Position captured:', coords);
+          Object.assign(payload, coords);
+        } catch (geoErr) {
+          console.warn('[Geofence] Location error:', geoErr);
+          showToast({ message: geoErr.message, type: 'warning' });
         }
-        const res = await clockIn(payload);
-        if (res.data?.geofence_review_status === 'pending') {
-          showAlert({
-            title: 'Clock-In Flagged',
-            message: res.data.geofence_status === 'outside'
-              ? `You clocked in ${Math.round(res.data.distance_m)} m from ${res.data.geofence_location_name || 'an approved location'}. It has been sent to your admin for review.`
-              : 'Your location could not be verified. Your clock-in has been sent to your admin for review.',
-            type: 'warning',
-          });
-        }
+      }
+      if (selfieData) {
+        Object.assign(payload, selfieData);
+      }
+      const res = await clockIn(payload);
+      if (res.data?.geofence_review_status === 'pending') {
+        showAlert({
+          title: 'Clock-In Flagged (Location)',
+          message: res.data.geofence_status === 'outside'
+            ? `You clocked in ${Math.round(res.data.distance_m)} m from ${res.data.geofence_location_name || 'an approved location'}. It has been sent to your admin for review.`
+            : 'Your location could not be verified. Your clock-in has been sent to your admin for review.',
+          type: 'warning',
+        });
+      }
+      if (res.data?.face_status === 'flagged') {
+        showAlert({
+          title: 'Clock-In Flagged (Selfie Verification)',
+          message: `Your live selfie did not match your approved passport photo (Reason: ${res.data.face_flag_reason || 'mismatch'}). Your clock-in has been recorded and submitted to your admin for review.`,
+          type: 'warning',
+        });
+      } else if (res.data?.face_status === 'verified') {
+        showToast({ message: 'Selfie verified! Clocked in successfully.', type: 'success' });
+      }
+      setClockedIn(true);
+      loadRecords();
+      loadTimesheet();
+      loadFaceConfig();
+      return res;
+    } catch (e) {
+      const msg = e.response?.data?.detail || 'Failed to clock in';
+      if (typeof msg === 'string' && msg.toLowerCase().includes('already clocked in')) {
         setClockedIn(true);
+        showToast({ message: 'You are already clocked in!', type: 'info' });
         loadRecords();
         loadTimesheet();
-      } catch (e) {
-        const msg = e.response?.data?.detail || 'Failed to clock in';
+        return { data: { face_status: 'verified' } };
+      } else {
         showAlert({
           title: msg.toLowerCase().includes('wait') ? 'Clock-In Cooldown Active' : 'Clock-In Notice',
           message: msg,
           type: 'warning',
         });
-      } finally {
-        setLoading(false);
+        throw e;
       }
+    } finally {
+      setLoading(false);
+      setTimeout(() => setShowSelfieModal(false), 900);
+    }
+  };
+
+  const triggerClock = async () => {
+    if (loading) return;
+    if (!clockedIn) {
+      if (faceConfig?.enabled && faceConfig?.my_profile?.status === 'approved') {
+        setShowSelfieModal(true);
+        return;
+      }
+      await executeClockIn();
     } else {
       // Clock Out: Open optional summary modal
       setDaySummary('');
@@ -1128,6 +1283,100 @@ export default function Attendance() {
         </button>
         <MyClockInLocations />
       </div>
+
+      {/* Selfie Verification Banner */}
+      {faceConfig?.enabled && (
+        <div style={{
+          background: '#f0f9ff',
+          border: '1px solid #bae6fd',
+          borderRadius: 16,
+          padding: '12px 20px',
+          marginBottom: 20,
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'space-between',
+          flexWrap: 'wrap',
+          gap: 12
+        }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+            <Camera size={18} style={{ color: '#0284c7' }} />
+            <div style={{ fontSize: 13, color: '#0369a1' }}>
+              {!faceConfig.my_profile && (
+                <span><strong>Selfie Verification Active:</strong> Please upload your passport-size photo. (Clock-in will be marked as Unverified until approved).</span>
+              )}
+              {faceConfig.my_profile?.status === 'pending' && (
+                <span><strong>Passport Photo Submitted:</strong> Awaiting admin approval. You can clock in normally in the meantime (marked as unverified).</span>
+              )}
+              {faceConfig.my_profile?.status === 'approved' && (
+                <span><strong>Selfie Verification Ready:</strong> Live selfie matching is active for your clock-in.</span>
+              )}
+              {faceConfig.my_profile?.status === 'rejected' && (
+                <span><strong>Passport Photo Rejected:</strong> {faceConfig.my_profile.review_note || 'Please re-upload a clear passport photo.'}</span>
+              )}
+            </div>
+          </div>
+          {(!faceConfig.my_profile || faceConfig.my_profile?.status === 'rejected') && (
+            <button
+              type="button"
+              className="btn btn-primary btn-sm"
+              style={{ fontSize: 12, padding: '4px 12px' }}
+              onClick={() => setShowPassportModal(true)}
+            >
+              Upload Passport Photo
+            </button>
+          )}
+          {faceConfig.my_profile?.status === 'pending' && (
+            <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+              <span style={{ fontSize: 12, color: '#b45309', fontWeight: 600 }}>Under Review</span>
+              <button
+                type="button"
+                className="btn btn-secondary btn-sm"
+                style={{
+                  fontSize: 11,
+                  padding: '3px 10px',
+                  color: '#dc2626',
+                  borderColor: '#fca5a5',
+                  background: '#ffffff',
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  gap: 4,
+                  fontWeight: 600,
+                  cursor: 'pointer',
+                }}
+                onClick={handleDeactivateFaceProfile}
+                title="Cancel and remove submitted photo"
+              >
+                <Trash2 size={12} /> Remove
+              </button>
+            </div>
+          )}
+          {faceConfig.my_profile?.status === 'approved' && (
+            <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+              <span style={{ fontSize: 12, color: '#15803d', fontWeight: 600 }}>✓ Verified Profile</span>
+              <button
+                type="button"
+                className="btn btn-secondary btn-sm"
+                style={{
+                  fontSize: 11,
+                  padding: '3px 10px',
+                  color: '#dc2626',
+                  borderColor: '#fca5a5',
+                  background: '#ffffff',
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  gap: 4,
+                  fontWeight: 600,
+                  cursor: 'pointer',
+                }}
+                onClick={handleDeactivateFaceProfile}
+                title="Disable selfie verification and remove photo"
+              >
+                <Trash2 size={12} /> Disable &amp; Remove Photo
+              </button>
+            </div>
+          )}
+        </div>
+      )}
 
       {/* Status Banner — Executive clean layout */}
       <div className="clock-strip" style={{ background: '#ffffff', borderRadius: 24, padding: '18px 28px', marginBottom: 28, boxShadow: '0 4px 20px rgba(0, 0, 0, 0.03)', border: '1px solid #e2e8f0' }}>
@@ -1676,6 +1925,24 @@ export default function Attendance() {
             <button type="submit" className="btn btn-primary" style={{ width: '100%', justifyContent: 'center', marginTop: 8 }}>Submit Request</button>
           </form>
         </Modal>
+      )}
+
+      {showPassportModal && (
+        <PassportUploadModal
+          isOpen={showPassportModal}
+          onClose={() => setShowPassportModal(false)}
+          currentProfile={faceConfig?.my_profile}
+          onUploaded={(p) => setFaceConfig((prev) => ({ ...prev, my_profile: p }))}
+        />
+      )}
+
+      {showSelfieModal && (
+        <SelfieClockInModal
+          isOpen={showSelfieModal}
+          onClose={() => setShowSelfieModal(false)}
+          onConfirm={executeClockIn}
+          loading={loading}
+        />
       )}
     </div>
   );

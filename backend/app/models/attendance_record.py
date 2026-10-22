@@ -64,8 +64,27 @@ class AttendanceRecord(Base, TimestampMixin):
         DateTime(timezone=True), nullable=True
     )
     geofence_review_note: Mapped[str | None] = mapped_column(String(500), nullable=True)
+    # Selfie verification (only the result is stored, never the selfie)
+    face_status: Mapped[str | None] = mapped_column(
+        String(20), nullable=True
+    )  # verified, flagged, unverified
+    face_score: Mapped[float | None] = mapped_column(Float, nullable=True)
+    face_flag_reason: Mapped[str | None] = mapped_column(
+        String(50), nullable=True
+    )  # mismatch, no_face, liveness_failed, engine_error
+    face_review_status: Mapped[str | None] = mapped_column(
+        String(20), nullable=True, index=True
+    )  # pending, approved, rejected
+    face_reviewed_by: Mapped[uuid.UUID | None] = mapped_column(
+        UUID(as_uuid=True), ForeignKey("employee.id", ondelete="SET NULL"), nullable=True
+    )
+    face_reviewed_at: Mapped[datetime | None] = mapped_column(
+        DateTime(timezone=True), nullable=True
+    )
+    face_review_note: Mapped[str | None] = mapped_column(String(500), nullable=True)
     clock_out_latitude: Mapped[float | None] = mapped_column(Float, nullable=True)
     clock_out_longitude: Mapped[float | None] = mapped_column(Float, nullable=True)
     # ── Relationships ────────────────────────────────────
     employee = relationship("Employee", back_populates="attendance_records", foreign_keys=[employee_id])
     geofence_reviewer = relationship("Employee", foreign_keys=[geofence_reviewed_by])
+    face_reviewer = relationship("Employee", foreign_keys=[face_reviewed_by])

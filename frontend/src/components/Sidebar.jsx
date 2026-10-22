@@ -222,16 +222,7 @@ export default function Sidebar({ sidebarOpen, permissions, roleName }) {
             <div style={{ display: 'flex', flexDirection: 'column', minWidth: 0, lineHeight: 1.25 }}>
               <span className="truncate">{item.label}</span>
               {item.subtitle && (
-                <span
-                  className="truncate"
-                  style={{
-                    fontSize: '0.675rem',
-                    fontWeight: 600,
-                    color: '#6366f1',
-                    letterSpacing: '0.01em',
-                    marginTop: '2px',
-                  }}
-                >
+                <span className="sidebar-link-subtitle truncate">
                   {item.subtitle}
                 </span>
               )}
@@ -248,6 +239,7 @@ export default function Sidebar({ sidebarOpen, permissions, roleName }) {
       <nav style={{ flex: 1, padding: '16px 10px', overflowY: 'auto' }}>
         {isPlanExpired && sidebarOpen && (
           <div
+            className="sidebar-expired-warning"
             style={{
               margin: '0 4px 16px 4px',
               padding: '10px 12px',
@@ -255,7 +247,6 @@ export default function Sidebar({ sidebarOpen, permissions, roleName }) {
               background: '#fef2f2',
               border: '1px solid #fecaca',
               color: '#991b1b',
-              fontSize: '0.75rem',
               fontWeight: 600,
               display: 'flex',
               alignItems: 'center',

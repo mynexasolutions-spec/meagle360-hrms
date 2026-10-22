@@ -12,6 +12,10 @@ class ClockInRequest(BaseModel):
     latitude: float | None = None
     longitude: float | None = None
     accuracy_m: float | None = None
+    # Selfie verification: base64 live capture (never stored) and whether the
+    # on-device liveness challenge (blink / head turn) was completed.
+    selfie: str | None = None
+    liveness_passed: bool = False
 
 
 class ClockOutRequest(BaseModel):
@@ -36,6 +40,8 @@ class AttendanceRecordResponse(BaseModel):
     geofence_status: str | None = None
     geofence_location_name: str | None = None
     geofence_review_status: str | None = None
+    face_status: str | None = None
+    face_review_status: str | None = None
 
     class Config:
         from_attributes = True

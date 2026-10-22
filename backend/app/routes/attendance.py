@@ -45,6 +45,8 @@ def clock_in(
             latitude=data.latitude,
             longitude=data.longitude,
             accuracy_m=data.accuracy_m,
+            selfie=data.selfie,
+            liveness_passed=data.liveness_passed,
         )
         return record
     except ValueError as e:

@@ -46,6 +46,7 @@ from app.models.action_item import ActionItem
 from app.models.notification import Notification
 from app.models.ai_chat_usage import AIChatUsage
 from app.models.geofence import OfficeLocation, EmployeeLocationRequest
+from app.models.face_profile import EmployeeFaceProfile
 
 __all__ = [
     "Base",
