@@ -1090,19 +1090,14 @@ export default function Attendance() {
           type: 'warning',
         });
       }
-      if (res.data?.face_status === 'flagged') {
-        showAlert({
-          title: 'Clock-In Flagged (Selfie Verification)',
-          message: `Your live selfie did not match your approved passport photo (Reason: ${res.data.face_flag_reason || 'mismatch'}). Your clock-in has been recorded and submitted to your admin for review.`,
-          type: 'warning',
-        });
-      } else if (res.data?.face_status === 'verified') {
+      if (res.data?.face_status === 'verified') {
         showToast({ message: 'Selfie verified! Clocked in successfully.', type: 'success' });
       }
       setClockedIn(true);
       loadRecords();
       loadTimesheet();
       loadFaceConfig();
+      setTimeout(() => setShowSelfieModal(false), 1200);
       return res;
     } catch (e) {
       const msg = e.response?.data?.detail || 'Failed to clock in';
@@ -1111,18 +1106,20 @@ export default function Attendance() {
         showToast({ message: 'You are already clocked in!', type: 'info' });
         loadRecords();
         loadTimesheet();
+        setTimeout(() => setShowSelfieModal(false), 900);
         return { data: { face_status: 'verified' } };
       } else {
-        showAlert({
-          title: msg.toLowerCase().includes('wait') ? 'Clock-In Cooldown Active' : 'Clock-In Notice',
-          message: msg,
-          type: 'warning',
-        });
+        if (!showSelfieModal) {
+          showAlert({
+            title: msg.toLowerCase().includes('wait') ? 'Clock-In Cooldown Active' : 'Clock-In Notice',
+            message: msg,
+            type: 'warning',
+          });
+        }
         throw e;
       }
     } finally {
       setLoading(false);
-      setTimeout(() => setShowSelfieModal(false), 900);
     }
   };
 
@@ -1942,6 +1939,7 @@ export default function Attendance() {
           onClose={() => setShowSelfieModal(false)}
           onConfirm={executeClockIn}
           loading={loading}
+          faceConfig={faceConfig}
         />
       )}
     </div>

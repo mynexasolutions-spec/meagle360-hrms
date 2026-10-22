@@ -1,6 +1,7 @@
 import { useState, useRef, useEffect, useCallback } from 'react';
-import { Camera, Volume2, VolumeX, CheckCircle, AlertTriangle, RefreshCw, Shield, Sparkles, CheckCircle2, Scan, Cpu } from 'lucide-react';
+import { Camera, Volume2, VolumeX, CheckCircle, AlertTriangle, RefreshCw, Shield, Sparkles, CheckCircle2, Scan, Cpu, Lock, Clock, Eye, Smile, UserCheck, RotateCcw } from 'lucide-react';
 import Modal from './Modal';
+import { getFaceLandmarker, evaluateLiveness } from '../utils/faceLandmarker';
 
 // Audio voice cue helper using Web Speech Synthesis API
 function speakInstruction(text, voiceEnabled = true) {
@@ -19,17 +20,32 @@ function speakInstruction(text, voiceEnabled = true) {
   }
 }
 
+function formatRemainingTime(totalSeconds) {
+  const m = Math.floor(totalSeconds / 60);
+  const s = totalSeconds % 60;
+  return `${m}:${s < 10 ? '0' : ''}${s}`;
+}
+
 const LIVENESS_ACTIONS = [
   { id: 'blink', label: 'Blink your eyes naturally', voice: 'Please blink your eyes naturally', icon: '👁️' },
   { id: 'smile', label: 'Smile gently at the camera', voice: 'Please smile gently at the camera', icon: '😊' },
   { id: 'turn', label: 'Turn your head slightly to the side', voice: 'Please turn your head slightly', icon: '👤' },
 ];
 
-export default function SelfieClockInModal({ isOpen, onClose, onConfirm, loading = false }) {
+const ALIGN_SECONDS = 8;
+const CHALLENGE_SECONDS = 8;
+
+export default function SelfieClockInModal({ isOpen, onClose, onConfirm, loading = false, faceConfig = null }) {
   const videoRef = useRef(null);
   const canvasRef = useRef(null);
+  const meshCanvasRef = useRef(null);
   const streamRef = useRef(null);
   const submittingRef = useRef(false);
+  const animFrameRef = useRef(null);
+  const landmarkerRef = useRef(null);
+  const actionPassedRef = useRef(false);
+  const steadyHoldRef = useRef(0);
+  const latestEvalRef = useRef({ faceDetected: false, isCentered: false, passed: false });
 
   // Timers refs
   const alignTimerRef = useRef(null);
@@ -46,9 +62,28 @@ export default function SelfieClockInModal({ isOpen, onClose, onConfirm, loading
   const [errorMessage, setErrorMessage] = useState(null);
   const [shutterFlashing, setShutterFlashing] = useState(false);
 
-  // Automated countdowns
-  const [alignCountdown, setAlignCountdown] = useState(3);
-  const [challengeCountdown, setChallengeCountdown] = useState(2);
+  // Strict Gate Failures
+  const [step0Failed, setStep0Failed] = useState(false);
+  const [step0Reason, setStep0Reason] = useState('');
+  const [step1Failed, setStep1Failed] = useState(false);
+  const [step1Reason, setStep1Reason] = useState('');
+
+  // MediaPipe FaceMesh state
+  const [meshReady, setMeshReady] = useState(false);
+  const [meshStatus, setMeshStatus] = useState({
+    faceDetected: false,
+    isCentered: false,
+    progress: 0,
+    passed: false,
+    message: 'Initializing AI FaceMesh...',
+  });
+
+  // Automated countdowns (8s each)
+  const [alignCountdown, setAlignCountdown] = useState(ALIGN_SECONDS);
+  const [challengeCountdown, setChallengeCountdown] = useState(CHALLENGE_SECONDS);
+
+  // 5-minute cooldown state
+  const [cooldownSeconds, setCooldownSeconds] = useState(0);
 
   // Random action pick
   const [action, setAction] = useState(() => {
@@ -59,8 +94,10 @@ export default function SelfieClockInModal({ isOpen, onClose, onConfirm, loading
   const clearAllTimers = useCallback(() => {
     if (alignTimerRef.current) clearInterval(alignTimerRef.current);
     if (challengeTimerRef.current) clearInterval(challengeTimerRef.current);
+    if (animFrameRef.current) cancelAnimationFrame(animFrameRef.current);
     alignTimerRef.current = null;
     challengeTimerRef.current = null;
+    animFrameRef.current = null;
   }, []);
 
   // Stop webcam
@@ -74,10 +111,14 @@ export default function SelfieClockInModal({ isOpen, onClose, onConfirm, loading
     if ('speechSynthesis' in window) window.speechSynthesis.cancel();
   }, [clearAllTimers]);
 
-  // Start webcam
+  // Start webcam & initialize FaceLandmarker
   const startCamera = useCallback(async () => {
     setCameraError(null);
     setErrorMessage(null);
+    setStep0Failed(false);
+    setStep1Failed(false);
+    actionPassedRef.current = false;
+    steadyHoldRef.current = 0;
     try {
       if (streamRef.current) {
         streamRef.current.getTracks().forEach((t) => t.stop());
@@ -93,11 +134,36 @@ export default function SelfieClockInModal({ isOpen, onClose, onConfirm, loading
       }
       setCameraActive(true);
       speakInstruction('Please look directly at the camera', voiceEnabled);
+
+      // Warm up MediaPipe FaceLandmarker
+      try {
+        const landmarker = await getFaceLandmarker();
+        landmarkerRef.current = landmarker;
+        setMeshReady(true);
+      } catch (meshErr) {
+        console.warn('[SelfieModal] FaceLandmarker fallback to timer mode:', meshErr);
+        setMeshReady(false);
+      }
     } catch (err) {
       console.error('[SelfieModal] Camera error:', err);
       setCameraError('Camera access was denied or is unavailable. Please grant camera permission.');
     }
   }, [voiceEnabled]);
+
+  // Cooldown countdown tick-down
+  useEffect(() => {
+    if (cooldownSeconds <= 0) return;
+    const interval = setInterval(() => {
+      setCooldownSeconds((prev) => {
+        if (prev <= 1) {
+          clearInterval(interval);
+          return 0;
+        }
+        return prev - 1;
+      });
+    }, 1000);
+    return () => clearInterval(interval);
+  }, [cooldownSeconds]);
 
   // Execute Backend Verification
   const executeVerification = useCallback(async (photoData) => {
@@ -112,11 +178,21 @@ export default function SelfieClockInModal({ isOpen, onClose, onConfirm, loading
         liveness_passed: true,
       });
       setScanStatus('success');
+      setCooldownSeconds(0);
       speakInstruction('Face verified! Clocked in', voiceEnabled);
     } catch (err) {
       console.error('[SelfieModal] Verification error:', err);
       setScanStatus('error');
-      setErrorMessage(err.response?.data?.detail || err.message || 'Verification could not complete.');
+      const detail = err.response?.data?.detail || err.message || 'Verification could not complete.';
+      setErrorMessage(detail);
+
+      // Check if 5-minute cooldown triggered
+      if (detail.toLowerCase().includes('locked') || detail.toLowerCase().includes('cooldown') || detail.toLowerCase().includes('5 minutes')) {
+        setCooldownSeconds(300); // 5 minutes
+        speakInstruction('Verification locked for 5 minutes due to 3 failed attempts', voiceEnabled);
+      } else {
+        speakInstruction('Verification failed. Please try again', voiceEnabled);
+      }
     } finally {
       submittingRef.current = false;
     }
@@ -147,50 +223,190 @@ export default function SelfieClockInModal({ isOpen, onClose, onConfirm, loading
     setCurrentStep(2);
     stopCamera();
 
-    // Directly trigger biometric scanning without awkward wait
+    // Trigger biometric scanning
     executeVerification(dataUrl);
   }, [stopCamera, executeVerification]);
 
-  // Step 1: Challenge transition
-  const startChallenge = useCallback(() => {
+  // Step 1: Challenge transition (Gate 2)
+  const startChallenge = useCallback((forcedAction = null) => {
+    const act = forcedAction || action;
     setCurrentStep(1);
-    setChallengeCountdown(2);
-    speakInstruction(action.voice, voiceEnabled);
+    setStep1Failed(false);
+    actionPassedRef.current = false;
+    setChallengeCountdown(CHALLENGE_SECONDS);
+    speakInstruction(act.voice, voiceEnabled);
 
     if (challengeTimerRef.current) clearInterval(challengeTimerRef.current);
-    let count = 2;
+    let count = CHALLENGE_SECONDS;
     challengeTimerRef.current = setInterval(() => {
       count -= 1;
       setChallengeCountdown(count);
       if (count <= 0) {
         clearInterval(challengeTimerRef.current);
         challengeTimerRef.current = null;
-        takeSnapshot();
+        // Strict Gate 2: If action was NOT performed, DO NOT take snapshot! Halt and require retry.
+        if (!actionPassedRef.current) {
+          setStep1Failed(true);
+          setStep1Reason(`Could not verify "${act.label}" in time.`);
+          speakInstruction('Action not detected. Please try again', voiceEnabled);
+        }
       }
     }, 1000);
-  }, [action.voice, voiceEnabled, takeSnapshot]);
+  }, [action, voiceEnabled]);
 
-  // Step 0: Auto countdown once camera is active
-  useEffect(() => {
-    if (isOpen && cameraActive && currentStep === 0 && !capturedPhoto) {
-      setAlignCountdown(3);
-      if (alignTimerRef.current) clearInterval(alignTimerRef.current);
+  // Step 0: Face Alignment Countdown (Gate 1)
+  const startAlignCountdown = useCallback(() => {
+    setStep0Failed(false);
+    steadyHoldRef.current = 0;
+    setAlignCountdown(ALIGN_SECONDS);
+    if (alignTimerRef.current) clearInterval(alignTimerRef.current);
 
-      let count = 3;
-      alignTimerRef.current = setInterval(() => {
-        count -= 1;
-        setAlignCountdown(count);
-        if (count <= 0) {
-          clearInterval(alignTimerRef.current);
-          alignTimerRef.current = null;
+    let count = ALIGN_SECONDS;
+    alignTimerRef.current = setInterval(() => {
+      count -= 1;
+      setAlignCountdown(count);
+      if (count <= 0) {
+        clearInterval(alignTimerRef.current);
+        alignTimerRef.current = null;
+
+        // Strict Gate 1 check: If face was NOT aligned / detected, DO NOT proceed to Step 1!
+        const latest = latestEvalRef.current;
+        if (latest.faceDetected && latest.isCentered) {
           startChallenge();
+        } else {
+          setStep0Failed(true);
+          setStep0Reason(
+            !latest.faceDetected
+              ? 'No face detected in the camera.'
+              : 'Face is not centered inside the oval guide.'
+          );
+          speakInstruction('Alignment failed. Position your face in the oval and retry', voiceEnabled);
         }
-      }, 1000);
+      }
+    }, 1000);
+  }, [startChallenge, voiceEnabled]);
+
+  // Trigger Step 0 on initial camera active
+  useEffect(() => {
+    if (isOpen && cameraActive && currentStep === 0 && !capturedPhoto && cooldownSeconds === 0 && !step0Failed) {
+      startAlignCountdown();
     }
     return () => {
       if (alignTimerRef.current) clearInterval(alignTimerRef.current);
     };
-  }, [isOpen, cameraActive, currentStep, capturedPhoto, startChallenge]);
+  }, [isOpen, cameraActive, currentStep, capturedPhoto, cooldownSeconds, step0Failed, startAlignCountdown]);
+
+  // Real-Time FaceMesh Motion Tracking Loop
+  useEffect(() => {
+    if (!cameraActive || currentStep >= 2 || !meshReady || !landmarkerRef.current || step0Failed || step1Failed) {
+      return;
+    }
+
+    let isRunning = true;
+
+    const keyMeshIndices = [
+      10, 338, 297, 332, 284, 251, 389, 356, 454, 323, 361, 288, 397, 365, 379, 378, 400, 377, 152,
+      148, 176, 149, 150, 136, 172, 58, 132, 93, 234, 127, 162, 21, 54, 103, 67, 109,
+      33, 160, 158, 133, 153, 144, 362, 385, 387, 263, 373, 380,
+      61, 185, 40, 39, 37, 0, 267, 269, 270, 409, 291, 375, 321, 405, 314, 17, 84, 181, 91, 146,
+      1, 2, 98, 327,
+    ];
+
+    const runTracking = () => {
+      if (!isRunning || !videoRef.current || videoRef.current.readyState < 2) {
+        if (isRunning) animFrameRef.current = requestAnimationFrame(runTracking);
+        return;
+      }
+
+      const video = videoRef.current;
+      const meshCanvas = meshCanvasRef.current;
+
+      const evalResult = evaluateLiveness(landmarkerRef.current, video, action.id);
+      latestEvalRef.current = evalResult;
+      setMeshStatus(evalResult);
+
+      // Draw FaceMesh Overlay on transparent Canvas
+      if (meshCanvas) {
+        if (meshCanvas.width !== video.videoWidth || meshCanvas.height !== video.videoHeight) {
+          meshCanvas.width = video.videoWidth || 640;
+          meshCanvas.height = video.videoHeight || 480;
+        }
+
+        const ctx = meshCanvas.getContext('2d');
+        ctx.clearRect(0, 0, meshCanvas.width, meshCanvas.height);
+
+        if (evalResult.faceDetected && evalResult.landmarks) {
+          const w = meshCanvas.width;
+          const h = meshCanvas.height;
+          const ptColor = evalResult.passed
+            ? '#22c55e'
+            : currentStep === 1
+              ? '#38bdf8'
+              : evalResult.isCentered
+                ? '#10b981'
+                : '#f59e0b';
+
+          ctx.fillStyle = ptColor;
+          ctx.shadowColor = ptColor;
+          ctx.shadowBlur = evalResult.passed ? 8 : 3;
+
+          for (const idx of keyMeshIndices) {
+            const pt = evalResult.landmarks[idx];
+            if (!pt) continue;
+            ctx.beginPath();
+            ctx.arc(pt.x * w, pt.y * h, evalResult.passed ? 2.5 : 1.6, 0, 2 * Math.PI);
+            ctx.fill();
+          }
+          ctx.shadowBlur = 0;
+        }
+      }
+
+      // Step 0: Gate 1 Automatic Alignment Fast-Track
+      if (currentStep === 0 && !step0Failed) {
+        if (evalResult.faceDetected && evalResult.isCentered) {
+          steadyHoldRef.current += 1;
+          // After holding steady for ~25 frames (~0.8s), smoothly proceed to Step 1
+          if (steadyHoldRef.current >= 25) {
+            steadyHoldRef.current = 0;
+            if (alignTimerRef.current) {
+              clearInterval(alignTimerRef.current);
+              alignTimerRef.current = null;
+            }
+            startChallenge();
+            return;
+          }
+        } else {
+          steadyHoldRef.current = 0;
+        }
+      }
+
+      // Step 1: Gate 2 Real Motion Verification Trigger
+      if (currentStep === 1 && evalResult.passed && !actionPassedRef.current && !step1Failed) {
+        actionPassedRef.current = true;
+        if (challengeTimerRef.current) {
+          clearInterval(challengeTimerRef.current);
+          challengeTimerRef.current = null;
+        }
+
+        // Quick 300ms pause so user sees green confirmation, then auto-snap
+        setTimeout(() => {
+          if (isRunning) takeSnapshot();
+        }, 320);
+        return;
+      }
+
+      if (isRunning) {
+        animFrameRef.current = requestAnimationFrame(runTracking);
+      }
+    };
+
+    animFrameRef.current = requestAnimationFrame(runTracking);
+
+    return () => {
+      isRunning = false;
+      if (animFrameRef.current) cancelAnimationFrame(animFrameRef.current);
+    };
+  }, [cameraActive, currentStep, meshReady, action.id, step0Failed, step1Failed, startChallenge, takeSnapshot]);
 
   // Modal open/close sync
   useEffect(() => {
@@ -199,12 +415,25 @@ export default function SelfieClockInModal({ isOpen, onClose, onConfirm, loading
       setCapturedPhoto(null);
       setScanStatus('idle');
       setErrorMessage(null);
+      setStep0Failed(false);
+      setStep1Failed(false);
+      actionPassedRef.current = false;
       submittingRef.current = false;
-      setAlignCountdown(3);
-      setChallengeCountdown(2);
-      const idx = Math.floor(Math.random() * LIVENESS_ACTIONS.length);
-      setAction(LIVENESS_ACTIONS[idx]);
-      startCamera();
+      setAlignCountdown(ALIGN_SECONDS);
+      setChallengeCountdown(CHALLENGE_SECONDS);
+
+      // Check initial cooldown from server config if available
+      const initCooldown = faceConfig?.my_profile?.cooldown_seconds_remaining || 0;
+      if (initCooldown > 0) {
+        setCooldownSeconds(initCooldown);
+        setScanStatus('error');
+        setErrorMessage(`Clock-in is temporarily locked due to 3 failed attempts.`);
+      } else {
+        setCooldownSeconds(0);
+        const idx = Math.floor(Math.random() * LIVENESS_ACTIONS.length);
+        setAction(LIVENESS_ACTIONS[idx]);
+        startCamera();
+      }
     } else {
       stopCamera();
       submittingRef.current = false;
@@ -213,16 +442,36 @@ export default function SelfieClockInModal({ isOpen, onClose, onConfirm, loading
       stopCamera();
       submittingRef.current = false;
     };
-  }, [isOpen, startCamera, stopCamera]);
+  }, [isOpen, faceConfig, startCamera, stopCamera]);
 
-  const handleRetake = () => {
+  // Retry Step 0 (Face Alignment)
+  const handleRetryStep0 = () => {
+    setStep0Failed(false);
+    startAlignCountdown();
+  };
+
+  // Retry Step 1 (Action Motion)
+  const handleRetryStep1 = () => {
+    setStep1Failed(false);
+    actionPassedRef.current = false;
+    // Pick another random action to make it easier for user
+    const curIdx = LIVENESS_ACTIONS.findIndex((a) => a.id === action.id);
+    const nextAct = LIVENESS_ACTIONS[(curIdx + 1) % LIVENESS_ACTIONS.length];
+    setAction(nextAct);
+    startChallenge(nextAct);
+  };
+
+  const handleRetakeFull = () => {
     clearAllTimers();
     setCapturedPhoto(null);
     setCurrentStep(0);
     setScanStatus('idle');
     setErrorMessage(null);
-    setAlignCountdown(3);
-    setChallengeCountdown(2);
+    setStep0Failed(false);
+    setStep1Failed(false);
+    actionPassedRef.current = false;
+    setAlignCountdown(ALIGN_SECONDS);
+    setChallengeCountdown(CHALLENGE_SECONDS);
     const idx = Math.floor(Math.random() * LIVENESS_ACTIONS.length);
     setAction(LIVENESS_ACTIONS[idx]);
     startCamera();
@@ -259,17 +508,23 @@ export default function SelfieClockInModal({ isOpen, onClose, onConfirm, loading
               borderRadius: 14,
               overflow: 'hidden',
               background: '#090d16',
-              border: scanStatus === 'success'
-                ? '2px solid #22c55e'
-                : scanStatus === 'scanning'
-                  ? '2px solid #38bdf8'
-                  : '2px solid var(--border-color)',
+              border: cooldownSeconds > 0 || step0Failed || step1Failed
+                ? '2px solid #ef4444'
+                : scanStatus === 'success' || meshStatus.passed
+                  ? '2px solid #22c55e'
+                  : scanStatus === 'scanning' || currentStep === 1
+                    ? '2px solid #38bdf8'
+                    : '2px solid var(--border-color)',
               display: 'flex',
               alignItems: 'center',
               justifyContent: 'center',
               boxShadow: scanStatus === 'scanning'
                 ? '0 0 24px rgba(56, 189, 248, 0.25)'
-                : '0 8px 24px rgba(0, 0, 0, 0.12)',
+                : meshStatus.passed
+                  ? '0 0 24px rgba(34, 197, 94, 0.4)'
+                  : cooldownSeconds > 0 || step0Failed || step1Failed
+                    ? '0 0 20px rgba(239, 68, 68, 0.2)'
+                    : '0 8px 24px rgba(0, 0, 0, 0.12)',
               transition: 'border 0.3s ease, box-shadow 0.3s ease',
             }}
           >
@@ -287,7 +542,22 @@ export default function SelfieClockInModal({ isOpen, onClose, onConfirm, loading
               />
             )}
 
-            {cameraError ? (
+            {cooldownSeconds > 0 ? (
+              <div style={{ padding: 24, textAlign: 'center', color: '#f87171', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 10 }}>
+                <div style={{ width: 56, height: 56, borderRadius: '50%', background: 'rgba(239, 68, 68, 0.15)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#ef4444' }}>
+                  <Lock size={28} />
+                </div>
+                <div style={{ fontSize: 15, fontWeight: 700, color: '#fca5a5' }}>
+                  Clock-In Locked
+                </div>
+                <div style={{ fontSize: 24, fontWeight: 800, color: '#ef4444', letterSpacing: 1 }}>
+                  {formatRemainingTime(cooldownSeconds)}
+                </div>
+                <div style={{ fontSize: 11.5, color: '#94a3b8', lineHeight: 1.4 }}>
+                  3 failed verification attempts. Please wait for cooldown to expire before retrying.
+                </div>
+              </div>
+            ) : cameraError ? (
               <div style={{ padding: 20, textAlign: 'center', color: '#f87171' }}>
                 <AlertTriangle size={32} style={{ margin: '0 auto 8px' }} />
                 <div style={{ fontSize: 12.5, lineHeight: 1.4 }}>{cameraError}</div>
@@ -415,17 +685,36 @@ export default function SelfieClockInModal({ isOpen, onClose, onConfirm, loading
                   }}
                 />
 
+                {/* Real-time 468 FaceMesh Landmark Overlay */}
+                <canvas
+                  ref={meshCanvasRef}
+                  style={{
+                    position: 'absolute',
+                    inset: 0,
+                    width: '100%',
+                    height: '100%',
+                    objectFit: 'cover',
+                    transform: 'scaleX(-1)',
+                    pointerEvents: 'none',
+                    zIndex: 10,
+                  }}
+                />
+
                 {/* Live Face Oval Guide */}
                 <div
                   style={{
                     position: 'absolute',
                     width: '68%',
                     height: '80%',
-                    border: currentStep === 1
-                      ? '3px solid #0284c7'
-                      : currentStep === 0
+                    border: step0Failed || step1Failed
+                      ? '3px solid #ef4444'
+                      : meshStatus.passed
                         ? '3px solid #22c55e'
-                        : '2px dashed rgba(255, 255, 255, 0.75)',
+                        : currentStep === 1
+                          ? '3px solid #0284c7'
+                          : meshStatus.faceDetected && meshStatus.isCentered
+                            ? '3px solid #10b981'
+                            : '2px dashed rgba(255, 255, 255, 0.65)',
                     borderRadius: '50%',
                     pointerEvents: 'none',
                     boxShadow: '0 0 0 9999px rgba(0, 0, 0, 0.40)',
@@ -433,32 +722,50 @@ export default function SelfieClockInModal({ isOpen, onClose, onConfirm, loading
                   }}
                 />
 
-                {/* Live Status Pill at Bottom of Video */}
+                {/* Real-time Detection Pill at Bottom of Video */}
                 <div
                   style={{
                     position: 'absolute',
                     bottom: 12,
-                    background: 'rgba(15, 23, 42, 0.85)',
+                    background: 'rgba(15, 23, 42, 0.88)',
                     color: '#fff',
-                    padding: '4px 12px',
+                    padding: '5px 14px',
                     borderRadius: 9999,
                     fontSize: 11.5,
                     fontWeight: 600,
                     display: 'flex',
                     alignItems: 'center',
-                    gap: 6,
-                    backdropFilter: 'blur(4px)',
+                    gap: 7,
+                    backdropFilter: 'blur(6px)',
+                    zIndex: 15,
+                    border: step0Failed || step1Failed
+                      ? '1px solid #ef4444'
+                      : meshStatus.passed
+                        ? '1px solid #22c55e'
+                        : '1px solid rgba(255, 255, 255, 0.12)',
                   }}
                 >
-                  {currentStep === 0 && (
+                  {step0Failed ? (
+                    <span style={{ color: '#f87171' }}>⚠️ Alignment Failed - Retry</span>
+                  ) : step1Failed ? (
+                    <span style={{ color: '#f87171' }}>⚠️ Motion Failed - Retry</span>
+                  ) : meshStatus.passed ? (
                     <>
-                      <span style={{ color: '#4ade80' }}>● Hold still</span>
-                      <span>Aligning {alignCountdown}s</span>
+                      <span style={{ color: '#22c55e' }}>✓ Motion Verified</span>
+                      <span>Snapping photo...</span>
                     </>
-                  )}
-                  {currentStep === 1 && (
+                  ) : currentStep === 0 ? (
                     <>
-                      <span style={{ color: '#38bdf8' }}>📸 Capturing in</span>
+                      <span style={{ color: meshStatus.faceDetected && meshStatus.isCentered ? '#4ade80' : '#fbbf24' }}>
+                        ● {meshStatus.faceDetected && meshStatus.isCentered ? 'Face Aligned' : 'Align face in oval'}
+                      </span>
+                      <span>{alignCountdown}s</span>
+                    </>
+                  ) : (
+                    <>
+                      <span style={{ color: '#38bdf8' }}>
+                        ● Live AI Tracking ({meshStatus.progress}%)
+                      </span>
                       <span>{challengeCountdown}s</span>
                     </>
                   )}
@@ -470,16 +777,16 @@ export default function SelfieClockInModal({ isOpen, onClose, onConfirm, loading
           </div>
 
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '0 4px' }}>
-            <span style={{ fontSize: 11.5, color: scanStatus === 'scanning' ? '#0284c7' : cameraActive ? '#16a34a' : 'var(--text-secondary)', display: 'flex', alignItems: 'center', gap: 6 }}>
+            <span style={{ fontSize: 11.5, color: cooldownSeconds > 0 || step0Failed || step1Failed ? '#ef4444' : scanStatus === 'scanning' ? '#0284c7' : cameraActive ? '#16a34a' : 'var(--text-secondary)', display: 'flex', alignItems: 'center', gap: 6 }}>
               <span
                 style={{
                   width: 7,
                   height: 7,
                   borderRadius: '50%',
-                  background: scanStatus === 'scanning' ? '#0284c7' : cameraActive ? '#16a34a' : '#94a3b8',
+                  background: cooldownSeconds > 0 || step0Failed || step1Failed ? '#ef4444' : scanStatus === 'scanning' ? '#0284c7' : cameraActive ? '#16a34a' : '#94a3b8',
                 }}
               />
-              {scanStatus === 'scanning' ? 'Biometric Scanning' : cameraActive ? 'Live Camera' : 'Idle'}
+              {cooldownSeconds > 0 ? 'Cooldown Lock' : step0Failed ? 'Alignment Halt' : step1Failed ? 'Motion Halt' : scanStatus === 'scanning' ? 'Biometric Scanning' : meshReady ? 'AI FaceMesh Active' : cameraActive ? 'Live Camera' : 'Idle'}
             </span>
 
             <button
@@ -507,12 +814,12 @@ export default function SelfieClockInModal({ isOpen, onClose, onConfirm, loading
                 fontSize: 11.5,
                 fontWeight: 600,
                 textAlign: 'center',
-                background: currentStep >= 0 ? '#eff6ff' : 'var(--bg-secondary)',
-                color: currentStep >= 0 ? '#1d4ed8' : 'var(--text-secondary)',
-                border: currentStep === 0 ? '1px solid #bfdbfe' : '1px solid transparent',
+                background: step0Failed ? '#fef2f2' : currentStep >= 0 ? '#eff6ff' : 'var(--bg-secondary)',
+                color: step0Failed ? '#dc2626' : currentStep >= 0 ? '#1d4ed8' : 'var(--text-secondary)',
+                border: step0Failed ? '1px solid #fecaca' : currentStep === 0 ? '1px solid #bfdbfe' : '1px solid transparent',
               }}
             >
-              1. Align
+              1. Align {step0Failed ? '⚠️' : currentStep > 0 ? '✓' : '(8s)'}
             </div>
             <div
               style={{
@@ -522,12 +829,12 @@ export default function SelfieClockInModal({ isOpen, onClose, onConfirm, loading
                 fontSize: 11.5,
                 fontWeight: 600,
                 textAlign: 'center',
-                background: currentStep >= 1 ? '#eff6ff' : 'var(--bg-secondary)',
-                color: currentStep >= 1 ? '#1d4ed8' : 'var(--text-secondary)',
-                border: currentStep === 1 ? '1px solid #bfdbfe' : '1px solid transparent',
+                background: step1Failed ? '#fef2f2' : currentStep >= 1 ? '#eff6ff' : 'var(--bg-secondary)',
+                color: step1Failed ? '#dc2626' : currentStep >= 1 ? '#1d4ed8' : 'var(--text-secondary)',
+                border: step1Failed ? '1px solid #fecaca' : currentStep === 1 ? '1px solid #bfdbfe' : '1px solid transparent',
               }}
             >
-              2. Action Snap
+              2. Liveness {step1Failed ? '⚠️' : currentStep > 1 ? '✓' : ''}
             </div>
             <div
               style={{
@@ -559,106 +866,173 @@ export default function SelfieClockInModal({ isOpen, onClose, onConfirm, loading
               justifyContent: 'center',
             }}
           >
-            {/* Step 0: Face Alignment */}
-            {currentStep === 0 && (
+            {/* Cooldown Active Screen */}
+            {cooldownSeconds > 0 ? (
               <div>
-                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 6 }}>
-                  <div style={{ fontWeight: 700, fontSize: 14.5, color: 'var(--text-primary)' }}>
-                    Position face inside the oval
-                  </div>
-                  <span
-                    style={{
-                      background: '#dbeafe',
-                      color: '#1d4ed8',
-                      fontSize: 12,
-                      fontWeight: 700,
-                      padding: '2px 8px',
-                      borderRadius: 9999,
-                    }}
-                  >
-                    {alignCountdown}s
-                  </span>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 8, color: '#dc2626', fontWeight: 700, fontSize: 14.5, marginBottom: 6 }}>
+                  <Lock size={18} /> Cooldown Active: 5 Minutes
                 </div>
-                <p style={{ fontSize: 12.5, color: 'var(--text-secondary)', margin: '0 0 12px', lineHeight: 1.45 }}>
-                  Look at the camera. Verification starts automatically without touching the screen.
+                <p style={{ fontSize: 12.5, color: 'var(--text-secondary)', margin: '0 0 14px', lineHeight: 1.45 }}>
+                  {errorMessage || 'Verification failed 3 times. For security, clock-in is temporarily locked.'}
                 </p>
-
-                {/* Progress Bar */}
-                <div style={{ width: '100%', height: 6, background: '#e2e8f0', borderRadius: 9999, overflow: 'hidden', marginBottom: 14 }}>
-                  <div
-                    style={{
-                      height: '100%',
-                      background: '#2563eb',
-                      width: `${((4 - alignCountdown) / 3) * 100}%`,
-                      transition: 'width 1s linear',
-                    }}
-                  />
+                <div style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '8px 12px', background: '#fef2f2', border: '1px solid #fecaca', borderRadius: 8, color: '#b91c1c', fontSize: 13, fontWeight: 600, marginBottom: 12 }}>
+                  <Clock size={16} />
+                  <span>Time remaining: {formatRemainingTime(cooldownSeconds)}</span>
                 </div>
-
                 <button
                   type="button"
                   className="btn btn-secondary btn-sm"
-                  style={{ width: '100%', justifyContent: 'center', fontSize: 12 }}
-                  onClick={startChallenge}
-                  disabled={!cameraActive}
+                  style={{ width: '100%', justifyContent: 'center' }}
+                  onClick={onClose}
                 >
-                  Ready Now (Skip Timer ➔)
+                  Close Window
                 </button>
               </div>
-            )}
-
-            {/* Step 1: Liveness Action */}
-            {currentStep === 1 && (
-              <div>
-                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 6 }}>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                    <span style={{ fontSize: 22 }}>{action.icon}</span>
-                    <div style={{ fontWeight: 700, fontSize: 14.5, color: '#0284c7' }}>
-                      {action.label}
-                    </div>
+            ) : currentStep === 0 && !capturedPhoto ? (
+              /* Step 0: Face Alignment Gate */
+              step0Failed ? (
+                <div>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 8, color: '#dc2626', fontWeight: 700, fontSize: 14.5, marginBottom: 6 }}>
+                    <AlertTriangle size={18} /> Alignment Incomplete
                   </div>
-                  <span
-                    style={{
-                      background: '#e0f2fe',
-                      color: '#0369a1',
-                      fontSize: 12,
-                      fontWeight: 700,
-                      padding: '2px 8px',
-                      borderRadius: 9999,
-                    }}
+                  <p style={{ fontSize: 12.5, color: 'var(--text-secondary)', margin: '0 0 14px', lineHeight: 1.45 }}>
+                    {step0Reason || 'Your face was not centered inside the oval guide in time.'} Please position yourself directly in front of the camera and retry.
+                  </p>
+                  <button
+                    type="button"
+                    className="btn btn-primary btn-sm"
+                    style={{ width: '100%', justifyContent: 'center', gap: 6 }}
+                    onClick={handleRetryStep0}
                   >
-                    📸 {challengeCountdown}s
-                  </span>
+                    <RefreshCw size={13} /> Retry Alignment
+                  </button>
                 </div>
-                <p style={{ fontSize: 12.5, color: 'var(--text-secondary)', margin: '0 0 12px', lineHeight: 1.45 }}>
-                  Hold your pose naturally. Shutter clicks automatically in {challengeCountdown}s.
-                </p>
+              ) : (
+                <div>
+                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 6 }}>
+                    <div style={{ fontWeight: 700, fontSize: 14.5, color: 'var(--text-primary)' }}>
+                      Position face inside the oval
+                    </div>
+                    <span
+                      style={{
+                        background: '#dbeafe',
+                        color: '#1d4ed8',
+                        fontSize: 12,
+                        fontWeight: 700,
+                        padding: '2px 8px',
+                        borderRadius: 9999,
+                      }}
+                    >
+                      {alignCountdown}s
+                    </span>
+                  </div>
+                  <p style={{ fontSize: 12.5, color: 'var(--text-secondary)', margin: '0 0 12px', lineHeight: 1.45 }}>
+                    {meshStatus.faceDetected && meshStatus.isCentered
+                      ? '✓ Face centered! Holding steady...'
+                      : meshStatus.faceDetected
+                        ? 'Center face inside the oval guide.'
+                        : 'Look directly at camera. Align before timer expires.'}
+                  </p>
 
-                {/* Progress Bar */}
-                <div style={{ width: '100%', height: 6, background: '#e2e8f0', borderRadius: 9999, overflow: 'hidden', marginBottom: 14 }}>
-                  <div
-                    style={{
-                      height: '100%',
-                      background: '#0284c7',
-                      width: `${((3 - challengeCountdown) / 2) * 100}%`,
-                      transition: 'width 1s linear',
+                  {/* Progress Bar for 8 seconds */}
+                  <div style={{ width: '100%', height: 6, background: '#e2e8f0', borderRadius: 9999, overflow: 'hidden', marginBottom: 14 }}>
+                    <div
+                      style={{
+                        height: '100%',
+                        background: meshStatus.faceDetected && meshStatus.isCentered ? '#10b981' : '#2563eb',
+                        width: `${((ALIGN_SECONDS - alignCountdown) / ALIGN_SECONDS) * 100}%`,
+                        transition: 'width 1s linear',
+                      }}
+                    />
+                  </div>
+
+                  <button
+                    type="button"
+                    className="btn btn-secondary btn-sm"
+                    style={{ width: '100%', justifyContent: 'center', fontSize: 12 }}
+                    onClick={() => {
+                      if (latestEvalRef.current.faceDetected) {
+                        startChallenge();
+                      } else {
+                        setStep0Failed(true);
+                        setStep0Reason('No face detected in camera.');
+                      }
                     }}
-                  />
+                    disabled={!cameraActive}
+                  >
+                    Ready Now (Proceed to Action ➔)
+                  </button>
                 </div>
+              )
+            ) : currentStep === 1 && !capturedPhoto ? (
+              /* Step 1: Real-time FaceMesh Liveness Action Gate */
+              step1Failed ? (
+                <div>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 8, color: '#dc2626', fontWeight: 700, fontSize: 14.5, marginBottom: 6 }}>
+                    <AlertTriangle size={18} /> Action Not Detected
+                  </div>
+                  <p style={{ fontSize: 12.5, color: 'var(--text-secondary)', margin: '0 0 14px', lineHeight: 1.45 }}>
+                    {step1Reason || `Could not detect "${action.label}" in time.`} Ensure good lighting and face the camera directly.
+                  </p>
+                  <button
+                    type="button"
+                    className="btn btn-primary btn-sm"
+                    style={{ width: '100%', justifyContent: 'center', gap: 6 }}
+                    onClick={handleRetryStep1}
+                  >
+                    <RefreshCw size={13} /> Try Another Action
+                  </button>
+                </div>
+              ) : (
+                <div>
+                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 6 }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                      <span style={{ fontSize: 22 }}>{action.icon}</span>
+                      <div style={{ fontWeight: 700, fontSize: 14.5, color: meshStatus.passed ? '#15803d' : '#0284c7' }}>
+                        {action.label}
+                      </div>
+                    </div>
+                    <span
+                      style={{
+                        background: meshStatus.passed ? '#dcfce7' : '#e0f2fe',
+                        color: meshStatus.passed ? '#15803d' : '#0369a1',
+                        fontSize: 12,
+                        fontWeight: 700,
+                        padding: '2px 8px',
+                        borderRadius: 9999,
+                      }}
+                    >
+                      {meshStatus.passed ? '✓ Matched' : `📸 ${challengeCountdown}s`}
+                    </span>
+                  </div>
+                  <p style={{ fontSize: 12.5, color: 'var(--text-secondary)', margin: '0 0 12px', lineHeight: 1.45 }}>
+                    <strong style={{ color: meshStatus.passed ? '#16a34a' : 'inherit' }}>{meshStatus.message}</strong>. Perform the motion to trigger automatic snapshot.
+                  </p>
 
-                <button
-                  type="button"
-                  className="btn btn-primary btn-sm"
-                  style={{ width: '100%', justifyContent: 'center', fontWeight: 600, fontSize: 12 }}
-                  onClick={takeSnapshot}
-                >
-                  Snap Photo Now 📸
-                </button>
-              </div>
-            )}
+                  {/* Live Real-time Motion Progress Bar */}
+                  <div style={{ width: '100%', height: 7, background: '#e2e8f0', borderRadius: 9999, overflow: 'hidden', marginBottom: 14 }}>
+                    <div
+                      style={{
+                        height: '100%',
+                        background: meshStatus.passed ? '#22c55e' : 'linear-gradient(90deg, #0284c7, #38bdf8)',
+                        width: `${meshStatus.passed ? 100 : Math.max(10, meshStatus.progress)}%`,
+                        transition: 'width 0.15s ease-out, background 0.2s ease',
+                      }}
+                    />
+                  </div>
 
-            {/* Step 2: Holographic Radar Scan & Verification State */}
-            {currentStep === 2 && (
+                  <button
+                    type="button"
+                    className="btn btn-primary btn-sm"
+                    style={{ width: '100%', justifyContent: 'center', fontWeight: 600, fontSize: 12 }}
+                    onClick={takeSnapshot}
+                  >
+                    Snap Photo Now (Manual Override 📸)
+                  </button>
+                </div>
+              )
+            ) : (
+              /* Step 2: Holographic Radar Scan & Verification State */
               <div>
                 {scanStatus === 'scanning' && (
                   <div>
@@ -669,6 +1043,10 @@ export default function SelfieClockInModal({ isOpen, onClose, onConfirm, loading
                       Extracting 128-dimensional facial embedding and matching against approved profile in memory.
                     </p>
                     <div style={{ display: 'flex', flexDirection: 'column', gap: 4, fontSize: 11.5, color: 'var(--text-secondary)' }}>
+                      <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+                        <span>MediaPipe FaceMesh</span>
+                        <span style={{ color: '#16a34a', fontWeight: 600 }}>Motion Verified ✓</span>
+                      </div>
                       <div style={{ display: 'flex', justifyContent: 'space-between' }}>
                         <span>YuNet Neural Detection</span>
                         <span style={{ color: '#16a34a', fontWeight: 600 }}>Active</span>
@@ -704,7 +1082,7 @@ export default function SelfieClockInModal({ isOpen, onClose, onConfirm, loading
                       type="button"
                       className="btn btn-secondary btn-sm"
                       style={{ width: '100%', justifyContent: 'center' }}
-                      onClick={handleRetake}
+                      onClick={handleRetakeFull}
                     >
                       <RefreshCw size={13} style={{ marginRight: 6 }} /> Try Again
                     </button>

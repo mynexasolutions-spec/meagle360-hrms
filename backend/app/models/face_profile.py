@@ -7,7 +7,7 @@ preventing pile-up). Live clock-in selfies are never persisted - only the match 
 import uuid
 from datetime import datetime
 
-from sqlalchemy import DateTime, ForeignKey, JSON, String
+from sqlalchemy import DateTime, ForeignKey, Integer, JSON, String
 from sqlalchemy.dialects.postgresql import UUID
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
@@ -45,5 +45,11 @@ class EmployeeFaceProfile(Base, TimestampMixin):
         DateTime(timezone=True), nullable=True
     )
     review_note: Mapped[str | None] = mapped_column(String(500), nullable=True)
+    failed_attempts: Mapped[int] = mapped_column(
+        Integer, nullable=False, default=0, server_default="0"
+    )
+    cooldown_until: Mapped[datetime | None] = mapped_column(
+        DateTime(timezone=True), nullable=True
+    )
 
     employee = relationship("Employee", foreign_keys=[employee_id])

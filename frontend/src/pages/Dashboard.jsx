@@ -127,6 +127,7 @@ export default function Dashboard() {
   const [clockedIn, setClockedIn] = useState(false);
   const [clockLoading, setClockLoading] = useState(false);
   const [showSelfieModal, setShowSelfieModal] = useState(false);
+  const [faceConfig, setFaceConfig] = useState(null);
   const [todayClockInTime, setTodayClockInTime] = useState(null);
   const [todayPunctuality, setTodayPunctuality] = useState('On Time');
   const [shiftInfo, setShiftInfo] = useState(null);
@@ -227,19 +228,14 @@ export default function Dashboard() {
           type: 'warning',
         });
       }
-      if (res.data?.face_status === 'flagged') {
-        showAlert({
-          title: 'Clock-In Flagged (Selfie Verification)',
-          message: `Your live selfie did not match your approved passport photo (Reason: ${res.data.face_flag_reason || 'mismatch'}). Your clock-in has been recorded and submitted to your admin for review.`,
-          type: 'warning',
-        });
-      } else if (res.data?.face_status === 'verified') {
+      if (res.data?.face_status === 'verified') {
         showToast({ message: 'Selfie verified! Clocked in successfully.', type: 'success' });
       }
       setClockedIn(true);
       if (res.data?.clock_in) {
         setTodayClockInTime(res.data.clock_in);
       }
+      setTimeout(() => setShowSelfieModal(false), 1200);
       return res;
     } catch (e) {
       const msg = e.response?.data?.detail || 'Failed to clock in';
@@ -250,18 +246,20 @@ export default function Dashboard() {
           setClockedIn(sRes.data.clocked_in);
           if (sRes.data?.clock_in) setTodayClockInTime(sRes.data.clock_in);
         }).catch(() => {});
+        setTimeout(() => setShowSelfieModal(false), 900);
         return { data: { face_status: 'verified' } };
       } else {
-        showAlert({
-          title: msg.toLowerCase().includes('wait') ? 'Clock-In Cooldown Active' : 'Attendance Notice',
-          message: msg,
-          type: 'warning',
-        });
+        if (!showSelfieModal) {
+          showAlert({
+            title: msg.toLowerCase().includes('wait') ? 'Clock-In Cooldown Active' : 'Attendance Notice',
+            message: msg,
+            type: 'warning',
+          });
+        }
         throw e;
       }
     } finally {
       setClockLoading(false);
-      setTimeout(() => setShowSelfieModal(false), 900);
     }
   };
 
@@ -293,7 +291,10 @@ export default function Dashboard() {
       }
     } else {
       let faceCfg = null;
-      try { faceCfg = (await getFaceConfig()).data; } catch { /* ignore */ }
+      try {
+        faceCfg = (await getFaceConfig()).data;
+        setFaceConfig(faceCfg);
+      } catch { /* ignore */ }
       if (faceCfg?.enabled && faceCfg?.my_profile?.status === 'approved') {
         setShowSelfieModal(true);
         return;
@@ -1384,6 +1385,7 @@ export default function Dashboard() {
           onClose={() => setShowSelfieModal(false)}
           onConfirm={executeDashboardClockIn}
           loading={clockLoading}
+          faceConfig={faceConfig}
         />
       )}
     </div>

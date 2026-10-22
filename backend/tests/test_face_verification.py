@@ -1,6 +1,7 @@
 """Unit tests for Face Verification service and clock-in evaluation."""
 
 import uuid
+from datetime import datetime, timezone, timedelta
 from unittest.mock import MagicMock, patch
 import pytest
 
@@ -39,7 +40,6 @@ def test_evaluate_clock_in_no_approved_photo():
     db = MagicMock()
     company_id = uuid.uuid4()
     company = Company(id=company_id, face_verification_enabled=True)
-    # Return company for first query, None for profile query
     db.query.return_value.filter.return_value.first.side_effect = [company, None]
 
     svc = FaceService(db, company_id)
@@ -63,18 +63,17 @@ def test_evaluate_clock_in_liveness_failed():
     db = MagicMock()
     company_id = uuid.uuid4()
     company = Company(id=company_id, face_verification_enabled=True)
-    profile = EmployeeFaceProfile(status="approved", embedding=[0.5] * 128)
+    profile = EmployeeFaceProfile(status="approved", embedding=[0.5] * 128, failed_attempts=0)
     db.query.return_value.filter.return_value.first.side_effect = [company, profile]
 
     svc = FaceService(db, company_id)
-    res = svc.evaluate_clock_in(
-        employee_id=uuid.uuid4(),
-        selfie="data:image/jpeg;base64,dGVzdA==",
-        liveness_passed=False
-    )
-    assert res["face_status"] == "flagged"
-    assert res["face_flag_reason"] == "liveness_failed"
-    assert res["face_review_status"] == "pending"
+    with pytest.raises(ValueError, match="2 attempts remaining"):
+        svc.evaluate_clock_in(
+            employee_id=uuid.uuid4(),
+            selfie="data:image/jpeg;base64,dGVzdA==",
+            liveness_passed=False
+        )
+    assert profile.failed_attempts == 1
 
 
 @patch("app.services.face_engine.extract_embedding")
@@ -83,7 +82,7 @@ def test_evaluate_clock_in_match_verified(mock_extract):
     company_id = uuid.uuid4()
     company = Company(id=company_id, face_verification_enabled=True)
     emb = [1.0] + [0.0] * 127
-    profile = EmployeeFaceProfile(status="approved", embedding=emb)
+    profile = EmployeeFaceProfile(status="approved", embedding=emb, failed_attempts=2)
     db.query.return_value.filter.return_value.first.side_effect = [company, profile]
 
     mock_extract.return_value = emb  # Exact match (sim = 1.0 >= 0.4)
@@ -96,26 +95,46 @@ def test_evaluate_clock_in_match_verified(mock_extract):
     )
     assert res["face_status"] == "verified"
     assert res["face_score"] >= 0.4
+    assert profile.failed_attempts == 0
+    assert profile.cooldown_until is None
 
 
 @patch("app.services.face_engine.extract_embedding")
-def test_evaluate_clock_in_mismatch_flagged(mock_extract):
+def test_evaluate_clock_in_3_retries_and_cooldown(mock_extract):
     db = MagicMock()
     company_id = uuid.uuid4()
     company = Company(id=company_id, face_verification_enabled=True)
     profile_emb = [1.0] + [0.0] * 127
     selfie_emb = [0.0, 1.0] + [0.0] * 126
-    profile = EmployeeFaceProfile(status="approved", embedding=profile_emb)
+    profile = EmployeeFaceProfile(status="approved", embedding=profile_emb, failed_attempts=2)
     db.query.return_value.filter.return_value.first.side_effect = [company, profile]
 
-    mock_extract.return_value = selfie_emb  # Orthogonal vector (sim = 0.0 < 0.4)
+    mock_extract.return_value = selfie_emb  # Mismatch
 
     svc = FaceService(db, company_id)
-    res = svc.evaluate_clock_in(
-        employee_id=uuid.uuid4(),
-        selfie="data:image/jpeg;base64,dGVzdA==",
-        liveness_passed=True
-    )
-    assert res["face_status"] == "flagged"
-    assert res["face_flag_reason"] == "mismatch"
-    assert res["face_review_status"] == "pending"
+    # 3rd attempt fails -> triggers 5-minute cooldown
+    with pytest.raises(ValueError, match="locked for 5 minutes"):
+        svc.evaluate_clock_in(
+            employee_id=uuid.uuid4(),
+            selfie="data:image/jpeg;base64,dGVzdA==",
+            liveness_passed=True
+        )
+    assert profile.failed_attempts == 3
+    assert profile.cooldown_until is not None
+
+
+def test_evaluate_clock_in_active_cooldown():
+    db = MagicMock()
+    company_id = uuid.uuid4()
+    company = Company(id=company_id, face_verification_enabled=True)
+    cooldown = datetime.now(timezone.utc) + timedelta(minutes=4)
+    profile = EmployeeFaceProfile(status="approved", embedding=[0.5] * 128, failed_attempts=3, cooldown_until=cooldown)
+    db.query.return_value.filter.return_value.first.side_effect = [company, profile]
+
+    svc = FaceService(db, company_id)
+    with pytest.raises(ValueError, match="locked due to 3 failed verification attempts"):
+        svc.evaluate_clock_in(
+            employee_id=uuid.uuid4(),
+            selfie="data:image/jpeg;base64,dGVzdA==",
+            liveness_passed=True
+        )
