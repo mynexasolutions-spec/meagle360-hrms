@@ -204,36 +204,172 @@ export default function GeofenceSettings() {
       )}
 
       {form && (
-        <Modal title={form.enabling ? 'Enable geofencing — set your office' : form.id ? 'Edit office' : 'Add office'} onClose={() => setForm(null)} maxWidth="620px">
+        <Modal
+          title={form.enabling ? 'Enable geofencing — set your office' : form.id ? 'Edit office' : 'Add office'}
+          onClose={() => setForm(null)}
+          maxWidth="880px"
+        >
           <form onSubmit={submitForm}>
-            <div className="input-group">
-              <label className="input-label">Office name</label>
-              <input className="input-field" value={form.name} maxLength={255}
-                onChange={(e) => setForm({ ...form, name: e.target.value })} placeholder="e.g. Head Office" />
-            </div>
-            <div className="input-group">
-              <label className="input-label">Location (click map to pin)</label>
-              <LocationPicker value={form.pin} radius={Number(form.radius) || cfg.default_radius_m}
-                onChange={(pin) => setForm((f) => ({ ...f, pin }))}
-                others={cfg.offices.filter((o) => o.id !== form.id)} />
-            </div>
-            <div className="input-group">
-              <label className="input-label">Radius (metres, {cfg.min_radius_m}–{cfg.max_radius_m})</label>
-              <input type="number" className="input-field" min={cfg.min_radius_m} max={cfg.max_radius_m}
-                value={form.radius} onChange={(e) => setForm({ ...form, radius: e.target.value })} />
-            </div>
-            {form.enabling && (
-              <div className="input-group">
-                <label className="input-label">If an employee is outside the radius</label>
-                <select className="input-field" value={form.mode} onChange={(e) => setForm({ ...form, mode: e.target.value })}>
-                  <option value="flag">Allow clock-in, but flag it for admin review</option>
-                  <option value="block">Block the clock-in</option>
-                </select>
+            <div
+              style={{
+                display: 'grid',
+                gridTemplateColumns: 'minmax(300px, 340px) 1fr',
+                gap: 20,
+                alignItems: 'start',
+              }}
+            >
+              {/* Left Column: Office Details & Controls */}
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
+                {/* Office Name */}
+                <div>
+                  <label className="input-label" style={{ fontWeight: 700, fontSize: '0.82rem', marginBottom: 4 }}>
+                    Office Name <span style={{ color: '#ef4444' }}>*</span>
+                  </label>
+                  <input
+                    className="input-field"
+                    value={form.name}
+                    maxLength={255}
+                    required
+                    onChange={(e) => setForm({ ...form, name: e.target.value })}
+                    placeholder="e.g. Head Office, Tech Park"
+                    style={{ width: '100%', padding: '9px 12px', fontSize: '0.88rem', borderRadius: 8, boxSizing: 'border-box' }}
+                  />
+                </div>
+
+                {/* Radius Input + Quick Presets */}
+                <div>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 4 }}>
+                    <label className="input-label" style={{ fontWeight: 700, fontSize: '0.82rem', margin: 0 }}>
+                      Fence Radius
+                    </label>
+                    <span style={{ fontSize: '0.74rem', color: '#64748b' }}>
+                      {cfg.min_radius_m}m – {cfg.max_radius_m}m
+                    </span>
+                  </div>
+
+                  <div style={{ position: 'relative', display: 'flex', alignItems: 'center' }}>
+                    <input
+                      type="number"
+                      className="input-field"
+                      min={cfg.min_radius_m}
+                      max={cfg.max_radius_m}
+                      required
+                      value={form.radius}
+                      onChange={(e) => setForm({ ...form, radius: e.target.value })}
+                      style={{
+                        width: '100%',
+                        padding: '9px 36px 9px 12px',
+                        fontSize: '0.88rem',
+                        borderRadius: 8,
+                        fontWeight: 600,
+                        boxSizing: 'border-box',
+                      }}
+                    />
+                    <span style={{ position: 'absolute', right: 12, fontSize: '0.8rem', color: '#64748b', fontWeight: 700, pointerEvents: 'none' }}>
+                      m
+                    </span>
+                  </div>
+
+                  {/* Preset chips */}
+                  <div style={{ display: 'flex', gap: 6, marginTop: 6, alignItems: 'center', flexWrap: 'wrap' }}>
+                    <span style={{ fontSize: '0.72rem', color: '#64748b', fontWeight: 600 }}>Quick:</span>
+                    {[50, 100, 200, 500].map((r) => (
+                      <button
+                        key={r}
+                        type="button"
+                        onClick={() => setForm({ ...form, radius: r })}
+                        style={{
+                          padding: '2px 8px',
+                          borderRadius: 6,
+                          fontSize: '0.72rem',
+                          fontWeight: 700,
+                          cursor: 'pointer',
+                          background: Number(form.radius) === r ? '#eff6ff' : '#f8fafc',
+                          color: Number(form.radius) === r ? '#2563eb' : '#475569',
+                          border: Number(form.radius) === r ? '1px solid #bfdbfe' : '1px solid #e2e8f0',
+                        }}
+                      >
+                        {r}m
+                      </button>
+                    ))}
+                  </div>
+                </div>
+
+                {/* Outside Fence Policy */}
+                {form.enabling && (
+                  <div>
+                    <label className="input-label" style={{ fontWeight: 700, fontSize: '0.82rem', marginBottom: 4 }}>
+                      If Outside Geofence
+                    </label>
+                    <select
+                      className="input-field"
+                      value={form.mode}
+                      onChange={(e) => setForm({ ...form, mode: e.target.value })}
+                      style={{ width: '100%', padding: '8px 12px', fontSize: '0.84rem', borderRadius: 8, boxSizing: 'border-box' }}
+                    >
+                      <option value="flag">Allow clock-in, but flag for review</option>
+                      <option value="block">Strictly block clock-in</option>
+                    </select>
+                  </div>
+                )}
+
+                {/* Pin Status Banner */}
+                <div
+                  style={{
+                    padding: '8px 12px',
+                    borderRadius: 8,
+                    background: form.pin ? '#f0fdf4' : '#fffbeb',
+                    border: form.pin ? '1px solid #bbf7d0' : '1px solid #fde68a',
+                    fontSize: '0.76rem',
+                    color: form.pin ? '#15803d' : '#b45309',
+                    lineHeight: 1.4,
+                  }}
+                >
+                  {form.pin ? (
+                    <div>
+                      <strong>✓ Pin dropped:</strong> {form.pin.lat.toFixed(5)}, {form.pin.lng.toFixed(5)}
+                    </div>
+                  ) : (
+                    <div>
+                      <strong>📍 Drop a pin:</strong> Click anywhere on the map to set office center.
+                    </div>
+                  )}
+                </div>
+
+                {/* Form Buttons */}
+                <div style={{ display: 'flex', gap: 8, marginTop: 4 }}>
+                  <button
+                    type="button"
+                    className="btn btn-secondary"
+                    onClick={() => setForm(null)}
+                    style={{ flex: 1, padding: '9px 14px', borderRadius: 8, fontSize: '0.85rem' }}
+                  >
+                    Cancel
+                  </button>
+                  <button
+                    type="submit"
+                    className="btn btn-primary"
+                    disabled={saving}
+                    style={{ flex: 1.4, padding: '9px 14px', borderRadius: 8, fontSize: '0.85rem', fontWeight: 700 }}
+                  >
+                    {saving ? 'Saving...' : form.enabling ? 'Enable Geofencing' : 'Save Office'}
+                  </button>
+                </div>
               </div>
-            )}
-            <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 8 }}>
-              <button type="button" className="btn btn-secondary" onClick={() => setForm(null)}>Cancel</button>
-              <button type="submit" className="btn btn-primary" disabled={saving}>{saving ? 'Saving...' : 'Save'}</button>
+
+              {/* Right Column: Location Picker Map */}
+              <div>
+                <label className="input-label" style={{ fontWeight: 700, fontSize: '0.82rem', marginBottom: 4 }}>
+                  Office Map Location (Click to drop pin)
+                </label>
+                <LocationPicker
+                  value={form.pin}
+                  radius={Number(form.radius) || cfg.default_radius_m}
+                  onChange={(pin) => setForm((f) => ({ ...f, pin }))}
+                  others={cfg.offices.filter((o) => o.id !== form.id)}
+                  height={310}
+                />
+              </div>
             </div>
           </form>
         </Modal>

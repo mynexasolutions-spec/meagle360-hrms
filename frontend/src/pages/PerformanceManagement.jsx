@@ -2001,7 +2001,13 @@ export default function PerformanceManagement() {
                                     type="button"
                                     className="btn btn-secondary"
                                     style={{ padding: '5px 12px', fontSize: '0.78rem', borderRadius: 8 }}
-                                    onClick={() => setProgressGoal(g)}
+                                    onClick={() => {
+                                      setProgressGoal(g);
+                                      setProgressForm({
+                                        actual_value: g.actual_value != null ? g.actual_value : (g.final_achievement_pct != null ? g.final_achievement_pct : ''),
+                                        note: '',
+                                      });
+                                    }}
                                   >
                                     Update Progress
                                   </button>
@@ -3278,7 +3284,7 @@ export default function PerformanceManagement() {
       {tab === 'config' && isAdmin && config && (
         <div style={{ display: 'flex', flexDirection: 'column', gap: 20 }}>
           {/* Org Weights & Rater Configuration */}
-          <form onSubmit={handleSaveConfig} className="card" style={{ padding: 22, borderRadius: 16, border: '1px solid #e2e8f0' }}>
+          <form onSubmit={handleSaveConfig} className="card" style={{ padding: 24, borderRadius: 16, border: '1px solid #e2e8f0' }}>
             {(() => {
               const raterSum =
                 Number(config.weight_manager || 0) +
@@ -3290,181 +3296,593 @@ export default function PerformanceManagement() {
                 Number(config.weight_discipline || 0) +
                 Number(config.weight_growth || 0);
 
+              const isCompBalanced = compSum === 100;
+              const isRaterBalanced = raterSum === 100;
+
               return (
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16, paddingBottom: 14, borderBottom: '1px solid #f1f5f9', flexWrap: 'wrap', gap: 10 }}>
-                  <div>
-                    <h3 style={{ margin: 0, fontSize: '1.1rem', fontWeight: 800, color: '#0f172a' }}>
-                      Org Weights & 360° Rater Rules
-                    </h3>
-                    <p style={{ margin: '4px 0 0 0', fontSize: '0.84rem', color: '#64748b' }}>
-                      Configure the weightage of each appraisal source and competency factor.
-                    </p>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: 24 }}>
+                  {/* Top Header */}
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', paddingBottom: 16, borderBottom: '1px solid #f1f5f9', flexWrap: 'wrap', gap: 12 }}>
+                    <div>
+                      <h3 style={{ margin: 0, fontSize: '1.18rem', fontWeight: 800, color: '#0f172a' }}>
+                        Org Weights & 360° Evaluation Rules
+                      </h3>
+                      <p style={{ margin: '4px 0 0 0', fontSize: '0.84rem', color: '#64748b' }}>
+                        Configure the relative balance of appraisal pillars, 360° feedback distribution, and promotion guardrails.
+                      </p>
+                    </div>
+                    <button
+                      type="submit"
+                      className="btn btn-primary"
+                      style={{
+                        padding: '9px 24px',
+                        fontSize: '0.86rem',
+                        borderRadius: 10,
+                        display: 'inline-flex',
+                        alignItems: 'center',
+                        gap: 6,
+                        fontWeight: 700,
+                      }}
+                    >
+                      <Check size={16} /> Save Configuration
+                    </button>
                   </div>
-                  <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
-                    <span
+
+                  {/* ── Section 1: Appraisal Component Weights (100%) ── */}
+                  <div
+                    style={{
+                      background: '#f8fafc',
+                      border: '1px solid #e2e8f0',
+                      borderRadius: 14,
+                      padding: '18px 20px',
+                    }}
+                  >
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: 8 }}>
+                      <div>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                          <span style={{ fontSize: '0.72rem', fontWeight: 800, textTransform: 'uppercase', color: '#2563eb', background: '#eff6ff', padding: '2px 8px', borderRadius: 6, border: '1px solid #bfdbfe' }}>
+                            Core Pillars
+                          </span>
+                          <h4 style={{ margin: 0, fontSize: '0.98rem', fontWeight: 800, color: '#0f172a' }}>
+                            Appraisal Component Weights (Must Total 100%)
+                          </h4>
+                        </div>
+                        <p style={{ margin: '4px 0 0 0', fontSize: '0.8rem', color: '#64748b' }}>
+                          Defines how the employee's blended score is composed across business and individual outputs.
+                        </p>
+                      </div>
+
+                      <span
+                        style={{
+                          padding: '4px 12px',
+                          borderRadius: 999,
+                          fontSize: '0.76rem',
+                          fontWeight: 700,
+                          background: isCompBalanced ? '#ecfdf5' : '#fef2f2',
+                          color: isCompBalanced ? '#059669' : '#dc2626',
+                          border: isCompBalanced ? '1px solid #a7f3d0' : '1px solid #fecaca',
+                        }}
+                      >
+                        {isCompBalanced ? '✓ Total Balanced 100%' : `Total: ${compSum}% (Needs 100%)`}
+                      </span>
+                    </div>
+
+                    {/* Segmented Distribution Bar */}
+                    <div style={{ width: '100%', height: 8, background: '#e2e8f0', borderRadius: 999, overflow: 'hidden', display: 'flex', marginTop: 14, marginBottom: 16 }}>
+                      <div style={{ width: `${Math.max(0, Number(config.weight_goals || 0))}%`, background: '#2563eb', transition: 'width 0.2s' }} title={`Goals: ${config.weight_goals}%`} />
+                      <div style={{ width: `${Math.max(0, Number(config.weight_competency || 0))}%`, background: '#7c3aed', transition: 'width 0.2s' }} title={`Competency: ${config.weight_competency}%`} />
+                      <div style={{ width: `${Math.max(0, Number(config.weight_discipline || 0))}%`, background: '#059669', transition: 'width 0.2s' }} title={`Discipline: ${config.weight_discipline}%`} />
+                      <div style={{ width: `${Math.max(0, Number(config.weight_growth || 0))}%`, background: '#d97706', transition: 'width 0.2s' }} title={`Growth: ${config.weight_growth}%`} />
+                    </div>
+
+                    {/* 4 Clean Component Input Cards */}
+                    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(210px, 1fr))', gap: 12 }}>
+                      {[
+                        {
+                          key: 'weight_goals',
+                          label: 'Goals & OKRs',
+                          color: '#2563eb',
+                          bg: '#eff6ff',
+                          desc: 'Project milestones & deliverables',
+                        },
+                        {
+                          key: 'weight_competency',
+                          label: 'Competency (360°)',
+                          color: '#7c3aed',
+                          bg: '#f5f3ff',
+                          desc: 'Behavioral & cultural reviews',
+                        },
+                        {
+                          key: 'weight_discipline',
+                          label: 'Discipline & Punctuality',
+                          color: '#059669',
+                          bg: '#ecfdf5',
+                          desc: 'Attendance & workplace reliability',
+                        },
+                        {
+                          key: 'weight_growth',
+                          label: 'Growth & Development',
+                          color: '#d97706',
+                          bg: '#fffbeb',
+                          desc: 'Skill upgrades & training goals',
+                        },
+                      ].map((item) => (
+                        <div
+                          key={item.key}
+                          style={{
+                            background: '#ffffff',
+                            border: '1px solid #e2e8f0',
+                            borderRadius: 12,
+                            padding: '12px 14px',
+                            display: 'flex',
+                            flexDirection: 'column',
+                            justifyContent: 'space-between',
+                            gap: 10,
+                            boxShadow: '0 1px 3px rgba(0,0,0,0.02)',
+                          }}
+                        >
+                          <div>
+                            <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 3 }}>
+                              <span style={{ width: 8, height: 8, borderRadius: '50%', background: item.color }} />
+                              <strong style={{ fontSize: '0.85rem', color: '#0f172a' }}>{item.label}</strong>
+                            </div>
+                            <span style={{ fontSize: '0.74rem', color: '#64748b' }}>{item.desc}</span>
+                          </div>
+
+                          <div style={{ position: 'relative', display: 'flex', alignItems: 'center' }}>
+                            <input
+                              type="number"
+                              step="0.01"
+                              value={config[item.key] ?? ''}
+                              onChange={(e) => setConfig({ ...config, [item.key]: e.target.value })}
+                              style={{
+                                width: '100%',
+                                padding: '8px 28px 8px 12px',
+                                borderRadius: 8,
+                                border: '1px solid #cbd5e1',
+                                background: '#f8fafc',
+                                fontWeight: 700,
+                                fontSize: '0.92rem',
+                                color: '#0f172a',
+                                outline: 'none',
+                                boxSizing: 'border-box',
+                              }}
+                            />
+                            <span style={{ position: 'absolute', right: 10, fontSize: '0.82rem', fontWeight: 700, color: '#64748b', pointerEvents: 'none' }}>
+                              %
+                            </span>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+
+                  {/* ── Section 2: 360° Rater Distribution (100%) ── */}
+                  <div
+                    style={{
+                      background: '#f8fafc',
+                      border: '1px solid #e2e8f0',
+                      borderRadius: 14,
+                      padding: '18px 20px',
+                    }}
+                  >
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: 8 }}>
+                      <div>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                          <span style={{ fontSize: '0.72rem', fontWeight: 800, textTransform: 'uppercase', color: '#4f46e5', background: '#eef2ff', padding: '2px 8px', borderRadius: 6, border: '1px solid #c7d2fe' }}>
+                            360° Reviewers
+                          </span>
+                          <h4 style={{ margin: 0, fontSize: '0.98rem', fontWeight: 800, color: '#0f172a' }}>
+                            Rater Weightage Split (Must Total 100%)
+                          </h4>
+                        </div>
+                        <p style={{ margin: '4px 0 0 0', fontSize: '0.8rem', color: '#64748b' }}>
+                          Determines the voice given to direct managers vs anonymous peers vs self reflection.
+                        </p>
+                      </div>
+
+                      <span
+                        style={{
+                          padding: '4px 12px',
+                          borderRadius: 999,
+                          fontSize: '0.76rem',
+                          fontWeight: 700,
+                          background: isRaterBalanced ? '#ecfdf5' : '#fef2f2',
+                          color: isRaterBalanced ? '#059669' : '#dc2626',
+                          border: isRaterBalanced ? '1px solid #a7f3d0' : '1px solid #fecaca',
+                        }}
+                      >
+                        {isRaterBalanced ? '✓ Total Balanced 100%' : `Total: ${raterSum}% (Needs 100%)`}
+                      </span>
+                    </div>
+
+                    {/* Segmented Distribution Bar */}
+                    <div style={{ width: '100%', height: 8, background: '#e2e8f0', borderRadius: 999, overflow: 'hidden', display: 'flex', marginTop: 14, marginBottom: 16 }}>
+                      <div style={{ width: `${Math.max(0, Number(config.weight_manager || 0))}%`, background: '#4f46e5', transition: 'width 0.2s' }} title={`Manager: ${config.weight_manager}%`} />
+                      <div style={{ width: `${Math.max(0, Number(config.weight_peer || 0))}%`, background: '#0284c7', transition: 'width 0.2s' }} title={`Peer: ${config.weight_peer}%`} />
+                      <div style={{ width: `${Math.max(0, Number(config.weight_self || 0))}%`, background: '#0d9488', transition: 'width 0.2s' }} title={`Self: ${config.weight_self}%`} />
+                    </div>
+
+                    {/* 3 Clean Rater Cards */}
+                    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(260px, 1fr))', gap: 12 }}>
+                      {[
+                        {
+                          key: 'weight_manager',
+                          label: 'Manager Rater Weight',
+                          color: '#4f46e5',
+                          desc: 'Direct line reporting manager review',
+                        },
+                        {
+                          key: 'weight_peer',
+                          label: 'Peer Rater Weight',
+                          color: '#0284c7',
+                          desc: 'Aggregated strictly anonymous team feedback',
+                        },
+                        {
+                          key: 'weight_self',
+                          label: 'Self Rater Weight',
+                          color: '#0d9488',
+                          desc: 'Self evaluation submitted by employee',
+                        },
+                      ].map((item) => (
+                        <div
+                          key={item.key}
+                          style={{
+                            background: '#ffffff',
+                            border: '1px solid #e2e8f0',
+                            borderRadius: 12,
+                            padding: '12px 14px',
+                            display: 'flex',
+                            flexDirection: 'column',
+                            justifyContent: 'space-between',
+                            gap: 10,
+                            boxShadow: '0 1px 3px rgba(0,0,0,0.02)',
+                          }}
+                        >
+                          <div>
+                            <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 3 }}>
+                              <span style={{ width: 8, height: 8, borderRadius: '50%', background: item.color }} />
+                              <strong style={{ fontSize: '0.85rem', color: '#0f172a' }}>{item.label}</strong>
+                            </div>
+                            <span style={{ fontSize: '0.74rem', color: '#64748b' }}>{item.desc}</span>
+                          </div>
+
+                          <div style={{ position: 'relative', display: 'flex', alignItems: 'center' }}>
+                            <input
+                              type="number"
+                              step="0.01"
+                              value={config[item.key] ?? ''}
+                              onChange={(e) => setConfig({ ...config, [item.key]: e.target.value })}
+                              style={{
+                                width: '100%',
+                                padding: '8px 28px 8px 12px',
+                                borderRadius: 8,
+                                border: '1px solid #cbd5e1',
+                                background: '#f8fafc',
+                                fontWeight: 700,
+                                fontSize: '0.92rem',
+                                color: '#0f172a',
+                                outline: 'none',
+                                boxSizing: 'border-box',
+                              }}
+                            />
+                            <span style={{ position: 'absolute', right: 10, fontSize: '0.82rem', fontWeight: 700, color: '#64748b', pointerEvents: 'none' }}>
+                              %
+                            </span>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+
+                  {/* ── Section 3: Governance & Guardrails ── */}
+                  <div
+                    style={{
+                      background: '#f8fafc',
+                      border: '1px solid #e2e8f0',
+                      borderRadius: 14,
+                      padding: '18px 20px',
+                    }}
+                  >
+                    <div style={{ marginBottom: 14 }}>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                        <span style={{ fontSize: '0.72rem', fontWeight: 800, textTransform: 'uppercase', color: '#475569', background: '#f1f5f9', padding: '2px 8px', borderRadius: 6, border: '1px solid #cbd5e1' }}>
+                          Guardrails
+                        </span>
+                        <h4 style={{ margin: 0, fontSize: '0.98rem', fontWeight: 800, color: '#0f172a' }}>
+                          Governance, Thresholds & Hike Eligibility
+                        </h4>
+                      </div>
+                      <p style={{ margin: '4px 0 0 0', fontSize: '0.8rem', color: '#64748b' }}>
+                        Safety caps to prevent outlier bias and regulate employee salary appraisal criteria.
+                      </p>
+                    </div>
+
+                    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: 12 }}>
+                      {[
+                        {
+                          key: 'max_peer_weight',
+                          label: 'Max Peer Weight Cap',
+                          suffix: '%',
+                          desc: 'Upper ceiling on peer influence',
+                        },
+                        {
+                          key: 'min_peer_responses',
+                          label: 'Min Peer Responses',
+                          suffix: 'peers',
+                          desc: 'Required before peer score is counted',
+                        },
+                        {
+                          key: 'goal_achievement_cap',
+                          label: 'Goal Achievement Cap',
+                          suffix: '%',
+                          desc: 'Maximum over-achievement allowed',
+                        },
+                        {
+                          key: 'min_tenure_days_for_hike',
+                          label: 'Min Tenure for Hike',
+                          suffix: 'days',
+                          desc: 'Days of service required for hike',
+                        },
+                      ].map((item) => (
+                        <div
+                          key={item.key}
+                          style={{
+                            background: '#ffffff',
+                            border: '1px solid #e2e8f0',
+                            borderRadius: 12,
+                            padding: '12px 14px',
+                            display: 'flex',
+                            flexDirection: 'column',
+                            justifyContent: 'space-between',
+                            gap: 10,
+                            boxShadow: '0 1px 3px rgba(0,0,0,0.02)',
+                          }}
+                        >
+                          <div>
+                            <strong style={{ display: 'block', fontSize: '0.85rem', color: '#0f172a', marginBottom: 2 }}>
+                              {item.label}
+                            </strong>
+                            <span style={{ fontSize: '0.74rem', color: '#64748b' }}>{item.desc}</span>
+                          </div>
+
+                          <div style={{ position: 'relative', display: 'flex', alignItems: 'center' }}>
+                            <input
+                              type="number"
+                              step="0.01"
+                              value={config[item.key] ?? ''}
+                              onChange={(e) => setConfig({ ...config, [item.key]: e.target.value })}
+                              style={{
+                                width: '100%',
+                                padding: '8px 46px 8px 12px',
+                                borderRadius: 8,
+                                border: '1px solid #cbd5e1',
+                                background: '#f8fafc',
+                                fontWeight: 700,
+                                fontSize: '0.92rem',
+                                color: '#0f172a',
+                                outline: 'none',
+                                boxSizing: 'border-box',
+                              }}
+                            />
+                            <span style={{ position: 'absolute', right: 10, fontSize: '0.78rem', fontWeight: 700, color: '#64748b', pointerEvents: 'none' }}>
+                              {item.suffix}
+                            </span>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+
+                  {/* Bottom Save Action Row */}
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', paddingTop: 8, borderTop: '1px solid #f1f5f9', flexWrap: 'wrap', gap: 10 }}>
+                    <div>
+                      {(!isCompBalanced || !isRaterBalanced) && (
+                        <span style={{ fontSize: '0.82rem', color: '#dc2626', fontWeight: 600 }}>
+                          ⚠️ Please adjust weights so both Core Pillars and 360° Raters total exactly 100%.
+                        </span>
+                      )}
+                    </div>
+                    <button
+                      type="submit"
+                      className="btn btn-primary"
                       style={{
-                        padding: '4px 10px',
-                        borderRadius: 999,
-                        fontSize: '0.74rem',
+                        padding: '9px 24px',
+                        fontSize: '0.86rem',
+                        borderRadius: 10,
+                        display: 'inline-flex',
+                        alignItems: 'center',
+                        gap: 6,
                         fontWeight: 700,
-                        background: raterSum === 100 ? '#ecfdf5' : '#fef3c7',
-                        color: raterSum === 100 ? '#047857' : '#b45309',
-                        border: raterSum === 100 ? '1px solid #a7f3d0' : '1px solid #fde68a',
                       }}
                     >
-                      {raterSum === 100 ? '✓ Rater Weights 100%' : `Raters Total: ${raterSum}%`}
-                    </span>
-                    <span
-                      style={{
-                        padding: '4px 10px',
-                        borderRadius: 999,
-                        fontSize: '0.74rem',
-                        fontWeight: 700,
-                        background: compSum === 100 ? '#ecfdf5' : '#fef3c7',
-                        color: compSum === 100 ? '#047857' : '#b45309',
-                        border: compSum === 100 ? '1px solid #a7f3d0' : '1px solid #fde68a',
-                      }}
-                    >
-                      {compSum === 100 ? '✓ Component Weights 100%' : `Components Total: ${compSum}%`}
-                    </span>
+                      <Check size={16} /> Save PMS Configuration
+                    </button>
                   </div>
                 </div>
               );
             })()}
-
-            <div
-              style={{
-                display: 'grid',
-                gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))',
-                gap: 14,
-              }}
-            >
-              {[
-                ['weight_goals', 'Goals Weight (%)', 'Component'],
-                ['weight_competency', 'Competency Weight (%)', 'Component'],
-                ['weight_discipline', 'Discipline Weight (%)', 'Component'],
-                ['weight_growth', 'Growth Weight (%)', 'Component'],
-                ['weight_manager', 'Manager Rater Weight (%)', '360° Rater'],
-                ['weight_peer', 'Peer Rater Weight (%)', '360° Rater'],
-                ['weight_self', 'Self Rater Weight (%)', '360° Rater'],
-                ['max_peer_weight', 'Max Peer Weight Cap (%)', 'Governance'],
-                ['min_peer_responses', 'Min Peer Responses', 'Governance'],
-                ['goal_achievement_cap', 'Goal Achievement Cap (%)', 'Governance'],
-                ['min_tenure_days_for_hike', 'Min Tenure for Hike (Days)', 'Governance'],
-              ].map(([key, label, group]) => (
-                <div
-                  key={key}
-                  style={{
-                    padding: '12px 14px',
-                    borderRadius: 12,
-                    background: '#f8fafc',
-                    border: '1px solid #e2e8f0',
-                  }}
-                >
-                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 4 }}>
-                    <label style={{ fontSize: '0.78rem', fontWeight: 700, color: '#334155' }}>{label}</label>
-                    <span style={{ fontSize: '0.68rem', color: '#94a3b8', textTransform: 'uppercase' }}>{group}</span>
-                  </div>
-                  <input
-                    type="number"
-                    step="0.01"
-                    className="form-input"
-                    value={config[key] ?? ''}
-                    onChange={(e) => setConfig({ ...config, [key]: e.target.value })}
-                    style={{
-                      background: '#ffffff',
-                      fontWeight: 700,
-                      borderRadius: 8,
-                      border: '1px solid #cbd5e1',
-                    }}
-                  />
-                </div>
-              ))}
-            </div>
-
-            <div style={{ marginTop: 16, display: 'flex', justifyContent: 'flex-end' }}>
-              <button
-                type="submit"
-                className="btn btn-primary"
-                style={{ padding: '9px 22px', fontSize: '0.86rem', borderRadius: 10 }}
-              >
-                Save PMS Configuration
-              </button>
-            </div>
           </form>
 
           {/* Competency Parameters */}
           <div className="card" style={{ padding: 22, borderRadius: 16, border: '1px solid #e2e8f0' }}>
-            <div style={{ marginBottom: 14 }}>
-              <h3 style={{ margin: 0, fontSize: '1.1rem', fontWeight: 800, color: '#0f172a' }}>
-                Competency Parameters (1–5 Rating Scale)
-              </h3>
-              <p style={{ margin: '4px 0 0 0', fontSize: '0.84rem', color: '#64748b' }}>
-                Parameters evaluated during 360° reviews. Click on any parameter tag to toggle between Active and Inactive.
-              </p>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', flexWrap: 'wrap', gap: 10, marginBottom: 16 }}>
+              <div>
+                <h3 style={{ margin: 0, fontSize: '1.1rem', fontWeight: 800, color: '#0f172a' }}>
+                  Competency Parameters (1–5 Rating Scale)
+                </h3>
+                <p style={{ margin: '4px 0 0 0', fontSize: '0.84rem', color: '#64748b' }}>
+                  Parameters evaluated during 360° reviews. Click any parameter card to toggle between Active and Inactive.
+                </p>
+              </div>
+              <div style={{ display: 'flex', gap: 6 }}>
+                <span
+                  style={{
+                    padding: '4px 10px',
+                    borderRadius: 999,
+                    fontSize: '0.75rem',
+                    fontWeight: 700,
+                    background: '#ecfdf5',
+                    color: '#059669',
+                    border: '1px solid #a7f3d0',
+                  }}
+                >
+                  {parameters.filter((p) => p.is_active).length} Active
+                </span>
+                <span
+                  style={{
+                    padding: '4px 10px',
+                    borderRadius: 999,
+                    fontSize: '0.75rem',
+                    fontWeight: 700,
+                    background: '#f1f5f9',
+                    color: '#64748b',
+                  }}
+                >
+                  {parameters.length} Total
+                </span>
+              </div>
             </div>
 
+            {/* Clean Add Parameter Toolbar */}
             <form
               onSubmit={handleAddParameter}
-              style={{ display: 'flex', gap: 10, marginBottom: 16, flexWrap: 'wrap' }}
+              style={{
+                display: 'flex',
+                gap: 10,
+                marginBottom: 18,
+                padding: '12px 14px',
+                background: '#f8fafc',
+                border: '1px solid #e2e8f0',
+                borderRadius: 12,
+                flexWrap: 'wrap',
+                alignItems: 'center',
+              }}
             >
-              <input
-                className="form-input"
-                placeholder="Parameter title (e.g. Collaboration & Empathy)"
-                value={newParam.name}
-                onChange={(e) => setNewParam({ ...newParam, name: e.target.value })}
-                required
-                style={{ minWidth: 260, borderRadius: 8 }}
-              />
-              <input
-                className="form-input"
-                placeholder="Short behavioral description..."
-                value={newParam.description}
-                onChange={(e) => setNewParam({ ...newParam, description: e.target.value })}
-                style={{ minWidth: 320, flex: 1, borderRadius: 8 }}
-              />
+              <div style={{ flex: '1 1 240px' }}>
+                <input
+                  type="text"
+                  placeholder="Parameter title (e.g. Collaboration & Empathy)"
+                  value={newParam.name}
+                  onChange={(e) => setNewParam({ ...newParam, name: e.target.value })}
+                  required
+                  style={{
+                    width: '100%',
+                    padding: '9px 12px',
+                    borderRadius: 8,
+                    border: '1px solid #cbd5e1',
+                    background: '#ffffff',
+                    fontSize: '0.85rem',
+                    outline: 'none',
+                    boxSizing: 'border-box',
+                  }}
+                />
+              </div>
+              <div style={{ flex: '2 1 320px' }}>
+                <input
+                  type="text"
+                  placeholder="Short behavioral description..."
+                  value={newParam.description}
+                  onChange={(e) => setNewParam({ ...newParam, description: e.target.value })}
+                  style={{
+                    width: '100%',
+                    padding: '9px 12px',
+                    borderRadius: 8,
+                    border: '1px solid #cbd5e1',
+                    background: '#ffffff',
+                    fontSize: '0.85rem',
+                    outline: 'none',
+                    boxSizing: 'border-box',
+                  }}
+                />
+              </div>
               <button
                 type="submit"
-                className="btn btn-secondary"
-                style={{ borderRadius: 8, padding: '8px 16px', display: 'inline-flex', alignItems: 'center', gap: 6 }}
+                className="btn btn-primary"
+                style={{
+                  borderRadius: 8,
+                  padding: '9px 18px',
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  gap: 6,
+                  fontSize: '0.85rem',
+                  fontWeight: 700,
+                  whiteSpace: 'nowrap',
+                }}
               >
                 <Plus size={15} /> Add Parameter
               </button>
             </form>
 
-            <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
+            {/* Sleek Parameter Cards Grid */}
+            <div
+              style={{
+                display: 'grid',
+                gridTemplateColumns: 'repeat(auto-fill, minmax(280px, 1fr))',
+                gap: 12,
+              }}
+            >
               {parameters.map((p) => (
-                <span
+                <div
                   key={p.id}
                   onClick={() => handleToggleParameter(p)}
+                  title="Click to toggle Active / Inactive"
                   style={{
-                    padding: '8px 14px',
-                    borderRadius: 10,
+                    padding: '12px 14px',
+                    borderRadius: 12,
                     cursor: 'pointer',
-                    background: p.is_active ? '#eff6ff' : '#f1f5f9',
-                    color: p.is_active ? '#1d4ed8' : '#64748b',
-                    border: p.is_active ? '1px solid #bfdbfe' : '1px solid #e2e8f0',
-                    fontSize: '0.82rem',
-                    fontWeight: 700,
-                    display: 'inline-flex',
-                    alignItems: 'center',
-                    gap: 6,
+                    background: p.is_active ? '#ffffff' : '#f8fafc',
+                    border: p.is_active ? '1.5px solid #bfdbfe' : '1px solid #e2e8f0',
+                    boxShadow: p.is_active ? '0 2px 6px rgba(37, 99, 235, 0.06)' : 'none',
+                    display: 'flex',
+                    flexDirection: 'column',
+                    justifyContent: 'space-between',
+                    gap: 8,
                     transition: 'all 0.15s ease',
+                    opacity: p.is_active ? 1 : 0.75,
                   }}
                 >
-                  <span
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                      <span
+                        style={{
+                          width: 8,
+                          height: 8,
+                          borderRadius: '50%',
+                          background: p.is_active ? '#2563eb' : '#94a3b8',
+                        }}
+                      />
+                      <strong style={{ fontSize: '0.88rem', color: p.is_active ? '#0f172a' : '#64748b' }}>
+                        {p.name}
+                      </strong>
+                    </div>
+                    <span
+                      style={{
+                        padding: '2px 8px',
+                        borderRadius: 999,
+                        fontSize: '0.7rem',
+                        fontWeight: 700,
+                        background: p.is_active ? '#eff6ff' : '#f1f5f9',
+                        color: p.is_active ? '#1d4ed8' : '#64748b',
+                        border: p.is_active ? '1px solid #bfdbfe' : '1px solid #cbd5e1',
+                      }}
+                    >
+                      {p.is_active ? 'Active' : 'Inactive'}
+                    </span>
+                  </div>
+
+                  <p
                     style={{
-                      width: 7,
-                      height: 7,
-                      borderRadius: '50%',
-                      background: p.is_active ? '#2563eb' : '#94a3b8',
+                      margin: 0,
+                      fontSize: '0.78rem',
+                      color: p.is_active ? '#475569' : '#94a3b8',
+                      lineHeight: 1.4,
+                      fontStyle: p.description ? 'normal' : 'italic',
                     }}
-                  />
-                  {p.name}
-                  <span style={{ fontSize: '0.72rem', opacity: 0.75 }}>
-                    ({p.is_active ? 'Active' : 'Inactive'})
-                  </span>
-                </span>
+                  >
+                    {p.description || 'No description provided'}
+                  </p>
+                </div>
               ))}
             </div>
           </div>
@@ -3480,52 +3898,115 @@ export default function PerformanceManagement() {
               </p>
             </div>
 
+            {/* Clean Add Slab Toolbar */}
             <form
               onSubmit={handleAddSlab}
-              style={{ display: 'flex', gap: 10, marginBottom: 16, flexWrap: 'wrap' }}
+              style={{
+                display: 'flex',
+                gap: 10,
+                marginBottom: 16,
+                padding: '12px 14px',
+                background: '#f8fafc',
+                border: '1px solid #e2e8f0',
+                borderRadius: 12,
+                flexWrap: 'wrap',
+                alignItems: 'center',
+              }}
             >
-              <input
-                className="form-input"
-                placeholder="Label (e.g. Outstanding)"
-                value={newSlab.label}
-                onChange={(e) => setNewSlab({ ...newSlab, label: e.target.value })}
-                required
-                style={{ minWidth: 180, borderRadius: 8 }}
-              />
-              <input
-                type="number"
-                step="0.01"
-                className="form-input"
-                placeholder="Min Score"
-                value={newSlab.min_score}
-                onChange={(e) => setNewSlab({ ...newSlab, min_score: e.target.value })}
-                required
-                style={{ width: 110, borderRadius: 8 }}
-              />
-              <input
-                type="number"
-                step="0.01"
-                className="form-input"
-                placeholder="Max Score"
-                value={newSlab.max_score}
-                onChange={(e) => setNewSlab({ ...newSlab, max_score: e.target.value })}
-                required
-                style={{ width: 110, borderRadius: 8 }}
-              />
-              <input
-                type="number"
-                step="0.01"
-                className="form-input"
-                placeholder="Hike %"
-                value={newSlab.hike_percent}
-                onChange={(e) => setNewSlab({ ...newSlab, hike_percent: e.target.value })}
-                required
-                style={{ width: 110, borderRadius: 8 }}
-              />
+              <div style={{ flex: '2 1 180px' }}>
+                <input
+                  placeholder="Classification Label (e.g. Outstanding)"
+                  value={newSlab.label}
+                  onChange={(e) => setNewSlab({ ...newSlab, label: e.target.value })}
+                  required
+                  style={{
+                    width: '100%',
+                    padding: '9px 12px',
+                    borderRadius: 8,
+                    border: '1px solid #cbd5e1',
+                    background: '#ffffff',
+                    fontSize: '0.85rem',
+                    outline: 'none',
+                    boxSizing: 'border-box',
+                  }}
+                />
+              </div>
+              <div style={{ flex: '1 1 110px' }}>
+                <input
+                  type="number"
+                  step="0.01"
+                  placeholder="Min Score (e.g. 4.0)"
+                  value={newSlab.min_score}
+                  onChange={(e) => setNewSlab({ ...newSlab, min_score: e.target.value })}
+                  required
+                  style={{
+                    width: '100%',
+                    padding: '9px 12px',
+                    borderRadius: 8,
+                    border: '1px solid #cbd5e1',
+                    background: '#ffffff',
+                    fontSize: '0.85rem',
+                    outline: 'none',
+                    boxSizing: 'border-box',
+                  }}
+                />
+              </div>
+              <div style={{ flex: '1 1 110px' }}>
+                <input
+                  type="number"
+                  step="0.01"
+                  placeholder="Max Score (e.g. 5.0)"
+                  value={newSlab.max_score}
+                  onChange={(e) => setNewSlab({ ...newSlab, max_score: e.target.value })}
+                  required
+                  style={{
+                    width: '100%',
+                    padding: '9px 12px',
+                    borderRadius: 8,
+                    border: '1px solid #cbd5e1',
+                    background: '#ffffff',
+                    fontSize: '0.85rem',
+                    outline: 'none',
+                    boxSizing: 'border-box',
+                  }}
+                />
+              </div>
+              <div style={{ flex: '1 1 110px', position: 'relative', display: 'flex', alignItems: 'center' }}>
+                <input
+                  type="number"
+                  step="0.01"
+                  placeholder="Hike %"
+                  value={newSlab.hike_percent}
+                  onChange={(e) => setNewSlab({ ...newSlab, hike_percent: e.target.value })}
+                  required
+                  style={{
+                    width: '100%',
+                    padding: '9px 24px 9px 12px',
+                    borderRadius: 8,
+                    border: '1px solid #cbd5e1',
+                    background: '#ffffff',
+                    fontSize: '0.85rem',
+                    outline: 'none',
+                    boxSizing: 'border-box',
+                  }}
+                />
+                <span style={{ position: 'absolute', right: 8, fontSize: '0.8rem', color: '#64748b', fontWeight: 700, pointerEvents: 'none' }}>
+                  %
+                </span>
+              </div>
               <button
                 type="submit"
-                className="btn btn-secondary"
-                style={{ borderRadius: 8, padding: '8px 16px', display: 'inline-flex', alignItems: 'center', gap: 6 }}
+                className="btn btn-primary"
+                style={{
+                  borderRadius: 8,
+                  padding: '9px 18px',
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  gap: 6,
+                  fontSize: '0.85rem',
+                  fontWeight: 700,
+                  whiteSpace: 'nowrap',
+                }}
               >
                 <Plus size={15} /> Add Slab
               </button>
@@ -3542,42 +4023,57 @@ export default function PerformanceManagement() {
                   </tr>
                 </thead>
                 <tbody>
-                  {slabs.map((s) => (
-                    <tr key={s.id} style={{ borderBottom: '1px solid #f1f5f9' }}>
-                      <td style={{ padding: '12px 16px', fontWeight: 700, color: '#0f172a' }}>
-                        <span
-                          style={{
-                            padding: '3px 10px',
-                            borderRadius: 999,
-                            fontSize: '0.76rem',
-                            fontWeight: 700,
-                            background: '#eff6ff',
-                            color: '#1d4ed8',
-                            border: '1px solid #bfdbfe',
-                          }}
-                        >
-                          {s.label}
-                        </span>
-                      </td>
-                      <td style={{ padding: '12px 14px', fontWeight: 600, color: '#475569' }}>
-                        {s.min_score} – {s.max_score}
-                      </td>
-                      <td style={{ padding: '12px 14px' }}>
-                        <strong style={{ color: '#059669', fontSize: '0.92rem' }}>+{s.hike_percent}%</strong>
-                      </td>
-                      <td style={{ padding: '12px 16px', textAlign: 'right' }}>
-                        <button
-                          type="button"
-                          className="btn btn-secondary"
-                          style={{ padding: '5px 8px', color: '#dc2626', borderRadius: 8 }}
-                          onClick={() => handleDeleteSlab(s.id)}
-                          title="Delete slab"
-                        >
-                          <Trash2 size={14} />
-                        </button>
-                      </td>
-                    </tr>
-                  ))}
+                  {slabs.map((s) => {
+                    const lbl = (s.label || '').toLowerCase();
+                    const badgeStyle = lbl.includes('out') || lbl.includes('excel')
+                      ? { bg: '#ede9fe', color: '#6d28d9', border: '#ddd6fe' }
+                      : lbl.includes('exceed')
+                      ? { bg: '#dcfce7', color: '#15803d', border: '#bbf7d0' }
+                      : lbl.includes('need') || lbl.includes('improv')
+                      ? { bg: '#fef2f2', color: '#b91c1c', border: '#fecaca' }
+                      : { bg: '#eff6ff', color: '#1d4ed8', border: '#bfdbfe' };
+
+                    return (
+                      <tr key={s.id} style={{ borderBottom: '1px solid #f1f5f9' }}>
+                        <td style={{ padding: '12px 16px', fontWeight: 700, color: '#0f172a' }}>
+                          <span
+                            style={{
+                              padding: '4px 12px',
+                              borderRadius: 999,
+                              fontSize: '0.76rem',
+                              fontWeight: 700,
+                              background: badgeStyle.bg,
+                              color: badgeStyle.color,
+                              border: `1px solid ${badgeStyle.border}`,
+                            }}
+                          >
+                            {s.label}
+                          </span>
+                        </td>
+                        <td style={{ padding: '12px 14px', fontWeight: 600, color: '#475569', fontSize: '0.85rem' }}>
+                          <span style={{ background: '#f1f5f9', padding: '3px 8px', borderRadius: 6, border: '1px solid #e2e8f0' }}>
+                            {s.min_score} – {s.max_score}
+                          </span>
+                        </td>
+                        <td style={{ padding: '12px 14px' }}>
+                          <strong style={{ color: '#059669', fontSize: '0.92rem', background: '#ecfdf5', padding: '3px 8px', borderRadius: 6, border: '1px solid #a7f3d0' }}>
+                            +{s.hike_percent}%
+                          </strong>
+                        </td>
+                        <td style={{ padding: '12px 16px', textAlign: 'right' }}>
+                          <button
+                            type="button"
+                            className="btn btn-secondary"
+                            style={{ padding: '5px 8px', color: '#dc2626', borderRadius: 8 }}
+                            onClick={() => handleDeleteSlab(s.id)}
+                            title="Delete slab"
+                          >
+                            <Trash2 size={14} />
+                          </button>
+                        </td>
+                      </tr>
+                    );
+                  })}
                 </tbody>
               </table>
             </div>
@@ -3593,6 +4089,8 @@ export default function PerformanceManagement() {
           isOpen={!!activeTask}
           onClose={() => setActiveTask(null)}
           title={`360° Performance Evaluation`}
+          maxWidth="860px"
+          maxHeight="92vh"
         >
           <form onSubmit={handleSubmitRatings} style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
             {/* Ratee Profile Header Card */}
@@ -3687,7 +4185,14 @@ export default function PerformanceManagement() {
             )}
 
             {/* Rating Parameters List */}
-            <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
+            <div
+              style={{
+                display: 'grid',
+                gridTemplateColumns:
+                  (activeTask.parameters || []).length > 1 ? 'repeat(auto-fit, minmax(360px, 1fr))' : '1fr',
+                gap: 14,
+              }}
+            >
               {(activeTask.parameters || []).map((p) => {
                 const currentScore = Number(ratingForm[p.id]?.score || 4);
                 const scoreInfo = SCORE_LABELS[currentScore] || SCORE_LABELS[4];
@@ -3890,40 +4395,251 @@ export default function PerformanceManagement() {
       )}
 
       {/* Record Goal Progress Modal */}
-      {progressGoal && (
-        <Modal
-          isOpen={!!progressGoal}
-          onClose={() => setProgressGoal(null)}
-          title={`Record Progress: ${progressGoal.title}`}
-        >
-          <form onSubmit={handleRecordProgress} style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
-            <div className="form-group">
-              <label className="form-label">
-                Actual Value (Target: {progressGoal.target_value} {progressGoal.unit || ''})
-              </label>
-              <input
-                type="number"
-                step="0.01"
-                className="form-input"
-                required
-                value={progressForm.actual_value}
-                onChange={(e) => setProgressForm({ ...progressForm, actual_value: e.target.value })}
-              />
-            </div>
-            <div className="form-group">
-              <label className="form-label">Note</label>
-              <input
-                className="form-input"
-                value={progressForm.note}
-                onChange={(e) => setProgressForm({ ...progressForm, note: e.target.value })}
-              />
-            </div>
-            <button type="submit" className="btn btn-primary">
-              Save Progress
-            </button>
-          </form>
-        </Modal>
-      )}
+      {progressGoal && (() => {
+        const targetVal = Number(progressGoal.target_value) || 100;
+        const currentVal = progressForm.actual_value !== '' ? Number(progressForm.actual_value) : null;
+        const pct = currentVal != null && targetVal > 0 ? Math.round((currentVal / targetVal) * 100) : null;
+        const isCompleted = pct != null && pct >= 100;
+
+        return (
+          <Modal
+            isOpen={!!progressGoal}
+            onClose={() => setProgressGoal(null)}
+            title="Record Goal Progress"
+            maxWidth="560px"
+          >
+            <form onSubmit={handleRecordProgress} style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
+              {/* Goal Overview Card */}
+              <div
+                style={{
+                  background: '#f8fafc',
+                  border: '1px solid #e2e8f0',
+                  borderRadius: 12,
+                  padding: '14px 16px',
+                }}
+              >
+                <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: 10 }}>
+                  <div>
+                    <span
+                      style={{
+                        display: 'inline-block',
+                        padding: '2px 8px',
+                        borderRadius: 6,
+                        fontSize: '0.7rem',
+                        fontWeight: 700,
+                        textTransform: 'uppercase',
+                        background: '#eff6ff',
+                        color: '#1d4ed8',
+                        border: '1px solid #bfdbfe',
+                        marginBottom: 6,
+                      }}
+                    >
+                      {progressGoal.category || 'Goal'} • {progressGoal.weight}% Weight
+                    </span>
+                    <h4 style={{ margin: 0, fontSize: '0.98rem', fontWeight: 800, color: '#0f172a', lineHeight: 1.35 }}>
+                      {progressGoal.title}
+                    </h4>
+                  </div>
+                </div>
+
+                {progressGoal.description && (
+                  <p style={{ margin: '6px 0 0 0', fontSize: '0.8rem', color: '#64748b', lineHeight: 1.45 }}>
+                    {progressGoal.description}
+                  </p>
+                )}
+
+                {/* Target & Current Visual Progress */}
+                <div style={{ marginTop: 12, paddingTop: 12, borderTop: '1px solid #e2e8f0' }}>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', fontSize: '0.8rem', marginBottom: 6 }}>
+                    <span style={{ color: '#64748b' }}>
+                      Target: <strong style={{ color: '#0f172a' }}>{progressGoal.target_value} {progressGoal.unit || ''}</strong>
+                    </span>
+                    {pct != null ? (
+                      <span
+                        style={{
+                          fontWeight: 700,
+                          fontSize: '0.78rem',
+                          padding: '2px 8px',
+                          borderRadius: 999,
+                          background: isCompleted ? '#dcfce7' : '#e0f2fe',
+                          color: isCompleted ? '#15803d' : '#0369a1',
+                        }}
+                      >
+                        {pct}% Achieved
+                      </span>
+                    ) : (
+                      <span style={{ color: '#94a3b8', fontSize: '0.76rem' }}>Enter progress below</span>
+                    )}
+                  </div>
+
+                  <div style={{ width: '100%', height: 7, background: '#e2e8f0', borderRadius: 999, overflow: 'hidden' }}>
+                    <div
+                      style={{
+                        height: '100%',
+                        width: pct != null ? `${Math.min(pct, 100)}%` : '0%',
+                        background: isCompleted ? '#10b981' : 'linear-gradient(90deg, #3b82f6 0%, #2563eb 100%)',
+                        borderRadius: 999,
+                        transition: 'width 0.3s ease, background 0.3s ease',
+                      }}
+                    />
+                  </div>
+                </div>
+              </div>
+
+              {/* Actual Value Input */}
+              <div>
+                <label
+                  style={{
+                    display: 'block',
+                    fontSize: '0.82rem',
+                    fontWeight: 700,
+                    color: '#1e293b',
+                    marginBottom: 6,
+                  }}
+                >
+                  Actual Progress Value <span style={{ color: '#ef4444' }}>*</span>
+                </label>
+                <div style={{ position: 'relative', display: 'flex', alignItems: 'center' }}>
+                  <input
+                    type="number"
+                    step="0.01"
+                    required
+                    placeholder="0.00"
+                    value={progressForm.actual_value}
+                    onChange={(e) => setProgressForm({ ...progressForm, actual_value: e.target.value })}
+                    style={{
+                      width: '100%',
+                      padding: '10px 14px',
+                      paddingRight: progressGoal.unit ? '52px' : '14px',
+                      fontSize: '0.98rem',
+                      fontWeight: 600,
+                      color: '#0f172a',
+                      background: '#ffffff',
+                      border: '1.5px solid #cbd5e1',
+                      borderRadius: 10,
+                      outline: 'none',
+                      boxSizing: 'border-box',
+                    }}
+                  />
+                  {progressGoal.unit && (
+                    <span
+                      style={{
+                        position: 'absolute',
+                        right: 10,
+                        fontSize: '0.8rem',
+                        fontWeight: 700,
+                        color: '#64748b',
+                        background: '#f1f5f9',
+                        padding: '4px 8px',
+                        borderRadius: 6,
+                        pointerEvents: 'none',
+                      }}
+                    >
+                      {progressGoal.unit}
+                    </span>
+                  )}
+                </div>
+
+                {/* Quick Selection Shortcuts */}
+                {(progressGoal.unit === '%' || targetVal === 100) && (
+                  <div style={{ display: 'flex', gap: 6, marginTop: 8, alignItems: 'center', flexWrap: 'wrap' }}>
+                    <span style={{ fontSize: '0.74rem', color: '#64748b', fontWeight: 600 }}>Quick Fill:</span>
+                    {[25, 50, 75, 100].map((quick) => (
+                      <button
+                        key={quick}
+                        type="button"
+                        onClick={() => setProgressForm({ ...progressForm, actual_value: quick })}
+                        style={{
+                          padding: '3px 10px',
+                          borderRadius: 6,
+                          fontSize: '0.74rem',
+                          fontWeight: 700,
+                          background: Number(progressForm.actual_value) === quick ? '#eff6ff' : '#f8fafc',
+                          color: Number(progressForm.actual_value) === quick ? '#2563eb' : '#475569',
+                          border: Number(progressForm.actual_value) === quick ? '1px solid #bfdbfe' : '1px solid #e2e8f0',
+                          cursor: 'pointer',
+                        }}
+                      >
+                        {quick === 100 ? '100% (Completed)' : `${quick}%`}
+                      </button>
+                    ))}
+                  </div>
+                )}
+              </div>
+
+              {/* Progress Note */}
+              <div>
+                <label
+                  style={{
+                    display: 'block',
+                    fontSize: '0.82rem',
+                    fontWeight: 700,
+                    color: '#1e293b',
+                    marginBottom: 6,
+                  }}
+                >
+                  Progress Notes / Deliverables <span style={{ fontSize: '0.75rem', fontWeight: 500, color: '#64748b' }}>(Optional)</span>
+                </label>
+                <textarea
+                  rows={3}
+                  placeholder="Summarize key achievements, completed milestones, or road blocks faced..."
+                  value={progressForm.note || ''}
+                  onChange={(e) => setProgressForm({ ...progressForm, note: e.target.value })}
+                  style={{
+                    width: '100%',
+                    padding: '10px 14px',
+                    fontSize: '0.84rem',
+                    color: '#0f172a',
+                    background: '#ffffff',
+                    border: '1.5px solid #cbd5e1',
+                    borderRadius: 10,
+                    outline: 'none',
+                    resize: 'vertical',
+                    fontFamily: 'inherit',
+                    lineHeight: 1.45,
+                    boxSizing: 'border-box',
+                  }}
+                />
+              </div>
+
+              {/* Actions Footer */}
+              <div
+                style={{
+                  display: 'flex',
+                  justifyContent: 'flex-end',
+                  alignItems: 'center',
+                  gap: 10,
+                  paddingTop: 8,
+                  borderTop: '1px solid #f1f5f9',
+                }}
+              >
+                <button
+                  type="button"
+                  className="btn btn-secondary"
+                  onClick={() => setProgressGoal(null)}
+                  style={{ padding: '8px 16px', fontSize: '0.85rem', borderRadius: 8 }}
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  className="btn btn-primary"
+                  style={{
+                    padding: '8px 20px',
+                    fontSize: '0.85rem',
+                    borderRadius: 8,
+                    display: 'inline-flex',
+                    alignItems: 'center',
+                    gap: 6,
+                  }}
+                >
+                  <Check size={16} /> Save Progress
+                </button>
+              </div>
+            </form>
+          </Modal>
+        );
+      })()}
 
       {/* Review-Window Score Adjust Modal */}
       {adjustModal && (
