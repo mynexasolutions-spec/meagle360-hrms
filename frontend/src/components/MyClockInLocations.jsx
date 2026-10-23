@@ -89,9 +89,17 @@ export default function MyClockInLocations() {
               </div>
             </div>
             <div className="input-group" style={{ marginBottom: 14 }}>
-              <label className="input-label">Pin your location (click map or use current location)</label>
-              <LocationPicker value={form.pin} radius={Number(form.radius) || 100}
-                onChange={(pin) => setForm((f) => ({ ...f, pin }))} height={180} />
+              <label className="input-label">Pin your location (search, click map, or use current location)</label>
+              <LocationPicker
+                value={form.pin}
+                radius={Number(form.radius) || 100}
+                onChange={(pin) => setForm((f) => ({
+                  ...f,
+                  pin,
+                  name: !f.name?.trim() && pin?.primaryName ? pin.primaryName : f.name,
+                }))}
+                height={220}
+              />
             </div>
             <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 8 }}>
               <button type="button" className="btn btn-secondary" onClick={() => setOpen(false)}>Close</button>

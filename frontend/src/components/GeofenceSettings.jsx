@@ -360,12 +360,16 @@ export default function GeofenceSettings() {
               {/* Right Column: Location Picker Map */}
               <div>
                 <label className="input-label" style={{ fontWeight: 700, fontSize: '0.82rem', marginBottom: 4 }}>
-                  Office Map Location (Click to drop pin)
+                  Office Map Location (Search or drop pin)
                 </label>
                 <LocationPicker
                   value={form.pin}
                   radius={Number(form.radius) || cfg.default_radius_m}
-                  onChange={(pin) => setForm((f) => ({ ...f, pin }))}
+                  onChange={(pin) => setForm((f) => ({
+                    ...f,
+                    pin,
+                    name: !f.name?.trim() && pin?.primaryName ? pin.primaryName : f.name,
+                  }))}
                   others={cfg.offices.filter((o) => o.id !== form.id)}
                   height={310}
                 />
