@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { useNavigate, Link } from 'react-router-dom';
+import { useNavigate, useLocation, Link } from 'react-router-dom';
 import {
   getDepartments,
   getDesignations,
@@ -42,6 +42,8 @@ const SALARY_FREQUENCIES = [
 
 export default function OfferLetterStudio() {
   const navigate = useNavigate();
+  const location = useLocation();
+  const candidateState = location.state || {};
   const { user } = useAuth();
   const [company, setCompany] = useState(null);
   const [departments, setDepartments] = useState([]);
@@ -51,8 +53,13 @@ export default function OfferLetterStudio() {
   const [previewZoom, setPreviewZoom] = useState(0.58);
 
   const [form, setForm] = useState({
-    candidate_name: 'gigilia',
-    candidate_address: 'Sanya Balay 76/34 Bdd Chawl, Nr. Doordarshan, Worli Mumbai Maharashtra 400018 India',
+    candidate_name:
+      candidateState.candidate_name || (candidateState.fromAts ? '' : 'gigilia'),
+    candidate_address:
+      candidateState.candidate_address ||
+      (candidateState.fromAts
+        ? ''
+        : 'Sanya Balay 76/34 Bdd Chawl, Nr. Doordarshan, Worli Mumbai Maharashtra 400018 India'),
     department_id: '',
     designation_id: '',
     reporting_to_id: '',
@@ -60,7 +67,11 @@ export default function OfferLetterStudio() {
     employment_type: 'full_time',
     start_date: new Date().toISOString().split('T')[0],
     end_date: '',
-    salary_amount: '4999999.71',
+    salary_amount: candidateState.ctc
+      ? String(candidateState.ctc)
+      : candidateState.fromAts
+      ? ''
+      : '4999999.71',
     salary_frequency: 'annual',
     bonus_details: 'Performance-linked bonus as per company policy',
     other_benefits: 'Health Insurance, Paid Leaves, and other standard company perks.',
@@ -80,13 +91,35 @@ export default function OfferLetterStudio() {
     getDepartments().then((res) => {
       const depts = res.data || [];
       setDepartments(depts);
-      if (depts.length > 0) setForm((prev) => ({ ...prev, department_id: prev.department_id || depts[0].id }));
+      if (depts.length > 0) {
+        let matchedDept = null;
+        if (candidateState.department_name) {
+          matchedDept = depts.find(
+            (d) => d.name.toLowerCase() === candidateState.department_name.toLowerCase()
+          );
+        }
+        setForm((prev) => ({
+          ...prev,
+          department_id: matchedDept ? matchedDept.id : (prev.department_id || depts[0].id),
+        }));
+      }
     }).catch(() => {});
 
     getDesignations().then((res) => {
       const desigs = res.data || [];
       setDesignations(desigs);
-      if (desigs.length > 0) setForm((prev) => ({ ...prev, designation_id: prev.designation_id || desigs[0].id }));
+      if (desigs.length > 0) {
+        let matched = null;
+        if (candidateState.designation_name) {
+          matched = desigs.find(
+            (d) => d.name.toLowerCase() === candidateState.designation_name.toLowerCase()
+          );
+        }
+        setForm((prev) => ({
+          ...prev,
+          designation_id: matched ? matched.id : (prev.designation_id || desigs[0].id),
+        }));
+      }
     }).catch(() => {});
 
     getSites().then((res) => {
@@ -161,7 +194,7 @@ export default function OfferLetterStudio() {
         <div>
           {/* Breadcrumb Back Link */}
           <Link
-            to="/employees"
+            to={candidateState.fromAts ? '/ats/applicants' : '/employees'}
             style={{
               display: 'inline-flex',
               alignItems: 'center',
@@ -176,10 +209,15 @@ export default function OfferLetterStudio() {
             onMouseEnter={(e) => (e.currentTarget.style.color = '#2563eb')}
             onMouseLeave={(e) => (e.currentTarget.style.color = '#64748b')}
           >
-            <ArrowLeft size={13} /> Back to Directory
+            <ArrowLeft size={13} /> {candidateState.fromAts ? 'Back to Applicants' : 'Back to Directory'}
           </Link>
           <h1 style={{ fontSize: '1.25rem', fontWeight: 800, color: '#0f172a', margin: 0, display: 'flex', alignItems: 'center', gap: 8 }}>
             <FileText size={20} style={{ color: '#2563eb' }} /> Offer Letter Studio
+            {candidateState.fromAts && candidateState.candidate_name && (
+              <span style={{ fontSize: '0.72rem', fontWeight: 700, padding: '3px 9px', borderRadius: 9999, backgroundColor: '#ede9fe', color: '#7c3aed', border: '1px solid #ddd6fe' }}>
+                Applicant: {candidateState.candidate_name}
+              </span>
+            )}
           </h1>
           <p style={{ fontSize: '0.75rem', color: '#64748b', margin: '2px 0 0 0' }}>
             Real-time split-screen editor • Instant single-page live preview

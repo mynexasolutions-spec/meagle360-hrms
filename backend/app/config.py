@@ -39,6 +39,13 @@ class Settings(BaseSettings):
     APP_BASE_URL: str = ""
     ALLOWED_ORIGINS: str = ""
 
+    # -- ImageKit (ATS private resumes & documents) -----------
+    IMAGEKIT_URL_ENDPOINT: str = "https://ik.imagekit.io/njhzvqrx2"
+    IMAGEKIT_PUBLIC_KEY: str = ""
+    IMAGEKIT_PRIVATE_KEY: str = ""
+    NEXT_PUBLIC_IMAGEKIT_URL_ENDPOINT: str = ""
+    NEXT_PUBLIC_IMAGEKIT_PUBLIC_KEY: str = ""
+
     # ── AI Assistant (Groq / OpenAI / Gemini) ─────────────────
     AI_PROVIDER: str = "groq"
     GROQ_API_KEY: str = ""

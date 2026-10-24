@@ -89,7 +89,25 @@ __all__ = [
     "FnfSettlement",
     "ActionItem",
     "Notification",
+    "Stage",
+    "JobOpening",
+    "Candidate",
+    "Application",
+    "ApplicationActivity",
+    "InterviewRoundTemplate",
+    "RejectionReason",
+    "Interview",
+    "InterviewPanel",
+    "InterviewFeedback",
+    "Offer",
+    "CareersPageSettings",
 ]
+
+from app.models.ats import (
+    Stage, JobOpening, Candidate, Application, ApplicationActivity,
+    InterviewRoundTemplate, RejectionReason, Interview, InterviewPanel, InterviewFeedback,
+    Offer, CareersPageSettings,
+)
 
 from app.models.pms import (
     PmsConfig, CompetencyParameter, RatingSlab, KpiTemplate, ReviewCycle,

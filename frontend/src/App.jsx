@@ -34,6 +34,13 @@ const Subscriptions = lazy(() => import('./pages/Subscriptions'));
 const Helpdesk = lazy(() => import('./pages/Helpdesk'));
 const AiAssistant = lazy(() => import('./pages/AiAssistant'));
 const PerformanceManagement = lazy(() => import('./pages/PerformanceManagement'));
+const JobOpeningsPage = lazy(() => import('./pages/ats/JobOpeningsPage'));
+const ApplicantsPage = lazy(() => import('./pages/ats/ApplicantsPage'));
+const InterviewsPage = lazy(() => import('./pages/ats/InterviewsPage'));
+const MyInterviewsPage = lazy(() => import('./pages/ats/MyInterviewsPage'));
+const HiringTeamPage = lazy(() => import('./pages/ats/HiringTeamPage'));
+const CareersPage = lazy(() => import('./pages/ats/CareersPage'));
+const CareersBuilderPage = lazy(() => import('./pages/ats/CareersBuilderPage'));
 
 function ProtectedRoute({ children }) {
   const { user, loading, isPlanExpired } = useAuth();
@@ -93,6 +100,10 @@ function AppRoutes() {
           <Route path="/set-password" element={<SetPassword />} />
         </Route>
 
+        {/* Public Careers Page (No login required) */}
+        <Route path="/careers" element={<CareersPage />} />
+        <Route path="/careers/page" element={<CareersPage />} />
+
         {/* Platform (Nexa Solutions) Routes */}
         <Route element={<PublicPlatformRoute><AuthLayout /></PublicPlatformRoute>}>
           <Route path="/platform/login" element={<PlatformLogin />} />
@@ -113,7 +124,7 @@ function AppRoutes() {
             }
           />
           <Route path="employees/:id" element={<EmployeeProfile />} />
-          <Route path="offer-letter" element={<RequirePermission permission="settings:write"><OfferLetterStudio /></RequirePermission>} />
+          <Route path="offer-letter" element={<RequirePermission permission={['settings:write', 'ats:offer:create', 'employees:read', 'ats:application:read']}><OfferLetterStudio /></RequirePermission>} />
           <Route path="relieving-letter" element={<RequirePermission permission="settings:write"><RelievingLetterStudio /></RequirePermission>} />
           <Route path="attendance" element={<Attendance />} />
           <Route path="leave" element={<LeaveManagement />} />
@@ -159,7 +170,60 @@ function AppRoutes() {
           <Route path="helpdesk" element={<Helpdesk />} />
           <Route path="performance" element={<PerformanceManagement />} />
           <Route path="ai-assistant" element={<AiAssistant />} />
+          {/* ATS (Applicant Tracking System) Routes */}
+          <Route
+            path="ats/jobs"
+            element={
+              <RequirePermission permission="ats:job:manage">
+                <JobOpeningsPage />
+              </RequirePermission>
+            }
+          />
+          <Route
+            path="ats/applicants"
+            element={
+              <RequirePermission permission="ats:applicants:view">
+                <ApplicantsPage />
+              </RequirePermission>
+            }
+          />
+          <Route
+            path="ats/interviews"
+            element={
+              <RequirePermission permission={['ats:interview:assign', 'ats:feedback:view_all']}>
+                <InterviewsPage />
+              </RequirePermission>
+            }
+          />
+          <Route
+            path="ats/my-interviews"
+            element={
+              <RequirePermission permission="ats:interview:view_own">
+                <MyInterviewsPage />
+              </RequirePermission>
+            }
+          />
+          <Route
+            path="ats/hiring-team"
+            element={
+              <RequirePermission permission={['ats:settings:manage', 'settings:write']}>
+                <HiringTeamPage />
+              </RequirePermission>
+            }
+          />
         </Route>
+
+        {/* Standalone Full-screen Careers Site Studio (No Sidebar / Distraction-free) */}
+        <Route
+          path="/ats/careers-builder"
+          element={
+            <ProtectedRoute>
+              <RequirePermission permission="ats:job:manage">
+                <CareersBuilderPage />
+              </RequirePermission>
+            </ProtectedRoute>
+          }
+        />
 
         {/* Catch-all */}
         <Route path="*" element={<Navigate to="/" replace />} />

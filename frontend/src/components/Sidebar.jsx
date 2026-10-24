@@ -21,6 +21,8 @@ import {
   UserCheck,
   Briefcase,
   Settings2,
+  UserPlus,
+  Palette,
 } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import Modal from './Modal';
@@ -109,6 +111,19 @@ const NAV_GROUPS = [
     ],
   },
   {
+    id: 'recruitment',
+    type: 'group',
+    label: 'Recruitment (ATS)',
+    icon: UserPlus,
+    items: [
+      { path: '/ats/jobs', label: 'Job Openings', icon: Briefcase, permission: ['ats:job:manage'] },
+      { path: '/ats/applicants', label: 'Applicants', icon: Users, permission: ['ats:applicants:view'] },
+      { path: '/ats/interviews', label: 'Interviews', icon: CalendarDays, permission: ['ats:interview:assign', 'ats:feedback:view_all'] },
+      { path: '/ats/my-interviews', label: 'My Interviews', icon: Clock, permission: ['ats:interview:view_own'] },
+      { path: '/ats/hiring-team', label: 'Hiring Team', icon: UserCheck, permission: ['ats:settings:manage', 'settings:write'] },
+    ],
+  },
+  {
     id: 'administration',
     type: 'group',
     label: 'Administration',
@@ -162,6 +177,7 @@ export default function Sidebar({ sidebarOpen, permissions, roleName }) {
   const [openGroups, setOpenGroups] = useState({
     'my-space': true,
     'hr-ops': false,
+    'recruitment': false,
     'administration': false,
   });
 

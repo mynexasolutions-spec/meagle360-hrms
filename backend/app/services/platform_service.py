@@ -22,6 +22,7 @@ from app.models.user_account import UserAccount
 from app.models.expense_category import ExpenseCategory
 from app.models.leave_type import LeaveType
 from app.models.salary_component import SalaryComponent
+from app.models.ats import Stage
 from app.services.auth_service import hash_password, create_invite_token
 from app.services.email_service import try_send_invite_email
 from app.services.subdomain_service import generate_unique_subdomain
@@ -68,6 +69,15 @@ DEFAULT_INDIA_SALARY_COMPONENTS = [
     ("TDS (Income Tax)", "deduction", "fixed", 0.0, True, False, 40),
 ]
 
+DEFAULT_ATS_STAGES = [
+    {"name": "Applied", "code": "APPLIED", "display_order": 1, "is_initial": True, "is_terminal": False, "terminal_type": None},
+    {"name": "Screening", "code": "SCREENING", "display_order": 2, "is_initial": False, "is_terminal": False, "terminal_type": None},
+    {"name": "Interview", "code": "INTERVIEW", "display_order": 3, "is_initial": False, "is_terminal": False, "terminal_type": None},
+    {"name": "Offer", "code": "OFFER", "display_order": 4, "is_initial": False, "is_terminal": False, "terminal_type": None},
+    {"name": "Hired", "code": "HIRED", "display_order": 5, "is_initial": False, "is_terminal": True, "terminal_type": "hired"},
+    {"name": "Rejected", "code": "REJECTED", "display_order": 6, "is_initial": False, "is_terminal": True, "terminal_type": "rejected"},
+]
+
 DEFAULT_ROLE_PERMISSIONS = {
     "Admin": {
         "employees:read": True, "employees:write": True,
@@ -77,6 +87,30 @@ DEFAULT_ROLE_PERMISSIONS = {
         "settings:read": True, "settings:write": True,
         "expenses:read": True, "expenses:write": True, "expenses:approve": True,
         "payroll:read": True, "payroll:write": True, "payroll:approve": True,
+        "ats:job:manage": True,
+        "ats:applicants:view": True,
+        "ats:application:move_stage": True,
+        "ats:application:reject": True,
+        "ats:interview:assign": True,
+        "ats:interview:view_own": True,
+        "ats:feedback:submit": True,
+        "ats:feedback:view_all": True,
+        "ats:offer:manage": True,
+        "ats:hire:convert": True,
+        "ats:settings:manage": True,
+    },
+    "Recruiter": {
+        "employees:read": True,
+        "ats:job:manage": True,
+        "ats:applicants:view": True,
+        "ats:application:move_stage": True,
+        "ats:application:reject": True,
+        "ats:interview:assign": True,
+        "ats:interview:view_own": True,
+    },
+    "Interviewer": {
+        "ats:interview:view_own": True,
+        "ats:feedback:submit": True,
     },
     "Manager": {
         "employees:read": True,
@@ -131,7 +165,7 @@ def create_company(
     seat_limit: int | None,
     trial_days: int | None = None,
 ) -> Company:
-    """Create a new tenant, pending setup, with its default role set seeded."""
+    """Create a new tenant, pending setup, with its default role set and ATS stages seeded."""
     subdomain = generate_unique_subdomain(name, db)
     plan_ends_at = compute_plan_ends_at(plan_tier, trial_days)
     company = Company(
@@ -162,6 +196,20 @@ def create_company(
         ))
 
     db.add(LeaveType(id=uuid.uuid4(), company_id=company.id, name="Loss of Pay", accrual_rate=0, is_paid=False))
+
+    # Seed default ATS hiring pipeline stages
+    for s in DEFAULT_ATS_STAGES:
+        db.add(Stage(
+            id=uuid.uuid4(),
+            company_id=company.id,
+            name=s["name"],
+            code=s["code"],
+            display_order=s["display_order"],
+            is_initial=s["is_initial"],
+            is_terminal=s["is_terminal"],
+            terminal_type=s["terminal_type"],
+            is_active=True,
+        ))
 
     db.commit()
     db.refresh(company)
