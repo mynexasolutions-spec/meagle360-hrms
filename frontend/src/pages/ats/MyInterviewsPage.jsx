@@ -205,6 +205,41 @@ export default function MyInterviewsPage() {
     };
   };
 
+  const buildGoogleCalendarUrl = (iv, roundInfo) => {
+    if (!iv.scheduled_at) return '#';
+
+    const start = new Date(iv.scheduled_at);
+    const durationMs = (iv.duration_minutes || 45) * 60 * 1000;
+    const end = new Date(start.getTime() + durationMs);
+
+    const formatGCalDate = (date) => date.toISOString().replace(/-|:|\.\d{3}/g, '');
+
+    const title = `Interview: ${iv.candidate_name} - ${iv.job_title} (Round ${roundInfo.num})`;
+    const details = [
+      `Candidate: ${iv.candidate_name}${iv.candidate_email ? ` (${iv.candidate_email})` : ''}`,
+      `Role: ${iv.job_title || 'N/A'}`,
+      `Round: Round ${roundInfo.num} • ${roundInfo.name}`,
+      `Mode: ${iv.interview_type || 'Virtual'}`,
+      iv.meeting_link_or_location ? `Link / Location: ${iv.meeting_link_or_location}` : '',
+    ]
+      .filter(Boolean)
+      .join('\n');
+
+    const params = new URLSearchParams({
+      action: 'TEMPLATE',
+      text: title,
+      dates: `${formatGCalDate(start)}/${formatGCalDate(end)}`,
+      details,
+      location: iv.meeting_link_or_location || '',
+    });
+
+    if (iv.candidate_email) {
+      params.append('add', iv.candidate_email);
+    }
+
+    return `https://calendar.google.com/calendar/render?${params.toString()}`;
+  };
+
   return (
     <div className="max-w-7xl mx-auto space-y-6">
       {/* Header */}
@@ -360,61 +395,75 @@ export default function MyInterviewsPage() {
                             </span>
                           </div>
 
-                          {iv.meeting_link_or_location && (
-                            <div className="pt-1">
-                              {String(iv.interview_type || '').toLowerCase().includes('person') ? (
-                                <button
-                                  type="button"
-                                  onClick={() =>
-                                    setViewingLocationModal({
-                                      candidateName: iv.candidate_name,
-                                      roundName: `Round ${roundInfo.num} • ${roundInfo.name}`,
-                                      type: 'In-Person',
-                                      location: iv.meeting_link_or_location,
-                                    })
-                                  }
-                                  className="w-full text-left py-1 px-2 rounded-lg bg-amber-50 hover:bg-amber-100/90 border border-amber-200/90 text-[11px] font-medium text-amber-900 flex items-center justify-between gap-1 transition-colors group cursor-pointer"
-                                  title="Click to view full office address"
-                                >
-                                  <span className="truncate flex items-center gap-1 min-w-0">
-                                    <MapPin size={11} className="shrink-0 text-amber-700" />
-                                    <span className="truncate">{iv.meeting_link_or_location}</span>
-                                  </span>
-                                  <span className="shrink-0 text-[10px] font-bold text-amber-700 underline group-hover:text-amber-900">
-                                    View
-                                  </span>
-                                </button>
-                              ) : iv.meeting_link_or_location.startsWith('http') ? (
-                                <a
-                                  href={iv.meeting_link_or_location}
-                                  target="_blank"
-                                  rel="noopener noreferrer"
-                                  className="inline-flex items-center gap-1.5 py-0.5 px-2 rounded-md bg-blue-50 hover:bg-blue-100 border border-blue-200 text-[11px] font-semibold text-blue-700 transition-colors"
-                                  title="Join virtual interview meeting"
-                                >
-                                  <Video size={11} className="shrink-0 text-blue-600" />
-                                  <span>Join Meeting</span>
-                                  <ExternalLink size={10} className="shrink-0 text-blue-500" />
-                                </a>
-                              ) : (
-                                <button
-                                  type="button"
-                                  onClick={() =>
-                                    setViewingLocationModal({
-                                      candidateName: iv.candidate_name,
-                                      roundName: `Round ${roundInfo.num} • ${roundInfo.name}`,
-                                      type: 'Virtual',
-                                      location: iv.meeting_link_or_location,
-                                    })
-                                  }
-                                  className="inline-flex items-center gap-1.5 py-0.5 px-2 rounded-md bg-blue-50 hover:bg-blue-100 border border-blue-200 text-[11px] font-semibold text-blue-700 transition-colors"
-                                >
-                                  <Video size={11} className="shrink-0 text-blue-600" />
-                                  <span>Meeting Link</span>
-                                </button>
-                              )}
-                            </div>
-                          )}
+                          <div className="pt-1 flex items-center flex-wrap gap-1.5">
+                            {iv.meeting_link_or_location && (
+                              <>
+                                {String(iv.interview_type || '').toLowerCase().includes('person') ? (
+                                  <button
+                                    type="button"
+                                    onClick={() =>
+                                      setViewingLocationModal({
+                                        candidateName: iv.candidate_name,
+                                        roundName: `Round ${roundInfo.num} • ${roundInfo.name}`,
+                                        type: 'In-Person',
+                                        location: iv.meeting_link_or_location,
+                                      })
+                                    }
+                                    className="w-full text-left py-1 px-2 rounded-lg bg-amber-50 hover:bg-amber-100/90 border border-amber-200/90 text-[11px] font-medium text-amber-900 flex items-center justify-between gap-1 transition-colors group cursor-pointer"
+                                    title="Click to view full office address"
+                                  >
+                                    <span className="truncate flex items-center gap-1 min-w-0">
+                                      <MapPin size={11} className="shrink-0 text-amber-700" />
+                                      <span className="truncate">{iv.meeting_link_or_location}</span>
+                                    </span>
+                                    <span className="shrink-0 text-[10px] font-bold text-amber-700 underline group-hover:text-amber-900">
+                                      View
+                                    </span>
+                                  </button>
+                                ) : iv.meeting_link_or_location.startsWith('http') ? (
+                                  <a
+                                    href={iv.meeting_link_or_location}
+                                    target="_blank"
+                                    rel="noopener noreferrer"
+                                    className="inline-flex items-center gap-1.5 py-0.5 px-2 rounded-md bg-blue-50 hover:bg-blue-100 border border-blue-200 text-[11px] font-semibold text-blue-700 transition-colors"
+                                    title="Join virtual interview meeting"
+                                  >
+                                    <Video size={11} className="shrink-0 text-blue-600" />
+                                    <span>Join Meeting</span>
+                                    <ExternalLink size={10} className="shrink-0 text-blue-500" />
+                                  </a>
+                                ) : (
+                                  <button
+                                    type="button"
+                                    onClick={() =>
+                                      setViewingLocationModal({
+                                        candidateName: iv.candidate_name,
+                                        roundName: `Round ${roundInfo.num} • ${roundInfo.name}`,
+                                        type: 'Virtual',
+                                        location: iv.meeting_link_or_location,
+                                      })
+                                    }
+                                    className="inline-flex items-center gap-1.5 py-0.5 px-2 rounded-md bg-blue-50 hover:bg-blue-100 border border-blue-200 text-[11px] font-semibold text-blue-700 transition-colors"
+                                  >
+                                    <Video size={11} className="shrink-0 text-blue-600" />
+                                    <span>Meeting Link</span>
+                                  </button>
+                                )}
+                              </>
+                            )}
+
+                            <a
+                              href={buildGoogleCalendarUrl(iv, roundInfo)}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              className="inline-flex items-center gap-1.5 py-0.5 px-2 rounded-md bg-white hover:bg-emerald-100/80 border border-emerald-300 text-[11px] font-semibold text-emerald-800 transition-colors shadow-2xs"
+                              title="Save this interview to your Google Calendar"
+                            >
+                              <Calendar size={11} className="shrink-0 text-emerald-600" />
+                              <span>Add to Google Calendar</span>
+                              <ExternalLink size={10} className="shrink-0 text-emerald-600" />
+                            </a>
+                          </div>
                         </div>
                       </div>
                     ) : (
