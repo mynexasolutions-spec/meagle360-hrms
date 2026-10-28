@@ -54,9 +54,48 @@ def send_email(to_email: str, subject: str, text_body: str, html_body: str) -> N
         raise RuntimeError(f"Brevo send failed ({response.status_code}): {response.text}")
 
 
+def resolve_base_url(token: str, explicit: str | None = None) -> str:
+    """Frontend base URL for links emailed to the token's user.
+
+    Order: explicit override -> local-dev APP_BASE_URL (localhost) -> the user's
+    own tenant subdomain (https://<subdomain>.<TENANT_BASE_DOMAIN>) -> APP_BASE_URL.
+    Deriving it from the user's company keeps every tenant's links on its own
+    domain regardless of a stale/global APP_BASE_URL or proxy-stripped headers.
+    """
+    if explicit:
+        return explicit.rstrip("/")
+    app_url = (settings.APP_BASE_URL or "").rstrip("/")
+    if "localhost" in app_url or "127.0.0.1" in app_url:
+        return app_url
+    try:
+        from uuid import UUID
+        from app.database import SessionLocal
+        from app.models.company import Company
+        from app.models.user_account import UserAccount
+        from app.services.auth_service import decode_token
+
+        payload = decode_token(token)
+        if payload and payload.get("sub"):
+            db = SessionLocal()
+            try:
+                row = (
+                    db.query(Company.subdomain)
+                    .join(UserAccount, UserAccount.company_id == Company.id)
+                    .filter(UserAccount.id == UUID(payload["sub"]))
+                    .first()
+                )
+            finally:
+                db.close()
+            if row and row[0] and settings.TENANT_BASE_DOMAIN:
+                return f"https://{row[0]}.{settings.TENANT_BASE_DOMAIN}"
+    except Exception:
+        logger.exception("Could not resolve tenant base URL; falling back to APP_BASE_URL")
+    return app_url or "http://localhost:5173"
+
+
 def send_invite_email(to_email: str, full_name: str, invite_token: str) -> None:
     """Send a new-account setup link to a newly invited employee or company admin."""
-    base_url = (settings.APP_BASE_URL or "http://localhost:5173").rstrip("/")
+    base_url = resolve_base_url(invite_token)
     setup_link = f"{base_url}/set-password?token={invite_token}"
     monogram = "".join(w[0] for w in settings.BREVO_SENDER_NAME.split()[:2]).upper() or "M"
 
@@ -169,9 +208,9 @@ def try_send_invite_email(to_email: str, full_name: str, invite_token: str) -> b
 
 
 
-def send_password_reset_email(to_email: str, full_name: str, reset_token: str) -> None:
+def send_password_reset_email(to_email: str, full_name: str, reset_token: str, base_url: str | None = None) -> None:
     """Send a password reset link to a user."""
-    base_url = (settings.APP_BASE_URL or "http://localhost:5173").rstrip("/")
+    base_url = resolve_base_url(reset_token, base_url)
     reset_link = f"{base_url}/reset-password?token={reset_token}"
     monogram = "".join(w[0] for w in settings.BREVO_SENDER_NAME.split()[:2]).upper() or "M"
 
@@ -254,10 +293,10 @@ def send_password_reset_email(to_email: str, full_name: str, reset_token: str) -
     send_email(to_email, f"Reset your {settings.BREVO_SENDER_NAME} password", text_body, html_body)
 
 
-def try_send_password_reset_email(to_email: str, full_name: str, reset_token: str) -> bool:
+def try_send_password_reset_email(to_email: str, full_name: str, reset_token: str, base_url: str | None = None) -> bool:
     """Best-effort password reset email send."""
     try:
-        send_password_reset_email(to_email, full_name, reset_token)
+        send_password_reset_email(to_email, full_name, reset_token, base_url=base_url)
         return True
     except Exception:
         logger.exception("Failed to send password reset email to %s", to_email)

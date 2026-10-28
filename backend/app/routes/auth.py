@@ -1,6 +1,6 @@
 """Auth routes — login, register, token refresh, current user."""
 
-from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import APIRouter, Depends, HTTPException, Request, status
 from fastapi.security import OAuth2PasswordRequestForm
 from sqlalchemy.orm import Session
 
@@ -27,7 +27,7 @@ from app.services.auth_service import (
     reset_password_from_token,
     set_password_from_invite,
 )
-from app.services.email_service import try_send_password_reset_email
+from app.services.email_service import resolve_base_url, try_send_password_reset_email
 
 logger = logging.getLogger(__name__)
 settings = get_settings()
@@ -117,7 +117,11 @@ def set_password(data: SetPasswordRequest, db: Session = Depends(get_db)):
 
 
 @router.post("/forgot-password", status_code=status.HTTP_200_OK)
-def forgot_password(data: ForgotPasswordRequest, db: Session = Depends(get_db)):
+def forgot_password(
+    data: ForgotPasswordRequest,
+    request: Request,
+    db: Session = Depends(get_db),
+):
     """Request a password reset link for any role: Org Admin, Manager, or Employee."""
     user = UserAccountRepository.get_by_email_global(db, data.email)
     dev_reset_url = None
@@ -125,9 +129,10 @@ def forgot_password(data: ForgotPasswordRequest, db: Session = Depends(get_db)):
     if user:
         token = create_password_reset_token(user.id)
         full_name = user.employee.full_name if user.employee else "User"
-        sent = try_send_password_reset_email(user.email, full_name, token)
 
-        base_url = (settings.APP_BASE_URL or "http://localhost:5173").rstrip("/")
+        base_url = resolve_base_url(token)
+        sent = try_send_password_reset_email(user.email, full_name, token, base_url=base_url)
+
         reset_link = f"{base_url}/reset-password?token={token}"
 
         if not sent or settings.DEBUG or not settings.BREVO_API_KEY:

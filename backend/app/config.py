@@ -37,6 +37,8 @@ class Settings(BaseSettings):
     CLOUDINARY_API_KEY: str = ""
     CLOUDINARY_API_SECRET: str = ""
     APP_BASE_URL: str = ""
+    # Root domain tenants live under: https://<subdomain>.<TENANT_BASE_DOMAIN>
+    TENANT_BASE_DOMAIN: str = "meagle360.com"
     ALLOWED_ORIGINS: str = ""
 
     # -- ImageKit (ATS private resumes & documents) -----------
