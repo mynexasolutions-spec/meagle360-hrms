@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, Link } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { login, getMe } from '../api/auth';
 import { getMySubscription } from '../api/company';
@@ -184,7 +184,22 @@ export default function Login() {
         </div>
 
         <div className="input-group" style={{ marginBottom: 24 }}>
-          <label className="input-label" htmlFor="password" style={{ fontWeight: 700, fontSize: '0.8125rem', color: '#334155' }}>Password</label>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 6 }}>
+            <label className="input-label" htmlFor="password" style={{ fontWeight: 700, fontSize: '0.8125rem', color: '#334155', margin: 0 }}>Password</label>
+            <Link
+              to="/forgot-password"
+              style={{
+                fontSize: '0.8125rem',
+                color: '#2563eb',
+                fontWeight: 600,
+                textDecoration: 'none',
+              }}
+              onMouseEnter={(e) => { e.currentTarget.style.color = '#1d4ed8'; e.currentTarget.style.textDecoration = 'underline'; }}
+              onMouseLeave={(e) => { e.currentTarget.style.color = '#2563eb'; e.currentTarget.style.textDecoration = 'none'; }}
+            >
+              Forgot password?
+            </Link>
+          </div>
           <div style={{ position: 'relative' }}>
             <Lock
               size={18}

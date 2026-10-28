@@ -22,6 +22,7 @@ from app.repositories.employee_repo import EmployeeRepository
 from app.repositories.platform_admin_repo import PlatformAdminRepository
 
 INVITE_TOKEN_EXPIRE_HOURS = 48
+PASSWORD_RESET_TOKEN_EXPIRE_MINUTES = 60
 
 settings = get_settings()
 pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
@@ -60,6 +61,16 @@ def create_platform_token(admin_id: UUID) -> str:
         "sub": str(admin_id),
         "exp": datetime.now(timezone.utc)
         + timedelta(minutes=settings.ACCESS_TOKEN_EXPIRE_MINUTES),
+    }
+    return jwt.encode(payload, settings.JWT_SECRET, algorithm=settings.JWT_ALGORITHM)
+
+
+def create_password_reset_token(user_account_id: UUID) -> str:
+    """Short-lived, single-purpose token e-mailed to a user so they can reset their password."""
+    payload = {
+        "type": "password_reset",
+        "sub": str(user_account_id),
+        "exp": datetime.now(timezone.utc) + timedelta(minutes=PASSWORD_RESET_TOKEN_EXPIRE_MINUTES),
     }
     return jwt.encode(payload, settings.JWT_SECRET, algorithm=settings.JWT_ALGORITHM)
 
@@ -155,6 +166,29 @@ def set_password_from_invite(db: Session, token: str, new_password: str) -> User
     company = db.query(Company).filter(Company.id == user.company_id).first()
     if company and company.status == "pending_setup":
         company.status = "active"
+
+    db.commit()
+    db.refresh(user)
+    return user
+
+
+def reset_password_from_token(db: Session, token: str, new_password: str) -> UserAccount:
+    """Redeem a password reset token (or invite token): sets the real password."""
+    payload = decode_token(token)
+    if not payload or payload.get("type") not in ("password_reset", "invite"):
+        raise ValueError("Invalid or expired password reset link")
+
+    user = UserAccountRepository.get_by_id_global(db, UUID(payload["sub"]))
+    if not user:
+        raise ValueError("User account is no longer valid")
+
+    user.password_hash = hash_password(new_password)
+    if payload.get("type") == "invite":
+        user.invite_accepted_at = datetime.now(timezone.utc)
+        from app.models.company import Company
+        company = db.query(Company).filter(Company.id == user.company_id).first()
+        if company and company.status == "pending_setup":
+            company.status = "active"
 
     db.commit()
     db.refresh(user)

@@ -11,6 +11,8 @@ import LoadingScreen from './components/LoadingScreen';
 // Lazy-loaded routes for code-splitting
 const Login = lazy(() => import('./pages/Login'));
 const SetPassword = lazy(() => import('./pages/SetPassword'));
+const ForgotPassword = lazy(() => import('./pages/ForgotPassword'));
+const ResetPassword = lazy(() => import('./pages/ResetPassword'));
 const PlatformLogin = lazy(() => import('./pages/PlatformLogin'));
 const PlatformDashboard = lazy(() => import('./pages/PlatformDashboard'));
 const Dashboard = lazy(() => import('./pages/Dashboard'));
@@ -95,9 +97,11 @@ function AppRoutes() {
         {/* Tenant Auth Routes */}
         <Route element={<PublicRoute><AuthLayout /></PublicRoute>}>
           <Route path="/login" element={<Login />} />
+          <Route path="/forgot-password" element={<ForgotPassword />} />
         </Route>
         <Route element={<AuthLayout />}>
           <Route path="/set-password" element={<SetPassword />} />
+          <Route path="/reset-password" element={<ResetPassword />} />
         </Route>
 
         {/* Public Careers Page (No login required) */}

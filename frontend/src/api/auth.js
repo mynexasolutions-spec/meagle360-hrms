@@ -11,3 +11,9 @@ export const getMe = () => client.get('/auth/me');
 
 export const setPassword = (token, new_password) =>
   client.post('/auth/set-password', { token, new_password });
+
+export const forgotPassword = (email) =>
+  client.post('/auth/forgot-password', { email });
+
+export const resetPassword = (token, new_password) =>
+  client.post('/auth/reset-password', { token, new_password });

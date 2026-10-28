@@ -7,9 +7,14 @@ from sqlalchemy.orm import Session
 from app.database import get_db
 from app.dependencies import get_current_user, require_permissions, get_company_from_subdomain
 from app.models.user_account import UserAccount
+import logging
+from app.config import get_settings
+from app.repositories.user_account_repo import UserAccountRepository
 from app.schemas.auth import (
+    ForgotPasswordRequest,
     LoginRequest,
     RegisterRequest,
+    ResetPasswordRequest,
     TokenResponse,
     UserResponse,
 )
@@ -17,9 +22,15 @@ from app.schemas.platform import SetPasswordRequest
 from app.services.auth_service import (
     authenticate_user,
     create_access_token,
+    create_password_reset_token,
     register_user,
+    reset_password_from_token,
     set_password_from_invite,
 )
+from app.services.email_service import try_send_password_reset_email
+
+logger = logging.getLogger(__name__)
+settings = get_settings()
 
 router = APIRouter(prefix="/api/auth", tags=["Authentication"])
 
@@ -103,6 +114,41 @@ def set_password(data: SetPasswordRequest, db: Session = Depends(get_db)):
     except ValueError as e:
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(e))
     return {"message": "Password set successfully. You can now log in."}
+
+
+@router.post("/forgot-password", status_code=status.HTTP_200_OK)
+def forgot_password(data: ForgotPasswordRequest, db: Session = Depends(get_db)):
+    """Request a password reset link for any role: Org Admin, Manager, or Employee."""
+    user = UserAccountRepository.get_by_email_global(db, data.email)
+    dev_reset_url = None
+
+    if user:
+        token = create_password_reset_token(user.id)
+        full_name = user.employee.full_name if user.employee else "User"
+        sent = try_send_password_reset_email(user.email, full_name, token)
+
+        base_url = (settings.APP_BASE_URL or "http://localhost:5173").rstrip("/")
+        reset_link = f"{base_url}/reset-password?token={token}"
+
+        if not sent or settings.DEBUG or not settings.BREVO_API_KEY:
+            logger.info("Password reset requested for %s. Reset link: %s", user.email, reset_link)
+            if not settings.BREVO_API_KEY:
+                dev_reset_url = reset_link
+
+    return {
+        "message": "If that email is registered with us, a password reset link has been sent.",
+        "dev_reset_url": dev_reset_url,
+    }
+
+
+@router.post("/reset-password", status_code=status.HTTP_200_OK)
+def reset_password(data: ResetPasswordRequest, db: Session = Depends(get_db)):
+    """Reset password using a valid reset token."""
+    try:
+        reset_password_from_token(db, data.token, data.new_password)
+    except ValueError as e:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(e))
+    return {"message": "Password reset successfully. You can now log in with your new password."}
 
 
 @router.get("/me", response_model=UserResponse)

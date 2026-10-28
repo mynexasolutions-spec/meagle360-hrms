@@ -166,3 +166,99 @@ def try_send_invite_email(to_email: str, full_name: str, invite_token: str) -> b
     except Exception:
         logger.exception("Failed to send invite email to %s", to_email)
         return False
+
+
+
+def send_password_reset_email(to_email: str, full_name: str, reset_token: str) -> None:
+    """Send a password reset link to a user."""
+    base_url = (settings.APP_BASE_URL or "http://localhost:5173").rstrip("/")
+    reset_link = f"{base_url}/reset-password?token={reset_token}"
+    monogram = "".join(w[0] for w in settings.BREVO_SENDER_NAME.split()[:2]).upper() or "M"
+
+    text_body = (
+        f"Hi {full_name},\n\n"
+        f"We received a request to reset your password on {settings.BREVO_SENDER_NAME}. "
+        f"Click the link below to set a new password. "
+        f"This link expires in 60 minutes.\n\n"
+        f"{reset_link}\n\n"
+        f"If you did not request this, please ignore this email. Your password will remain unchanged."
+    )
+
+    html_body = f"""\
+<!DOCTYPE html>
+<html>
+<body style="margin:0; padding:0; background-color:#f1f5f9; font-family:-apple-system,Segoe UI,Roboto,Helvetica,Arial,sans-serif;">
+  <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background-color:#f1f5f9; padding:32px 16px;">
+    <tr>
+      <td align="center">
+        <table role="presentation" width="560" cellpadding="0" cellspacing="0" style="max-width:560px; width:100%; background-color:#ffffff; border-radius:16px; overflow:hidden; border:1px solid #e2e8f0;">
+          <!-- Accent bar -->
+          <tr>
+            <td style="height:5px; background-color:#2563eb; font-size:0; line-height:0;">&nbsp;</td>
+          </tr>
+          <!-- Header -->
+          <tr>
+            <td style="padding:40px 40px 8px 40px; text-align:center;">
+              <table role="presentation" cellpadding="0" cellspacing="0" style="margin:0 auto 22px auto;">
+                <tr>
+                  <td width="60" height="60" align="center" valign="middle" bgcolor="#2563eb"
+                      style="width:60px; height:60px; border-radius:18px; background-color:#2563eb; background-image:linear-gradient(135deg,#2563eb,#1d4ed8);">
+                    <span style="display:block; font-family:-apple-system,Segoe UI,Roboto,Helvetica,Arial,sans-serif; font-size:22px; font-weight:800; color:#ffffff; letter-spacing:0.5px;">{monogram}</span>
+                  </td>
+                </tr>
+              </table>
+              <p style="margin:0 0 8px 0; font-size:11px; font-weight:700; letter-spacing:1.5px; text-transform:uppercase; color:#2563eb;">Security Notification</p>
+              <h1 style="margin:0; font-size:22px; font-weight:800; color:#0f172a;">Password Reset Request</h1>
+            </td>
+          </tr>
+          <!-- Body -->
+          <tr>
+            <td style="padding:20px 40px 4px 40px;">
+              <p style="margin:0 0 16px 0; color:#334155; font-size:15px; line-height:1.6;">Hi {full_name},</p>
+              <p style="margin:0 0 28px 0; color:#334155; font-size:15px; line-height:1.6;">
+                We received a request to reset your password for your <strong>{settings.BREVO_SENDER_NAME}</strong> HRMS account.
+                Click the button below to choose a new password. This link will expire in <strong>60 minutes</strong>.
+              </p>
+              <table role="presentation" cellpadding="0" cellspacing="0" style="margin:0 auto 32px auto;">
+                <tr>
+                  <td align="center">
+                    <a href="{reset_link}"
+                       style="display:inline-block; padding:14px 36px; background-color:#2563eb; background-image:linear-gradient(135deg,#2563eb,#1d4ed8); color:#ffffff; font-size:15px; font-weight:700; text-decoration:none; border-radius:10px; letter-spacing:0.2px;">
+                      Reset Password
+                    </a>
+                  </td>
+                </tr>
+              </table>
+              <p style="margin:0 0 16px 0; color:#64748b; font-size:13px; line-height:1.6;">
+                Button not working? Copy and paste this URL into your browser:<br>
+                <a href="{reset_link}" style="color:#2563eb; word-break:break-all;">{reset_link}</a>
+              </p>
+            </td>
+          </tr>
+          <!-- Footer -->
+          <tr>
+            <td style="padding:20px 40px 28px 40px; background-color:#f8fafc; border-top:1px solid #e2e8f0;">
+              <p style="margin:0; color:#94a3b8; font-size:12px; line-height:1.6; text-align:center;">
+                If you did not request a password reset, you can safely ignore this email.<br>
+                &copy; {settings.BREVO_SENDER_NAME}
+              </p>
+            </td>
+          </tr>
+        </table>
+      </td>
+    </tr>
+  </table>
+</body>
+</html>
+"""
+    send_email(to_email, f"Reset your {settings.BREVO_SENDER_NAME} password", text_body, html_body)
+
+
+def try_send_password_reset_email(to_email: str, full_name: str, reset_token: str) -> bool:
+    """Best-effort password reset email send."""
+    try:
+        send_password_reset_email(to_email, full_name, reset_token)
+        return True
+    except Exception:
+        logger.exception("Failed to send password reset email to %s", to_email)
+        return False
