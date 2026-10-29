@@ -42,6 +42,35 @@ def is_demo_user(user: UserAccount, company: Company | None = None) -> bool:
     return False
 
 
+# TEMPORARY (testing): tenants where Meagle AI is restricted to the Org Admin only.
+# Managers/Employees are locked out; the Org Admin gets AI_ADMIN_ONLY_DAILY_LIMIT chats/day.
+AI_ADMIN_ONLY_SUBDOMAINS = {"nexa-solutions-llc"}
+AI_ADMIN_ONLY_DAILY_LIMIT = 20
+
+
+def is_ai_admin_only_tenant(company: Company | None) -> bool:
+    """True if Meagle AI is restricted to the Org Admin for this tenant."""
+    if company is None:
+        return False
+    return (company.subdomain or "").strip().lower() in AI_ADMIN_ONLY_SUBDOMAINS
+
+
+def is_org_admin(user: UserAccount) -> bool:
+    """True only for users holding the 'Admin' role (not Manager / HR Manager)."""
+    return any(
+        r and r.name and r.name.strip().lower() == "admin" for r in user.all_roles
+    )
+
+
+def enforce_ai_role_access(user: UserAccount, company: Company | None) -> None:
+    """Raise HTTP 403 when a non-Org-Admin uses AI on an admin-only tenant."""
+    if is_ai_admin_only_tenant(company) and not is_org_admin(user):
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Meagle AI is currently available only to the Organization Admin for this workspace.",
+        )
+
+
 def get_start_of_ist_day_utc() -> datetime:
     """Return the 00:00:00 IST boundary for today converted to UTC."""
     today_ist = get_ist_today()
@@ -55,8 +84,13 @@ def get_user_chat_quota(
     company: Company | None = None,
 ) -> dict[str, Any]:
     """Retrieve today's AI chat usage and remaining limit for a user."""
-    demo = is_demo_user(user, company)
-    limit = DEFAULT_DEMO_DAILY_CHAT_LIMIT if demo else None
+    if is_ai_admin_only_tenant(company):
+        # is_demo=True keeps the existing frontend quota UI / limit-reached handling working.
+        demo = True
+        limit = AI_ADMIN_ONLY_DAILY_LIMIT
+    else:
+        demo = is_demo_user(user, company)
+        limit = DEFAULT_DEMO_DAILY_CHAT_LIMIT if demo else None
 
     start_of_day_utc = get_start_of_ist_day_utc()
 

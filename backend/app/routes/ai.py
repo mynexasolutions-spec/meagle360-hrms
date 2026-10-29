@@ -21,6 +21,7 @@ from app.schemas.ai import (
 from app.services.ai.agent_service import AIAgentService
 from app.services.ai.llm_client import LLMClient, LLMProviderError
 from app.services.ai.quota_service import (
+    enforce_ai_role_access,
     enforce_chat_quota,
     get_user_chat_quota,
     record_chat_usage,
@@ -58,6 +59,7 @@ def chat_with_assistant(
 ):
     """Process a natural-language HR query using role-scoped tools (Admin/Manager vs Employee)."""
     company = db.query(Company).filter(Company.id == company_id).first()
+    enforce_ai_role_access(current_user, company)
     enforce_chat_quota(db, current_user, company)
 
     admin_mode = is_admin_or_manager(current_user)
@@ -202,9 +204,13 @@ def execute_ai_action(
 @router.post("/transcribe", response_model=AITranscribeResponse)
 async def transcribe_voice(
     file: UploadFile = File(...),
+    db: Session = Depends(get_db),
+    company_id: UUID = Depends(get_company_id),
     current_user: UserAccount = Depends(get_current_user),
 ):
     """Transcribe recorded audio (Hindi / Hinglish / English) via Groq Whisper."""
+    company = db.query(Company).filter(Company.id == company_id).first()
+    enforce_ai_role_access(current_user, company)
     audio_bytes = await file.read()
     if not audio_bytes:
         raise HTTPException(status_code=400, detail="Uploaded audio file is empty.")
@@ -231,6 +237,9 @@ def get_daily_digest(
     current_user: UserAccount = Depends(get_current_user),
 ):
     """Role-aware live daily snapshot for the AI Assistant header and Hero pills."""
+    enforce_ai_role_access(
+        current_user, db.query(Company).filter(Company.id == company_id).first()
+    )
     admin_mode = is_admin_or_manager(current_user)
     toolbox = AIToolbox(
         db=db,
