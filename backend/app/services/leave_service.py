@@ -206,6 +206,116 @@ class LeaveService:
         self.db.refresh(leave_req)
         return leave_req
 
+    def update_leave_request(
+        self,
+        request_id: UUID,
+        data: dict,
+        actor_employee_id: UUID | None = None,
+    ) -> LeaveRequest | None:
+        """Update an existing leave request (dates, leave_type_id, status) and
+        automatically reconcile the employee's leave balance."""
+        leave_req = self.request_repo.get_by_id(request_id)
+        if not leave_req:
+            return None
+
+        old_status = leave_req.status
+        old_type_id = leave_req.leave_type_id
+        old_start = leave_req.start_date
+        old_end = leave_req.end_date
+        old_days = (old_end - old_start).days + 1
+        old_year = old_start.year
+        old_type = self.type_repo.get_by_id(old_type_id)
+        old_is_paid = True if not old_type else old_type.is_paid
+
+        new_type_id = data.get("leave_type_id") or old_type_id
+        new_start = data.get("start_date") or old_start
+        new_end = data.get("end_date") or old_end
+        new_status = data.get("status") or old_status
+
+        if new_status not in ("pending", "approved", "rejected"):
+            raise ValueError("Status must be 'pending', 'approved', or 'rejected'.")
+        if new_end < new_start:
+            raise ValueError("End date cannot be before start date.")
+
+        new_days = (new_end - new_start).days + 1
+        new_year = new_start.year
+        new_type = self.type_repo.get_by_id(new_type_id)
+        new_is_paid = True if not new_type else new_type.is_paid
+
+        # Check overlapping requests (excluding the current request itself)
+        if new_status in ("pending", "approved"):
+            overlapping = [
+                r for r in self.request_repo.get_by_employee_and_date_range(
+                    leave_req.employee_id, new_start, new_end
+                )
+                if r.id != leave_req.id
+            ]
+            if overlapping:
+                raise ValueError(
+                    "This employee already has another pending or approved leave request overlapping these dates."
+                )
+
+        # 1. Refund old balance if the request was previously approved and paid
+        if old_status == "approved" and old_is_paid:
+            old_balance = self.balance_repo.get_specific(
+                leave_req.employee_id, old_type_id, old_year
+            )
+            if old_balance:
+                old_balance.balance += Decimal(old_days)
+                self.db.flush()
+
+        # 2. Validate & deduct new balance if the updated request is approved (or pending check) and paid
+        if new_status in ("approved", "pending") and new_is_paid:
+            new_balance = self.balance_repo.get_specific(
+                leave_req.employee_id, new_type_id, new_year
+            )
+            if not new_balance:
+                type_name = new_type.name if new_type else "this leave type"
+                raise ValueError(
+                    f"No leave balance record found for {type_name} in {new_year}. Please adjust or accrue balance first."
+                )
+            if new_balance.balance < new_days:
+                raise ValueError(
+                    f"Insufficient leave balance for {new_type.name if new_type else 'selected type'}. "
+                    f"Available: {new_balance.balance}, Required: {new_days}"
+                )
+            if new_status == "approved":
+                new_balance.balance -= Decimal(new_days)
+
+        leave_req.leave_type_id = new_type_id
+        leave_req.start_date = new_start
+        leave_req.end_date = new_end
+        leave_req.status = new_status
+
+        log_action(
+            self.db,
+            self.company_id,
+            actor_employee_id,
+            "leave.updated_by_admin",
+            "leave_request",
+            leave_req.id,
+            details={
+                "old": {
+                    "leave_type_id": str(old_type_id),
+                    "start_date": str(old_start),
+                    "end_date": str(old_end),
+                    "days": old_days,
+                    "status": old_status,
+                },
+                "new": {
+                    "leave_type_id": str(new_type_id),
+                    "start_date": str(new_start),
+                    "end_date": str(new_end),
+                    "days": new_days,
+                    "status": new_status,
+                },
+            },
+        )
+        self.db.commit()
+        self.db.refresh(leave_req)
+        return leave_req
+
+
     def count_pending(self) -> int:
         return self.request_repo.count_pending()
 

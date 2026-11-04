@@ -15,6 +15,7 @@ from app.schemas.leave import (
     LeaveTypeResponse,
     LeaveRequestCreate,
     AdminLeaveRecordCreate,
+    LeaveRequestUpdate,
     LeaveRequestResponse,
     LeaveApprovalRequest,
     LeaveBalanceResponse,
@@ -220,6 +221,41 @@ def approve_reject(
         )
     except ValueError as e:
         raise HTTPException(status_code=400, detail=str(e))
+
+
+@router.put("/requests/{request_id}", response_model=LeaveRequestResponse)
+def update_leave_request(
+    request_id: UUID,
+    data: LeaveRequestUpdate,
+    db: Session = Depends(get_db),
+    company_id: UUID = Depends(get_company_id),
+    current_user: UserAccount = Depends(require_permissions("leave:approve")),
+):
+    """Edit an existing leave request (dates, leave type, or status) and reconcile balance."""
+    svc = LeaveService(db, company_id)
+    try:
+        result = svc.update_leave_request(
+            request_id,
+            data.model_dump(exclude_unset=True),
+            current_user.employee_id,
+        )
+        if not result:
+            raise HTTPException(status_code=404, detail="Leave request not found")
+        return LeaveRequestResponse(
+            id=result.id,
+            employee_id=result.employee_id,
+            leave_type_id=result.leave_type_id,
+            start_date=result.start_date,
+            end_date=result.end_date,
+            status=result.status,
+            created_at=result.created_at,
+            leave_type_name=result.leave_type.name if result.leave_type else None,
+            employee_name=result.employee.full_name if result.employee else None,
+        )
+    except ValueError as e:
+        raise HTTPException(status_code=400, detail=str(e))
+
+
 @router.get("/balance", response_model=list[LeaveBalanceResponse])
 def get_balance(
     year: int | None = None,

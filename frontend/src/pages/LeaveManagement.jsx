@@ -3,7 +3,7 @@ import { useAuth } from '../context/AuthContext';
 import { usePopup } from '../context/PopupContext';
 import {
   getLeaveTypes, getLeaveBalance, getMyRequests,
-  getPendingRequests, requestLeave, recordLeaveForEmployee, approveReject, adjustBalance,
+  getPendingRequests, requestLeave, recordLeaveForEmployee, approveReject, updateLeaveRequest, adjustBalance,
   createLeaveType, updateLeaveType, accrueMonthly, getLeaveHistory,
 } from '../api/leave';
 import { getEmployees } from '../api/employees';
@@ -24,6 +24,7 @@ export default function LeaveManagement() {
   const [employees, setEmployees] = useState([]);
   const [showRequest, setShowRequest] = useState(false);
   const [showRecordLeave, setShowRecordLeave] = useState(false);
+  const [editingRequest, setEditingRequest] = useState(null);
   const [editBalance, setEditBalance] = useState(null);
   const [showLeaveTypeModal, setShowLeaveTypeModal] = useState(null);
   const [showAdjustBalance, setShowAdjustBalance] = useState(false);
@@ -477,6 +478,9 @@ export default function LeaveManagement() {
                       <button className="btn btn-danger btn-sm" onClick={() => handleApproval(r.id, 'rejected')}>
                         <X size={14} /> Reject
                       </button>
+                      <button className="btn btn-secondary btn-sm" onClick={() => setEditingRequest(r)}>
+                        <Pencil size={14} /> Edit
+                      </button>
                     </div>
                   </td>
                 </tr>
@@ -568,6 +572,7 @@ export default function LeaveManagement() {
                   <th style={{ whiteSpace: 'nowrap' }}>Days</th>
                   <th style={{ whiteSpace: 'nowrap' }}>Status</th>
                   <th style={{ whiteSpace: 'nowrap' }}>Requested On</th>
+                  <th style={{ whiteSpace: 'nowrap' }}>Actions</th>
                 </tr>
               </thead>
               <tbody>
@@ -580,6 +585,17 @@ export default function LeaveManagement() {
                     <td style={{ whiteSpace: 'nowrap' }}>{Math.max(1, Math.round((new Date(r.end_date) - new Date(r.start_date)) / 86400000) + 1)}</td>
                     <td style={{ whiteSpace: 'nowrap' }}><span className={`badge badge-${r.status}`}>{r.status}</span></td>
                     <td style={{ whiteSpace: 'nowrap', color: '#64748b' }}>{new Date(r.created_at).toLocaleDateString()}</td>
+                    <td style={{ whiteSpace: 'nowrap' }}>
+                      <div className="leave-row-actions" style={{ display: 'flex', gap: 6 }}>
+                        <button
+                          className="btn btn-secondary btn-sm"
+                          onClick={() => setEditingRequest(r)}
+                          title="Edit dates, leave type, or status"
+                        >
+                          <Pencil size={14} /> Edit
+                        </button>
+                      </div>
+                    </td>
                   </tr>
                 ))}
               </tbody>
@@ -713,6 +729,24 @@ export default function LeaveManagement() {
             showToast({
               title: 'Leave Recorded',
               message: 'Employee leave entry has been recorded successfully.',
+              type: 'success',
+            });
+          }}
+        />
+      )}
+
+      {/* Edit Leave Request Modal (Admin / Approver) */}
+      {editingRequest && (
+        <EditLeaveRequestModal
+          request={editingRequest}
+          leaveTypes={types}
+          onClose={() => setEditingRequest(null)}
+          onSuccess={() => {
+            loadData();
+            if (tab === 'history') loadHistory();
+            showToast({
+              title: 'Leave Updated',
+              message: 'Leave request and employee balance have been updated.',
               type: 'success',
             });
           }}
@@ -974,77 +1008,89 @@ function RecordLeaveModal({ employees, leaveTypes, onClose, onSuccess }) {
   };
 
   return (
-    <Modal title="Record / Backdate Employee Leave" onClose={onClose}>
+    <Modal
+      title="Record / Backdate Employee Leave"
+      onClose={onClose}
+      maxWidth="620px"
+      maxHeight="95vh"
+    >
       <form onSubmit={handleSubmit}>
         {error && (
-          <div style={{ marginBottom: 12, color: 'var(--accent-rose)', fontSize: '0.875rem' }}>
+          <div style={{ marginBottom: 10, color: 'var(--accent-rose)', fontSize: '0.85rem' }}>
             {error}
           </div>
         )}
-        <p style={{ fontSize: '0.8125rem', color: '#64748b', marginTop: 0, marginBottom: 14 }}>
+        <p style={{ fontSize: '0.8125rem', color: '#64748b', marginTop: 0, marginBottom: 14, lineHeight: 1.45 }}>
           Directly enter past (retroactive) or upcoming leave for an employee. Approved entries immediately deduct from their leave balance.
         </p>
-        <div className="input-group">
-          <label className="input-label">Employee</label>
-          <select
-            className="input-field"
-            value={form.employee_id}
-            onChange={(e) => setForm({ ...form, employee_id: e.target.value })}
-            required
-          >
-            <option value="">Select employee...</option>
-            {employees.map((e) => (
-              <option key={e.id} value={e.id}>{e.full_name}</option>
-            ))}
-          </select>
+
+        <div className="form-grid-2">
+          <div className="input-group" style={{ marginBottom: 14 }}>
+            <label className="input-label">Employee</label>
+            <select
+              className="input-field"
+              value={form.employee_id}
+              onChange={(e) => setForm({ ...form, employee_id: e.target.value })}
+              required
+            >
+              <option value="">Select employee...</option>
+              {employees.map((e) => (
+                <option key={e.id} value={e.id}>{e.full_name}</option>
+              ))}
+            </select>
+          </div>
+          <div className="input-group" style={{ marginBottom: 14 }}>
+            <label className="input-label">Leave Type</label>
+            <select
+              className="input-field"
+              value={form.leave_type_id}
+              onChange={(e) => setForm({ ...form, leave_type_id: e.target.value })}
+              required
+            >
+              <option value="">Select type...</option>
+              {leaveTypes.map((t) => (
+                <option key={t.id} value={t.id}>{t.name}</option>
+              ))}
+            </select>
+          </div>
         </div>
-        <div className="input-group">
-          <label className="input-label">Leave Type</label>
-          <select
-            className="input-field"
-            value={form.leave_type_id}
-            onChange={(e) => setForm({ ...form, leave_type_id: e.target.value })}
-            required
-          >
-            <option value="">Select type...</option>
-            {leaveTypes.map((t) => (
-              <option key={t.id} value={t.id}>{t.name}</option>
-            ))}
-          </select>
+
+        <div className="form-grid-2">
+          <div className="input-group" style={{ marginBottom: 14 }}>
+            <label className="input-label">Start Date</label>
+            <input
+              type="date"
+              className="input-field"
+              value={form.start_date}
+              onChange={(e) =>
+                setForm({
+                  ...form,
+                  start_date: e.target.value,
+                  end_date: form.end_date && form.end_date < e.target.value ? e.target.value : form.end_date,
+                })
+              }
+              required
+            />
+            {isRetroactive && (
+              <div style={{ marginTop: 4, fontSize: '0.75rem', color: '#2563eb', fontWeight: 600 }}>
+                Retroactive (backdated) leave entry.
+              </div>
+            )}
+          </div>
+          <div className="input-group" style={{ marginBottom: 14 }}>
+            <label className="input-label">End Date</label>
+            <input
+              type="date"
+              className="input-field"
+              value={form.end_date}
+              min={form.start_date || undefined}
+              onChange={(e) => setForm({ ...form, end_date: e.target.value })}
+              required
+            />
+          </div>
         </div>
-        <div className="input-group">
-          <label className="input-label">Start Date</label>
-          <input
-            type="date"
-            className="input-field"
-            value={form.start_date}
-            onChange={(e) =>
-              setForm({
-                ...form,
-                start_date: e.target.value,
-                end_date: form.end_date && form.end_date < e.target.value ? e.target.value : form.end_date,
-              })
-            }
-            required
-          />
-          {isRetroactive && (
-            <div style={{ marginTop: 6, fontSize: '0.78rem', color: '#2563eb', fontWeight: 600 }}>
-              Retroactive (backdated) leave entry selected.
-            </div>
-          )}
-        </div>
-        <div className="input-group">
-          <label className="input-label">End Date</label>
-          <input
-            type="date"
-            className="input-field"
-            value={form.end_date}
-            min={form.start_date || undefined}
-            onChange={(e) => setForm({ ...form, end_date: e.target.value })}
-            required
-          />
-        </div>
-        <div className="input-group">
+
+        <div className="input-group" style={{ marginBottom: 14 }}>
           <label className="input-label">Status</label>
           <select
             className="input-field"
@@ -1055,11 +1101,167 @@ function RecordLeaveModal({ employees, leaveTypes, onClose, onSuccess }) {
             <option value="pending">Pending (Send to Approval Queue)</option>
           </select>
         </div>
-        <div style={{ display: 'flex', gap: 10, justifyContent: 'flex-end', marginTop: 20 }}>
+        <div style={{ display: 'flex', gap: 10, justifyContent: 'flex-end', marginTop: 14, paddingTop: 12, borderTop: '1px solid #e2e8f0' }}>
           <button type="button" className="btn btn-secondary" onClick={onClose}>Cancel</button>
           <button type="submit" className="btn btn-primary" disabled={saving}>
             {saving ? 'Recording...' : 'Record Leave'}
           </button>
+        </div>
+      </form>
+    </Modal>
+  );
+}
+
+function EditLeaveRequestModal({ request, leaveTypes, onClose, onSuccess }) {
+  const [form, setForm] = useState({
+    leave_type_id: request.leave_type_id || '',
+    start_date: request.start_date || '',
+    end_date: request.end_date || '',
+    status: request.status || 'approved',
+  });
+  const [error, setError] = useState('');
+  const [saving, setSaving] = useState(false);
+
+  const oldDays = Math.max(
+    1,
+    Math.round((new Date(request.end_date) - new Date(request.start_date)) / 86400000) + 1
+  );
+  const newDays =
+    form.start_date && form.end_date && form.end_date >= form.start_date
+      ? Math.max(1, Math.round((new Date(form.end_date) - new Date(form.start_date)) / 86400000) + 1)
+      : 0;
+
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+    setError('');
+    if (form.end_date < form.start_date) {
+      setError('End date cannot be before start date.');
+      return;
+    }
+    setSaving(true);
+    try {
+      await updateLeaveRequest(request.id, form);
+      onSuccess();
+      onClose();
+    } catch (err) {
+      setError(err.response?.data?.detail || 'Failed to update leave request');
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  return (
+    <Modal
+      title={`Edit Leave — ${request.employee_name || 'Employee'}`}
+      onClose={onClose}
+      maxWidth="620px"
+      maxHeight="95vh"
+    >
+      <form onSubmit={handleSubmit}>
+        {error && (
+          <div style={{ marginBottom: 10, color: 'var(--accent-rose)', fontSize: '0.85rem' }}>
+            {error}
+          </div>
+        )}
+        <p style={{ fontSize: '0.8125rem', color: '#64748b', marginTop: 0, marginBottom: 14, lineHeight: 1.45 }}>
+          Update dates, leave type, or status. The employee&apos;s leave balance will be automatically recalculated and adjusted.
+        </p>
+
+        <div className="form-grid-2">
+          <div className="input-group" style={{ marginBottom: 14 }}>
+            <label className="input-label">Leave Type</label>
+            <select
+              className="input-field"
+              value={form.leave_type_id}
+              onChange={(e) => setForm({ ...form, leave_type_id: e.target.value })}
+              required
+            >
+              <option value="">Select type...</option>
+              {leaveTypes.map((t) => (
+                <option key={t.id} value={t.id}>{t.name}</option>
+              ))}
+            </select>
+          </div>
+
+          <div className="input-group" style={{ marginBottom: 14 }}>
+            <label className="input-label">Status</label>
+            <select
+              className="input-field"
+              value={form.status}
+              onChange={(e) => setForm({ ...form, status: e.target.value })}
+            >
+              <option value="approved">Approved</option>
+              <option value="pending">Pending</option>
+              <option value="rejected">Rejected / Cancelled (Refunds Balance)</option>
+            </select>
+          </div>
+        </div>
+
+        <div className="form-grid-2">
+          <div className="input-group" style={{ marginBottom: 14 }}>
+            <label className="input-label">Start Date</label>
+            <input
+              type="date"
+              className="input-field"
+              value={form.start_date}
+              onChange={(e) =>
+                setForm({
+                  ...form,
+                  start_date: e.target.value,
+                  end_date: form.end_date && form.end_date < e.target.value ? e.target.value : form.end_date,
+                })
+              }
+              required
+            />
+          </div>
+
+          <div className="input-group" style={{ marginBottom: 14 }}>
+            <label className="input-label">End Date</label>
+            <input
+              type="date"
+              className="input-field"
+              value={form.end_date}
+              min={form.start_date || undefined}
+              onChange={(e) => setForm({ ...form, end_date: e.target.value })}
+              required
+            />
+          </div>
+        </div>
+
+        <div
+          style={{
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'space-between',
+            flexWrap: 'wrap',
+            gap: 12,
+            marginTop: 6,
+            paddingTop: 14,
+            borderTop: '1px solid #e2e8f0',
+          }}
+        >
+          {newDays > 0 ? (
+            <div
+              style={{
+                padding: '7px 12px',
+                borderRadius: 10,
+                background: '#f8fafc',
+                border: '1px solid #e2e8f0',
+                fontSize: '0.8125rem',
+                color: '#334155',
+              }}
+            >
+              Duration: <strong>{oldDays} day{oldDays === 1 ? '' : 's'}</strong> →{' '}
+              <strong>{form.status === 'rejected' ? '0 days (Cancelled)' : `${newDays} day${newDays === 1 ? '' : 's'}`}</strong>
+            </div>
+          ) : <div />}
+
+          <div style={{ display: 'flex', gap: 10, marginLeft: 'auto' }}>
+            <button type="button" className="btn btn-secondary" onClick={onClose}>Cancel</button>
+            <button type="submit" className="btn btn-primary" disabled={saving}>
+              {saving ? 'Saving...' : 'Save Changes'}
+            </button>
+          </div>
         </div>
       </form>
     </Modal>

@@ -19,6 +19,9 @@ export const getLeaveHistory = (params = {}) => client.get('/leave/history', { p
 export const approveReject = (id, status) =>
   client.put(`/leave/approve/${id}`, { status });
 
+export const updateLeaveRequest = (id, data) =>
+  client.put(`/leave/requests/${id}`, data);
+
 export const getLeaveBalance = (year) =>
   client.get('/leave/balance', { params: { year } });
 

@@ -64,6 +64,13 @@ class LeaveApprovalRequest(BaseModel):
     status: str  # approved, rejected
 
 
+class LeaveRequestUpdate(BaseModel):
+    leave_type_id: UUID | None = None
+    start_date: date | None = None
+    end_date: date | None = None
+    status: str | None = None  # pending, approved, rejected
+
+
 class LeaveBalanceResponse(BaseModel):
     id: UUID
     employee_id: UUID
