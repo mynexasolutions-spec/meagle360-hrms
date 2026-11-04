@@ -8,6 +8,8 @@ export const updateLeaveType = (id, data) => client.put(`/leave/types/${id}`, da
 
 export const requestLeave = (data) => client.post('/leave/request', data);
 
+export const recordLeaveForEmployee = (data) => client.post('/leave/record', data);
+
 export const getMyRequests = () => client.get('/leave/my-requests');
 
 export const getPendingRequests = () => client.get('/leave/pending');

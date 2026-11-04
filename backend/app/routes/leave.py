@@ -14,6 +14,7 @@ from app.schemas.leave import (
     LeaveTypeUpdate,
     LeaveTypeResponse,
     LeaveRequestCreate,
+    AdminLeaveRecordCreate,
     LeaveRequestResponse,
     LeaveApprovalRequest,
     LeaveBalanceResponse,
@@ -71,6 +72,39 @@ def request_leave(
     svc = LeaveService(db, company_id)
     try:
         return svc.request_leave(current_user.employee_id, data.model_dump())
+    except ValueError as e:
+        raise HTTPException(status_code=400, detail=str(e))
+
+
+@router.post("/record", response_model=LeaveRequestResponse, status_code=201)
+def record_leave_for_employee(
+    data: AdminLeaveRecordCreate,
+    db: Session = Depends(get_db),
+    company_id: UUID = Depends(get_company_id),
+    current_user: UserAccount = Depends(require_permissions("leave:approve")),
+):
+    """Record a leave entry (retroactive or upcoming) on behalf of an employee."""
+    svc = LeaveService(db, company_id)
+    try:
+        result = svc.record_leave_for_employee(
+            employee_id=data.employee_id,
+            leave_type_id=data.leave_type_id,
+            start_date=data.start_date,
+            end_date=data.end_date,
+            status=data.status,
+            actor_employee_id=current_user.employee_id,
+        )
+        return LeaveRequestResponse(
+            id=result.id,
+            employee_id=result.employee_id,
+            leave_type_id=result.leave_type_id,
+            start_date=result.start_date,
+            end_date=result.end_date,
+            status=result.status,
+            created_at=result.created_at,
+            leave_type_name=result.leave_type.name if result.leave_type else None,
+            employee_name=result.employee.full_name if result.employee else None,
+        )
     except ValueError as e:
         raise HTTPException(status_code=400, detail=str(e))
 

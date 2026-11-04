@@ -3,7 +3,7 @@ import { useAuth } from '../context/AuthContext';
 import { usePopup } from '../context/PopupContext';
 import {
   getLeaveTypes, getLeaveBalance, getMyRequests,
-  getPendingRequests, requestLeave, approveReject, adjustBalance,
+  getPendingRequests, requestLeave, recordLeaveForEmployee, approveReject, adjustBalance,
   createLeaveType, updateLeaveType, accrueMonthly, getLeaveHistory,
 } from '../api/leave';
 import { getEmployees } from '../api/employees';
@@ -23,6 +23,7 @@ export default function LeaveManagement() {
   const [pending, setPending] = useState([]);
   const [employees, setEmployees] = useState([]);
   const [showRequest, setShowRequest] = useState(false);
+  const [showRecordLeave, setShowRecordLeave] = useState(false);
   const [editBalance, setEditBalance] = useState(null);
   const [showLeaveTypeModal, setShowLeaveTypeModal] = useState(null);
   const [showAdjustBalance, setShowAdjustBalance] = useState(false);
@@ -385,6 +386,28 @@ export default function LeaveManagement() {
                 Leave Types
               </button>
             )}
+            {(canApprove || isAdmin) && (
+              <button
+                onClick={() => setShowRecordLeave(true)}
+                style={{
+                  marginLeft: 'auto',
+                  padding: '9px 18px',
+                  borderRadius: 12,
+                  fontSize: '0.85rem',
+                  fontWeight: 700,
+                  border: 'none',
+                  background: 'linear-gradient(135deg, #2563eb, #1d4ed8)',
+                  color: '#ffffff',
+                  cursor: 'pointer',
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: 6,
+                  boxShadow: '0 4px 12px rgba(37, 99, 235, 0.25)',
+                }}
+              >
+                <Plus size={15} /> Record / Backdate Leave
+              </button>
+            )}
           </div>
 
       {/* My Requests */}
@@ -651,9 +674,13 @@ export default function LeaveManagement() {
                 className="input-field"
                 value={form.start_date}
                 onChange={(e) => setForm({ ...form, start_date: e.target.value})}
-                min={new Date().toISOString().split("T")[0]}
                 required
               />
+              {form.start_date && form.start_date < new Date().toISOString().split("T")[0] && (
+                <div style={{ marginTop: 6, fontSize: '0.78rem', color: '#d97706', fontWeight: 500 }}>
+                  Retroactive (backdated) leave entry — this will be submitted for manager/HR approval.
+                </div>
+              )}
             </div>
             <div className="input-group">
               <label className="input-label">End Date</label>
@@ -672,6 +699,24 @@ export default function LeaveManagement() {
             </div>
           </form>
         </Modal>
+      )}
+
+      {/* Record / Backdate Leave Modal (Admin / Approver) */}
+      {showRecordLeave && (
+        <RecordLeaveModal
+          employees={employees}
+          leaveTypes={types}
+          onClose={() => setShowRecordLeave(false)}
+          onSuccess={() => {
+            loadData();
+            if (tab === 'history') loadHistory();
+            showToast({
+              title: 'Leave Recorded',
+              message: 'Employee leave entry has been recorded successfully.',
+              type: 'success',
+            });
+          }}
+        />
       )}
 
       {/* Edit Balance Modal (Admin only) */}
@@ -889,6 +934,132 @@ function EditBalanceModal({ balance, onClose, onSuccess }) {
         <div style={{ display: 'flex', gap: 10, justifyContent: 'flex-end', marginTop: 20 }}>
           <button type="button" className="btn btn-secondary" onClick={onClose}>Cancel</button>
           <button type="submit" className="btn btn-primary" disabled={saving}>{saving ? 'Saving...' : 'Save'}</button>
+        </div>
+      </form>
+    </Modal>
+  );
+}
+
+function RecordLeaveModal({ employees, leaveTypes, onClose, onSuccess }) {
+  const [form, setForm] = useState({
+    employee_id: '',
+    leave_type_id: '',
+    start_date: '',
+    end_date: '',
+    status: 'approved',
+  });
+  const [error, setError] = useState('');
+  const [saving, setSaving] = useState(false);
+
+  const todayStr = new Date().toISOString().split('T')[0];
+  const isRetroactive = form.start_date && form.start_date < todayStr;
+
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+    setError('');
+    if (form.end_date < form.start_date) {
+      setError('End date cannot be before start date.');
+      return;
+    }
+    setSaving(true);
+    try {
+      await recordLeaveForEmployee(form);
+      onSuccess();
+      onClose();
+    } catch (err) {
+      setError(err.response?.data?.detail || 'Failed to record leave entry');
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  return (
+    <Modal title="Record / Backdate Employee Leave" onClose={onClose}>
+      <form onSubmit={handleSubmit}>
+        {error && (
+          <div style={{ marginBottom: 12, color: 'var(--accent-rose)', fontSize: '0.875rem' }}>
+            {error}
+          </div>
+        )}
+        <p style={{ fontSize: '0.8125rem', color: '#64748b', marginTop: 0, marginBottom: 14 }}>
+          Directly enter past (retroactive) or upcoming leave for an employee. Approved entries immediately deduct from their leave balance.
+        </p>
+        <div className="input-group">
+          <label className="input-label">Employee</label>
+          <select
+            className="input-field"
+            value={form.employee_id}
+            onChange={(e) => setForm({ ...form, employee_id: e.target.value })}
+            required
+          >
+            <option value="">Select employee...</option>
+            {employees.map((e) => (
+              <option key={e.id} value={e.id}>{e.full_name}</option>
+            ))}
+          </select>
+        </div>
+        <div className="input-group">
+          <label className="input-label">Leave Type</label>
+          <select
+            className="input-field"
+            value={form.leave_type_id}
+            onChange={(e) => setForm({ ...form, leave_type_id: e.target.value })}
+            required
+          >
+            <option value="">Select type...</option>
+            {leaveTypes.map((t) => (
+              <option key={t.id} value={t.id}>{t.name}</option>
+            ))}
+          </select>
+        </div>
+        <div className="input-group">
+          <label className="input-label">Start Date</label>
+          <input
+            type="date"
+            className="input-field"
+            value={form.start_date}
+            onChange={(e) =>
+              setForm({
+                ...form,
+                start_date: e.target.value,
+                end_date: form.end_date && form.end_date < e.target.value ? e.target.value : form.end_date,
+              })
+            }
+            required
+          />
+          {isRetroactive && (
+            <div style={{ marginTop: 6, fontSize: '0.78rem', color: '#2563eb', fontWeight: 600 }}>
+              Retroactive (backdated) leave entry selected.
+            </div>
+          )}
+        </div>
+        <div className="input-group">
+          <label className="input-label">End Date</label>
+          <input
+            type="date"
+            className="input-field"
+            value={form.end_date}
+            min={form.start_date || undefined}
+            onChange={(e) => setForm({ ...form, end_date: e.target.value })}
+            required
+          />
+        </div>
+        <div className="input-group">
+          <label className="input-label">Status</label>
+          <select
+            className="input-field"
+            value={form.status}
+            onChange={(e) => setForm({ ...form, status: e.target.value })}
+          >
+            <option value="approved">Approved (Auto-deduct balance)</option>
+            <option value="pending">Pending (Send to Approval Queue)</option>
+          </select>
+        </div>
+        <div style={{ display: 'flex', gap: 10, justifyContent: 'flex-end', marginTop: 20 }}>
+          <button type="button" className="btn btn-secondary" onClick={onClose}>Cancel</button>
+          <button type="submit" className="btn btn-primary" disabled={saving}>
+            {saving ? 'Recording...' : 'Record Leave'}
+          </button>
         </div>
       </form>
     </Modal>

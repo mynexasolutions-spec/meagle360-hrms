@@ -49,8 +49,6 @@ class LeaveService:
         impossible to ever actually use one."""
         if data["end_date"] < data["start_date"]:
             raise ValueError("End date cannot be before start date.")
-        if data["start_date"] < date.today():
-            raise ValueError("Start date cannot be in the past.")
         year = data["start_date"].year
         overlapping = self.request_repo.get_by_employee_and_date_range(
             employee_id, data["start_date"], data["end_date"]
@@ -86,6 +84,79 @@ class LeaveService:
             status="pending",
         )
         self.db.add(request)
+        self.db.commit()
+        self.db.refresh(request)
+        return request
+
+    def record_leave_for_employee(
+        self,
+        employee_id: UUID,
+        leave_type_id: UUID,
+        start_date: date,
+        end_date: date,
+        status: str = "approved",
+        actor_employee_id: UUID | None = None,
+    ) -> LeaveRequest:
+        """Record a leave entry (including retroactive/backdated leave) on behalf of an employee."""
+        if end_date < start_date:
+            raise ValueError("End date cannot be before start date.")
+        if status not in ("approved", "pending"):
+            raise ValueError("Status must be 'approved' or 'pending'.")
+
+        year = start_date.year
+        overlapping = self.request_repo.get_by_employee_and_date_range(
+            employee_id, start_date, end_date
+        )
+        if overlapping:
+            raise ValueError(
+                "This employee already has a pending or approved leave request overlapping these dates."
+            )
+
+        leave_type = self.type_repo.get_by_id(leave_type_id)
+        days = (end_date - start_date).days + 1
+        balance = None
+
+        if not leave_type or leave_type.is_paid:
+            balance = self.balance_repo.get_specific(employee_id, leave_type_id, year)
+            if not balance:
+                type_name = leave_type.name if leave_type else "this leave type"
+                raise ValueError(
+                    f"No leave balance record found for {type_name} in {year}. Please adjust or accrue balance first."
+                )
+            if balance.balance < days:
+                raise ValueError(
+                    f"Insufficient leave balance. Available: {balance.balance}, Requested: {days}"
+                )
+
+        request = LeaveRequest(
+            company_id=self.company_id,
+            employee_id=employee_id,
+            leave_type_id=leave_type_id,
+            start_date=start_date,
+            end_date=end_date,
+            status=status,
+        )
+        self.db.add(request)
+
+        if status == "approved" and balance is not None:
+            balance.balance -= Decimal(days)
+
+        log_action(
+            self.db,
+            self.company_id,
+            actor_employee_id,
+            "leave.recorded_by_admin",
+            "leave_request",
+            request.id,
+            details={
+                "employee_id": str(employee_id),
+                "leave_type_id": str(leave_type_id),
+                "start_date": str(start_date),
+                "end_date": str(end_date),
+                "status": status,
+                "retroactive": start_date < date.today(),
+            },
+        )
         self.db.commit()
         self.db.refresh(request)
         return request

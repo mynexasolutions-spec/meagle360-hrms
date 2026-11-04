@@ -37,6 +37,14 @@ class LeaveRequestCreate(BaseModel):
     end_date: date
 
 
+class AdminLeaveRecordCreate(BaseModel):
+    employee_id: UUID
+    leave_type_id: UUID
+    start_date: date
+    end_date: date
+    status: str = "approved"  # approved or pending
+
+
 class LeaveRequestResponse(BaseModel):
     id: UUID
     employee_id: UUID
