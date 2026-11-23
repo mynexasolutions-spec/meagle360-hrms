@@ -13,10 +13,39 @@ from app.models.ai_chat_usage import AIChatUsage
 from app.services.ai.quota_service import (
     DEFAULT_DEMO_DAILY_CHAT_LIMIT,
     is_demo_user,
+    is_ai_admin_only_tenant,
+    get_ai_admin_only_daily_limit,
+    enforce_ai_role_access,
     get_user_chat_quota,
     enforce_chat_quota,
     record_chat_usage,
 )
+from app.models.role import Role
+
+
+def test_prusty_associates_admin_only_and_10_limit():
+    prusty = Company(
+        id=uuid.uuid4(),
+        name="Prusty associates",
+        subdomain="prusty-associates",
+        plan_tier="trial",
+    )
+    assert is_ai_admin_only_tenant(prusty) is True
+    assert get_ai_admin_only_daily_limit(prusty) == 10
+
+    admin_role = Role(id=uuid.uuid4(), company_id=prusty.id, name="Admin", permissions={})
+    emp_role = Role(id=uuid.uuid4(), company_id=prusty.id, name="Employee", permissions={})
+
+    admin_user = UserAccount(email="admin@prusty.com", role=admin_role)
+    emp_user = UserAccount(email="emp@prusty.com", role=emp_role)
+
+    # Admin passes role access check
+    enforce_ai_role_access(admin_user, prusty)
+
+    # Non-admin gets 403 Forbidden
+    with pytest.raises(HTTPException) as exc_info:
+        enforce_ai_role_access(emp_user, prusty)
+    assert exc_info.value.status_code == 403
 
 
 def test_is_demo_user():

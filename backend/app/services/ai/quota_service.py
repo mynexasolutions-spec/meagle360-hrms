@@ -43,8 +43,12 @@ def is_demo_user(user: UserAccount, company: Company | None = None) -> bool:
 
 
 # TEMPORARY (testing): tenants where Meagle AI is restricted to the Org Admin only.
-# Managers/Employees are locked out; the Org Admin gets AI_ADMIN_ONLY_DAILY_LIMIT chats/day.
-AI_ADMIN_ONLY_SUBDOMAINS = {"nexa-solutions-llc"}
+# Managers/Employees are locked out; the Org Admin gets the configured daily limit.
+AI_ADMIN_ONLY_TENANT_LIMITS: dict[str, int] = {
+    "nexa-solutions-llc": 20,
+    "prusty-associates": 10,
+}
+AI_ADMIN_ONLY_SUBDOMAINS = set(AI_ADMIN_ONLY_TENANT_LIMITS.keys())
 AI_ADMIN_ONLY_DAILY_LIMIT = 20
 
 
@@ -53,6 +57,14 @@ def is_ai_admin_only_tenant(company: Company | None) -> bool:
     if company is None:
         return False
     return (company.subdomain or "").strip().lower() in AI_ADMIN_ONLY_SUBDOMAINS
+
+
+def get_ai_admin_only_daily_limit(company: Company | None) -> int:
+    """Return the daily AI chat limit for an admin-only tenant."""
+    if company is None:
+        return AI_ADMIN_ONLY_DAILY_LIMIT
+    sub = (company.subdomain or "").strip().lower()
+    return AI_ADMIN_ONLY_TENANT_LIMITS.get(sub, AI_ADMIN_ONLY_DAILY_LIMIT)
 
 
 def is_org_admin(user: UserAccount) -> bool:
@@ -87,7 +99,7 @@ def get_user_chat_quota(
     if is_ai_admin_only_tenant(company):
         # is_demo=True keeps the existing frontend quota UI / limit-reached handling working.
         demo = True
-        limit = AI_ADMIN_ONLY_DAILY_LIMIT
+        limit = get_ai_admin_only_daily_limit(company)
     else:
         demo = is_demo_user(user, company)
         limit = DEFAULT_DEMO_DAILY_CHAT_LIMIT if demo else None
