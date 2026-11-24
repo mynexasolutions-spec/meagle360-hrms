@@ -1,5 +1,4 @@
 import { useState } from 'react';
-import { ArrowUpRight } from 'lucide-react';
 
 export default function StatCard({ icon: Icon, label, value, trend, trendDirection, color, bgColor, onClick }) {
   const [hover, setHover] = useState(false);
@@ -36,20 +35,6 @@ export default function StatCard({ icon: Icon, label, value, trend, trendDirecti
           background: color, opacity: hover ? 1 : 0, transition: 'opacity 0.2s ease',
         }}
       />
-      {clickable && (
-        <ArrowUpRight
-          size={15}
-          style={{
-            position: 'absolute',
-            top: 12,
-            right: 12,
-            color: color,
-            opacity: hover ? 0.9 : 0.35,
-            transition: 'opacity 0.2s ease, transform 0.2s ease',
-            transform: hover ? 'translate(1px, -1px)' : 'none',
-          }}
-        />
-      )}
       <div
         className="stat-card-icon-wrap"
         style={{

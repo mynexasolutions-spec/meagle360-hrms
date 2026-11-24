@@ -39,7 +39,7 @@ yarn-error.log*
 
 # Logs
 *.log
-
+*.pem
 # Editor / misc / Database backups & local DBs
 *.bak
 *.orig
