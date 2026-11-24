@@ -41,7 +41,15 @@ export const submitPublicApplication = (formData, tenantSubdomain) => {
 
 // ── Phase 2: Applicants & Application Detail Endpoints ────
 
-export const getAtsStages = () => client.get('/ats/stages');
+export const getAtsStages = (params) => client.get('/ats/stages', { params });
+
+export const getKanbanBoard = (params) => client.get('/ats/kanban/board', { params });
+
+export const getKanbanColumn = (params) => client.get('/ats/kanban/column', { params });
+
+export const getAtsFilterOptions = () => client.get('/ats/filter-options');
+
+export const getMentionableUsers = () => client.get('/ats/mentionable-users');
 
 export const getApplicants = (params) => client.get('/ats/applicants', { params });
 
@@ -60,6 +68,22 @@ export const addApplicationNote = (id, data) =>
 
 export const bulkShortlistApplications = (data) =>
   client.post('/ats/applications/bulk-shortlist', data);
+
+export const assignApplication = (id, data) =>
+  client.put(`/ats/applications/${id}/assign`, data);
+
+export const bulkReassignApplications = (data) =>
+  client.post('/ats/applications/bulk-reassign', data);
+
+export const getAtsRecruiters = () => client.get('/ats/recruiters');
+
+export const getDistributionSettings = () => client.get('/ats/distribution/settings');
+
+export const updateDistributionSettings = (data) =>
+  client.put('/ats/distribution/settings', data);
+
+export const distributeUnassignedEqualSplit = (data) =>
+  client.post('/ats/distribution/equal-split', data);
 
 
 // ── Phase 3: Interviews & ATS Settings Endpoints ──────────

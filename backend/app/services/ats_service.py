@@ -18,6 +18,10 @@ from sqlalchemy.orm import Session
 from app.models.ats import (
     Application,
     ApplicationActivity,
+    ApplicationAssignmentHistory,
+    ApplicationNote,
+    ApplicationStageHistory,
+    AtsDistributionSettings,
     Candidate,
     JobOpening,
     Stage,
@@ -29,6 +33,7 @@ from app.models.ats import (
     Offer,
     CareersPageSettings,
 )
+from app.models.notification import Notification
 from app.models.company import Company
 from app.models.department import Department
 from app.models.designation import Designation
@@ -398,23 +403,84 @@ class AtsService:
             db.add(initial_stage)
             db.flush()
 
-        # 9. Create Application
+        # 9. Determine Round-Robin assignee (DEFAULT, automatic, new applications only)
+        now_utc = datetime.now(timezone.utc)
+        rr_assignee_emp = AtsService._pick_next_round_robin_recruiter(db, company.id)
+
+        # 10. Create Application
         application = Application(
             id=uuid.uuid4(),
             company_id=company.id,
             candidate_id=candidate.id,
             job_id=job.id,
             stage_id=initial_stage.id,
+            assigned_to=rr_assignee_emp.id if rr_assignee_emp else None,
             resume_file_id=upload_res.get("file_id"),
             resume_path=upload_res.get("file_path"),
             resume_file_name=upload_res.get("file_name"),
             cover_note=cover_note.strip() if cover_note else None,
             source="careers_page",
+            stage_entered_at=now_utc,
+            version=1,
         )
         db.add(application)
         db.flush()
 
-        # 10. Append-only activity log (in the same transaction)
+        # 11. Stage history, assignment history & append-only activity log (in same transaction)
+        AtsService._record_stage_history(
+            db=db,
+            company_id=company.id,
+            application_id=application.id,
+            from_stage=None,
+            to_stage=initial_stage,
+            changed_by=None,
+            reason="Initial application submitted",
+        )
+        if rr_assignee_emp:
+            AtsService._record_assignment_history(
+                db=db,
+                company_id=company.id,
+                application_id=application.id,
+                from_assignee_id=None,
+                to_assignee_id=rr_assignee_emp.id,
+                assigned_by=None,
+                mode="round_robin",
+            )
+            db.add(
+                ApplicationActivity(
+                    id=uuid.uuid4(),
+                    company_id=company.id,
+                    application_id=application.id,
+                    actor_id=None,
+                    actor_type="system",
+                    event_type="assigned",
+                    from_stage_id=initial_stage.id,
+                    to_stage_id=initial_stage.id,
+                    metadata_json={
+                        "actor_name": "System (Round-Robin)",
+                        "from_assignee_name": "Unassigned",
+                        "to_assignee_name": rr_assignee_emp.full_name,
+                        "mode": "round_robin",
+                    },
+                    created_at=now_utc,
+                )
+            )
+            db.add(
+                Notification(
+                    id=uuid.uuid4(),
+                    company_id=company.id,
+                    recipient_employee_id=rr_assignee_emp.id,
+                    actor_employee_id=None,
+                    type="ats_assigned",
+                    title=f"New application assigned: {candidate.full_name}",
+                    message=f"Auto-assigned via round-robin for {job.title}.",
+                    entity_type="application",
+                    entity_id=application.id,
+                    link=f"/ats/applicants?app={application.id}",
+                    is_read=False,
+                )
+            )
+
         activity = ApplicationActivity(
             id=uuid.uuid4(),
             company_id=company.id,
@@ -430,7 +496,7 @@ class AtsService:
                 "candidate_name": candidate.full_name,
                 "resume_file": upload_res.get("file_name"),
             },
-            created_at=datetime.now(timezone.utc),
+            created_at=now_utc,
         )
         db.add(activity)
 
@@ -442,21 +508,363 @@ class AtsService:
     # ── Phase 2: Applicants & Application Detail Logic ─────────
 
     @staticmethod
-    def get_stages_with_counts(db: Session, company_id: UUID) -> list[dict]:
-        """Fetch all stages for the tenant with applicant counts."""
+    def _record_stage_history(
+        db: Session,
+        company_id: UUID,
+        application_id: UUID,
+        from_stage: Stage | None,
+        to_stage: Stage | None,
+        changed_by: UUID | None,
+        reason: str | None = None,
+    ) -> ApplicationStageHistory:
+        """Append a row to application_stage_history on every stage transition."""
+        entry = ApplicationStageHistory(
+            id=uuid.uuid4(),
+            company_id=company_id,
+            application_id=application_id,
+            from_stage_id=from_stage.id if from_stage else None,
+            to_stage_id=to_stage.id if to_stage else None,
+            from_stage=from_stage.name if from_stage else None,
+            to_stage=to_stage.name if to_stage else None,
+            changed_by=changed_by,
+            changed_at=datetime.now(timezone.utc),
+            reason=reason.strip() if reason and reason.strip() else None,
+        )
+        db.add(entry)
+        return entry
+
+    @staticmethod
+    def _is_org_admin(current_user: UserAccount | None) -> bool:
+        """Returns True if user is an Org Admin (can view combined board & all recruiters)."""
+        if not current_user:
+            return False
+        if any(r.name == "Admin" for r in current_user.all_roles):
+            return True
+        perms = current_user.merged_permissions or {}
+        return bool(perms.get("ats:settings:manage") or perms.get("settings:write"))
+
+    @staticmethod
+    def _resolve_visibility_scope(
+        current_user: UserAccount | None,
+        assigned_to: UUID | None,
+        unassigned_only: bool,
+    ) -> tuple[UUID | None, bool, bool]:
+        """
+        API-level visibility enforcement:
+        - Org Admin: honors requested assigned_to / unassigned_only (Combined Board or View As).
+        - Recruiter: strictly forced to their own assigned_to == current_user.employee_id.
+        Returns: (effective_assigned_to, effective_unassigned_only, force_empty)
+        """
+        if not current_user or AtsService._is_org_admin(current_user):
+            return assigned_to, unassigned_only, False
+        if not current_user.employee_id:
+            return None, False, True
+        return current_user.employee_id, False, False
+
+    @staticmethod
+    def _assert_can_access_application(
+        db: Session,
+        current_user: UserAccount | None,
+        app: Application,
+        allow_assigned_interviewer: bool = False,
+    ) -> None:
+        """
+        Raises 403 Forbidden if a Recruiter tries to fetch or mutate another recruiter's application.
+        Optionally allows an assigned Interviewer (e.g. for resume preview in My Interviews).
+        """
+        if not current_user or AtsService._is_org_admin(current_user):
+            return
+        emp_id = current_user.employee_id
+        if emp_id and app.assigned_to == emp_id:
+            return
+        if allow_assigned_interviewer and emp_id:
+            on_panel = (
+                db.query(InterviewPanel.id)
+                .join(Interview, InterviewPanel.interview_id == Interview.id)
+                .filter(
+                    Interview.application_id == app.id,
+                    InterviewPanel.employee_id == emp_id,
+                )
+                .first()
+            )
+            if on_panel:
+                return
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Access denied: You can only view or manage applications assigned to you.",
+        )
+
+    @staticmethod
+    def _get_assignee_map(
+        db: Session,
+        company_id: UUID,
+        assignee_ids: list[UUID | None],
+    ) -> dict[UUID, dict]:
+        """Batched lookup of assignee employee details (avoids N+1 queries)."""
+        valid_ids = list({aid for aid in assignee_ids if aid is not None})
+        if not valid_ids:
+            return {}
+        emps = (
+            db.query(Employee)
+            .filter(Employee.company_id == company_id, Employee.id.in_(valid_ids))
+            .all()
+        )
+        return {
+            e.id: {
+                "id": str(e.id),
+                "full_name": e.full_name,
+                "photo_url": e.photo_url,
+            }
+            for e in emps
+        }
+
+    @staticmethod
+    def _record_assignment_history(
+        db: Session,
+        company_id: UUID,
+        application_id: UUID,
+        from_assignee_id: UUID | None,
+        to_assignee_id: UUID | None,
+        assigned_by: UUID | None,
+        mode: str = "manual",
+    ) -> ApplicationAssignmentHistory:
+        entry = ApplicationAssignmentHistory(
+            id=uuid.uuid4(),
+            company_id=company_id,
+            application_id=application_id,
+            from_assignee_id=from_assignee_id,
+            to_assignee_id=to_assignee_id,
+            assigned_by=assigned_by,
+            mode=mode,
+            assigned_at=datetime.now(timezone.utc),
+        )
+        db.add(entry)
+        return entry
+
+    @staticmethod
+    def _serialize_applicant_row(
+        app: Application,
+        cand: Candidate,
+        job: JobOpening,
+        st: Stage,
+        now: datetime,
+        other_applications_count: int = 0,
+        assignee_map: dict[UUID, dict] | None = None,
+    ) -> dict:
+        ref_date = app.stage_entered_at or app.updated_at or app.created_at
+        if ref_date and ref_date.tzinfo is None:
+            ref_date = ref_date.replace(tzinfo=timezone.utc)
+        days_in_stage = max(0, (now - ref_date).days) if ref_date else 0
+
+        assignee_info = None
+        if app.assigned_to and assignee_map:
+            assignee_info = assignee_map.get(app.assigned_to)
+
+        return {
+            "id": app.id,
+            "candidate_id": cand.id,
+            "candidate_name": cand.full_name,
+            "candidate_email": cand.email,
+            "candidate_phone": cand.phone,
+            "candidate_location": cand.current_location,
+            "years_of_experience": float(cand.years_of_experience) if cand.years_of_experience is not None else None,
+            "job_id": job.id,
+            "job_title": job.title,
+            "department_name": job.department_name,
+            "stage_id": st.id,
+            "stage_name": st.name,
+            "is_initial": st.is_initial,
+            "is_terminal": st.is_terminal,
+            "terminal_type": st.terminal_type,
+            "days_in_stage": days_in_stage,
+            "has_resume": bool(app.resume_file_id or app.resume_path),
+            "resume_file_name": app.resume_file_name,
+            "source": app.source,
+            "rejection_reason": app.rejection_reason,
+            "converted_employee_id": app.converted_employee_id,
+            "assigned_to": str(app.assigned_to) if app.assigned_to else None,
+            "assignee": assignee_info,
+            "other_applications_count": other_applications_count,
+            "version": app.version or 1,
+            "stage_entered_at": app.stage_entered_at.isoformat() if app.stage_entered_at else None,
+            "created_at": app.created_at,
+            "updated_at": app.updated_at,
+        }
+
+    @staticmethod
+    def _apply_applicant_filters(
+        query,
+        job_id: UUID | None = None,
+        department_id: UUID | None = None,
+        search: str | None = None,
+        date_from: date | None = None,
+        date_to: date | None = None,
+        source: str | None = None,
+        assigned_to: UUID | None = None,
+        unassigned_only: bool = False,
+        need_joins_for_search: bool = False,
+    ):
+        """Apply consistent server-side filters across counts, Kanban columns, and Table queries."""
+        if job_id:
+            query = query.filter(Application.job_id == job_id)
+        if department_id:
+            if need_joins_for_search:
+                query = query.join(JobOpening, Application.job_id == JobOpening.id)
+            query = query.filter(JobOpening.department_id == department_id)
+        if date_from:
+            start_dt = datetime(date_from.year, date_from.month, date_from.day, 0, 0, 0, tzinfo=timezone.utc)
+            query = query.filter(Application.created_at >= start_dt)
+        if date_to:
+            end_dt = datetime(date_to.year, date_to.month, date_to.day, 23, 59, 59, 999999, tzinfo=timezone.utc)
+            query = query.filter(Application.created_at <= end_dt)
+        if source and source.strip():
+            query = query.filter(Application.source == source.strip())
+        if hasattr(Application, "assigned_to"):
+            if unassigned_only:
+                query = query.filter(Application.assigned_to.is_(None))
+            elif assigned_to:
+                query = query.filter(Application.assigned_to == assigned_to)
+        else:
+            # Before Phase 3 adds assigned_to column, all rows are unassigned
+            if assigned_to and not unassigned_only:
+                query = query.filter(Application.id.is_(None))
+        if search and search.strip():
+            s = f"%{search.strip()}%"
+            if need_joins_for_search:
+                query = query.join(Candidate, Application.candidate_id == Candidate.id)
+                if not department_id:
+                    query = query.join(JobOpening, Application.job_id == JobOpening.id)
+            query = query.filter(
+                (Candidate.full_name.ilike(s))
+                | (Candidate.email.ilike(s))
+                | (JobOpening.title.ilike(s))
+            )
+        return query
+
+    @staticmethod
+    def _get_other_applications_count_map(
+        db: Session,
+        company_id: UUID,
+        candidate_ids: list[UUID],
+    ) -> dict[UUID, int]:
+        """Single batched aggregate query for '+N more' badge on cards."""
+        if not candidate_ids:
+            return {}
+        unique_ids = list(set(candidate_ids))
+        rows = (
+            db.query(Application.candidate_id, func.count(Application.id))
+            .filter(
+                Application.company_id == company_id,
+                Application.candidate_id.in_(unique_ids),
+            )
+            .group_by(Application.candidate_id)
+            .all()
+        )
+        return {cid: max(0, cnt - 1) for cid, cnt in rows}
+
+    @staticmethod
+    def get_filter_options(db: Session, company_id: UUID) -> dict:
+        """Returns distinct sources and active recruiters/admins for server-side filter dropdowns."""
+        source_rows = (
+            db.query(Application.source)
+            .filter(Application.company_id == company_id, Application.source.isnot(None))
+            .distinct()
+            .order_by(Application.source.asc())
+            .all()
+        )
+        sources = [r[0] for r in source_rows if r[0]]
+
+        employees = (
+            db.query(Employee)
+            .filter(Employee.company_id == company_id, Employee.employment_status == "active")
+            .order_by(Employee.full_name.asc())
+            .all()
+        )
+        recruiters = []
+        for emp in employees:
+            ua = emp.user_account
+            if not ua:
+                continue
+            role_names = [r.name for r in ua.all_roles]
+            is_rec = any(n in ("Admin", "Recruiter") for n in role_names) or bool(
+                ua.merged_permissions.get("ats:applicants:view")
+            )
+            if is_rec:
+                recruiters.append({
+                    "id": str(emp.id),
+                    "full_name": emp.full_name,
+                    "email": ua.email,
+                    "photo_url": emp.photo_url,
+                    "role_names": role_names,
+                })
+
+        return {
+            "sources": sources,
+            "recruiters": recruiters,
+        }
+
+    @staticmethod
+    def get_mentionable_users(db: Session, company_id: UUID) -> list[dict]:
+        """Active employees for @mention autocomplete in application notes."""
+        employees = (
+            db.query(Employee)
+            .filter(Employee.company_id == company_id, Employee.employment_status == "active")
+            .order_by(Employee.full_name.asc())
+            .all()
+        )
+        out = []
+        for emp in employees:
+            out.append({
+                "id": str(emp.id),
+                "full_name": emp.full_name,
+                "email": emp.user_account.email if emp.user_account else emp.personal_email,
+                "department_name": emp.department.name if emp.department else None,
+                "photo_url": emp.photo_url,
+            })
+        return out
+
+    @staticmethod
+    def get_stages_with_counts(
+        db: Session,
+        company_id: UUID,
+        current_user: UserAccount | None = None,
+        job_id: UUID | None = None,
+        search: str | None = None,
+        date_from: date | None = None,
+        date_to: date | None = None,
+        source: str | None = None,
+        assigned_to: UUID | None = None,
+        unassigned_only: bool = False,
+    ) -> list[dict]:
+        """Fetch all active configured stages for the tenant with server-side aggregate applicant counts."""
+        eff_assigned_to, eff_unassigned_only, force_empty = AtsService._resolve_visibility_scope(
+            current_user, assigned_to, unassigned_only
+        )
         stages = (
             db.query(Stage)
             .filter(Stage.company_id == company_id, Stage.is_active == True)
             .order_by(Stage.display_order.asc())
             .all()
         )
-        counts_query = (
-            db.query(Application.stage_id, func.count(Application.id))
-            .filter(Application.company_id == company_id)
-            .group_by(Application.stage_id)
-            .all()
-        )
-        counts_map = {stage_id: count for stage_id, count in counts_query}
+        counts_map = {}
+        if not force_empty:
+            counts_q = (
+                db.query(Application.stage_id, func.count(Application.id))
+                .filter(Application.company_id == company_id)
+            )
+            counts_q = AtsService._apply_applicant_filters(
+                counts_q,
+                job_id=job_id,
+                search=search,
+                date_from=date_from,
+                date_to=date_to,
+                source=source,
+                assigned_to=eff_assigned_to,
+                unassigned_only=eff_unassigned_only,
+                need_joins_for_search=True,
+            )
+            counts_rows = counts_q.group_by(Application.stage_id).all()
+            counts_map = {stage_id: count for stage_id, count in counts_rows}
 
         result = []
         for s in stages:
@@ -474,15 +882,203 @@ class AtsService:
         return result
 
     @staticmethod
+    def get_kanban_column(
+        db: Session,
+        company_id: UUID,
+        stage_id: UUID,
+        current_user: UserAccount | None = None,
+        job_id: UUID | None = None,
+        search: str | None = None,
+        date_from: date | None = None,
+        date_to: date | None = None,
+        source: str | None = None,
+        assigned_to: UUID | None = None,
+        unassigned_only: bool = False,
+        limit: int = 25,
+        offset: int = 0,
+    ) -> dict:
+        """Fetch a single paginated slice of cards for a Kanban column."""
+        eff_assigned_to, eff_unassigned_only, force_empty = AtsService._resolve_visibility_scope(
+            current_user, assigned_to, unassigned_only
+        )
+        if force_empty:
+            return {
+                "stage_id": str(stage_id),
+                "items": [],
+                "total": 0,
+                "limit": limit,
+                "offset": offset,
+                "has_more": False,
+            }
+
+        base_q = (
+            db.query(Application, Candidate, JobOpening, Stage)
+            .join(Candidate, Application.candidate_id == Candidate.id)
+            .join(JobOpening, Application.job_id == JobOpening.id)
+            .join(Stage, Application.stage_id == Stage.id)
+            .filter(Application.company_id == company_id, Application.stage_id == stage_id)
+        )
+
+        base_q = AtsService._apply_applicant_filters(
+            base_q,
+            job_id=job_id,
+            search=search,
+            date_from=date_from,
+            date_to=date_to,
+            source=source,
+            assigned_to=eff_assigned_to,
+            unassigned_only=eff_unassigned_only,
+            need_joins_for_search=False,
+        )
+
+        total = base_q.count()
+        rows = (
+            base_q.order_by(Application.updated_at.desc(), Application.id.desc())
+            .offset(offset)
+            .limit(limit)
+            .all()
+        )
+        other_map = AtsService._get_other_applications_count_map(
+            db, company_id, [cand.id for _, cand, _, _ in rows]
+        )
+        assignee_map = AtsService._get_assignee_map(
+            db, company_id, [app.assigned_to for app, _, _, _ in rows]
+        )
+        now = datetime.now(timezone.utc)
+        items = [
+            AtsService._serialize_applicant_row(
+                app,
+                cand,
+                job,
+                st,
+                now,
+                other_applications_count=other_map.get(cand.id, 0),
+                assignee_map=assignee_map,
+            )
+            for app, cand, job, st in rows
+        ]
+        return {
+            "stage_id": str(stage_id),
+            "items": items,
+            "total": total,
+            "limit": limit,
+            "offset": offset,
+            "has_more": (offset + len(items)) < total,
+        }
+
+    @staticmethod
+    def get_kanban_board(
+        db: Session,
+        company_id: UUID,
+        current_user: UserAccount | None = None,
+        job_id: UUID | None = None,
+        stage_id: UUID | None = None,
+        search: str | None = None,
+        date_from: date | None = None,
+        date_to: date | None = None,
+        source: str | None = None,
+        assigned_to: UUID | None = None,
+        unassigned_only: bool = False,
+        limit_per_column: int = 25,
+    ) -> dict:
+        """Fetch configured stages with aggregate counts plus first page of cards per board column."""
+        is_admin = AtsService._is_org_admin(current_user)
+        stages = AtsService.get_stages_with_counts(
+            db,
+            company_id,
+            current_user=current_user,
+            job_id=job_id,
+            search=search,
+            date_from=date_from,
+            date_to=date_to,
+            source=source,
+            assigned_to=assigned_to,
+            unassigned_only=unassigned_only,
+        )
+        columns = {}
+        total_active_board = 0
+        total_all = 0
+
+        for st in stages:
+            st_count = st["applicants_count"]
+            total_all += st_count
+            is_rejected = st["terminal_type"] == "rejected" or "reject" in st["name"].lower()
+            if is_rejected and stage_id != st["id"]:
+                continue
+            if stage_id and st["id"] != stage_id:
+                continue
+            total_active_board += st_count
+            col_data = AtsService.get_kanban_column(
+                db=db,
+                company_id=company_id,
+                stage_id=st["id"],
+                current_user=current_user,
+                job_id=job_id,
+                search=search,
+                date_from=date_from,
+                date_to=date_to,
+                source=source,
+                assigned_to=assigned_to,
+                unassigned_only=unassigned_only,
+                limit=limit_per_column,
+                offset=0,
+            )
+            columns[str(st["id"])] = col_data
+
+        # Unassigned count is only exposed to Org Admin
+        unassigned_count = 0
+        if is_admin:
+            unassigned_q = (
+                db.query(func.count(Application.id))
+                .join(Stage, Application.stage_id == Stage.id)
+                .filter(
+                    Application.company_id == company_id,
+                    Application.assigned_to.is_(None),
+                    Stage.is_terminal == False,
+                )
+            )
+            unassigned_q = AtsService._apply_applicant_filters(
+                unassigned_q,
+                job_id=job_id,
+                search=search,
+                date_from=date_from,
+                date_to=date_to,
+                source=source,
+                need_joins_for_search=True,
+            )
+            unassigned_count = unassigned_q.scalar() or 0
+
+        return {
+            "stages": stages,
+            "columns": columns,
+            "total_count": total_all,
+            "board_count": total_active_board,
+            "unassigned_count": unassigned_count,
+            "scope": "combined" if is_admin else "my_board",
+        }
+
+    @staticmethod
     def get_applicants(
         db: Session,
         company_id: UUID,
+        current_user: UserAccount | None = None,
         stage_id: UUID | None = None,
         job_id: UUID | None = None,
         department_id: UUID | None = None,
         search: str | None = None,
+        date_from: date | None = None,
+        date_to: date | None = None,
+        source: str | None = None,
+        assigned_to: UUID | None = None,
+        unassigned_only: bool = False,
     ) -> list[dict]:
         """Query applicants with candidate, job, stage info and days in stage."""
+        eff_assigned_to, eff_unassigned_only, force_empty = AtsService._resolve_visibility_scope(
+            current_user, assigned_to, unassigned_only
+        )
+        if force_empty:
+            return []
+
         query = (
             db.query(Application, Candidate, JobOpening, Stage)
             .join(Candidate, Application.candidate_id == Candidate.id)
@@ -495,56 +1091,47 @@ class AtsService:
         if stage_id:
             query = query.filter(Application.stage_id == stage_id)
 
-        if job_id:
-            query = query.filter(Application.job_id == job_id)
-
-        if department_id:
-            query = query.filter(JobOpening.department_id == department_id)
-
-        if search:
-            s = f"%{search.strip()}%"
-            query = query.filter(
-                (Candidate.full_name.ilike(s)) |
-                (Candidate.email.ilike(s)) |
-                (JobOpening.title.ilike(s))
-            )
+        query = AtsService._apply_applicant_filters(
+            query,
+            job_id=job_id,
+            department_id=department_id,
+            search=search,
+            date_from=date_from,
+            date_to=date_to,
+            source=source,
+            assigned_to=eff_assigned_to,
+            unassigned_only=eff_unassigned_only,
+            need_joins_for_search=False,
+        )
 
         rows = query.all()
+        other_map = AtsService._get_other_applications_count_map(
+            db, company_id, [cand.id for _, cand, _, _ in rows]
+        )
+        assignee_map = AtsService._get_assignee_map(
+            db, company_id, [app.assigned_to for app, _, _, _ in rows]
+        )
         now = datetime.now(timezone.utc)
-        out = []
-
-        for app, cand, job, st in rows:
-            ref_date = app.updated_at or app.created_at
-            days_in_stage = max(0, (now - ref_date).days)
-
-            out.append({
-                "id": app.id,
-                "candidate_id": cand.id,
-                "candidate_name": cand.full_name,
-                "candidate_email": cand.email,
-                "candidate_phone": cand.phone,
-                "candidate_location": cand.current_location,
-                "years_of_experience": float(cand.years_of_experience) if cand.years_of_experience is not None else None,
-                "job_id": job.id,
-                "job_title": job.title,
-                "department_name": job.department_name,
-                "stage_id": st.id,
-                "stage_name": st.name,
-                "is_initial": st.is_initial,
-                "is_terminal": st.is_terminal,
-                "terminal_type": st.terminal_type,
-                "days_in_stage": days_in_stage,
-                "has_resume": bool(app.resume_file_id or app.resume_path),
-                "resume_file_name": app.resume_file_name,
-                "source": app.source,
-                "rejection_reason": app.rejection_reason,
-                "created_at": app.created_at,
-                "updated_at": app.updated_at,
-            })
-        return out
+        return [
+            AtsService._serialize_applicant_row(
+                app,
+                cand,
+                job,
+                st,
+                now,
+                other_applications_count=other_map.get(cand.id, 0),
+                assignee_map=assignee_map,
+            )
+            for app, cand, job, st in rows
+        ]
 
     @staticmethod
-    def get_application_detail(db: Session, company_id: UUID, application_id: UUID) -> dict:
+    def get_application_detail(
+        db: Session,
+        company_id: UUID,
+        application_id: UUID,
+        current_user: UserAccount | None = None,
+    ) -> dict:
         """Full application detail with candidate info, job info, and activity log."""
         app = (
             db.query(Application)
@@ -553,6 +1140,8 @@ class AtsService:
         )
         if not app:
             raise HTTPException(status_code=404, detail="Application not found.")
+
+        AtsService._assert_can_access_application(db, current_user, app, allow_assigned_interviewer=True)
 
         cand = app.candidate
         job = app.job
@@ -578,8 +1167,27 @@ class AtsService:
             })
 
         now = datetime.now(timezone.utc)
-        ref_date = app.updated_at or app.created_at
-        days_in_stage = max(0, (now - ref_date).days)
+        ref_date = app.stage_entered_at or app.updated_at or app.created_at
+        if ref_date and ref_date.tzinfo is None:
+            ref_date = ref_date.replace(tzinfo=timezone.utc)
+        days_in_stage = max(0, (now - ref_date).days) if ref_date else 0
+
+        stage_history_data = []
+        for sh in app.stage_history:
+            changed_by_name = "System"
+            if sh.changed_by_user and sh.changed_by_user.employee:
+                changed_by_name = sh.changed_by_user.employee.full_name
+            elif sh.changed_by_user:
+                changed_by_name = sh.changed_by_user.email
+            stage_history_data.append({
+                "id": str(sh.id),
+                "from_stage": sh.from_stage,
+                "to_stage": sh.to_stage,
+                "changed_by": str(sh.changed_by) if sh.changed_by else None,
+                "changed_by_name": changed_by_name,
+                "changed_at": sh.changed_at.isoformat() if sh.changed_at else None,
+                "reason": sh.reason,
+            })
 
         offers_data = []
         for o in app.offers:
@@ -604,9 +1212,131 @@ class AtsService:
                 "updated_at": o.updated_at.isoformat() if o.updated_at else None,
             })
 
+        # Other applications by the same candidate
+        other_apps_rows = (
+            db.query(Application, JobOpening, Stage)
+            .join(JobOpening, Application.job_id == JobOpening.id)
+            .join(Stage, Application.stage_id == Stage.id)
+            .filter(
+                Application.company_id == company_id,
+                Application.candidate_id == cand.id,
+                Application.id != app.id,
+            )
+            .order_by(Application.created_at.desc())
+            .all()
+        )
+        other_applications_data = []
+        for o_app, o_job, o_stage in other_apps_rows:
+            o_assignee = None
+            if hasattr(o_app, "assignee") and o_app.assignee:
+                o_assignee = {
+                    "id": str(o_app.assignee.id),
+                    "full_name": o_app.assignee.full_name,
+                    "photo_url": o_app.assignee.photo_url,
+                }
+            other_applications_data.append({
+                "id": str(o_app.id),
+                "job_id": str(o_job.id),
+                "job_title": o_job.title,
+                "department_name": o_job.department_name,
+                "stage_id": str(o_stage.id),
+                "stage_name": o_stage.name,
+                "terminal_type": o_stage.terminal_type,
+                "assignee": o_assignee,
+                "created_at": o_app.created_at.isoformat() if o_app.created_at else None,
+            })
+
+        # Structured notes from application_notes (plus legacy note_added activities if any)
+        notes_data = []
+        all_mentioned_ids = set()
+        for n in app.notes:
+            for mid in (n.mentioned_employee_ids or []):
+                all_mentioned_ids.add(str(mid))
+
+        mentioned_emp_map = {}
+        if all_mentioned_ids:
+            valid_uuids = []
+            for mid in all_mentioned_ids:
+                try:
+                    valid_uuids.append(UUID(mid))
+                except Exception:
+                    pass
+            if valid_uuids:
+                m_emps = (
+                    db.query(Employee)
+                    .filter(Employee.company_id == company_id, Employee.id.in_(valid_uuids))
+                    .all()
+                )
+                mentioned_emp_map = {
+                    str(e.id): {"id": str(e.id), "full_name": e.full_name} for e in m_emps
+                }
+
+        seen_note_keys = set()
+        for n in app.notes:
+            author_name = "Team Member"
+            if n.author and n.author.employee:
+                author_name = n.author.employee.full_name
+            elif n.author:
+                author_name = n.author.email
+            m_list = [
+                mentioned_emp_map[str(mid)]
+                for mid in (n.mentioned_employee_ids or [])
+                if str(mid) in mentioned_emp_map
+            ]
+            notes_data.append({
+                "id": str(n.id),
+                "content": n.content,
+                "author_name": author_name,
+                "mentioned_employees": m_list,
+                "created_at": n.created_at.isoformat() if n.created_at else None,
+            })
+            seen_note_keys.add(n.content.strip())
+
+        # Include legacy notes that existed in application_activities before application_notes table
+        for act in activities:
+            if act["event_type"] == "note_added":
+                legacy_txt = (act["metadata"].get("note") or "").strip()
+                if legacy_txt and legacy_txt not in seen_note_keys:
+                    notes_data.append({
+                        "id": act["id"],
+                        "content": legacy_txt,
+                        "author_name": act["actor_name"],
+                        "mentioned_employees": [],
+                        "created_at": act["created_at"],
+                    })
+
+        assignment_history_data = []
+        for ah in app.assignment_history:
+            assigned_by_name = "System"
+            if ah.assigned_by_user and ah.assigned_by_user.employee:
+                assigned_by_name = ah.assigned_by_user.employee.full_name
+            elif ah.assigned_by_user:
+                assigned_by_name = ah.assigned_by_user.email
+            assignment_history_data.append({
+                "id": str(ah.id),
+                "from_assignee_id": str(ah.from_assignee_id) if ah.from_assignee_id else None,
+                "from_assignee_name": ah.from_assignee.full_name if ah.from_assignee else "Unassigned",
+                "to_assignee_id": str(ah.to_assignee_id) if ah.to_assignee_id else None,
+                "to_assignee_name": ah.to_assignee.full_name if ah.to_assignee else "Unassigned",
+                "assigned_by": str(ah.assigned_by) if ah.assigned_by else None,
+                "assigned_by_name": assigned_by_name,
+                "mode": ah.mode,
+                "assigned_at": ah.assigned_at.isoformat() if ah.assigned_at else None,
+            })
+
+        assignee_data = None
+        if app.assignee:
+            assignee_data = {
+                "id": str(app.assignee.id),
+                "full_name": app.assignee.full_name,
+                "photo_url": app.assignee.photo_url,
+            }
+
         return {
             "id": app.id,
             "company_id": app.company_id,
+            "assigned_to": str(app.assigned_to) if app.assigned_to else None,
+            "assignee": assignee_data,
             "candidate": {
                 "id": cand.id,
                 "full_name": cand.full_name,
@@ -632,6 +1362,8 @@ class AtsService:
                 "terminal_type": stage.terminal_type,
             },
             "days_in_stage": days_in_stage,
+            "version": app.version or 1,
+            "stage_entered_at": app.stage_entered_at.isoformat() if app.stage_entered_at else None,
             "cover_note": app.cover_note,
             "source": app.source,
             "resume_file_id": app.resume_file_id,
@@ -643,6 +1375,10 @@ class AtsService:
             "created_at": app.created_at,
             "updated_at": app.updated_at,
             "activities": activities,
+            "stage_history": stage_history_data,
+            "assignment_history": assignment_history_data,
+            "other_applications": other_applications_data,
+            "notes": notes_data,
             "offers": offers_data,
         }
 
@@ -656,8 +1392,12 @@ class AtsService:
         target_stage_id: UUID,
         reason: str | None = None,
         note: str | None = None,
+        expected_version: int | None = None,
+        expected_updated_at: datetime | None = None,
+        skip_auto_interview: bool = False,
+        is_undo: bool = False,
     ) -> Application:
-        """Unified stage change service with strict business & permission checks."""
+        """Unified stage change service with strict business, concurrency & permission checks."""
         app = (
             db.query(Application)
             .filter(Application.id == application_id, Application.company_id == company_id)
@@ -666,12 +1406,27 @@ class AtsService:
         if not app:
             raise HTTPException(status_code=404, detail="Application not found.")
 
-        # 1. Concurrency check
+        AtsService._assert_can_access_application(db, current_user, app)
+
+        # 1. Concurrency check (stage_id + version + updated_at)
         if app.stage_id != current_stage_id:
             raise HTTPException(
                 status_code=status.HTTP_409_CONFLICT,
-                detail="Stale state: This application was updated by another team member. Please refresh and review.",
+                detail="Stale state: This application was moved by another team member. Please refresh and review.",
             )
+        if expected_version is not None and (app.version or 1) != expected_version:
+            raise HTTPException(
+                status_code=status.HTTP_409_CONFLICT,
+                detail="Conflict: This application was modified by another team member. Board refreshed.",
+            )
+        if expected_updated_at is not None and app.updated_at is not None:
+            exp_dt = expected_updated_at if expected_updated_at.tzinfo else expected_updated_at.replace(tzinfo=timezone.utc)
+            cur_dt = app.updated_at if app.updated_at.tzinfo else app.updated_at.replace(tzinfo=timezone.utc)
+            if abs((cur_dt - exp_dt).total_seconds()) > 1.0:
+                raise HTTPException(
+                    status_code=status.HTTP_409_CONFLICT,
+                    detail="Conflict: This application was updated by another team member. Board refreshed.",
+                )
 
         current_stage = db.query(Stage).filter(Stage.id == current_stage_id).first()
         target_stage = db.query(Stage).filter(Stage.id == target_stage_id).first()
@@ -688,11 +1443,16 @@ class AtsService:
             if not is_admin and not user_perms.get("ats:offer:manage"):
                 raise HTTPException(
                     status_code=status.HTTP_403_FORBIDDEN,
-                    detail="Recruiters are not permitted to move applications to Offer or Hired stage. Only Admin/HR has permission to manage offers.",
+                    detail="Recruiters are not permitted to move applications to Offer or Hired stage. Only Org Admin has permission.",
                 )
 
         # Rejecting rule: Recruiter can only reject in Applied or Screening
         is_rejecting = target_stage.terminal_type == "rejected" or "reject" in target_stage.name.lower()
+        was_rejected = bool(
+            current_stage
+            and (current_stage.terminal_type == "rejected" or "reject" in current_stage.name.lower())
+        )
+
         if is_rejecting:
             if not reason or not reason.strip():
                 raise HTTPException(
@@ -704,20 +1464,33 @@ class AtsService:
                 if not is_admin and not user_perms.get("ats:offer:manage"):
                     raise HTTPException(
                         status_code=status.HTTP_403_FORBIDDEN,
-                        detail="Recruiters can only reject applications in Applied and Screening stages. Rejecting from Interview stage onward requires Admin.",
+                        detail="Recruiters can only reject applications in Applied and Screening stages. Rejecting from Interview stage onward requires Org Admin.",
                     )
 
             app.rejection_reason = reason.strip()
             app.rejection_note = note.strip() if note else None
+        elif was_rejected:
+            # Restoring from Rejected (e.g. 5s Undo): clear rejection fields
+            if not is_admin and not user_perms.get("ats:offer:manage"):
+                if target_stage.name.lower() not in ("applied", "screening"):
+                    raise HTTPException(
+                        status_code=status.HTTP_403_FORBIDDEN,
+                        detail="Only Org Admin can restore a rejected application to Interview or later stages.",
+                    )
+            app.rejection_reason = None
+            app.rejection_note = None
 
         # 3. Apply stage change
+        now_utc = datetime.now(timezone.utc)
         from_stage_name = current_stage.name if current_stage else "Unknown"
         to_stage_name = target_stage.name
         app.stage_id = target_stage.id
-        app.updated_at = datetime.now(timezone.utc)
+        app.stage_entered_at = now_utc
+        app.updated_at = now_utc
+        app.version = (app.version or 1) + 1
 
-        # Auto-create first interview round if moving into Interview stage
-        if to_stage_name.lower() == "interview":
+        # Auto-create first interview round if moving into Interview stage via simple button (not Kanban interview flow)
+        if to_stage_name.lower() == "interview" and not skip_auto_interview:
             existing_iv = (
                 db.query(Interview)
                 .filter(Interview.application_id == app.id, Interview.company_id == company_id)
@@ -735,9 +1508,20 @@ class AtsService:
                 )
                 db.add(first_round)
 
-        # 4. Activity log in same transaction
+        # 4. Stage history & Activity log in same transaction
+        history_reason = reason.strip() if reason and reason.strip() else ("Rejection undone" if is_undo else None)
+        AtsService._record_stage_history(
+            db=db,
+            company_id=company_id,
+            application_id=app.id,
+            from_stage=current_stage,
+            to_stage=target_stage,
+            changed_by=current_user.id,
+            reason=history_reason,
+        )
+
         actor_name = current_user.employee.full_name if current_user.employee else current_user.email
-        event_name = "rejected" if is_rejecting else "stage_changed"
+        event_name = "rejected" if is_rejecting else ("rejection_undone" if is_undo else "stage_changed")
         activity = ApplicationActivity(
             id=uuid.uuid4(),
             company_id=company_id,
@@ -751,10 +1535,10 @@ class AtsService:
                 "from_stage_name": from_stage_name,
                 "to_stage_name": to_stage_name,
                 "actor_name": actor_name,
-                "reason": reason,
+                "reason": history_reason,
                 "note": note,
             },
-            created_at=datetime.now(timezone.utc),
+            created_at=now_utc,
         )
         db.add(activity)
 
@@ -769,8 +1553,9 @@ class AtsService:
         application_id: UUID,
         current_user: UserAccount,
         note_text: str,
-    ) -> ApplicationActivity:
-        """Add private recruiter note to application activity timeline."""
+        mentioned_employee_ids: list[UUID] | None = None,
+    ) -> ApplicationNote:
+        """Add internal note with @mentions to application_notes, activity log, and notifications."""
         app = (
             db.query(Application)
             .filter(Application.id == application_id, Application.company_id == company_id)
@@ -779,7 +1564,37 @@ class AtsService:
         if not app:
             raise HTTPException(status_code=404, detail="Application not found.")
 
+        AtsService._assert_can_access_application(db, current_user, app)
+
+        clean_text = note_text.strip()
         actor_name = current_user.employee.full_name if current_user.employee else current_user.email
+        now_utc = datetime.now(timezone.utc)
+
+        # Validate mentioned employees belong to the same company
+        valid_mention_emps = []
+        if mentioned_employee_ids:
+            unique_ids = list(set(mentioned_employee_ids))
+            valid_mention_emps = (
+                db.query(Employee)
+                .filter(
+                    Employee.company_id == company_id,
+                    Employee.id.in_(unique_ids),
+                    Employee.employment_status == "active",
+                )
+                .all()
+            )
+        valid_mention_id_strs = [str(e.id) for e in valid_mention_emps]
+
+        note_row = ApplicationNote(
+            id=uuid.uuid4(),
+            company_id=company_id,
+            application_id=app.id,
+            author_id=current_user.id,
+            content=clean_text,
+            mentioned_employee_ids=valid_mention_id_strs,
+        )
+        db.add(note_row)
+
         activity = ApplicationActivity(
             id=uuid.uuid4(),
             company_id=company_id,
@@ -791,14 +1606,38 @@ class AtsService:
             to_stage_id=app.stage_id,
             metadata_json={
                 "actor_name": actor_name,
-                "note": note_text.strip(),
+                "note": clean_text,
+                "mentioned_employee_ids": valid_mention_id_strs,
             },
-            created_at=datetime.now(timezone.utc),
+            created_at=now_utc,
         )
         db.add(activity)
+
+        # Send in-app notifications for @mentioned employees (skip self-mentions)
+        cand_name = app.candidate.full_name if app.candidate else "Candidate"
+        job_title = app.job.title if app.job else "Position"
+        snippet = clean_text[:140] + ("..." if len(clean_text) > 140 else "")
+        for emp in valid_mention_emps:
+            if current_user.employee_id and emp.id == current_user.employee_id:
+                continue
+            notif = Notification(
+                id=uuid.uuid4(),
+                company_id=company_id,
+                recipient_employee_id=emp.id,
+                actor_employee_id=current_user.employee_id,
+                type="ats_mention",
+                title=f"{actor_name} mentioned you on {cand_name}'s application",
+                message=f"[{job_title}] {snippet}",
+                entity_type="application",
+                entity_id=app.id,
+                link=f"/ats/applicants?app={app.id}",
+                is_read=False,
+            )
+            db.add(notif)
+
         db.commit()
-        db.refresh(activity)
-        return activity
+        db.refresh(note_row)
+        return note_row
 
     @staticmethod
     def bulk_shortlist(
@@ -819,6 +1658,7 @@ class AtsService:
         actor_name = current_user.employee.full_name if current_user.employee else current_user.email
         moved_count = 0
 
+        is_admin = AtsService._is_org_admin(current_user)
         for app_id in application_ids:
             app = (
                 db.query(Application)
@@ -827,10 +1667,26 @@ class AtsService:
             )
             if not app or app.stage_id == screening_stage.id:
                 continue
+            if not is_admin and (not current_user.employee_id or app.assigned_to != current_user.employee_id):
+                continue
 
+            old_stage = app.stage
             old_stage_id = app.stage_id
+            now_utc = datetime.now(timezone.utc)
             app.stage_id = screening_stage.id
-            app.updated_at = datetime.now(timezone.utc)
+            app.stage_entered_at = now_utc
+            app.updated_at = now_utc
+            app.version = (app.version or 1) + 1
+
+            AtsService._record_stage_history(
+                db=db,
+                company_id=company_id,
+                application_id=app.id,
+                from_stage=old_stage,
+                to_stage=screening_stage,
+                changed_by=current_user.id,
+                reason="Bulk shortlist",
+            )
 
             activity = ApplicationActivity(
                 id=uuid.uuid4(),
@@ -843,11 +1699,11 @@ class AtsService:
                 to_stage_id=screening_stage.id,
                 metadata_json={
                     "actor_name": actor_name,
-                    "from_stage_name": "Applied",
+                    "from_stage_name": old_stage.name if old_stage else "Applied",
                     "to_stage_name": "Screening",
                     "action": "bulk_shortlist",
                 },
-                created_at=datetime.now(timezone.utc),
+                created_at=now_utc,
             )
             db.add(activity)
             moved_count += 1
@@ -856,10 +1712,538 @@ class AtsService:
         return moved_count
 
     @staticmethod
+    def get_recruiter_pool(db: Session, company_id: UUID) -> list[dict]:
+        """Returns global recruiter pool (active employees with Recruiter or Admin role) + assigned counts."""
+        employees = (
+            db.query(Employee)
+            .filter(Employee.company_id == company_id, Employee.employment_status == "active")
+            .order_by(Employee.full_name.asc())
+            .all()
+        )
+
+        # Pending (non-terminal) & total assigned counts via single aggregate query
+        pending_rows = (
+            db.query(Application.assigned_to, func.count(Application.id))
+            .join(Stage, Application.stage_id == Stage.id)
+            .filter(
+                Application.company_id == company_id,
+                Application.assigned_to.isnot(None),
+                Stage.is_terminal == False,
+            )
+            .group_by(Application.assigned_to)
+            .all()
+        )
+        pending_map = {emp_id: cnt for emp_id, cnt in pending_rows}
+
+        total_rows = (
+            db.query(Application.assigned_to, func.count(Application.id))
+            .filter(
+                Application.company_id == company_id,
+                Application.assigned_to.isnot(None),
+            )
+            .group_by(Application.assigned_to)
+            .all()
+        )
+        total_map = {emp_id: cnt for emp_id, cnt in total_rows}
+
+        pool = []
+        for emp in employees:
+            ua = emp.user_account
+            if not ua:
+                continue
+            role_names = [r.name for r in ua.all_roles]
+            is_admin = any(r == "Admin" for r in role_names)
+            is_recruiter = any(r == "Recruiter" for r in role_names) or bool(
+                ua.merged_permissions.get("ats:applicants:view")
+            )
+            if is_recruiter or is_admin:
+                pool.append({
+                    "id": str(emp.id),
+                    "full_name": emp.full_name,
+                    "email": ua.email,
+                    "department_name": emp.department.name if emp.department else None,
+                    "photo_url": emp.photo_url,
+                    "role_names": role_names,
+                    "is_admin": is_admin,
+                    "is_recruiter": is_recruiter,
+                    "pending_count": pending_map.get(emp.id, 0),
+                    "total_count": total_map.get(emp.id, 0),
+                })
+        return pool
+
+    @staticmethod
+    def assign_application(
+        db: Session,
+        company_id: UUID,
+        application_id: UUID,
+        current_user: UserAccount,
+        assigned_to: UUID | None,
+        mode: str = "manual",
+    ) -> Application:
+        """Assign or reassign a single application (or unassign if assigned_to is None)."""
+        app = (
+            db.query(Application)
+            .filter(Application.id == application_id, Application.company_id == company_id)
+            .first()
+        )
+        if not app:
+            raise HTTPException(status_code=404, detail="Application not found.")
+
+        AtsService._assert_can_access_application(db, current_user, app)
+
+        target_emp = None
+        if assigned_to is not None:
+            target_emp = (
+                db.query(Employee)
+                .filter(
+                    Employee.id == assigned_to,
+                    Employee.company_id == company_id,
+                    Employee.employment_status == "active",
+                )
+                .first()
+            )
+            if not target_emp:
+                raise HTTPException(status_code=400, detail="Selected recruiter not found or inactive.")
+
+        old_assignee_id = app.assigned_to
+        if old_assignee_id == assigned_to:
+            return app
+
+        old_assignee_name = app.assignee.full_name if app.assignee else "Unassigned"
+        new_assignee_name = target_emp.full_name if target_emp else "Unassigned"
+        now_utc = datetime.now(timezone.utc)
+
+        app.assigned_to = assigned_to
+        app.updated_at = now_utc
+        app.version = (app.version or 1) + 1
+
+        AtsService._record_assignment_history(
+            db=db,
+            company_id=company_id,
+            application_id=app.id,
+            from_assignee_id=old_assignee_id,
+            to_assignee_id=assigned_to,
+            assigned_by=current_user.id,
+            mode=mode,
+        )
+
+        actor_name = current_user.employee.full_name if current_user.employee else current_user.email
+        activity = ApplicationActivity(
+            id=uuid.uuid4(),
+            company_id=company_id,
+            application_id=app.id,
+            actor_id=current_user.id,
+            actor_type="user",
+            event_type="assigned",
+            from_stage_id=app.stage_id,
+            to_stage_id=app.stage_id,
+            metadata_json={
+                "actor_name": actor_name,
+                "from_assignee_name": old_assignee_name,
+                "to_assignee_name": new_assignee_name,
+                "mode": mode,
+            },
+            created_at=now_utc,
+        )
+        db.add(activity)
+
+        # Notify newly assigned recruiter
+        if target_emp and (not current_user.employee_id or target_emp.id != current_user.employee_id):
+            cand_name = app.candidate.full_name if app.candidate else "Candidate"
+            job_title = app.job.title if app.job else "Position"
+            db.add(
+                Notification(
+                    id=uuid.uuid4(),
+                    company_id=company_id,
+                    recipient_employee_id=target_emp.id,
+                    actor_employee_id=current_user.employee_id,
+                    type="ats_assigned",
+                    title=f"Application assigned: {cand_name}",
+                    message=f"{actor_name} assigned {cand_name} ({job_title}) to you.",
+                    entity_type="application",
+                    entity_id=app.id,
+                    link=f"/ats/applicants?app={app.id}",
+                    is_read=False,
+                )
+            )
+
+        db.commit()
+        db.refresh(app)
+        return app
+
+    @staticmethod
+    def bulk_reassign_applications(
+        db: Session,
+        company_id: UUID,
+        current_user: UserAccount,
+        application_ids: list[UUID] | None = None,
+        from_recruiter_id: UUID | None = None,
+        to_recruiter_id: UUID | None = None,
+        only_active: bool = True,
+    ) -> int:
+        """Bulk reassign selected applications OR all applications from a departing recruiter."""
+        if not application_ids and not from_recruiter_id:
+            raise HTTPException(
+                status_code=400,
+                detail="Provide either application_ids or from_recruiter_id for bulk reassignment.",
+            )
+
+        target_emp = None
+        if to_recruiter_id is not None:
+            target_emp = (
+                db.query(Employee)
+                .filter(
+                    Employee.id == to_recruiter_id,
+                    Employee.company_id == company_id,
+                    Employee.employment_status == "active",
+                )
+                .first()
+            )
+            if not target_emp:
+                raise HTTPException(status_code=400, detail="Target recruiter not found or inactive.")
+
+        q = db.query(Application).filter(Application.company_id == company_id)
+        if not AtsService._is_org_admin(current_user):
+            if not current_user.employee_id:
+                return 0
+            q = q.filter(Application.assigned_to == current_user.employee_id)
+        if application_ids:
+            q = q.filter(Application.id.in_(application_ids))
+        elif from_recruiter_id:
+            if not AtsService._is_org_admin(current_user) and from_recruiter_id != current_user.employee_id:
+                raise HTTPException(
+                    status_code=status.HTTP_403_FORBIDDEN,
+                    detail="Access denied: You can only bulk-reassign your own assigned applications.",
+                )
+            q = q.filter(Application.assigned_to == from_recruiter_id)
+            if only_active:
+                q = q.join(Stage, Application.stage_id == Stage.id).filter(Stage.is_terminal == False)
+
+        apps = q.all()
+        actor_name = current_user.employee.full_name if current_user.employee else current_user.email
+        new_assignee_name = target_emp.full_name if target_emp else "Unassigned"
+        now_utc = datetime.now(timezone.utc)
+        reassigned_count = 0
+
+        for app in apps:
+            if app.assigned_to == to_recruiter_id:
+                continue
+            old_assignee_id = app.assigned_to
+            old_assignee_name = app.assignee.full_name if app.assignee else "Unassigned"
+
+            app.assigned_to = to_recruiter_id
+            app.updated_at = now_utc
+            app.version = (app.version or 1) + 1
+
+            AtsService._record_assignment_history(
+                db=db,
+                company_id=company_id,
+                application_id=app.id,
+                from_assignee_id=old_assignee_id,
+                to_assignee_id=to_recruiter_id,
+                assigned_by=current_user.id,
+                mode="bulk_reassign",
+            )
+
+            db.add(
+                ApplicationActivity(
+                    id=uuid.uuid4(),
+                    company_id=company_id,
+                    application_id=app.id,
+                    actor_id=current_user.id,
+                    actor_type="user",
+                    event_type="assigned",
+                    from_stage_id=app.stage_id,
+                    to_stage_id=app.stage_id,
+                    metadata_json={
+                        "actor_name": actor_name,
+                        "from_assignee_name": old_assignee_name,
+                        "to_assignee_name": new_assignee_name,
+                        "mode": "bulk_reassign",
+                    },
+                    created_at=now_utc,
+                )
+            )
+            reassigned_count += 1
+
+        if reassigned_count > 0 and target_emp and (not current_user.employee_id or target_emp.id != current_user.employee_id):
+            db.add(
+                Notification(
+                    id=uuid.uuid4(),
+                    company_id=company_id,
+                    recipient_employee_id=target_emp.id,
+                    actor_employee_id=current_user.employee_id,
+                    type="ats_assigned",
+                    title=f"{reassigned_count} application(s) assigned to you",
+                    message=f"{actor_name} bulk-reassigned {reassigned_count} application(s) to you.",
+                    entity_type="application",
+                    entity_id=None,
+                    link="/ats/applicants",
+                    is_read=False,
+                )
+            )
+
+        db.commit()
+        return reassigned_count
+
+    @staticmethod
+    def _get_or_create_distribution_settings(
+        db: Session,
+        company_id: UUID,
+        for_update: bool = False,
+    ) -> AtsDistributionSettings:
+        """Fetch or auto-initialize company distribution settings (Round-Robin ON by default)."""
+        q = db.query(AtsDistributionSettings).filter(AtsDistributionSettings.company_id == company_id)
+        if for_update:
+            q = q.with_for_update()
+        settings = q.first()
+        if not settings:
+            # Default pool: all active employees who hold the Recruiter role
+            pool = AtsService.get_recruiter_pool(db, company_id)
+            default_pool_ids = [r["id"] for r in pool if r["is_recruiter"] and not r["is_admin"]]
+            if not default_pool_ids:
+                default_pool_ids = [r["id"] for r in pool]
+
+            settings = AtsDistributionSettings(
+                id=uuid.uuid4(),
+                company_id=company_id,
+                auto_assign_enabled=True,
+                round_robin_pool_ids=default_pool_ids,
+                last_assigned_index=-1,
+            )
+            db.add(settings)
+            db.flush()
+        return settings
+
+    @staticmethod
+    def _pick_next_round_robin_recruiter(db: Session, company_id: UUID) -> Employee | None:
+        """
+        Atomically pick the next active recruiter in the configured round-robin pool (A -> B -> C -> A).
+        Uses row-level lock (SELECT ... FOR UPDATE) to avoid duplicate assignments under concurrency.
+        """
+        settings = AtsService._get_or_create_distribution_settings(db, company_id, for_update=True)
+        if not settings.auto_assign_enabled:
+            return None
+
+        raw_pool = settings.round_robin_pool_ids or []
+        if not raw_pool:
+            return None
+
+        valid_uuids = []
+        for pid in raw_pool:
+            try:
+                valid_uuids.append(UUID(str(pid)))
+            except Exception:
+                continue
+        if not valid_uuids:
+            return None
+
+        active_emps = (
+            db.query(Employee)
+            .filter(
+                Employee.company_id == company_id,
+                Employee.id.in_(valid_uuids),
+                Employee.employment_status == "active",
+            )
+            .all()
+        )
+        emp_by_id = {e.id: e for e in active_emps}
+        ordered_active = [emp_by_id[uid] for uid in valid_uuids if uid in emp_by_id]
+        if not ordered_active:
+            return None
+
+        next_idx = ((settings.last_assigned_index if settings.last_assigned_index is not None else -1) + 1) % len(ordered_active)
+        settings.last_assigned_index = next_idx
+        settings.updated_at = datetime.now(timezone.utc)
+        return ordered_active[next_idx]
+
+    @staticmethod
+    def get_distribution_settings(db: Session, company_id: UUID) -> dict:
+        settings = AtsService._get_or_create_distribution_settings(db, company_id, for_update=False)
+        db.commit()
+        return {
+            "auto_assign_enabled": settings.auto_assign_enabled,
+            "round_robin_pool_ids": [str(x) for x in (settings.round_robin_pool_ids or [])],
+            "last_assigned_index": settings.last_assigned_index,
+        }
+
+    @staticmethod
+    def update_distribution_settings(
+        db: Session,
+        company_id: UUID,
+        auto_assign_enabled: bool,
+        round_robin_pool_ids: list[UUID],
+    ) -> dict:
+        settings = AtsService._get_or_create_distribution_settings(db, company_id, for_update=True)
+        # Validate all IDs are active employees in the company
+        valid_ids_str = []
+        if round_robin_pool_ids:
+            active_emps = (
+                db.query(Employee.id)
+                .filter(
+                    Employee.company_id == company_id,
+                    Employee.id.in_(round_robin_pool_ids),
+                    Employee.employment_status == "active",
+                )
+                .all()
+            )
+            active_set = {row[0] for row in active_emps}
+            # Preserve requested order, deduplicated
+            seen = set()
+            for uid in round_robin_pool_ids:
+                if uid in active_set and uid not in seen:
+                    seen.add(uid)
+                    valid_ids_str.append(str(uid))
+
+        settings.auto_assign_enabled = auto_assign_enabled
+        settings.round_robin_pool_ids = valid_ids_str
+        if valid_ids_str and settings.last_assigned_index >= len(valid_ids_str):
+            settings.last_assigned_index = -1
+        settings.updated_at = datetime.now(timezone.utc)
+        db.commit()
+        db.refresh(settings)
+        return {
+            "auto_assign_enabled": settings.auto_assign_enabled,
+            "round_robin_pool_ids": settings.round_robin_pool_ids,
+            "last_assigned_index": settings.last_assigned_index,
+        }
+
+    @staticmethod
+    def distribute_unassigned_equal_split(
+        db: Session,
+        company_id: UUID,
+        current_user: UserAccount,
+        recruiter_ids: list[UUID],
+        only_active: bool = True,
+    ) -> dict:
+        """
+        Admin Equal Split:
+        Splits all currently UNASSIGNED applications equally among selected recruiters.
+        NEVER touches applications that are already assigned.
+        """
+        if not recruiter_ids:
+            raise HTTPException(status_code=400, detail="Select at least one recruiter.")
+
+        active_emps = (
+            db.query(Employee)
+            .filter(
+                Employee.company_id == company_id,
+                Employee.id.in_(recruiter_ids),
+                Employee.employment_status == "active",
+            )
+            .all()
+        )
+        emp_by_id = {e.id: e for e in active_emps}
+        ordered_recruiters = []
+        seen = set()
+        for rid in recruiter_ids:
+            if rid in emp_by_id and rid not in seen:
+                seen.add(rid)
+                ordered_recruiters.append(emp_by_id[rid])
+
+        if not ordered_recruiters:
+            raise HTTPException(status_code=400, detail="No valid active recruiters selected.")
+
+        # Strictly query ONLY unassigned applications (assigned_to IS NULL)
+        q = db.query(Application).filter(
+            Application.company_id == company_id,
+            Application.assigned_to.is_(None),
+        )
+        if only_active:
+            q = q.join(Stage, Application.stage_id == Stage.id).filter(Stage.is_terminal == False)
+
+        unassigned_apps = q.order_by(Application.created_at.asc(), Application.id.asc()).all()
+        if not unassigned_apps:
+            return {
+                "success": True,
+                "distributed_count": 0,
+                "breakdown": [
+                    {"recruiter_id": str(r.id), "recruiter_name": r.full_name, "assigned_count": 0}
+                    for r in ordered_recruiters
+                ],
+            }
+
+        actor_name = current_user.employee.full_name if current_user.employee else current_user.email
+        now_utc = datetime.now(timezone.utc)
+        counts_by_rec = {r.id: 0 for r in ordered_recruiters}
+
+        for idx, app in enumerate(unassigned_apps):
+            target_rec = ordered_recruiters[idx % len(ordered_recruiters)]
+            app.assigned_to = target_rec.id
+            app.updated_at = now_utc
+            app.version = (app.version or 1) + 1
+            counts_by_rec[target_rec.id] += 1
+
+            AtsService._record_assignment_history(
+                db=db,
+                company_id=company_id,
+                application_id=app.id,
+                from_assignee_id=None,
+                to_assignee_id=target_rec.id,
+                assigned_by=current_user.id,
+                mode="equal_split",
+            )
+
+            db.add(
+                ApplicationActivity(
+                    id=uuid.uuid4(),
+                    company_id=company_id,
+                    application_id=app.id,
+                    actor_id=current_user.id,
+                    actor_type="user",
+                    event_type="assigned",
+                    from_stage_id=app.stage_id,
+                    to_stage_id=app.stage_id,
+                    metadata_json={
+                        "actor_name": actor_name,
+                        "from_assignee_name": "Unassigned",
+                        "to_assignee_name": target_rec.full_name,
+                        "mode": "equal_split",
+                    },
+                    created_at=now_utc,
+                )
+            )
+
+        # Send one summary notification per recruiter who received applications
+        for rec in ordered_recruiters:
+            cnt = counts_by_rec[rec.id]
+            if cnt > 0 and (not current_user.employee_id or rec.id != current_user.employee_id):
+                db.add(
+                    Notification(
+                        id=uuid.uuid4(),
+                        company_id=company_id,
+                        recipient_employee_id=rec.id,
+                        actor_employee_id=current_user.employee_id,
+                        type="ats_assigned",
+                        title=f"{cnt} unassigned application(s) distributed to you",
+                        message=f"{actor_name} distributed {cnt} application(s) to you via equal split.",
+                        entity_type="application",
+                        entity_id=None,
+                        link="/ats/applicants",
+                        is_read=False,
+                    )
+                )
+
+        db.commit()
+        return {
+            "success": True,
+            "distributed_count": len(unassigned_apps),
+            "breakdown": [
+                {
+                    "recruiter_id": str(r.id),
+                    "recruiter_name": r.full_name,
+                    "assigned_count": counts_by_rec[r.id],
+                }
+                for r in ordered_recruiters
+            ],
+        }
+
+    @staticmethod
     async def get_resume_blob(
         db: Session,
         company_id: UUID,
         application_id: UUID,
+        current_user: UserAccount | None = None,
     ) -> tuple[bytes, str]:
         """Fetches the resume PDF file as a blob for in-app preview."""
         app = (
@@ -869,6 +2253,8 @@ class AtsService:
         )
         if not app or not (app.resume_file_id or app.resume_path):
             raise HTTPException(status_code=404, detail="Resume not found for this application.")
+
+        AtsService._assert_can_access_application(db, current_user, app, allow_assigned_interviewer=True)
 
         filename = app.resume_file_name or "resume.pdf"
         file_path = app.resume_path or ""
@@ -1217,6 +2603,8 @@ class AtsService:
         if not app:
             raise HTTPException(status_code=404, detail="Application not found.")
 
+        AtsService._assert_can_access_application(db, current_user, app)
+
         # Ensure application is in Interview stage (stays in Interview across all rounds)
         interview_stage = (
             db.query(Stage)
@@ -1224,8 +2612,21 @@ class AtsService:
             .first()
         )
         if interview_stage and app.stage_id != interview_stage.id:
+            old_stage = app.stage
+            now_utc = datetime.now(timezone.utc)
             app.stage_id = interview_stage.id
-            app.updated_at = datetime.now(timezone.utc)
+            app.stage_entered_at = now_utc
+            app.updated_at = now_utc
+            app.version = (app.version or 1) + 1
+            AtsService._record_stage_history(
+                db=db,
+                company_id=company_id,
+                application_id=app.id,
+                from_stage=old_stage,
+                to_stage=interview_stage,
+                changed_by=current_user.id,
+                reason=f"Interview scheduled: {round_name.strip()}",
+            )
 
         interview = Interview(
             id=uuid.uuid4(),
@@ -1280,6 +2681,9 @@ class AtsService:
         )
         if not interview:
             raise HTTPException(status_code=404, detail="Interview not found.")
+
+        if interview.application:
+            AtsService._assert_can_access_application(db, current_user, interview.application)
 
         interviewer_emp = (
             db.query(Employee)
@@ -1554,6 +2958,12 @@ class AtsService:
             .filter(Interview.company_id == company_id)
             .order_by(Interview.round_number.desc(), Interview.updated_at.desc())
         )
+        if not AtsService._is_org_admin(current_user):
+            if not current_user.employee_id:
+                return []
+            query = query.join(Application, Interview.application_id == Application.id).filter(
+                Application.assigned_to == current_user.employee_id
+            )
 
         now = datetime.now(timezone.utc)
         all_interviews = query.all()
@@ -1772,10 +3182,23 @@ class AtsService:
             )
             .first()
         )
+        prev_stage = app.stage
         prev_stage_id = app.stage_id
         if offer_stage and app.stage_id != offer_stage.id and not app.stage.is_terminal:
+            now_utc = datetime.now(timezone.utc)
             app.stage_id = offer_stage.id
-            app.updated_at = datetime.now(timezone.utc)
+            app.stage_entered_at = now_utc
+            app.updated_at = now_utc
+            app.version = (app.version or 1) + 1
+            AtsService._record_stage_history(
+                db=db,
+                company_id=company_id,
+                application_id=application_id,
+                from_stage=prev_stage,
+                to_stage=offer_stage,
+                changed_by=current_user.id,
+                reason=f"Offer v{new_version} created",
+            )
 
         actor_emp = current_user.employee
         actor_name = actor_emp.full_name if actor_emp else current_user.email
@@ -1806,8 +3229,22 @@ class AtsService:
         return offer
 
     @staticmethod
-    def get_offers(db: Session, company_id: UUID, application_id: UUID) -> list[dict]:
+    def get_offers(
+        db: Session,
+        company_id: UUID,
+        application_id: UUID,
+        current_user: UserAccount | None = None,
+    ) -> list[dict]:
         """Fetch all offer versions for an application."""
+        app = (
+            db.query(Application)
+            .filter(Application.id == application_id, Application.company_id == company_id)
+            .first()
+        )
+        if not app:
+            raise HTTPException(status_code=404, detail="Application not found.")
+        AtsService._assert_can_access_application(db, current_user, app)
+
         offers = (
             db.query(Offer)
             .filter(Offer.application_id == application_id, Offer.company_id == company_id)
@@ -2141,10 +3578,25 @@ class AtsService:
             db.add(hired_stage)
             db.flush()
 
+        prev_stage = app.stage
         prev_stage_id = app.stage_id
+        now_utc = datetime.now(timezone.utc)
         app.converted_employee_id = new_emp.id
         app.stage_id = hired_stage.id
-        app.updated_at = datetime.now(timezone.utc)
+        app.stage_entered_at = now_utc
+        app.updated_at = now_utc
+        app.version = (app.version or 1) + 1
+
+        if prev_stage_id != hired_stage.id:
+            AtsService._record_stage_history(
+                db=db,
+                company_id=company_id,
+                application_id=app.id,
+                from_stage=prev_stage,
+                to_stage=hired_stage,
+                changed_by=current_user.id,
+                reason=f"Converted to employee ({new_emp.employee_code})",
+            )
 
         # If latest offer exists, set to Accepted
         if latest_offer and latest_offer.status != "Accepted":

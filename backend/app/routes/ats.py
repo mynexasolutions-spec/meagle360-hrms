@@ -3,6 +3,7 @@ ATS Routes — Job Openings CRUD and Public Careers Endpoints.
 """
 
 import os
+from datetime import date
 from uuid import UUID
 from fastapi import (
     APIRouter,
@@ -39,6 +40,10 @@ from app.schemas.ats import (
     StageChangeRequest,
     AddNoteRequest,
     BulkShortlistRequest,
+    AssignApplicationRequest,
+    BulkReassignRequest,
+    DistributionSettingsUpdate,
+    EqualSplitDistributeRequest,
     RoundTemplateCreate,
     RoundTemplateResponse,
     RejectionReasonResponse,
@@ -320,14 +325,126 @@ def get_local_resume_file(path: str):
 
 # ── Phase 2: Applicants Pipeline & Application Detail ─────────
 
-@router.get("/stages", response_model=list[StageResponse])
-def get_stages(
+@router.get("/filter-options")
+def get_filter_options(
     company_id: UUID = Depends(get_company_id),
     db: Session = Depends(get_db),
     _: UserAccount = Depends(require_permissions("ats:applicants:view")),
 ):
-    """List dynamic stages for the tenant with applicant count per stage."""
-    return AtsService.get_stages_with_counts(db, company_id)
+    """Returns distinct application sources and active recruiters/admins for filter dropdowns."""
+    return AtsService.get_filter_options(db, company_id)
+
+
+@router.get("/mentionable-users")
+def get_mentionable_users(
+    company_id: UUID = Depends(get_company_id),
+    db: Session = Depends(get_db),
+    _: UserAccount = Depends(require_permissions("ats:applicants:view")),
+):
+    """Returns active company employees for @mention autocomplete in application notes."""
+    return AtsService.get_mentionable_users(db, company_id)
+
+
+@router.get("/stages", response_model=list[StageResponse])
+def get_stages(
+    job_id: UUID | None = None,
+    search: str | None = None,
+    date_from: date | None = None,
+    date_to: date | None = None,
+    source: str | None = None,
+    assigned_to: UUID | None = None,
+    unassigned_only: bool = False,
+    company_id: UUID = Depends(get_company_id),
+    current_user: UserAccount = Depends(get_current_user),
+    db: Session = Depends(get_db),
+    _: UserAccount = Depends(require_permissions("ats:applicants:view")),
+):
+    """List dynamic stages for the tenant with server-side aggregate applicant count per stage."""
+    return AtsService.get_stages_with_counts(
+        db,
+        company_id,
+        current_user=current_user,
+        job_id=job_id,
+        search=search,
+        date_from=date_from,
+        date_to=date_to,
+        source=source,
+        assigned_to=assigned_to,
+        unassigned_only=unassigned_only,
+    )
+
+
+@router.get("/kanban/board")
+def get_kanban_board(
+    job_id: UUID | None = None,
+    stage_id: UUID | None = None,
+    search: str | None = None,
+    date_from: date | None = None,
+    date_to: date | None = None,
+    source: str | None = None,
+    assigned_to: UUID | None = None,
+    unassigned_only: bool = False,
+    limit: int = Query(default=25, ge=1, le=100),
+    company_id: UUID = Depends(get_company_id),
+    current_user: UserAccount = Depends(get_current_user),
+    db: Session = Depends(get_db),
+    _: UserAccount = Depends(require_permissions("ats:applicants:view")),
+):
+    """
+    Kanban board initial payload:
+    - All active configured stages with server-side aggregate counts.
+    - First page (`limit` cards) for each non-rejected column (or filtered stage_id).
+    - Enforces Recruiter My Board visibility at API level.
+    """
+    return AtsService.get_kanban_board(
+        db=db,
+        company_id=company_id,
+        current_user=current_user,
+        job_id=job_id,
+        stage_id=stage_id,
+        search=search,
+        date_from=date_from,
+        date_to=date_to,
+        source=source,
+        assigned_to=assigned_to,
+        unassigned_only=unassigned_only,
+        limit_per_column=limit,
+    )
+
+
+@router.get("/kanban/column")
+def get_kanban_column(
+    stage_id: UUID,
+    job_id: UUID | None = None,
+    search: str | None = None,
+    date_from: date | None = None,
+    date_to: date | None = None,
+    source: str | None = None,
+    assigned_to: UUID | None = None,
+    unassigned_only: bool = False,
+    limit: int = Query(default=25, ge=1, le=100),
+    offset: int = Query(default=0, ge=0),
+    company_id: UUID = Depends(get_company_id),
+    current_user: UserAccount = Depends(get_current_user),
+    db: Session = Depends(get_db),
+    _: UserAccount = Depends(require_permissions("ats:applicants:view")),
+):
+    """Paginated cards for a single Kanban column (supports infinite scroll with 700+ apps)."""
+    return AtsService.get_kanban_column(
+        db=db,
+        company_id=company_id,
+        stage_id=stage_id,
+        current_user=current_user,
+        job_id=job_id,
+        search=search,
+        date_from=date_from,
+        date_to=date_to,
+        source=source,
+        assigned_to=assigned_to,
+        unassigned_only=unassigned_only,
+        limit=limit,
+        offset=offset,
+    )
 
 
 @router.get("/applicants")
@@ -336,21 +453,33 @@ def list_applicants(
     job_id: UUID | None = None,
     department_id: UUID | None = None,
     search: str | None = None,
+    date_from: date | None = None,
+    date_to: date | None = None,
+    source: str | None = None,
+    assigned_to: UUID | None = None,
+    unassigned_only: bool = False,
     company_id: UUID = Depends(get_company_id),
+    current_user: UserAccount = Depends(get_current_user),
     db: Session = Depends(get_db),
     _: UserAccount = Depends(require_permissions("ats:applicants:view")),
 ):
     """
-    List applicants with filters:
-    Supports stage tabs, job filter, department filter, and name/email search.
+    List applicants with server-side filters:
+    Enforces Recruiter My Board visibility at API level.
     """
     return AtsService.get_applicants(
         db=db,
         company_id=company_id,
+        current_user=current_user,
         stage_id=stage_id,
         job_id=job_id,
         department_id=department_id,
         search=search,
+        date_from=date_from,
+        date_to=date_to,
+        source=source,
+        assigned_to=assigned_to,
+        unassigned_only=unassigned_only,
     )
 
 
@@ -358,17 +487,19 @@ def list_applicants(
 def get_application_detail(
     application_id: UUID,
     company_id: UUID = Depends(get_company_id),
+    current_user: UserAccount = Depends(get_current_user),
     db: Session = Depends(get_db),
     _: UserAccount = Depends(require_permissions("ats:applicants:view")),
 ):
     """Full application detail with candidate info, job info, and activity log."""
-    return AtsService.get_application_detail(db, company_id, application_id)
+    return AtsService.get_application_detail(db, company_id, application_id, current_user=current_user)
 
 
 @router.get("/applications/{application_id}/resume-blob")
 async def get_resume_blob(
     application_id: UUID,
     company_id: UUID = Depends(get_company_id),
+    current_user: UserAccount = Depends(get_current_user),
     db: Session = Depends(get_db),
     _: UserAccount = Depends(require_permissions("ats:applicants:view")),
 ):
@@ -376,7 +507,9 @@ async def get_resume_blob(
     Stream resume PDF file as a blob so authenticated iframe/embed
     can preview it securely in the browser without public exposure.
     """
-    file_bytes, filename = await AtsService.get_resume_blob(db, company_id, application_id)
+    file_bytes, filename = await AtsService.get_resume_blob(
+        db, company_id, application_id, current_user=current_user
+    )
     return Response(
         content=file_bytes,
         media_type="application/pdf",
@@ -411,11 +544,18 @@ def change_stage(
         target_stage_id=payload.target_stage_id,
         reason=payload.reason,
         note=payload.note,
+        expected_version=payload.expected_version,
+        expected_updated_at=payload.expected_updated_at,
+        skip_auto_interview=payload.skip_auto_interview,
+        is_undo=payload.is_undo,
     )
     return {
         "success": True,
         "message": "Stage updated successfully.",
         "stage_id": str(app.stage_id),
+        "version": app.version,
+        "updated_at": app.updated_at.isoformat() if app.updated_at else None,
+        "stage_entered_at": app.stage_entered_at.isoformat() if app.stage_entered_at else None,
     }
 
 
@@ -428,11 +568,18 @@ def add_note(
     db: Session = Depends(get_db),
     _: UserAccount = Depends(require_permissions("ats:applicants:view")),
 ):
-    """Add a private note to candidate application timeline."""
-    activity = AtsService.add_note(db, company_id, application_id, current_user, payload.note)
+    """Add a private note (with optional @mentions) to candidate application."""
+    note_row = AtsService.add_note(
+        db,
+        company_id,
+        application_id,
+        current_user,
+        payload.note,
+        mentioned_employee_ids=payload.mentioned_employee_ids,
+    )
     return {
         "success": True,
-        "activity_id": str(activity.id),
+        "note_id": str(note_row.id),
         "message": "Note added successfully.",
     }
 
@@ -452,6 +599,120 @@ def bulk_shortlist(
         "moved_count": count,
         "message": f"{count} applications moved to Screening.",
     }
+
+
+@router.get("/recruiters")
+def get_recruiter_pool(
+    company_id: UUID = Depends(get_company_id),
+    db: Session = Depends(get_db),
+    _: UserAccount = Depends(require_permissions("ats:applicants:view")),
+):
+    """Global recruiter pool (active employees with Recruiter or Admin role) with assigned counts."""
+    return AtsService.get_recruiter_pool(db, company_id)
+
+
+@router.put("/applications/{application_id}/assign")
+def assign_application(
+    application_id: UUID,
+    payload: AssignApplicationRequest,
+    company_id: UUID = Depends(get_company_id),
+    current_user: UserAccount = Depends(get_current_user),
+    db: Session = Depends(get_db),
+    _: UserAccount = Depends(require_permissions("ats:applicants:view")),
+):
+    """Manual assign or reassign a single application (or unassign if assigned_to is null)."""
+    app = AtsService.assign_application(
+        db=db,
+        company_id=company_id,
+        application_id=application_id,
+        current_user=current_user,
+        assigned_to=payload.assigned_to,
+        mode="manual",
+    )
+    assignee_data = None
+    if app.assignee:
+        assignee_data = {
+            "id": str(app.assignee.id),
+            "full_name": app.assignee.full_name,
+            "photo_url": app.assignee.photo_url,
+        }
+    return {
+        "success": True,
+        "application_id": str(app.id),
+        "assigned_to": str(app.assigned_to) if app.assigned_to else None,
+        "assignee": assignee_data,
+        "version": app.version,
+        "message": f"Assigned to {assignee_data['full_name']}." if assignee_data else "Moved to Unassigned pool.",
+    }
+
+
+@router.post("/applications/bulk-reassign")
+def bulk_reassign_applications(
+    payload: BulkReassignRequest,
+    company_id: UUID = Depends(get_company_id),
+    current_user: UserAccount = Depends(get_current_user),
+    db: Session = Depends(get_db),
+    _: UserAccount = Depends(require_permissions("ats:applicants:view")),
+):
+    """Bulk reassign selected applications or all applications from a departing recruiter."""
+    count = AtsService.bulk_reassign_applications(
+        db=db,
+        company_id=company_id,
+        current_user=current_user,
+        application_ids=payload.application_ids,
+        from_recruiter_id=payload.from_recruiter_id,
+        to_recruiter_id=payload.to_recruiter_id,
+        only_active=payload.only_active,
+    )
+    return {
+        "success": True,
+        "reassigned_count": count,
+        "message": f"{count} application(s) reassigned successfully.",
+    }
+
+
+@router.get("/distribution/settings")
+def get_distribution_settings(
+    company_id: UUID = Depends(get_company_id),
+    db: Session = Depends(get_db),
+    _: UserAccount = Depends(require_permissions("ats:settings:manage")),
+):
+    """Admin: Get round-robin auto-assign settings and configured recruiter pool."""
+    return AtsService.get_distribution_settings(db, company_id)
+
+
+@router.put("/distribution/settings")
+def update_distribution_settings(
+    payload: DistributionSettingsUpdate,
+    company_id: UUID = Depends(get_company_id),
+    db: Session = Depends(get_db),
+    _: UserAccount = Depends(require_permissions("ats:settings:manage")),
+):
+    """Admin: Toggle automatic round-robin on/off and choose which recruiters are in the pool."""
+    return AtsService.update_distribution_settings(
+        db=db,
+        company_id=company_id,
+        auto_assign_enabled=payload.auto_assign_enabled,
+        round_robin_pool_ids=payload.round_robin_pool_ids,
+    )
+
+
+@router.post("/distribution/equal-split")
+def distribute_unassigned_equal_split(
+    payload: EqualSplitDistributeRequest,
+    company_id: UUID = Depends(get_company_id),
+    current_user: UserAccount = Depends(get_current_user),
+    db: Session = Depends(get_db),
+    _: UserAccount = Depends(require_permissions("ats:settings:manage")),
+):
+    """Admin: Equally split all currently UNASSIGNED applications among selected recruiters (never touches assigned apps)."""
+    return AtsService.distribute_unassigned_equal_split(
+        db=db,
+        company_id=company_id,
+        current_user=current_user,
+        recruiter_ids=payload.recruiter_ids,
+        only_active=payload.only_active,
+    )
 
 
 # ── Phase 3: Interviews & ATS Settings Endpoints ──────────
@@ -703,11 +964,12 @@ def create_offer(
 def get_offers(
     id: UUID,
     company_id: UUID = Depends(get_company_id),
+    current_user: UserAccount = Depends(get_current_user),
     db: Session = Depends(get_db),
     _: UserAccount = Depends(require_permissions("ats:applicants:view")),
 ):
     """Fetch all offer versions for an application."""
-    return AtsService.get_offers(db, company_id, id)
+    return AtsService.get_offers(db, company_id, id, current_user=current_user)
 
 
 @router.put("/offers/{id}/status")

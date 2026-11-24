@@ -1,17 +1,30 @@
 import { useState } from 'react';
+import { ArrowUpRight } from 'lucide-react';
 
-export default function StatCard({ icon: Icon, label, value, trend, trendDirection, color, bgColor }) {
+export default function StatCard({ icon: Icon, label, value, trend, trendDirection, color, bgColor, onClick }) {
   const [hover, setHover] = useState(false);
+  const clickable = typeof onClick === 'function';
+
+  const handleKeyDown = (e) => {
+    if (clickable && (e.key === 'Enter' || e.key === ' ')) {
+      e.preventDefault();
+      onClick(e);
+    }
+  };
 
   return (
     <div
       className="glass-card stat-card-root"
+      role={clickable ? 'button' : undefined}
+      tabIndex={clickable ? 0 : undefined}
+      onClick={clickable ? onClick : undefined}
+      onKeyDown={handleKeyDown}
       onMouseEnter={() => setHover(true)}
       onMouseLeave={() => setHover(false)}
       style={{
         position: 'relative',
         overflow: 'hidden',
-        cursor: 'default',
+        cursor: clickable ? 'pointer' : 'default',
         transform: hover ? 'translateY(-3px)' : 'translateY(0)',
         boxShadow: hover ? '0 12px 28px -8px rgba(15, 23, 42, 0.15)' : 'var(--shadow-sm)',
         borderColor: hover ? color : 'var(--border-color)',
@@ -23,6 +36,20 @@ export default function StatCard({ icon: Icon, label, value, trend, trendDirecti
           background: color, opacity: hover ? 1 : 0, transition: 'opacity 0.2s ease',
         }}
       />
+      {clickable && (
+        <ArrowUpRight
+          size={15}
+          style={{
+            position: 'absolute',
+            top: 12,
+            right: 12,
+            color: color,
+            opacity: hover ? 0.9 : 0.35,
+            transition: 'opacity 0.2s ease, transform 0.2s ease',
+            transform: hover ? 'translate(1px, -1px)' : 'none',
+          }}
+        />
+      )}
       <div
         className="stat-card-icon-wrap"
         style={{

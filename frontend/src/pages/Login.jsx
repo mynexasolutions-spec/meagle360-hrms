@@ -176,10 +176,20 @@ export default function Login() {
             <span>or</span>
           </div>
 
-          <button type="button" className="login-sales-btn">
+          <a
+            href={
+              'https://wa.me/917983072755?text=' +
+              encodeURIComponent(
+                'Hi Meagle360 Sales Team, I would like to request a free trial of Meagle360 HRMS.'
+              )
+            }
+            target="_blank"
+            rel="noopener noreferrer"
+            className="login-sales-btn"
+          >
             <CalendarCheck size={18} />
             Contact Sales Team for Free Trial
-          </button>
+          </a>
         </div>
       </section>
     </div>

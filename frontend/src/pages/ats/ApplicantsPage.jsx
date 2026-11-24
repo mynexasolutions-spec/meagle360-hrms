@@ -1,5 +1,5 @@
-import { useState, useEffect, useMemo } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useState, useEffect, useMemo, useCallback, useRef } from 'react';
+import { useNavigate, useSearchParams } from 'react-router-dom';
 import { createPortal } from 'react-dom';
 import {
   Users,
@@ -27,37 +27,170 @@ import {
   ArrowRight,
   Plus,
   RefreshCw,
+  List,
+  LayoutGrid,
+  RotateCcw,
+  Shuffle,
+  Settings,
 } from 'lucide-react';
 import {
   getAtsStages,
+  getKanbanBoard,
+  getKanbanColumn,
+  getAtsFilterOptions,
+  getMentionableUsers,
+  getAtsRecruiters,
   getApplicants,
   getApplicationDetail,
   getResumeBlob,
   changeApplicationStage,
   addApplicationNote,
   bulkShortlistApplications,
+  assignApplication,
+  bulkReassignApplications,
   getJobOpenings,
+  getRejectionReasons,
+  createInterview,
+  assignInterviewer,
 } from '../../api/ats';
 import { useAuth } from '../../context/AuthContext';
 import Modal from '../../components/Modal';
 import OfferLetterModal from '../../components/ats/OfferLetterModal';
 import ConvertToEmployeeModal from '../../components/ats/ConvertToEmployeeModal';
+import KanbanBoard from '../../components/ats/KanbanBoard';
+import MoveToInterviewModal from '../../components/ats/MoveToInterviewModal';
+import MentionNotesSection from '../../components/ats/MentionNotesSection';
+import BulkReassignModal from '../../components/ats/BulkReassignModal';
+import DistributionModal from '../../components/ats/DistributionModal';
+
+const DEFAULT_REJECTION_REASONS = [
+  'Qualifications did not match job requirements',
+  'Salary expectation mismatch',
+  'Notice period too long',
+  'Position filled by another candidate',
+  'Did not attend screening/interview',
+  'Cultural / Communication fit',
+  'Other',
+];
 
 export default function ApplicantsPage() {
   const { user } = useAuth();
   const navigate = useNavigate();
+  const [searchParams, setSearchParams] = useSearchParams();
+
   const isAdmin = user?.role_name === 'Admin' || !!user?.permissions?.['settings:write'];
-  const canManageOffers = isAdmin || !!user?.permissions?.['ats:offer:manage'] || !!user?.permissions?.['ats:offer:create'] || !!user?.permissions?.['ats:application:read'];
+  const canManageOffers = isAdmin || !!user?.permissions?.['ats:offer:manage'];
   const canConvertEmployee = isAdmin || !!user?.permissions?.['ats:hire:convert'];
 
-  const [stages, setStages] = useState([]);
-  const [activeStageId, setActiveStageId] = useState('ALL');
-  const [jobs, setJobs] = useState([]);
-  const [selectedJobId, setSelectedJobId] = useState('ALL');
-  const [search, setSearch] = useState('');
+  // URL-synced state (?view, ?job, ?stage, ?date_from, ?date_to, ?source, ?assigned_to, ?unassigned, ?view_as, ?q, ?app)
+  const viewMode = searchParams.get('view') === 'table' ? 'table' : 'kanban';
+  const selectedJobId = searchParams.get('job') || 'ALL';
+  const activeStageId = searchParams.get('stage') || 'ALL';
+  const dateFrom = searchParams.get('date_from') || '';
+  const dateTo = searchParams.get('date_to') || '';
+  const selectedSource = searchParams.get('source') || '';
+  const viewAsRecruiterId = isAdmin ? searchParams.get('view_as') || '' : '';
+  const selectedAssignedTo = isAdmin ? (viewAsRecruiterId || searchParams.get('assigned_to') || '') : '';
+  const unassignedOnly = isAdmin ? searchParams.get('unassigned') === '1' : false;
+  const urlSearchQuery = searchParams.get('q') || '';
+  const deepLinkAppId = searchParams.get('app') || null;
 
+  const updateUrlParams = useCallback(
+    (updates) => {
+      setSearchParams((prev) => {
+        const next = new URLSearchParams(prev);
+        Object.entries(updates).forEach(([k, v]) => {
+          if (v === null || v === undefined || v === '' || v === 'ALL' || v === false) {
+            next.delete(k);
+          } else {
+            next.set(k, v === true ? '1' : String(v));
+          }
+        });
+        return next;
+      });
+    },
+    [setSearchParams]
+  );
+
+  const setViewMode = (mode) => updateUrlParams({ view: mode });
+  const setSelectedJobId = (jobId) => updateUrlParams({ job: jobId });
+  const setActiveStageId = (stageId) => updateUrlParams({ stage: stageId });
+
+  const [stages, setStages] = useState([]);
+  const [jobs, setJobs] = useState([]);
+  const [rejectionReasons, setRejectionReasons] = useState(DEFAULT_REJECTION_REASONS);
+  const [filterOptions, setFilterOptions] = useState({ sources: [], recruiters: [] });
+  const [recruiters, setRecruiters] = useState([]);
+  const [unassignedCount, setUnassignedCount] = useState(0);
+  const [mentionableUsers, setMentionableUsers] = useState([]);
+  const [showBulkReassignModal, setShowBulkReassignModal] = useState(false);
+  const [bulkReassigning, setBulkReassigning] = useState(false);
+  const [distributionModalTab, setDistributionModalTab] = useState(null); // null | 'equal_split' | 'round_robin'
+  const [assigningDetail, setAssigningDetail] = useState(false);
+  const [showFiltersPanel, setShowFiltersPanel] = useState(
+    Boolean(dateFrom || dateTo || selectedSource || selectedAssignedTo || unassignedOnly || activeStageId !== 'ALL')
+  );
+  const [search, setSearch] = useState(urlSearchQuery);
+
+  // Sync local search input if URL changes externally
+  useEffect(() => {
+    setSearch(urlSearchQuery);
+  }, [urlSearchQuery]);
+
+  const activeFiltersCount = useMemo(() => {
+    let c = 0;
+    if (dateFrom) c++;
+    if (dateTo) c++;
+    if (selectedSource) c++;
+    if (selectedAssignedTo) c++;
+    if (unassignedOnly) c++;
+    if (activeStageId !== 'ALL') c++;
+    return c;
+  }, [dateFrom, dateTo, selectedSource, selectedAssignedTo, unassignedOnly, activeStageId]);
+
+  const clearAllFilters = () => {
+    setSearch('');
+    updateUrlParams({
+      date_from: null,
+      date_to: null,
+      source: null,
+      assigned_to: null,
+      unassigned: null,
+      stage: null,
+      q: null,
+    });
+  };
+
+  // Build consistent server-side filter params object
+  const buildFilterParams = useCallback(
+    (includeStage = false) => {
+      const p = {};
+      if (selectedJobId !== 'ALL') p.job_id = selectedJobId;
+      if (urlSearchQuery.trim()) p.search = urlSearchQuery.trim();
+      if (dateFrom) p.date_from = dateFrom;
+      if (dateTo) p.date_to = dateTo;
+      if (selectedSource) p.source = selectedSource;
+      if (unassignedOnly) {
+        p.unassigned_only = true;
+      } else if (selectedAssignedTo) {
+        p.assigned_to = selectedAssignedTo;
+      }
+      if (includeStage && activeStageId !== 'ALL') {
+        p.stage_id = activeStageId;
+      }
+      return p;
+    },
+    [selectedJobId, urlSearchQuery, dateFrom, dateTo, selectedSource, selectedAssignedTo, unassignedOnly, activeStageId]
+  );
+
+  // Table state
   const [applicants, setApplicants] = useState([]);
   const [loading, setLoading] = useState(true);
+
+  // Kanban state
+  const [kanbanColumns, setKanbanColumns] = useState({});
+  const [kanbanLoading, setKanbanLoading] = useState(true);
+  const [loadingMoreMap, setLoadingMoreMap] = useState({});
 
   // Bulk selection state
   const [selectedAppIds, setSelectedAppIds] = useState([]);
@@ -73,6 +206,18 @@ export default function ApplicantsPage() {
   const [showOfferModal, setShowOfferModal] = useState(false);
   const [showConvertModal, setShowConvertModal] = useState(false);
 
+  // Kanban special drop flow modals
+  const [pendingInterviewDrop, setPendingInterviewDrop] = useState(null); // { card, targetStage }
+  const [interviewDropSubmitting, setInterviewDropSubmitting] = useState(false);
+  const [pendingRejectCard, setPendingRejectCard] = useState(null); // card dropped to reject zone
+  const [kanbanOfferCard, setKanbanOfferCard] = useState(null);
+  const [kanbanHirePrompt, setKanbanHirePrompt] = useState(null); // { app, detail }
+
+  // Toast & 5-second Undo state
+  const [toast, setToast] = useState(null); // { type: 'success'|'error'|'info', message }
+  const [undoReject, setUndoReject] = useState(null); // { card, prevStage, rejectedStage, newVersion, secondsLeft }
+  const undoTimerRef = useRef(null);
+
   // Resume preview state
   const [resumeBlobUrl, setResumeBlobUrl] = useState(null);
   const [resumeLoading, setResumeLoading] = useState(false);
@@ -81,59 +226,469 @@ export default function ApplicantsPage() {
   // Actions state
   const [actionLoading, setActionLoading] = useState(false);
   const [showRejectModal, setShowRejectModal] = useState(false);
-  const [rejectReason, setRejectReason] = useState('Qualifications did not match job requirements');
+  const [rejectReason, setRejectReason] = useState(DEFAULT_REJECTION_REASONS[0]);
   const [rejectNote, setRejectNote] = useState('');
   const [actionError, setActionError] = useState('');
 
   // Note state
-  const [newNote, setNewNote] = useState('');
   const [addingNote, setAddingNote] = useState(false);
 
-  // Load stages & jobs
-  const loadInitialData = async () => {
-    try {
-      const [stagesRes, jobsRes] = await Promise.all([
-        getAtsStages(),
-        getJobOpenings(),
-      ]);
-      setStages(stagesRes.data || []);
-      setJobs(jobsRes.data || []);
-    } catch (err) {
-      console.error('Failed to load initial ATS data', err);
-    }
-  };
+  const showToast = useCallback((type, message) => {
+    setToast({ type, message });
+    setTimeout(() => {
+      setToast((curr) => (curr?.message === message ? null : curr));
+    }, 4500);
+  }, []);
 
-  // Load applicants
-  const loadApplicants = async () => {
+  // Load jobs, rejection reasons, filter options, recruiters pool, and mentionable users
+  const loadStaticMeta = useCallback(async () => {
+    try {
+      const [jobsRes, reasonsRes, filterOptRes, mentionRes, recRes] = await Promise.all([
+        getJobOpenings().catch(() => ({ data: [] })),
+        getRejectionReasons().catch(() => ({ data: [] })),
+        getAtsFilterOptions().catch(() => ({ data: { sources: [], recruiters: [] } })),
+        getMentionableUsers().catch(() => ({ data: [] })),
+        getAtsRecruiters().catch(() => ({ data: [] })),
+      ]);
+      setJobs(jobsRes.data || []);
+      const dbReasons = (reasonsRes.data || []).map((r) => r.reason).filter(Boolean);
+      if (dbReasons.length > 0) {
+        setRejectionReasons(dbReasons);
+        setRejectReason(dbReasons[0]);
+      }
+      setFilterOptions(filterOptRes.data || { sources: [], recruiters: [] });
+      setMentionableUsers(mentionRes.data || []);
+      setRecruiters(recRes.data || []);
+    } catch (err) {
+      console.error('Failed to load static ATS metadata', err);
+    }
+  }, []);
+
+  // Load Kanban board (stages with aggregate counts + first page per column)
+  const loadKanbanBoard = useCallback(async () => {
+    try {
+      setKanbanLoading(true);
+      const params = { ...buildFilterParams(true), limit: 25 };
+
+      const res = await getKanbanBoard(params);
+      setStages(res.data?.stages || []);
+      setKanbanColumns(res.data?.columns || {});
+      setUnassignedCount(res.data?.unassigned_count ?? 0);
+    } catch (err) {
+      console.error('Failed to load Kanban board', err);
+      showToast('error', err.response?.data?.detail || 'Failed to load Kanban board.');
+    } finally {
+      setKanbanLoading(false);
+    }
+  }, [buildFilterParams, showToast]);
+
+  // Load Table applicants + stage counts
+  const loadTableApplicants = useCallback(async () => {
     try {
       setLoading(true);
-      const params = {};
-      if (activeStageId !== 'ALL') params.stage_id = activeStageId;
-      if (selectedJobId !== 'ALL') params.job_id = selectedJobId;
-      if (search.trim()) params.search = search.trim();
+      const countParams = buildFilterParams(false);
+      const params = buildFilterParams(true);
 
-      const res = await getApplicants(params);
-      setApplicants(res.data || []);
+      const [stagesRes, appsRes] = await Promise.all([
+        getAtsStages(countParams),
+        getApplicants(params),
+      ]);
+      setStages(stagesRes.data || []);
+      setApplicants(appsRes.data || []);
       setSelectedAppIds([]);
     } catch (err) {
       console.error('Failed to load applicants', err);
     } finally {
       setLoading(false);
     }
-  };
+  }, [buildFilterParams]);
+
+  const refreshActiveView = useCallback(() => {
+    if (viewMode === 'kanban') {
+      loadKanbanBoard();
+    } else {
+      loadTableApplicants();
+    }
+  }, [viewMode, loadKanbanBoard, loadTableApplicants]);
 
   useEffect(() => {
-    loadInitialData();
-  }, []);
+    loadStaticMeta();
+  }, [loadStaticMeta]);
 
   useEffect(() => {
-    loadApplicants();
-  }, [activeStageId, selectedJobId]);
+    if (viewMode === 'kanban') {
+      loadKanbanBoard();
+    } else {
+      loadTableApplicants();
+    }
+  }, [viewMode, loadKanbanBoard, loadTableApplicants]);
 
   const handleSearchSubmit = (e) => {
     e.preventDefault();
-    loadApplicants();
+    updateUrlParams({ q: search.trim() || null });
   };
+
+  // Load next page for a single Kanban column (infinite scroll)
+  const handleLoadMoreColumn = useCallback(
+    async (stageId) => {
+      const col = kanbanColumns[stageId];
+      if (!col || !col.has_more || loadingMoreMap[stageId]) return;
+
+      try {
+        setLoadingMoreMap((prev) => ({ ...prev, [stageId]: true }));
+        const params = {
+          ...buildFilterParams(false),
+          stage_id: stageId,
+          limit: 25,
+          offset: col.items.length,
+        };
+
+        const res = await getKanbanColumn(params);
+        const newItems = res.data?.items || [];
+        setKanbanColumns((prev) => {
+          const existing = prev[stageId] || { items: [], total: 0, has_more: false };
+          const seenIds = new Set(existing.items.map((x) => x.id));
+          const merged = [...existing.items, ...newItems.filter((x) => !seenIds.has(x.id))];
+          return {
+            ...prev,
+            [stageId]: {
+              ...existing,
+              items: merged,
+              total: res.data?.total ?? existing.total,
+              has_more: Boolean(res.data?.has_more),
+            },
+          };
+        });
+      } catch (err) {
+        console.error('Failed to load more cards for column', stageId, err);
+      } finally {
+        setLoadingMoreMap((prev) => ({ ...prev, [stageId]: false }));
+      }
+    },
+    [kanbanColumns, loadingMoreMap, buildFilterParams]
+  );
+
+  // Direct PDF preview from Kanban card
+  const handleOpenResumeDirect = async (app) => {
+    try {
+      const blobRes = await getResumeBlob(app.id);
+      const url = URL.createObjectURL(blobRes.data);
+      window.open(url, '_blank', 'noopener,noreferrer');
+      setTimeout(() => URL.revokeObjectURL(url), 60000);
+    } catch (err) {
+      showToast('error', 'Unable to open resume PDF.');
+    }
+  };
+
+  // Board stages (non-rejected by default, or specific stage if filtered)
+  const boardStages = useMemo(() => {
+    if (activeStageId !== 'ALL') {
+      return stages.filter((s) => s.id === activeStageId);
+    }
+    return stages.filter(
+      (s) => s.terminal_type !== 'rejected' && !s.name.toLowerCase().includes('reject')
+    );
+  }, [stages, activeStageId]);
+
+  const rejectedStage = useMemo(
+    () =>
+      stages.find(
+        (s) => s.terminal_type === 'rejected' || s.name.toLowerCase().includes('reject')
+      ),
+    [stages]
+  );
+
+  // Permission helpers for Kanban drag & drop
+  const canMoveToStage = useCallback(
+    (card, targetStage) => {
+      if (!card || !targetStage) return false;
+      const isOfferOrHired =
+        targetStage.terminal_type === 'hired' ||
+        targetStage.name.toLowerCase().includes('offer');
+      if (isOfferOrHired && !canManageOffers) return false;
+      return true;
+    },
+    [canManageOffers]
+  );
+
+  const canRejectCard = useCallback(
+    (card) => {
+      if (!card) return false;
+      const curName = (card.stage_name || '').toLowerCase();
+      if (['interview', 'offer', 'hired'].includes(curName)) {
+        return canManageOffers;
+      }
+      return true;
+    },
+    [canManageOffers]
+  );
+
+  // Optimistic move helper on Kanban state
+  const applyOptimisticMove = (card, targetStage) => {
+    const prevColumns = kanbanColumns;
+    const prevStages = stages;
+    const sourceStageId = card.stage_id;
+    const targetStageId = targetStage.id;
+    const isRejectTarget =
+      targetStage.terminal_type === 'rejected' ||
+      targetStage.name.toLowerCase().includes('reject');
+
+    const movedCard = {
+      ...card,
+      stage_id: targetStageId,
+      stage_name: targetStage.name,
+      days_in_stage: 0,
+    };
+
+    setKanbanColumns((prev) => {
+      const next = { ...prev };
+      if (next[sourceStageId]) {
+        next[sourceStageId] = {
+          ...next[sourceStageId],
+          items: next[sourceStageId].items.filter((c) => c.id !== card.id),
+          total: Math.max(0, (next[sourceStageId].total || 1) - 1),
+        };
+      }
+      if (!isRejectTarget) {
+        const destCol = next[targetStageId] || { items: [], total: 0, has_more: false };
+        next[targetStageId] = {
+          ...destCol,
+          items: [movedCard, ...destCol.items.filter((c) => c.id !== card.id)],
+          total: (destCol.total || 0) + 1,
+        };
+      }
+      return next;
+    });
+
+    setStages((prev) =>
+      prev.map((s) => {
+        if (s.id === sourceStageId) {
+          return { ...s, applicants_count: Math.max(0, (s.applicants_count || 1) - 1) };
+        }
+        if (s.id === targetStageId) {
+          return { ...s, applicants_count: (s.applicants_count || 0) + 1 };
+        }
+        return s;
+      })
+    );
+
+    return {
+      rollback: () => {
+        setKanbanColumns(prevColumns);
+        setStages(prevStages);
+      },
+    };
+  };
+
+  // Execute stage move from Kanban drop
+  const handleKanbanDropToStage = async (card, targetStage) => {
+    if (!canMoveToStage(card, targetStage)) {
+      showToast('error', 'Only Org Admin can move candidates to Offer or Hired.');
+      return;
+    }
+
+    const targetLower = targetStage.name.toLowerCase();
+
+    // Special flow 1: Dropping into Interview must use the existing interview flow (pick round & assign interviewer)
+    if (targetLower === 'interview') {
+      setPendingInterviewDrop({ card, targetStage });
+      return;
+    }
+
+    // Optimistic update for regular stages, Offer, and Hired
+    const { rollback } = applyOptimisticMove(card, targetStage);
+
+    try {
+      const res = await changeApplicationStage(card.id, {
+        current_stage_id: card.stage_id,
+        target_stage_id: targetStage.id,
+        expected_version: card.version,
+        expected_updated_at: card.updated_at,
+      });
+
+      const updatedVersion = res.data?.version ?? (card.version || 1) + 1;
+      const updatedAt = res.data?.updated_at ?? new Date().toISOString();
+
+      // Sync version/updated_at on moved card
+      setKanbanColumns((prev) => {
+        const col = prev[targetStage.id];
+        if (!col) return prev;
+        return {
+          ...prev,
+          [targetStage.id]: {
+            ...col,
+            items: col.items.map((c) =>
+              c.id === card.id ? { ...c, version: updatedVersion, updated_at: updatedAt } : c
+            ),
+          },
+        };
+      });
+
+      showToast('success', `${card.candidate_name} moved to ${targetStage.name}.`);
+
+      // Special flow 2: Drop into Offer -> open Offer Details modal
+      if (targetLower.includes('offer')) {
+        setKanbanOfferCard({
+          ...card,
+          stage_id: targetStage.id,
+          stage_name: targetStage.name,
+          version: updatedVersion,
+          updated_at: updatedAt,
+        });
+      }
+
+      // Special flow 3: Drop into Hired -> offer "Create Employee" action
+      if (targetStage.terminal_type === 'hired' || targetLower.includes('hire')) {
+        if (!card.converted_employee_id && canConvertEmployee) {
+          try {
+            const detailRes = await getApplicationDetail(card.id);
+            setKanbanHirePrompt({ app: card, detail: detailRes.data });
+          } catch {
+            // Fallback: user can click Review to convert
+          }
+        }
+      }
+    } catch (err) {
+      rollback();
+      const status = err.response?.status;
+      const msg = err.response?.data?.detail || 'Failed to move card. Reverted.';
+      showToast('error', msg);
+      if (status === 409) {
+        loadKanbanBoard();
+      }
+    }
+  };
+
+  // Confirm Move-to-Interview modal
+  const handleConfirmInterviewDrop = async ({
+    round_template_id,
+    round_name,
+    interview_type,
+    interviewer_employee_id,
+  }) => {
+    if (!pendingInterviewDrop) return;
+    const { card, targetStage } = pendingInterviewDrop;
+    const { rollback } = applyOptimisticMove(card, targetStage);
+
+    try {
+      setInterviewDropSubmitting(true);
+      const stageRes = await changeApplicationStage(card.id, {
+        current_stage_id: card.stage_id,
+        target_stage_id: targetStage.id,
+        expected_version: card.version,
+        expected_updated_at: card.updated_at,
+        skip_auto_interview: true,
+      });
+
+      const ivRes = await createInterview({
+        application_id: card.id,
+        round_template_id,
+        round_name,
+        round_number: 1,
+        interview_type,
+      });
+
+      if (interviewer_employee_id && ivRes.data?.interview_id) {
+        await assignInterviewer(ivRes.data.interview_id, {
+          interviewer_employee_id,
+        });
+      }
+
+      const updatedVersion = stageRes.data?.version ?? (card.version || 1) + 1;
+      const updatedAt = stageRes.data?.updated_at ?? new Date().toISOString();
+      setKanbanColumns((prev) => {
+        const col = prev[targetStage.id];
+        if (!col) return prev;
+        return {
+          ...prev,
+          [targetStage.id]: {
+            ...col,
+            items: col.items.map((c) =>
+              c.id === card.id ? { ...c, version: updatedVersion, updated_at: updatedAt } : c
+            ),
+          },
+        };
+      });
+
+      setPendingInterviewDrop(null);
+      showToast(
+        'success',
+        interviewer_employee_id
+          ? `${card.candidate_name} moved to Interview & interviewer assigned.`
+          : `${card.candidate_name} moved to Interview (${round_name} created).`
+      );
+    } catch (err) {
+      rollback();
+      if (err.response?.status === 409) {
+        setPendingInterviewDrop(null);
+        loadKanbanBoard();
+      }
+      throw err;
+    } finally {
+      setInterviewDropSubmitting(false);
+    }
+  };
+
+  // Trigger Reject Modal from Kanban drop zone
+  const handleKanbanDropToReject = (card) => {
+    if (!canRejectCard(card)) {
+      showToast('error', 'Only Org Admin can reject candidates from Interview stage onward.');
+      return;
+    }
+    setPendingRejectCard(card);
+    setRejectReason(rejectionReasons[0] || DEFAULT_REJECTION_REASONS[0]);
+    setRejectNote('');
+    setActionError('');
+    setShowRejectModal(true);
+  };
+
+  // 5-second Undo handler after rejecting from Kanban
+  const startUndoRejectCountdown = (payload) => {
+    if (undoTimerRef.current) clearInterval(undoTimerRef.current);
+    setUndoReject({ ...payload, secondsLeft: 5 });
+    undoTimerRef.current = setInterval(() => {
+      setUndoReject((prev) => {
+        if (!prev || prev.secondsLeft <= 1) {
+          clearInterval(undoTimerRef.current);
+          undoTimerRef.current = null;
+          return null;
+        }
+        return { ...prev, secondsLeft: prev.secondsLeft - 1 };
+      });
+    }, 1000);
+  };
+
+  const handleUndoReject = async () => {
+    if (!undoReject) return;
+    const { card, prevStage, rejectedStage: rejSt, newVersion, newUpdatedAt } = undoReject;
+    if (undoTimerRef.current) {
+      clearInterval(undoTimerRef.current);
+      undoTimerRef.current = null;
+    }
+    setUndoReject(null);
+
+    try {
+      await changeApplicationStage(card.id, {
+        current_stage_id: rejSt.id,
+        target_stage_id: prevStage.id,
+        expected_version: newVersion,
+        expected_updated_at: newUpdatedAt,
+        reason: 'Rejection undone',
+        is_undo: true,
+      });
+      showToast('success', `Restored ${card.candidate_name} back to ${prevStage.name}.`);
+      loadKanbanBoard();
+    } catch (err) {
+      showToast('error', err.response?.data?.detail || 'Could not undo rejection.');
+      loadKanbanBoard();
+    }
+  };
+
+  useEffect(() => {
+    return () => {
+      if (undoTimerRef.current) clearInterval(undoTimerRef.current);
+    };
+  }, []);
 
   // Open detail view
   const openApplicationDetail = async (appId) => {
@@ -177,6 +732,9 @@ export default function ApplicantsPage() {
     setSelectedAppId(null);
     setDetail(null);
     setResumeError(false);
+    if (deepLinkAppId) {
+      updateUrlParams({ app: null });
+    }
     if (resumeBlobUrl) {
       URL.revokeObjectURL(resumeBlobUrl);
       setResumeBlobUrl(null);
@@ -217,16 +775,15 @@ export default function ApplicantsPage() {
         target_stage_id: targetStage.id,
         reason: reason,
         note: note,
+        expected_version: detail.version,
+        expected_updated_at: detail.updated_at,
       });
 
-      // Reload detail and list
+      // Reload detail and active view
       const updatedRes = await getApplicationDetail(detail.id);
       setDetail(updatedRes.data);
       setShowRejectModal(false);
-      loadApplicants();
-      // refresh stages count
-      const stagesRes = await getAtsStages();
-      setStages(stagesRes.data || []);
+      refreshActiveView();
     } catch (err) {
       console.error(err);
       setActionError(
@@ -243,25 +800,157 @@ export default function ApplicantsPage() {
       setActionError('Rejection reason is required.');
       return;
     }
+
+    // Case A: Reject triggered by dropping a Kanban card into Reject drop zone
+    if (pendingRejectCard) {
+      if (!rejectedStage) {
+        setActionError('Rejected stage not found.');
+        return;
+      }
+      const card = pendingRejectCard;
+      const prevStage = stages.find((s) => s.id === card.stage_id) || {
+        id: card.stage_id,
+        name: card.stage_name,
+      };
+      const { rollback } = applyOptimisticMove(card, rejectedStage);
+
+      try {
+        setActionLoading(true);
+        setActionError('');
+        const res = await changeApplicationStage(card.id, {
+          current_stage_id: card.stage_id,
+          target_stage_id: rejectedStage.id,
+          reason: rejectReason.trim(),
+          note: rejectNote.trim() || null,
+          expected_version: card.version,
+          expected_updated_at: card.updated_at,
+        });
+        setShowRejectModal(false);
+        setPendingRejectCard(null);
+
+        startUndoRejectCountdown({
+          card,
+          prevStage,
+          rejectedStage,
+          newVersion: res.data?.version ?? (card.version || 1) + 1,
+          newUpdatedAt: res.data?.updated_at ?? null,
+        });
+      } catch (err) {
+        rollback();
+        setActionError(err.response?.data?.detail || 'Failed to reject candidate.');
+        if (err.response?.status === 409) {
+          setShowRejectModal(false);
+          setPendingRejectCard(null);
+          loadKanbanBoard();
+        }
+      } finally {
+        setActionLoading(false);
+      }
+      return;
+    }
+
+    // Case B: Reject triggered from Application Detail modal
     await handleStageMove('Rejected', rejectReason, rejectNote);
   };
 
-  // Add private note
-  const handleAddNote = async (e) => {
-    e.preventDefault();
-    if (!newNote.trim()) return;
+  // Deep-link support: open detail modal if ?app=<id> is in URL
+  useEffect(() => {
+    if (deepLinkAppId && deepLinkAppId !== selectedAppId) {
+      openApplicationDetail(deepLinkAppId);
+    }
+  }, [deepLinkAppId]);
 
+  // Add private note with @mentions
+  const handleAddNote = async (content, mentionedEmployeeIds = []) => {
+    if (!detail || !content?.trim()) return false;
     try {
       setAddingNote(true);
-      await addApplicationNote(detail.id, { note: newNote.trim() });
-      setNewNote('');
+      await addApplicationNote(detail.id, {
+        note: content.trim(),
+        mentioned_employee_ids: mentionedEmployeeIds,
+      });
       const updatedRes = await getApplicationDetail(detail.id);
       setDetail(updatedRes.data);
+      return true;
     } catch (err) {
       console.error(err);
       setActionError(err.response?.data?.detail || 'Failed to add note.');
+      return false;
     } finally {
       setAddingNote(false);
+    }
+  };
+
+  // Single-card manual assign / reassign (from Kanban card or Detail modal)
+  const handleQuickAssign = async (app, recruiterId) => {
+    try {
+      setAssigningDetail(true);
+      const res = await assignApplication(app.id, { assigned_to: recruiterId || null });
+      const newAssignee = res.data?.assignee || null;
+      const newAssignedTo = res.data?.assigned_to || null;
+      const newVersion = res.data?.version;
+
+      // Update in Kanban state
+      setKanbanColumns((prev) => {
+        const next = { ...prev };
+        Object.keys(next).forEach((stId) => {
+          next[stId] = {
+            ...next[stId],
+            items: (next[stId].items || []).map((c) =>
+              c.id === app.id
+                ? {
+                    ...c,
+                    assigned_to: newAssignedTo,
+                    assignee: newAssignee,
+                    version: newVersion ?? c.version,
+                  }
+                : c
+            ),
+          };
+        });
+        return next;
+      });
+
+      // Update in Table state
+      setApplicants((prev) =>
+        prev.map((a) =>
+          a.id === app.id
+            ? { ...a, assigned_to: newAssignedTo, assignee: newAssignee, version: newVersion ?? a.version }
+            : a
+        )
+      );
+
+      // Reload detail if open
+      if (detail && detail.id === app.id) {
+        const detRes = await getApplicationDetail(app.id);
+        setDetail(detRes.data);
+      }
+
+      showToast('success', res.data?.message || 'Assignment updated.');
+      // Refresh recruiter counts & unassigned count
+      loadStaticMeta();
+      if (unassignedOnly || selectedAssignedTo) {
+        refreshActiveView();
+      }
+    } catch (err) {
+      showToast('error', err.response?.data?.detail || 'Failed to update assignment.');
+    } finally {
+      setAssigningDetail(false);
+    }
+  };
+
+  // Bulk reassign handler
+  const handleBulkReassign = async (payload) => {
+    try {
+      setBulkReassigning(true);
+      const res = await bulkReassignApplications(payload);
+      setShowBulkReassignModal(false);
+      setSelectedAppIds([]);
+      showToast('success', res.data?.message || 'Applications reassigned.');
+      loadStaticMeta();
+      refreshActiveView();
+    } finally {
+      setBulkReassigning(false);
     }
   };
 
@@ -271,9 +960,7 @@ export default function ApplicantsPage() {
     try {
       setBulkProcessing(true);
       await bulkShortlistApplications({ application_ids: selectedAppIds });
-      await loadApplicants();
-      const stagesRes = await getAtsStages();
-      setStages(stagesRes.data || []);
+      refreshActiveView();
     } catch (err) {
       alert(err.response?.data?.detail || 'Bulk shortlist failed.');
     } finally {
@@ -295,7 +982,7 @@ export default function ApplicantsPage() {
     );
   };
 
-  // Total applicants count
+  // Total applicants count (from backend aggregate query)
   const totalCount = useMemo(() => {
     return stages.reduce((acc, s) => acc + (s.applicants_count || 0), 0);
   }, [stages]);
@@ -304,142 +991,500 @@ export default function ApplicantsPage() {
   const isAppliedTab = activeStage?.is_initial;
 
   return (
-    <div className="max-w-7xl mx-auto space-y-6">
-      {/* Page Header */}
-      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 pb-2 border-b border-gray-200">
+    <div className={`${viewMode === 'kanban' ? 'max-w-full' : 'max-w-7xl'} mx-auto space-y-5`}>
+      {/* Page Header (Matches Mockup: Title + Total Pill, My Board / View As, Table/Kanban Toggle + Refresh) */}
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 pb-3 border-b border-gray-200">
         <div>
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-2.5 flex-wrap">
             <h1 className="text-2xl font-bold text-gray-900">Applicants</h1>
             <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-semibold bg-purple-100 text-purple-800">
               {totalCount} Total
             </span>
+            {!isAdmin ? (
+              <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-semibold bg-blue-50 text-blue-700 border border-blue-200">
+                <UserCheck size={12} />
+                <span>My Board</span>
+              </span>
+            ) : viewAsRecruiterId ? (
+              <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-semibold bg-amber-50 text-amber-800 border border-amber-200">
+                <span>
+                  Viewing as:{' '}
+                  {recruiters.find((r) => r.id === viewAsRecruiterId)?.full_name || 'Recruiter'}
+                </span>
+              </span>
+            ) : (
+              <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-semibold bg-slate-100 text-slate-700 border border-slate-200">
+                <span>Combined Board</span>
+              </span>
+            )}
           </div>
           <p className="text-sm text-gray-500 mt-1">
-            Review candidate applications, view resumes in-app, shortlist, and manage hiring pipeline.
+            {!isAdmin
+              ? 'Showing applications assigned to you. Review resumes, shortlist, and manage your hiring pipeline.'
+              : 'Review candidate applications, view resumes in-app, shortlist, and manage hiring pipeline.'}
           </p>
         </div>
 
-        <button
-          type="button"
-          onClick={() => {
-            loadInitialData();
-            loadApplicants();
-          }}
-          className="btn btn-secondary inline-flex items-center gap-2 text-sm self-start sm:self-auto"
-        >
-          <RefreshCw size={15} /> Refresh
-        </button>
-      </div>
+        <div className="flex items-center gap-2.5 flex-wrap self-start sm:self-auto">
+          {/* Org Admin: View As Recruiter Dropdown with per-recruiter pending counts */}
+          {isAdmin && (
+            <div className="flex items-center gap-1.5">
+              <label className="text-xs font-semibold text-gray-500 whitespace-nowrap">View as:</label>
+              <select
+                value={viewAsRecruiterId}
+                onChange={(e) => {
+                  const val = e.target.value;
+                  updateUrlParams({
+                    view_as: val || null,
+                    assigned_to: null,
+                    unassigned: null,
+                  });
+                }}
+                className="text-xs font-semibold bg-white border border-gray-300 rounded-xl px-3 py-1.5 focus:outline-none focus:ring-2 focus:ring-blue-500 max-w-[230px]"
+              >
+                <option value="">Combined Board (All)</option>
+                {recruiters.map((rec) => (
+                  <option key={rec.id} value={rec.id}>
+                    {rec.full_name} ({rec.pending_count ?? 0} pending)
+                  </option>
+                ))}
+              </select>
+            </div>
+          )}
 
-      {/* Dynamic Stage Tabs */}
-      <div className="flex items-center gap-2 overflow-x-auto pb-2 scrollbar-thin">
-        <button
-          type="button"
-          onClick={() => setActiveStageId('ALL')}
-          className={`px-4 py-2 rounded-xl text-xs font-semibold transition-all shrink-0 flex items-center gap-2 ${
-            activeStageId === 'ALL'
-              ? 'bg-blue-600 text-white shadow-sm'
-              : 'bg-white text-gray-600 hover:text-gray-900 border border-gray-200 hover:border-gray-300'
-          }`}
-        >
-          <span>All Applicants</span>
-          <span
-            className={`px-1.5 py-0.5 rounded-full text-[10px] ${
-              activeStageId === 'ALL' ? 'bg-blue-700 text-white' : 'bg-gray-100 text-gray-600'
-            }`}
-          >
-            {totalCount}
-          </span>
-        </button>
-
-        {stages.map((stage) => {
-          const isSelected = activeStageId === stage.id;
-          return (
+          {/* Segmented Table / Kanban Toggle */}
+          <div className="inline-flex items-center rounded-xl border border-gray-200 bg-white p-0.5 shadow-xs">
             <button
-              key={stage.id}
               type="button"
-              onClick={() => setActiveStageId(stage.id)}
-              className={`px-4 py-2 rounded-xl text-xs font-semibold transition-all shrink-0 flex items-center gap-2 ${
-                isSelected
-                  ? 'bg-blue-600 text-white shadow-sm'
-                  : 'bg-white text-gray-600 hover:text-gray-900 border border-gray-200 hover:border-gray-300'
+              onClick={() => setViewMode('table')}
+              className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold transition-all ${
+                viewMode === 'table'
+                  ? 'bg-blue-600 text-white shadow-xs'
+                  : 'text-gray-600 hover:text-gray-900'
               }`}
             >
-              <span>{stage.name}</span>
-              <span
-                className={`px-1.5 py-0.5 rounded-full text-[10px] ${
-                  isSelected ? 'bg-blue-700 text-white' : 'bg-gray-100 text-gray-600'
-                }`}
-              >
-                {stage.applicants_count || 0}
-              </span>
+              <List size={14} />
+              <span>Table</span>
             </button>
-          );
-        })}
-      </div>
-
-      {/* Filters & Actions Bar */}
-      <div className="flex flex-col lg:flex-row items-stretch lg:items-center justify-between gap-4 bg-white p-4 rounded-xl border border-gray-200 shadow-sm">
-        <div className="flex flex-wrap items-center gap-3 flex-1">
-          {/* Job Filter Dropdown */}
-          <div className="w-full sm:w-64">
-            <select
-              value={selectedJobId}
-              onChange={(e) => setSelectedJobId(e.target.value)}
-              className="w-full text-xs font-medium bg-gray-50 border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
-            >
-              <option value="ALL">All Job Openings</option>
-              {jobs.map((j) => (
-                <option key={j.id} value={j.id}>
-                  {j.title} ({j.department_name || 'General'})
-                </option>
-              ))}
-            </select>
-          </div>
-
-          {/* Search Bar */}
-          <form onSubmit={handleSearchSubmit} className="flex items-center gap-2 flex-1 min-w-[220px]">
-            <div className="relative flex-1">
-              <Search size={15} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
-              <input
-                type="text"
-                placeholder="Search by candidate name, email, or role..."
-                value={search}
-                onChange={(e) => setSearch(e.target.value)}
-                className="w-full pl-9 pr-3 py-2 text-xs border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-              />
-            </div>
-            <button type="submit" className="btn btn-secondary text-xs py-2 px-3">
-              Search
-            </button>
-          </form>
-        </div>
-
-        {/* Bulk Action (for Applied tab) */}
-        {isAppliedTab && selectedAppIds.length > 0 && (
-          <div className="flex items-center gap-3 pt-2 lg:pt-0 border-t lg:border-t-0 border-gray-100">
-            <span className="text-xs font-semibold text-gray-700">
-              {selectedAppIds.length} selected
-            </span>
             <button
               type="button"
-              onClick={handleBulkShortlist}
-              disabled={bulkProcessing}
-              className="btn btn-primary text-xs py-2 px-3 inline-flex items-center gap-1.5 shadow-sm"
+              onClick={() => setViewMode('kanban')}
+              className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold transition-all ${
+                viewMode === 'kanban'
+                  ? 'bg-blue-600 text-white shadow-xs'
+                  : 'text-gray-600 hover:text-gray-900'
+              }`}
             >
-              {bulkProcessing ? (
-                <div className="w-3.5 h-3.5 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
-              ) : (
-                <UserCheck size={14} />
-              )}
-              <span>Bulk Shortlist (Screening)</span>
+              <LayoutGrid size={14} />
+              <span>Kanban</span>
             </button>
+          </div>
+
+          <button
+            type="button"
+            onClick={() => {
+              loadStaticMeta();
+              refreshActiveView();
+            }}
+            className="btn btn-secondary inline-flex items-center gap-1.5 text-xs py-2 px-3 bg-white"
+          >
+            <RefreshCw size={14} />
+            <span>Refresh</span>
+          </button>
+        </div>
+      </div>
+
+      {/* Org Admin View-As Banner */}
+      {isAdmin && viewAsRecruiterId && (
+        <div className="p-3 rounded-xl bg-amber-50 border border-amber-200 text-xs text-amber-900 flex flex-wrap items-center justify-between gap-2">
+          <span>
+            Viewing <strong>{recruiters.find((r) => r.id === viewAsRecruiterId)?.full_name || 'Recruiter'}</strong>&apos;s
+            board ({recruiters.find((r) => r.id === viewAsRecruiterId)?.pending_count ?? 0} pending applications).
+          </span>
+          <button
+            type="button"
+            onClick={() => updateUrlParams({ view_as: null, assigned_to: null })}
+            className="text-xs font-bold text-amber-800 hover:text-amber-950 underline"
+          >
+            Back to Combined Board
+          </button>
+        </div>
+      )}
+
+      {/* Inline Toast Alert */}
+      {toast && (
+        <div
+          className={`p-3 rounded-xl border text-xs font-semibold flex items-center justify-between gap-3 shadow-xs ${
+            toast.type === 'error'
+              ? 'bg-red-50 border-red-200 text-red-700'
+              : 'bg-emerald-50 border-emerald-200 text-emerald-800'
+          }`}
+        >
+          <div className="flex items-center gap-2">
+            {toast.type === 'error' ? (
+              <AlertCircle size={15} className="shrink-0" />
+            ) : (
+              <CheckCircle2 size={15} className="shrink-0" />
+            )}
+            <span>{toast.message}</span>
+          </div>
+          <button
+            type="button"
+            onClick={() => setToast(null)}
+            className="opacity-60 hover:opacity-100"
+          >
+            <X size={14} />
+          </button>
+        </div>
+      )}
+
+      {/* Dynamic Stage Tabs (shown in Table View) */}
+      {viewMode === 'table' && (
+        <div className="flex items-center gap-2 overflow-x-auto pb-2 scrollbar-thin">
+          <button
+            type="button"
+            onClick={() => setActiveStageId('ALL')}
+            className={`px-4 py-2 rounded-xl text-xs font-semibold transition-all shrink-0 flex items-center gap-2 ${
+              activeStageId === 'ALL'
+                ? 'bg-blue-600 text-white shadow-sm'
+                : 'bg-white text-gray-600 hover:text-gray-900 border border-gray-200 hover:border-gray-300'
+            }`}
+          >
+            <span>All Applicants</span>
+            <span
+              className={`px-1.5 py-0.5 rounded-full text-[10px] ${
+                activeStageId === 'ALL' ? 'bg-blue-700 text-white' : 'bg-gray-100 text-gray-600'
+              }`}
+            >
+              {totalCount}
+            </span>
+          </button>
+
+          {stages.map((stage) => {
+            const isSelected = activeStageId === stage.id;
+            return (
+              <button
+                key={stage.id}
+                type="button"
+                onClick={() => setActiveStageId(stage.id)}
+                className={`px-4 py-2 rounded-xl text-xs font-semibold transition-all shrink-0 flex items-center gap-2 ${
+                  isSelected
+                    ? 'bg-blue-600 text-white shadow-sm'
+                    : 'bg-white text-gray-600 hover:text-gray-900 border border-gray-200 hover:border-gray-300'
+                }`}
+              >
+                <span>{stage.name}</span>
+                <span
+                  className={`px-1.5 py-0.5 rounded-full text-[10px] ${
+                    isSelected ? 'bg-blue-700 text-white' : 'bg-gray-100 text-gray-600'
+                  }`}
+                >
+                  {stage.applicants_count || 0}
+                </span>
+              </button>
+            );
+          })}
+        </div>
+      )}
+
+      {/* Filters & Actions Bar */}
+      <div className="bg-white p-3.5 rounded-xl border border-gray-200 shadow-xs space-y-3">
+        <div className="flex flex-col lg:flex-row items-stretch lg:items-center justify-between gap-3">
+          <div className="flex flex-wrap items-center gap-3 flex-1">
+            {/* Job Filter Dropdown (URL-synced via ?job=<id>) */}
+            <div className="w-full sm:w-64">
+              <select
+                value={selectedJobId}
+                onChange={(e) => setSelectedJobId(e.target.value)}
+                className="w-full text-xs font-medium bg-white border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
+              >
+                <option value="ALL">All Job Openings</option>
+                {jobs.map((j) => (
+                  <option key={j.id} value={j.id}>
+                    {j.title} ({j.department_name || 'General'})
+                  </option>
+                ))}
+              </select>
+            </div>
+
+            {/* Search Bar */}
+            <form onSubmit={handleSearchSubmit} className="flex items-center gap-2 flex-1 min-w-[220px]">
+              <div className="relative flex-1">
+                <Search size={15} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
+                <input
+                  type="text"
+                  placeholder="Search by candidate name, email, or role..."
+                  value={search}
+                  onChange={(e) => setSearch(e.target.value)}
+                  className="w-full pl-9 pr-3 py-2 text-xs border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                />
+              </div>
+              <button type="submit" className="btn btn-primary text-xs py-2 px-4">
+                Search
+              </button>
+            </form>
+
+            {/* Filters Toggle Button */}
+            <button
+              type="button"
+              onClick={() => setShowFiltersPanel((v) => !v)}
+              className={`btn text-xs py-2 px-3 inline-flex items-center gap-1.5 border transition-colors ${
+                showFiltersPanel || activeFiltersCount > 0
+                  ? 'bg-blue-50 text-blue-700 border-blue-200 hover:bg-blue-100'
+                  : 'bg-white text-gray-700 border-gray-300 hover:bg-gray-50'
+              }`}
+            >
+              <Filter size={14} />
+              <span>Filters</span>
+              {activeFiltersCount > 0 && (
+                <span className="px-1.5 py-0.2 rounded-full bg-blue-600 text-white text-[10px] font-bold">
+                  {activeFiltersCount}
+                </span>
+              )}
+            </button>
+
+            {/* Unassigned Pool Quick-Toggle Pill (Org Admin only) */}
+            {isAdmin && (
+              <button
+                type="button"
+                onClick={() =>
+                  updateUrlParams({
+                    unassigned: unassignedOnly ? null : true,
+                    assigned_to: null,
+                    view_as: null,
+                  })
+                }
+                className={`btn text-xs py-2 px-3 inline-flex items-center gap-1.5 border transition-colors ${
+                  unassignedOnly
+                    ? 'bg-amber-100 text-amber-900 border-amber-300'
+                    : 'bg-white text-gray-700 border-gray-300 hover:bg-gray-50'
+                }`}
+                title="Filter to Unassigned Pool"
+              >
+                <span>Unassigned</span>
+                <span
+                  className={`px-1.5 py-0.2 rounded-full text-[10px] font-bold ${
+                    unassignedOnly ? 'bg-amber-600 text-white' : 'bg-gray-100 text-gray-600'
+                  }`}
+                >
+                  {unassignedCount}
+                </span>
+              </button>
+            )}
+
+            {/* Bulk Reassign Button */}
+            <button
+              type="button"
+              onClick={() => setShowBulkReassignModal(true)}
+              className="btn btn-secondary text-xs py-2 px-3 inline-flex items-center gap-1.5 bg-white"
+              title="Bulk reassign applications or transfer a recruiter's pipeline"
+            >
+              <Users size={14} />
+              <span>Bulk Reassign</span>
+            </button>
+
+            {/* Admin-only: Equal Split Distribute & Round-Robin Pool Settings */}
+            {isAdmin && (
+              <>
+                <button
+                  type="button"
+                  onClick={() => setDistributionModalTab('equal_split')}
+                  className="btn text-xs py-2 px-3 inline-flex items-center gap-1.5 bg-indigo-50 text-indigo-700 border border-indigo-200 hover:bg-indigo-100"
+                  title="Equally split all currently unassigned applications across selected recruiters"
+                >
+                  <Shuffle size={14} />
+                  <span>Distribute</span>
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setDistributionModalTab('round_robin')}
+                  className="btn btn-secondary text-xs py-2 px-2.5 inline-flex items-center gap-1 bg-white"
+                  title="Round-Robin Recruiter Pool Settings"
+                >
+                  <Settings size={14} />
+                </button>
+              </>
+            )}
+          </div>
+
+          {/* Bulk Action Bar (when rows selected in Table view) */}
+          {viewMode === 'table' && selectedAppIds.length > 0 && (
+            <div className="flex items-center gap-2.5 pt-2 lg:pt-0 border-t lg:border-t-0 border-gray-100">
+              <span className="text-xs font-semibold text-gray-700">
+                {selectedAppIds.length} selected
+              </span>
+              <button
+                type="button"
+                onClick={() => setShowBulkReassignModal(true)}
+                className="btn btn-secondary text-xs py-2 px-3 inline-flex items-center gap-1.5"
+              >
+                <Users size={14} />
+                <span>Reassign</span>
+              </button>
+              {isAppliedTab && (
+                <button
+                  type="button"
+                  onClick={handleBulkShortlist}
+                  disabled={bulkProcessing}
+                  className="btn btn-primary text-xs py-2 px-3 inline-flex items-center gap-1.5 shadow-sm"
+                >
+                  {bulkProcessing ? (
+                    <div className="w-3.5 h-3.5 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
+                  ) : (
+                    <UserCheck size={14} />
+                  )}
+                  <span>Bulk Shortlist</span>
+                </button>
+              )}
+            </div>
+          )}
+        </div>
+
+        {/* Collapsible Server-Side Filters Bar (URL-synced) */}
+        {showFiltersPanel && (
+          <div className="pt-3 border-t border-gray-100 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-6 gap-2.5 items-end">
+            <div>
+              <label className="block text-[10px] font-bold uppercase tracking-wider text-gray-500 mb-1">
+                From Date
+              </label>
+              <input
+                type="date"
+                value={dateFrom}
+                onChange={(e) => updateUrlParams({ date_from: e.target.value || null })}
+                className="w-full text-xs border border-gray-300 rounded-lg px-2.5 py-1.5 bg-white focus:outline-none focus:ring-2 focus:ring-blue-500"
+              />
+            </div>
+
+            <div>
+              <label className="block text-[10px] font-bold uppercase tracking-wider text-gray-500 mb-1">
+                To Date
+              </label>
+              <input
+                type="date"
+                value={dateTo}
+                onChange={(e) => updateUrlParams({ date_to: e.target.value || null })}
+                className="w-full text-xs border border-gray-300 rounded-lg px-2.5 py-1.5 bg-white focus:outline-none focus:ring-2 focus:ring-blue-500"
+              />
+            </div>
+
+            <div>
+              <label className="block text-[10px] font-bold uppercase tracking-wider text-gray-500 mb-1">
+                Stage
+              </label>
+              <select
+                value={activeStageId}
+                onChange={(e) => setActiveStageId(e.target.value)}
+                className="w-full text-xs border border-gray-300 rounded-lg px-2.5 py-1.5 bg-white focus:outline-none focus:ring-2 focus:ring-blue-500"
+              >
+                <option value="ALL">All Stages</option>
+                {stages.map((st) => (
+                  <option key={st.id} value={st.id}>
+                    {st.name} ({st.applicants_count || 0})
+                  </option>
+                ))}
+              </select>
+            </div>
+
+            <div>
+              <label className="block text-[10px] font-bold uppercase tracking-wider text-gray-500 mb-1">
+                Source
+              </label>
+              <select
+                value={selectedSource}
+                onChange={(e) => updateUrlParams({ source: e.target.value || null })}
+                className="w-full text-xs border border-gray-300 rounded-lg px-2.5 py-1.5 bg-white focus:outline-none focus:ring-2 focus:ring-blue-500"
+              >
+                <option value="">All Sources</option>
+                {(filterOptions.sources || []).map((src) => (
+                  <option key={src} value={src}>
+                    {src.replace(/_/g, ' ')}
+                  </option>
+                ))}
+              </select>
+            </div>
+
+            {isAdmin && (
+              <div>
+                <label className="block text-[10px] font-bold uppercase tracking-wider text-gray-500 mb-1">
+                  Assigned To
+                </label>
+                <select
+                  value={unassignedOnly ? '' : selectedAssignedTo}
+                  disabled={unassignedOnly}
+                  onChange={(e) =>
+                    updateUrlParams({
+                      assigned_to: e.target.value || null,
+                      view_as: null,
+                      unassigned: null,
+                    })
+                  }
+                  className="w-full text-xs border border-gray-300 rounded-lg px-2.5 py-1.5 bg-white disabled:bg-gray-100 disabled:text-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                >
+                  <option value="">All Recruiters</option>
+                  {(filterOptions.recruiters || []).map((rec) => (
+                    <option key={rec.id} value={rec.id}>
+                      {rec.full_name}
+                    </option>
+                  ))}
+                </select>
+              </div>
+            )}
+
+            <div className="flex items-center justify-between gap-2 pb-1">
+              {isAdmin ? (
+                <label className="inline-flex items-center gap-1.5 text-xs font-medium text-gray-700 cursor-pointer select-none">
+                  <input
+                    type="checkbox"
+                    checked={unassignedOnly}
+                    onChange={(e) =>
+                      updateUrlParams({
+                        unassigned: e.target.checked ? true : null,
+                        assigned_to: e.target.checked ? null : selectedAssignedTo || null,
+                        view_as: null,
+                      })
+                    }
+                    className="rounded text-blue-600 focus:ring-blue-500"
+                  />
+                  <span>Unassigned only</span>
+                </label>
+              ) : (
+                <span />
+              )}
+
+              {activeFiltersCount > 0 && (
+                <button
+                  type="button"
+                  onClick={clearAllFilters}
+                  className="text-[11px] font-semibold text-red-600 hover:text-red-700 whitespace-nowrap"
+                >
+                  Clear
+                </button>
+              )}
+            </div>
           </div>
         )}
       </div>
 
-      {/* Applicants List */}
-      {loading ? (
+      {/* Main Content: Kanban View vs Table View */}
+      {viewMode === 'kanban' ? (
+        <KanbanBoard
+          stages={boardStages}
+          rejectedStage={rejectedStage}
+          columns={kanbanColumns}
+          loading={kanbanLoading}
+          loadingMoreMap={loadingMoreMap}
+          showJobBadge={selectedJobId === 'ALL'}
+          recruiters={recruiters}
+          canMoveToStage={canMoveToStage}
+          canRejectCard={canRejectCard}
+          onQuickAssign={handleQuickAssign}
+          onDropToStage={handleKanbanDropToStage}
+          onDropToReject={handleKanbanDropToReject}
+          onLoadMoreColumn={handleLoadMoreColumn}
+          onOpenDetail={openApplicationDetail}
+          onOpenResume={handleOpenResumeDirect}
+        />
+      ) : loading ? (
         <div className="py-24 text-center text-gray-500">
           <div className="inline-block w-8 h-8 border-4 border-blue-600 border-t-transparent rounded-full animate-spin mb-3"></div>
           <p className="text-sm font-medium">Loading applicants...</p>
@@ -462,21 +1507,20 @@ export default function ApplicantsPage() {
             <table className="w-full text-left text-xs">
               <thead className="bg-gray-50 border-b border-gray-200 text-gray-600 font-semibold uppercase tracking-wider text-[11px]">
                 <tr>
-                  {isAppliedTab && (
-                    <th className="py-3 px-4 w-10">
-                      <input
-                        type="checkbox"
-                        checked={
-                          selectedAppIds.length > 0 &&
-                          selectedAppIds.length === applicants.length
-                        }
-                        onChange={toggleSelectAll}
-                        className="rounded text-blue-600 focus:ring-blue-500"
-                      />
-                    </th>
-                  )}
+                  <th className="py-3 px-4 w-10">
+                    <input
+                      type="checkbox"
+                      checked={
+                        selectedAppIds.length > 0 &&
+                        selectedAppIds.length === applicants.length
+                      }
+                      onChange={toggleSelectAll}
+                      className="rounded text-blue-600 focus:ring-blue-500"
+                    />
+                  </th>
                   <th className="py-3.5 px-4">Candidate</th>
                   <th className="py-3.5 px-4">Job Role</th>
+                  <th className="py-3.5 px-4">Assignee</th>
                   <th className="py-3.5 px-4">Stage</th>
                   <th className="py-3.5 px-4">Time in Stage</th>
                   <th className="py-3.5 px-4">Resume</th>
@@ -494,19 +1538,17 @@ export default function ApplicantsPage() {
                         isSelected ? 'bg-blue-50/60' : ''
                       }`}
                     >
-                      {isAppliedTab && (
-                        <td
-                          className="py-3.5 px-4"
-                          onClick={(e) => e.stopPropagation()}
-                        >
-                          <input
-                            type="checkbox"
-                            checked={isSelected}
-                            onChange={() => toggleSelectOne(app.id)}
-                            className="rounded text-blue-600 focus:ring-blue-500"
-                          />
-                        </td>
-                      )}
+                      <td
+                        className="py-3.5 px-4"
+                        onClick={(e) => e.stopPropagation()}
+                      >
+                        <input
+                          type="checkbox"
+                          checked={isSelected}
+                          onChange={() => toggleSelectOne(app.id)}
+                          className="rounded text-blue-600 focus:ring-blue-500"
+                        />
+                      </td>
 
                       {/* Candidate Column */}
                       <td className="py-3.5 px-4">
@@ -515,9 +1557,19 @@ export default function ApplicantsPage() {
                             {(app.candidate_name || 'C')[0].toUpperCase()}
                           </div>
                           <div>
-                            <span className="font-semibold text-gray-900 block hover:text-blue-600">
-                              {app.candidate_name}
-                            </span>
+                            <div className="flex items-center gap-1.5">
+                              <span className="font-semibold text-gray-900 hover:text-blue-600">
+                                {app.candidate_name}
+                              </span>
+                              {app.other_applications_count > 0 && (
+                                <span
+                                  className="inline-flex items-center px-1.5 py-0.2 rounded-full text-[10px] font-bold bg-indigo-50 text-indigo-700 border border-indigo-200"
+                                  title={`This candidate has ${app.other_applications_count} other application(s)`}
+                                >
+                                  +{app.other_applications_count} more
+                                </span>
+                              )}
+                            </div>
                             <span className="text-[11px] text-gray-500 block">
                               {app.candidate_email}
                             </span>
@@ -531,6 +1583,22 @@ export default function ApplicantsPage() {
                         <span className="text-[11px] text-gray-500 block">
                           {app.department_name || 'General'}
                         </span>
+                      </td>
+
+                      {/* Assignee */}
+                      <td className="py-3.5 px-4" onClick={(e) => e.stopPropagation()}>
+                        <select
+                          value={app.assigned_to || ''}
+                          onChange={(e) => handleQuickAssign(app, e.target.value || null)}
+                          className="text-[11px] font-medium bg-gray-50 border border-gray-200 rounded-lg px-2 py-1 focus:outline-none focus:ring-2 focus:ring-blue-500 max-w-[140px]"
+                        >
+                          <option value="">Unassigned</option>
+                          {recruiters.map((rec) => (
+                            <option key={rec.id} value={rec.id}>
+                              {rec.full_name}
+                            </option>
+                          ))}
+                        </select>
                       </td>
 
                       {/* Stage Badge */}
@@ -660,13 +1728,31 @@ export default function ApplicantsPage() {
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                   {/* Candidate Quick Overview Card (2 cols on md+) */}
                   <div className="md:col-span-2 bg-white p-4 sm:p-5 rounded-xl border border-gray-200 shadow-sm space-y-3 text-xs">
-                    <div className="flex items-center justify-between pb-2 border-b border-gray-100">
+                    <div className="flex flex-wrap items-center justify-between gap-2 pb-2 border-b border-gray-100">
                       <span className="font-bold text-gray-600 uppercase tracking-wider text-[11px]">
                         Candidate Information
                       </span>
-                      <span className="text-gray-500 text-[11px]">
-                        Time in current stage: <strong className="text-gray-800">{detail.days_in_stage === 0 ? 'Today' : `${detail.days_in_stage} days`}</strong>
-                      </span>
+                      <div className="flex items-center gap-3 flex-wrap">
+                        <div className="flex items-center gap-1.5">
+                          <span className="text-[11px] text-gray-500">Assigned to:</span>
+                          <select
+                            value={detail.assigned_to || ''}
+                            disabled={assigningDetail}
+                            onChange={(e) => handleQuickAssign(detail, e.target.value || null)}
+                            className="text-[11px] font-semibold bg-gray-50 border border-gray-300 rounded-lg px-2 py-1 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                          >
+                            <option value="">Unassigned Pool</option>
+                            {recruiters.map((rec) => (
+                              <option key={rec.id} value={rec.id}>
+                                {rec.full_name}
+                              </option>
+                            ))}
+                          </select>
+                        </div>
+                        <span className="text-gray-500 text-[11px]">
+                          Time in current stage: <strong className="text-gray-800">{detail.days_in_stage === 0 ? 'Today' : `${detail.days_in_stage} days`}</strong>
+                        </span>
+                      </div>
                     </div>
 
                     <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 text-gray-600">
@@ -987,6 +2073,52 @@ export default function ApplicantsPage() {
                             <strong>Type:</strong> {detail.job.job_type}
                           </p>
                         </div>
+
+                        {/* Other Applications by this Candidate */}
+                        {detail.other_applications && detail.other_applications.length > 0 && (
+                          <div className="bg-white p-4 rounded-xl border border-indigo-200/80 space-y-2.5">
+                            <div className="flex items-center justify-between">
+                              <span className="font-bold text-gray-900">
+                                Other Applications ({detail.other_applications.length})
+                              </span>
+                              <span className="text-[11px] text-gray-400">
+                                Same candidate across other openings
+                              </span>
+                            </div>
+                            <div className="space-y-2">
+                              {detail.other_applications.map((other) => (
+                                <div
+                                  key={other.id}
+                                  className="flex flex-wrap items-center justify-between gap-2 p-2.5 rounded-lg bg-slate-50 border border-gray-200/80 hover:border-blue-300 transition-colors"
+                                >
+                                  <div className="min-w-0">
+                                    <div className="font-semibold text-gray-900 truncate">
+                                      {other.job_title}
+                                    </div>
+                                    <div className="text-[11px] text-gray-500 flex items-center gap-2 mt-0.5 flex-wrap">
+                                      <span>Stage: <strong className="text-blue-700">{other.stage_name}</strong></span>
+                                      <span>•</span>
+                                      <span>
+                                        Assignee:{' '}
+                                        <strong className="text-gray-700">
+                                          {other.assignee?.full_name || 'Unassigned'}
+                                        </strong>
+                                      </span>
+                                    </div>
+                                  </div>
+                                  <button
+                                    type="button"
+                                    onClick={() => openApplicationDetail(other.id)}
+                                    className="btn btn-secondary text-[11px] py-1 px-2.5 inline-flex items-center gap-1 shrink-0"
+                                  >
+                                    <span>Open</span>
+                                    <ExternalLink size={11} />
+                                  </button>
+                                </div>
+                              ))}
+                            </div>
+                          </div>
+                        )}
                       </div>
                     )}
 
@@ -1139,53 +2271,85 @@ export default function ApplicantsPage() {
                       </div>
                     )}
 
-                    {/* Sub-Tab 2: Private Notes */}
+                    {/* Sub-Tab 2: Private Notes with @mentions */}
                     {detailTab === 'notes' && (
-                      <div className="space-y-4">
-                        <form onSubmit={handleAddNote} className="space-y-2">
-                          <textarea
-                            rows={3}
-                            placeholder="Add an internal recruiter/interviewer note..."
-                            value={newNote}
-                            onChange={(e) => setNewNote(e.target.value)}
-                            className="w-full p-3 text-xs border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500"
-                          />
-                          <button
-                            type="submit"
-                            disabled={addingNote || !newNote.trim()}
-                            className="btn btn-primary text-xs py-1.5 px-3 inline-flex items-center gap-1.5"
-                          >
-                            <Send size={13} />
-                            <span>{addingNote ? 'Saving...' : 'Add Note'}</span>
-                          </button>
-                        </form>
-
-                        <div className="space-y-2">
-                          {(detail.activities || [])
-                            .filter((a) => a.event_type === 'note_added')
-                            .map((noteItem) => (
-                              <div
-                                key={noteItem.id}
-                                className="bg-white p-3 rounded-xl border border-gray-200 text-xs space-y-1 shadow-sm"
-                              >
-                                <div className="flex items-center justify-between text-[11px] text-gray-400">
-                                  <span className="font-semibold text-gray-700">
-                                    {noteItem.actor_name}
-                                  </span>
-                                  <span>{new Date(noteItem.created_at).toLocaleString()}</span>
-                                </div>
-                                <p className="text-gray-700 leading-relaxed">
-                                  {noteItem.metadata?.note}
-                                </p>
-                              </div>
-                            ))}
-                        </div>
-                      </div>
+                      <MentionNotesSection
+                        notes={detail.notes || []}
+                        mentionableUsers={mentionableUsers}
+                        onAddNote={handleAddNote}
+                        addingNote={addingNote}
+                      />
                     )}
 
-                    {/* Sub-Tab 3: Activity Timeline */}
+                    {/* Sub-Tab 3: Activity Timeline & Stage History */}
                     {detailTab === 'activity' && (
-                      <div className="space-y-3">
+                      <div className="space-y-5">
+                        {detail.stage_history && detail.stage_history.length > 0 && (
+                          <div className="bg-slate-50 p-3.5 rounded-xl border border-gray-200 space-y-2">
+                            <h5 className="text-[11px] font-bold uppercase tracking-wider text-gray-500">
+                              Stage History
+                            </h5>
+                            <div className="space-y-1.5">
+                              {detail.stage_history.map((sh) => (
+                                <div
+                                  key={sh.id}
+                                  className="flex flex-wrap items-center justify-between gap-2 bg-white px-3 py-2 rounded-lg border border-gray-100 text-xs"
+                                >
+                                  <div className="flex items-center gap-1.5 flex-wrap">
+                                    <span className="font-semibold text-gray-600">
+                                      {sh.from_stage || 'New'}
+                                    </span>
+                                    <ArrowRight size={12} className="text-gray-400" />
+                                    <span className="font-bold text-blue-700">
+                                      {sh.to_stage || 'Unknown'}
+                                    </span>
+                                    <span className="text-gray-400">by {sh.changed_by_name}</span>
+                                    {sh.reason && (
+                                      <span className="text-gray-500 italic">({sh.reason})</span>
+                                    )}
+                                  </div>
+                                  <span className="text-[11px] text-gray-400">
+                                    {sh.changed_at ? new Date(sh.changed_at).toLocaleString() : ''}
+                                  </span>
+                                </div>
+                              ))}
+                            </div>
+                          </div>
+                        )}
+
+                        {detail.assignment_history && detail.assignment_history.length > 0 && (
+                          <div className="bg-indigo-50/40 p-3.5 rounded-xl border border-indigo-200/70 space-y-2">
+                            <h5 className="text-[11px] font-bold uppercase tracking-wider text-indigo-700">
+                              Assignment History
+                            </h5>
+                            <div className="space-y-1.5">
+                              {detail.assignment_history.map((ah) => (
+                                <div
+                                  key={ah.id}
+                                  className="flex flex-wrap items-center justify-between gap-2 bg-white px-3 py-2 rounded-lg border border-indigo-100 text-xs"
+                                >
+                                  <div className="flex items-center gap-1.5 flex-wrap">
+                                    <span className="font-semibold text-gray-600">
+                                      {ah.from_assignee_name}
+                                    </span>
+                                    <ArrowRight size={12} className="text-gray-400" />
+                                    <span className="font-bold text-indigo-700">
+                                      {ah.to_assignee_name}
+                                    </span>
+                                    <span className="px-1.5 py-0.2 rounded bg-slate-100 text-slate-600 text-[10px] font-semibold uppercase">
+                                      {ah.mode?.replace(/_/g, ' ')}
+                                    </span>
+                                    <span className="text-gray-400">by {ah.assigned_by_name}</span>
+                                  </div>
+                                  <span className="text-[11px] text-gray-400">
+                                    {ah.assigned_at ? new Date(ah.assigned_at).toLocaleString() : ''}
+                                  </span>
+                                </div>
+                              ))}
+                            </div>
+                          </div>
+                        )}
+
                         <div className="relative pl-5 border-l-2 border-gray-200 space-y-4">
                           {(detail.activities || []).map((act) => (
                             <div key={act.id} className="relative text-xs">
@@ -1203,6 +2367,10 @@ export default function ApplicantsPage() {
                                     `Moved stage from ${act.from_stage_name || 'Initial'} to ${act.to_stage_name}`}
                                   {act.event_type === 'rejected' &&
                                     `Rejected candidate. Reason: ${act.metadata?.reason || 'Not specified'}`}
+                                  {act.event_type === 'rejection_undone' &&
+                                    `Undid rejection — restored to ${act.to_stage_name}`}
+                                  {act.event_type === 'assigned' &&
+                                    `Assigned from ${act.metadata?.from_assignee_name || 'Unassigned'} to ${act.metadata?.to_assignee_name || 'Unassigned'} (${act.metadata?.mode || 'manual'})`}
                                   {act.event_type === 'note_added' && 'Added a private note'}
                                 </p>
                                 {act.metadata?.note && (
@@ -1227,12 +2395,28 @@ export default function ApplicantsPage() {
 
       {/* ── Reject Reason Modal (Rule 7: Reject always needs a reason) ─ */}
       {showRejectModal && (
-        <Modal title="Reject Candidate Application" onClose={() => setShowRejectModal(false)}>
+        <Modal
+          isOpen={true}
+          title="Reject Candidate Application"
+          onClose={() => {
+            setShowRejectModal(false);
+            setPendingRejectCard(null);
+            setActionError('');
+          }}
+        >
           <form onSubmit={handleConfirmReject} className="space-y-4">
             <p className="text-xs text-gray-500">
-              Please specify the primary reason for rejecting <strong>{detail?.candidate?.full_name}</strong>.
-              This reason will be recorded in the append-only activity log.
+              Please specify the primary reason for rejecting{' '}
+              <strong>{pendingRejectCard?.candidate_name || detail?.candidate?.full_name}</strong>.
+              This reason will be recorded in the stage history and activity log.
             </p>
+
+            {actionError && (
+              <div className="p-2.5 bg-red-50 border border-red-200 rounded-lg text-xs text-red-700 flex items-center gap-2">
+                <AlertCircle size={14} className="shrink-0" />
+                <span>{actionError}</span>
+              </div>
+            )}
 
             <div>
               <label className="block text-xs font-bold text-gray-700 mb-1">
@@ -1241,21 +2425,13 @@ export default function ApplicantsPage() {
               <select
                 value={rejectReason}
                 onChange={(e) => setRejectReason(e.target.value)}
-                className="w-full p-2.5 text-xs border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-red-500 font-medium"
+                className="w-full p-2.5 text-xs border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-red-500 font-medium bg-white"
               >
-                <option value="Qualifications did not match job requirements">
-                  Qualifications did not match job requirements
-                </option>
-                <option value="Salary expectation mismatch">Salary expectation mismatch</option>
-                <option value="Notice period too long">Notice period too long</option>
-                <option value="Position filled by another candidate">
-                  Position filled by another candidate
-                </option>
-                <option value="Did not attend screening/interview">
-                  Did not attend screening/interview
-                </option>
-                <option value="Cultural / Communication fit">Cultural / Communication fit</option>
-                <option value="Other">Other</option>
+                {rejectionReasons.map((r) => (
+                  <option key={r} value={r}>
+                    {r}
+                  </option>
+                ))}
               </select>
             </div>
 
@@ -1275,7 +2451,11 @@ export default function ApplicantsPage() {
             <div className="pt-3 border-t border-gray-200 flex items-center justify-end gap-3">
               <button
                 type="button"
-                onClick={() => setShowRejectModal(false)}
+                onClick={() => {
+                  setShowRejectModal(false);
+                  setPendingRejectCard(null);
+                  setActionError('');
+                }}
                 className="btn btn-secondary text-xs"
               >
                 Cancel
@@ -1295,6 +2475,108 @@ export default function ApplicantsPage() {
         </Modal>
       )}
 
+      {/* ── Bulk Reassign Modal (Phase 3) ── */}
+      {showBulkReassignModal && (
+        <BulkReassignModal
+          recruiters={recruiters}
+          selectedAppIds={selectedAppIds}
+          submitting={bulkReassigning}
+          onClose={() => setShowBulkReassignModal(false)}
+          onConfirm={handleBulkReassign}
+        />
+      )}
+
+      {/* ── Equal Split Distribute & Round-Robin Pool Settings Modal (Phase 4) ── */}
+      {distributionModalTab && (
+        <DistributionModal
+          initialTab={distributionModalTab}
+          recruiters={recruiters}
+          unassignedCount={unassignedCount}
+          onClose={() => setDistributionModalTab(null)}
+          onDistributed={() => {
+            loadStaticMeta();
+            refreshActiveView();
+          }}
+        />
+      )}
+
+      {/* ── Kanban Drop into Interview: Existing Interview Round & Assign Flow ── */}
+      {pendingInterviewDrop && (
+        <MoveToInterviewModal
+          application={pendingInterviewDrop.card}
+          submitting={interviewDropSubmitting}
+          onClose={() => setPendingInterviewDrop(null)}
+          onConfirm={handleConfirmInterviewDrop}
+        />
+      )}
+
+      {/* ── Kanban Drop into Offer: Open Offer Details Modal ── */}
+      {kanbanOfferCard && (
+        <OfferLetterModal
+          applicationId={kanbanOfferCard.id}
+          candidateName={kanbanOfferCard.candidate_name}
+          jobTitle={kanbanOfferCard.job_title}
+          onClose={() => {
+            setKanbanOfferCard(null);
+            refreshActiveView();
+          }}
+          onOpenConvertModal={async () => {
+            const cardId = kanbanOfferCard.id;
+            setKanbanOfferCard(null);
+            try {
+              const res = await getApplicationDetail(cardId);
+              setKanbanHirePrompt({ app: kanbanOfferCard, detail: res.data });
+            } catch {
+              openApplicationDetail(cardId);
+            }
+          }}
+          canManageOffers={canManageOffers}
+          canConvertEmployee={canConvertEmployee}
+        />
+      )}
+
+      {/* ── Kanban Drop into Hired: Offer "Create Employee" Action ── */}
+      {kanbanHirePrompt && (
+        <ConvertToEmployeeModal
+          applicationId={kanbanHirePrompt.detail.id}
+          candidate={kanbanHirePrompt.detail.candidate}
+          job={kanbanHirePrompt.detail.job}
+          latestOffer={
+            kanbanHirePrompt.detail.offers && kanbanHirePrompt.detail.offers.length > 0
+              ? kanbanHirePrompt.detail.offers[0]
+              : null
+          }
+          alreadyConvertedEmployeeId={kanbanHirePrompt.detail.converted_employee_id}
+          onClose={() => {
+            setKanbanHirePrompt(null);
+            refreshActiveView();
+          }}
+          onSuccess={() => {
+            setKanbanHirePrompt(null);
+            refreshActiveView();
+          }}
+        />
+      )}
+
+      {/* ── 5-Second Undo Reject Floating Toast ── */}
+      {undoReject &&
+        createPortal(
+          <div className="fixed bottom-6 left-1/2 -translate-x-1/2 z-[300] bg-slate-900 text-white px-4 py-3 rounded-xl shadow-2xl border border-slate-700 flex items-center gap-4 text-xs animate-in fade-in slide-in-from-bottom-4 duration-150">
+            <span>
+              Rejected <strong>{undoReject.card.candidate_name}</strong> ({undoReject.secondsLeft}s)
+            </span>
+            <button
+              type="button"
+              onClick={handleUndoReject}
+              className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-blue-500 hover:bg-blue-400 text-white font-bold transition-colors"
+            >
+              <RotateCcw size={13} />
+              <span>Undo</span>
+            </button>
+          </div>,
+          document.body
+        )}
+
       {/* ── Phase 4: Offer Letter Management & Browser Print Modal ── */}
       {showOfferModal && detail && (
         <OfferLetterModal
@@ -1304,7 +2586,7 @@ export default function ApplicantsPage() {
           onClose={() => {
             setShowOfferModal(false);
             openApplicationDetail(detail.id);
-            loadApplicants();
+            refreshActiveView();
           }}
           onOpenConvertModal={() => setShowConvertModal(true)}
           canManageOffers={canManageOffers}
@@ -1323,11 +2605,11 @@ export default function ApplicantsPage() {
           onClose={() => {
             setShowConvertModal(false);
             openApplicationDetail(detail.id);
-            loadApplicants();
+            refreshActiveView();
           }}
           onSuccess={() => {
             openApplicationDetail(detail.id);
-            loadApplicants();
+            refreshActiveView();
           }}
         />
       )}

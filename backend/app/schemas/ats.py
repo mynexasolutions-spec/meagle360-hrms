@@ -116,14 +116,40 @@ class StageChangeRequest(BaseModel):
     target_stage_id: UUID
     reason: str | None = None
     note: str | None = None
+    expected_version: int | None = None
+    expected_updated_at: datetime | None = None
+    skip_auto_interview: bool = False
+    is_undo: bool = False
 
 
 class AddNoteRequest(BaseModel):
     note: str = Field(..., min_length=1, max_length=2000)
+    mentioned_employee_ids: list[UUID] = Field(default_factory=list)
 
 
 class BulkShortlistRequest(BaseModel):
     application_ids: list[UUID]
+
+
+class AssignApplicationRequest(BaseModel):
+    assigned_to: UUID | None = None  # None moves application to Unassigned pool
+
+
+class BulkReassignRequest(BaseModel):
+    application_ids: list[UUID] | None = None
+    from_recruiter_id: UUID | None = None
+    to_recruiter_id: UUID | None = None  # None moves to Unassigned pool
+    only_active: bool = True
+
+
+class DistributionSettingsUpdate(BaseModel):
+    auto_assign_enabled: bool = True
+    round_robin_pool_ids: list[UUID] = Field(default_factory=list)
+
+
+class EqualSplitDistributeRequest(BaseModel):
+    recruiter_ids: list[UUID] = Field(..., min_length=1)
+    only_active: bool = True
 
 
 # ── Phase 3: Interviews & ATS Settings Schemas ───────────

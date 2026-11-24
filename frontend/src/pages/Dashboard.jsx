@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { usePopup } from '../context/PopupContext';
 import { getDashboardSummary, getAttendanceOverview, getLeaveSummary, getLiveStatus, getLeaveInsight, getOnLeaveToday } from '../api/dashboard';
@@ -108,11 +108,13 @@ function timeAgo(dateStr) {
 
 export default function Dashboard() {
   const { user } = useAuth();
+  const navigate = useNavigate();
   const { showAlert, showToast } = usePopup();
   const canApprove = !!user?.permissions?.['leave:approve'];
   const canSeeLiveStatus = !!user?.permissions?.['attendance:approve'];
   const canPostAnnouncement = !!user?.permissions?.['settings:write'];
   const isAdmin = user?.role_name === 'Admin' || !!user?.permissions?.['settings:write'];
+  const canViewEmployees = isAdmin || !!user?.permissions?.['employees:read'];
   const isManager = user?.role_name === 'Manager' || canApprove || canSeeLiveStatus;
   const isAdminOrManager = isAdmin || isManager;
 
@@ -432,6 +434,7 @@ export default function Dashboard() {
           trendDirection="up"
           bgColor="#eff6ff"
           color="#2563eb"
+          onClick={canViewEmployees ? () => navigate('/employees') : undefined}
         />
         <StatCard
           icon={CheckCircle}
@@ -441,6 +444,7 @@ export default function Dashboard() {
           trendDirection={(summary?.present_today || 0) > 0 ? 'up' : 'down'}
           bgColor="#ecfdf5"
           color="#059669"
+          onClick={() => navigate('/attendance')}
         />
         <StatCard
           icon={Umbrella}
@@ -450,6 +454,7 @@ export default function Dashboard() {
           trendDirection="up"
           bgColor="#fffbeb"
           color="#d97706"
+          onClick={() => navigate('/leave')}
         />
         <StatCard
           icon={FileClock}
@@ -459,6 +464,7 @@ export default function Dashboard() {
           trendDirection={summary?.pending_approvals > 0 ? 'down' : 'up'}
           bgColor="#f5f3ff"
           color="#7c3aed"
+          onClick={() => navigate('/leave')}
         />
       </div>
 

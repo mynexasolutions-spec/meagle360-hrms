@@ -190,6 +190,22 @@ class Application(Base, TimestampMixin):
     rejection_reason: Mapped[str | None] = mapped_column(String(255), nullable=True)
     rejection_note: Mapped[str | None] = mapped_column(Text, nullable=True)
 
+    # Phase 1 Kanban: accurate stage entry timestamp & optimistic concurrency version
+    stage_entered_at: Mapped[datetime | None] = mapped_column(
+        DateTime(timezone=True),
+        default=lambda: datetime.now(timezone.utc),
+        nullable=True,
+    )
+    version: Mapped[int] = mapped_column(Integer, nullable=False, default=1)
+
+    # Phase 3: Recruiter assignment (null = Unassigned pool)
+    assigned_to: Mapped[uuid.UUID | None] = mapped_column(
+        UUID(as_uuid=True),
+        ForeignKey("employee.id", ondelete="SET NULL"),
+        nullable=True,
+        index=True,
+    )
+
     # Phase 4 idempotent conversion reference
     converted_employee_id: Mapped[uuid.UUID | None] = mapped_column(
         UUID(as_uuid=True),
@@ -203,12 +219,31 @@ class Application(Base, TimestampMixin):
     candidate = relationship("Candidate", back_populates="applications")
     job = relationship("JobOpening", back_populates="applications")
     stage = relationship("Stage", back_populates="applications")
-    converted_employee = relationship("Employee")
+    assignee = relationship("Employee", foreign_keys=[assigned_to])
+    converted_employee = relationship("Employee", foreign_keys=[converted_employee_id])
     activities = relationship(
         "ApplicationActivity",
         back_populates="application",
         cascade="all, delete-orphan",
         order_by="ApplicationActivity.created_at.desc()",
+    )
+    stage_history = relationship(
+        "ApplicationStageHistory",
+        back_populates="application",
+        cascade="all, delete-orphan",
+        order_by="ApplicationStageHistory.changed_at.desc()",
+    )
+    assignment_history = relationship(
+        "ApplicationAssignmentHistory",
+        back_populates="application",
+        cascade="all, delete-orphan",
+        order_by="ApplicationAssignmentHistory.assigned_at.desc()",
+    )
+    notes = relationship(
+        "ApplicationNote",
+        back_populates="application",
+        cascade="all, delete-orphan",
+        order_by="ApplicationNote.created_at.desc()",
     )
     offers = relationship(
         "Offer",
@@ -216,6 +251,169 @@ class Application(Base, TimestampMixin):
         cascade="all, delete-orphan",
         order_by="Offer.version_number.desc()",
     )
+
+
+class ApplicationAssignmentHistory(Base):
+    """
+    Audit history of recruiter assignments on an application.
+    Modes: round_robin | equal_split | manual | bulk_reassign
+    """
+    __tablename__ = "application_assignment_history"
+
+    id: Mapped[uuid.UUID] = mapped_column(
+        UUID(as_uuid=True), primary_key=True, default=uuid.uuid4
+    )
+    company_id: Mapped[uuid.UUID] = mapped_column(
+        UUID(as_uuid=True),
+        ForeignKey("company.id", ondelete="CASCADE"),
+        nullable=False,
+        index=True,
+    )
+    application_id: Mapped[uuid.UUID] = mapped_column(
+        UUID(as_uuid=True),
+        ForeignKey("applications.id", ondelete="CASCADE"),
+        nullable=False,
+        index=True,
+    )
+    from_assignee_id: Mapped[uuid.UUID | None] = mapped_column(
+        UUID(as_uuid=True),
+        ForeignKey("employee.id", ondelete="SET NULL"),
+        nullable=True,
+    )
+    to_assignee_id: Mapped[uuid.UUID | None] = mapped_column(
+        UUID(as_uuid=True),
+        ForeignKey("employee.id", ondelete="SET NULL"),
+        nullable=True,
+    )
+    assigned_by: Mapped[uuid.UUID | None] = mapped_column(
+        UUID(as_uuid=True),
+        ForeignKey("user_account.id", ondelete="SET NULL"),
+        nullable=True,
+    )
+    mode: Mapped[str] = mapped_column(String(30), nullable=False, default="manual")
+    assigned_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True),
+        default=lambda: datetime.now(timezone.utc),
+        nullable=False,
+        index=True,
+    )
+
+    # ── Relationships ────────────────────────────────────
+    application = relationship("Application", back_populates="assignment_history")
+    from_assignee = relationship("Employee", foreign_keys=[from_assignee_id])
+    to_assignee = relationship("Employee", foreign_keys=[to_assignee_id])
+    assigned_by_user = relationship("UserAccount")
+
+
+class AtsDistributionSettings(Base, TimestampMixin):
+    """
+    Company-level settings for automatic round-robin applicant distribution.
+    """
+    __tablename__ = "ats_distribution_settings"
+
+    id: Mapped[uuid.UUID] = mapped_column(
+        UUID(as_uuid=True), primary_key=True, default=uuid.uuid4
+    )
+    company_id: Mapped[uuid.UUID] = mapped_column(
+        UUID(as_uuid=True),
+        ForeignKey("company.id", ondelete="CASCADE"),
+        nullable=False,
+        unique=True,
+        index=True,
+    )
+    auto_assign_enabled: Mapped[bool] = mapped_column(Boolean, nullable=False, default=True)
+    round_robin_pool_ids: Mapped[list] = mapped_column(JSON, nullable=False, default=list)
+    last_assigned_index: Mapped[int] = mapped_column(Integer, nullable=False, default=-1)
+
+    company = relationship("Company")
+
+
+class ApplicationNote(Base, TimestampMixin):
+    """
+    Internal recruiter/admin notes on an application with @mentions support.
+    """
+    __tablename__ = "application_notes"
+
+    id: Mapped[uuid.UUID] = mapped_column(
+        UUID(as_uuid=True), primary_key=True, default=uuid.uuid4
+    )
+    company_id: Mapped[uuid.UUID] = mapped_column(
+        UUID(as_uuid=True),
+        ForeignKey("company.id", ondelete="CASCADE"),
+        nullable=False,
+        index=True,
+    )
+    application_id: Mapped[uuid.UUID] = mapped_column(
+        UUID(as_uuid=True),
+        ForeignKey("applications.id", ondelete="CASCADE"),
+        nullable=False,
+        index=True,
+    )
+    author_id: Mapped[uuid.UUID | None] = mapped_column(
+        UUID(as_uuid=True),
+        ForeignKey("user_account.id", ondelete="SET NULL"),
+        nullable=True,
+    )
+    content: Mapped[str] = mapped_column(Text, nullable=False)
+    mentioned_employee_ids: Mapped[list] = mapped_column(JSON, nullable=False, default=list)
+
+    # ── Relationships ────────────────────────────────────
+    application = relationship("Application", back_populates="notes")
+    author = relationship("UserAccount")
+
+
+class ApplicationStageHistory(Base):
+    """
+    Dedicated stage transition history for applications.
+    Records a row on every stage change (application_id, from_stage, to_stage, changed_by, changed_at, reason).
+    """
+    __tablename__ = "application_stage_history"
+
+    id: Mapped[uuid.UUID] = mapped_column(
+        UUID(as_uuid=True), primary_key=True, default=uuid.uuid4
+    )
+    company_id: Mapped[uuid.UUID] = mapped_column(
+        UUID(as_uuid=True),
+        ForeignKey("company.id", ondelete="CASCADE"),
+        nullable=False,
+        index=True,
+    )
+    application_id: Mapped[uuid.UUID] = mapped_column(
+        UUID(as_uuid=True),
+        ForeignKey("applications.id", ondelete="CASCADE"),
+        nullable=False,
+        index=True,
+    )
+    from_stage_id: Mapped[uuid.UUID | None] = mapped_column(
+        UUID(as_uuid=True),
+        ForeignKey("stages.id", ondelete="SET NULL"),
+        nullable=True,
+    )
+    to_stage_id: Mapped[uuid.UUID | None] = mapped_column(
+        UUID(as_uuid=True),
+        ForeignKey("stages.id", ondelete="SET NULL"),
+        nullable=True,
+    )
+    from_stage: Mapped[str | None] = mapped_column(String(100), nullable=True)
+    to_stage: Mapped[str | None] = mapped_column(String(100), nullable=True)
+    changed_by: Mapped[uuid.UUID | None] = mapped_column(
+        UUID(as_uuid=True),
+        ForeignKey("user_account.id", ondelete="SET NULL"),
+        nullable=True,
+    )
+    changed_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True),
+        default=lambda: datetime.now(timezone.utc),
+        nullable=False,
+        index=True,
+    )
+    reason: Mapped[str | None] = mapped_column(Text, nullable=True)
+
+    # ── Relationships ────────────────────────────────────
+    application = relationship("Application", back_populates="stage_history")
+    changed_by_user = relationship("UserAccount")
+    from_stage_rel = relationship("Stage", foreign_keys=[from_stage_id])
+    to_stage_rel = relationship("Stage", foreign_keys=[to_stage_id])
 
 
 class ApplicationActivity(Base):
