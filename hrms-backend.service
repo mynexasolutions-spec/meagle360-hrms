@@ -5,6 +5,7 @@ After=network.target
 [Service]
 User=deploy
 WorkingDirectory=/var/www/meagle360-hrms/backend
+EnvironmentFile=/var/www/meagle360-hrms/backend/.env
 ExecStart=/var/www/venv/bin/uvicorn app.main:app --host 127.0.0.1 --port 8015
 Restart=always
 

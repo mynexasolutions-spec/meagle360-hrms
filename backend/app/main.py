@@ -11,17 +11,20 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 
 from app.config import get_settings
+from app.services.auth_service import _get_jwt_secret
 from app.routes import auth, company, department, designation, employee, attendance, leave, shift, platform, dashboard, announcement, overtime, audit, role, expense, site, payroll, action_tracker, helpdesk, ai, pms, pms_cycles, pms_ratings, pms_results, geofence, face, ats
 from app.middleware.plan_expiry import PlanExpiryMiddleware
 
 settings = get_settings()
+_get_jwt_secret()
 
 app = FastAPI(
     title=settings.APP_NAME,
     description="Phase 1 — Core HRMS: Employee Records, Attendance, Leave, Shifts",
     version="1.0.0",
-    docs_url="/api/docs",
-    redoc_url="/api/redoc",
+    docs_url="/api/docs" if settings.DEBUG else None,
+    redoc_url="/api/redoc" if settings.DEBUG else None,
+    openapi_url="/api/openapi.json" if settings.DEBUG else None,
 )
 
 # ── Dynamic CORS Configuration ──────────────────────────────────────────

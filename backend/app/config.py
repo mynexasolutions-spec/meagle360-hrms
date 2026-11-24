@@ -1,19 +1,27 @@
 """
-Application configuration — loaded from environment variables.
+Application configuration — loaded from environment variables (backend/.env).
 """
 
-from pydantic_settings import BaseSettings
 from functools import lru_cache
+from pathlib import Path
+
+from pydantic_settings import BaseSettings
+
+_BACKEND_ENV_FILE = Path(__file__).resolve().parent.parent / ".env"
 
 
 class Settings(BaseSettings):
     # ── Database ─────────────────────────────────────────
-    DATABASE_URL: str = "postgresql://hrms_admin:hrms_secret_2024@localhost:5432/hrms"
+    DATABASE_URL: str = ""
 
     # ── JWT / Auth ───────────────────────────────────────
-    JWT_SECRET: str = "change-me"
+    JWT_SECRET: str = ""
     JWT_ALGORITHM: str = "HS256"
     ACCESS_TOKEN_EXPIRE_MINUTES: int = 60
+
+    # ── Platform Super-Admin (seed_platform) ─────────────
+    PLATFORM_ADMIN_EMAIL: str = ""
+    PLATFORM_ADMIN_PASSWORD: str = ""
 
     # ── App ──────────────────────────────────────────────
     APP_NAME: str = "Meagle360 HRMS"
@@ -42,7 +50,7 @@ class Settings(BaseSettings):
     ALLOWED_ORIGINS: str = ""
 
     # -- ImageKit (ATS private resumes & documents) -----------
-    IMAGEKIT_URL_ENDPOINT: str = "https://ik.imagekit.io/njhzvqrx2"
+    IMAGEKIT_URL_ENDPOINT: str = ""
     IMAGEKIT_PUBLIC_KEY: str = ""
     IMAGEKIT_PRIVATE_KEY: str = ""
     NEXT_PUBLIC_IMAGEKIT_URL_ENDPOINT: str = ""
@@ -61,9 +69,9 @@ class Settings(BaseSettings):
     FACE_MATCH_THRESHOLD: float = 0.4
 
     model_config = {
-        "env_file": ".env",
+        "env_file": (str(_BACKEND_ENV_FILE), ".env"),
         "env_file_encoding": "utf-8",
-        "extra": "ignore"
+        "extra": "ignore",
     }
 
 

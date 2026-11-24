@@ -95,8 +95,8 @@ function AppRoutes() {
     <Suspense fallback={<LoadingScreen subtitle="Loading workspace..." />}>
       <Routes>
         {/* Tenant Auth Routes */}
+        <Route path="/login" element={<PublicRoute><Login /></PublicRoute>} />
         <Route element={<PublicRoute><AuthLayout /></PublicRoute>}>
-          <Route path="/login" element={<Login />} />
           <Route path="/forgot-password" element={<ForgotPassword />} />
         </Route>
         <Route element={<AuthLayout />}>

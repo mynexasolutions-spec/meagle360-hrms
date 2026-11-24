@@ -81,7 +81,7 @@ def _get_imagekit_credentials():
     url_endpoint = (
         settings.IMAGEKIT_URL_ENDPOINT
         or settings.NEXT_PUBLIC_IMAGEKIT_URL_ENDPOINT
-        or os.environ.get("NEXT_PUBLIC_IMAGEKIT_URL_ENDPOINT", "https://ik.imagekit.io/njhzvqrx2")
+        or os.environ.get("NEXT_PUBLIC_IMAGEKIT_URL_ENDPOINT", "")
     )
     return private_key, public_key, url_endpoint.rstrip("/")
 

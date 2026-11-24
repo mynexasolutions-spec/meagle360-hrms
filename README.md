@@ -122,9 +122,7 @@ cd frontend && npm run dev
 
 **Platform (Nexa Solutions) — logs in at `/platform/login`:**
 
-| Role | Email | Password |
-|---|---|---|
-| Super Admin | contact@nexa-solutions.in | Hireberth@0302 |
+Configured via `PLATFORM_ADMIN_EMAIL` and `PLATFORM_ADMIN_PASSWORD` in `backend/.env` when running `python -m app.seed_platform`.
 
 **Meagle360 Corp (demo tenant) — logs in at `/login`:**
 

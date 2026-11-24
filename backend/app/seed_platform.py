@@ -1,5 +1,6 @@
 """
-Seed script — creates the Nexa Solutions platform (super-admin) account.
+Seed script — creates the Nexa Solutions platform (super-admin) account
+using PLATFORM_ADMIN_EMAIL and PLATFORM_ADMIN_PASSWORD from backend/.env.
 
 Usage:
     cd backend
@@ -8,33 +9,40 @@ Usage:
 
 import uuid
 
+from app.config import get_settings
 from app.database import SessionLocal
 from app.models import PlatformAdmin
 from app.services.auth_service import hash_password
 
-NEXA_ADMIN_EMAIL = "contact@nexa-solutions.in"
-NEXA_ADMIN_PASSWORD = "Hireberth@0302"
-
 
 def seed():
+    settings = get_settings()
+    admin_email = (settings.PLATFORM_ADMIN_EMAIL or "").strip()
+    admin_password = settings.PLATFORM_ADMIN_PASSWORD or ""
+
+    if not admin_email or not admin_password:
+        raise RuntimeError(
+            "PLATFORM_ADMIN_EMAIL and PLATFORM_ADMIN_PASSWORD must be set in backend/.env "
+            "before running app.seed_platform."
+        )
+
     db = SessionLocal()
     try:
-        if db.query(PlatformAdmin).filter(PlatformAdmin.email == NEXA_ADMIN_EMAIL).first():
+        if db.query(PlatformAdmin).filter(PlatformAdmin.email == admin_email).first():
             print("Platform admin already exists. Skipping.")
             return
 
         print("Seeding platform admin...")
         admin = PlatformAdmin(
             id=uuid.uuid4(),
-            email=NEXA_ADMIN_EMAIL,
-            password_hash=hash_password(NEXA_ADMIN_PASSWORD),
+            email=admin_email,
+            password_hash=hash_password(admin_password),
             full_name="Nexa Solutions",
             is_super_admin=True,
         )
         db.add(admin)
         db.commit()
-        print("Platform admin seeded!")
-        print(f"   Login: {NEXA_ADMIN_EMAIL} / {NEXA_ADMIN_PASSWORD}")
+        print(f"Platform admin seeded successfully for: {admin_email}")
 
     except Exception as e:
         db.rollback()

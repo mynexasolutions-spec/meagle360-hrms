@@ -27,6 +27,17 @@ PASSWORD_RESET_TOKEN_EXPIRE_MINUTES = 60
 settings = get_settings()
 pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
 
+_WEAK_JWT_DEFAULTS = {"", "change-me", "change-me-to-a-random-64-char-string", "secret"}
+
+
+def _get_jwt_secret() -> str:
+    secret = (settings.JWT_SECRET or "").strip()
+    if secret in _WEAK_JWT_DEFAULTS or len(secret) < 16:
+        raise RuntimeError(
+            "JWT_SECRET is missing or weak. Set a strong JWT_SECRET (>= 16 chars) in backend/.env."
+        )
+    return secret
+
 
 def hash_password(password: str) -> str:
     return pwd_context.hash(password)
@@ -50,7 +61,7 @@ def create_access_token(
         "exp": datetime.now(timezone.utc)
         + timedelta(minutes=settings.ACCESS_TOKEN_EXPIRE_MINUTES),
     }
-    return jwt.encode(payload, settings.JWT_SECRET, algorithm=settings.JWT_ALGORITHM)
+    return jwt.encode(payload, _get_jwt_secret(), algorithm=settings.JWT_ALGORITHM)
 
 
 def create_platform_token(admin_id: UUID) -> str:
@@ -62,7 +73,7 @@ def create_platform_token(admin_id: UUID) -> str:
         "exp": datetime.now(timezone.utc)
         + timedelta(minutes=settings.ACCESS_TOKEN_EXPIRE_MINUTES),
     }
-    return jwt.encode(payload, settings.JWT_SECRET, algorithm=settings.JWT_ALGORITHM)
+    return jwt.encode(payload, _get_jwt_secret(), algorithm=settings.JWT_ALGORITHM)
 
 
 def create_password_reset_token(user_account_id: UUID) -> str:
@@ -72,7 +83,7 @@ def create_password_reset_token(user_account_id: UUID) -> str:
         "sub": str(user_account_id),
         "exp": datetime.now(timezone.utc) + timedelta(minutes=PASSWORD_RESET_TOKEN_EXPIRE_MINUTES),
     }
-    return jwt.encode(payload, settings.JWT_SECRET, algorithm=settings.JWT_ALGORITHM)
+    return jwt.encode(payload, _get_jwt_secret(), algorithm=settings.JWT_ALGORITHM)
 
 
 def create_invite_token(user_account_id: UUID) -> str:
@@ -84,13 +95,13 @@ def create_invite_token(user_account_id: UUID) -> str:
         "sub": str(user_account_id),
         "exp": datetime.now(timezone.utc) + timedelta(hours=INVITE_TOKEN_EXPIRE_HOURS),
     }
-    return jwt.encode(payload, settings.JWT_SECRET, algorithm=settings.JWT_ALGORITHM)
+    return jwt.encode(payload, _get_jwt_secret(), algorithm=settings.JWT_ALGORITHM)
 
 
 def decode_token(token: str) -> dict | None:
     try:
         return jwt.decode(
-            token, settings.JWT_SECRET, algorithms=[settings.JWT_ALGORITHM]
+            token, _get_jwt_secret(), algorithms=[settings.JWT_ALGORITHM]
         )
     except JWTError:
         return None

@@ -12,6 +12,8 @@ htmlcov/
 # Environment
 .env
 .env.local
+.env.*
+!.env.example
 .venv/
 venv/
 env/
@@ -38,7 +40,11 @@ yarn-error.log*
 # Logs
 *.log
 
-# Editor / misc
+# Editor / misc / Database backups & local DBs
 *.bak
 *.orig
-backup_before_loadtest_cleanup_20260930_1626.dump
+*.dump
+*.sql
+*.db
+*.sqlite
+*.sqlite3

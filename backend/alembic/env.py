@@ -27,8 +27,11 @@ config = context.config
 # URL (e.g. a URL-encoded "@" as "%40" in the password) must be escaped
 # as "%%" before being stored.
 database_url = os.getenv("DATABASE_URL")
-if database_url:
-    config.set_main_option("sqlalchemy.url", database_url.replace("%", "%%"))
+if not database_url:
+    raise RuntimeError(
+        "DATABASE_URL must be set in backend/.env or environment to run Alembic migrations."
+    )
+config.set_main_option("sqlalchemy.url", database_url.replace("%", "%%"))
 
 if config.config_file_name is not None:
     fileConfig(config.config_file_name)
