@@ -805,6 +805,8 @@ export default function Attendance() {
   };
 
   const [clockedIn, setClockedIn] = useState(false);
+  const [onLeaveToday, setOnLeaveToday] = useState(false);
+  const [leaveTypeToday, setLeaveTypeToday] = useState(null);
   const [loading, setLoading] = useState(false);
 
   // My Timesheet state
@@ -940,7 +942,11 @@ export default function Attendance() {
 
   const loadRecords = async () => {
     try {
-      getClockStatus().then((r) => setClockedIn(!!r.data?.clocked_in)).catch(() => {});
+      getClockStatus().then((r) => {
+        setClockedIn(!!r.data?.clocked_in);
+        setOnLeaveToday(!!r.data?.on_leave_today);
+        setLeaveTypeToday(r.data?.leave_type || null);
+      }).catch(() => {});
       const res = await getEmployeeOverview({ employee_id: user?.employee_id, year: now.getFullYear(), month: now.getMonth() + 1 });
       setShiftInfo(res.data?.shift_info || null);
       const today = now.toISOString().slice(0, 10);
@@ -1110,10 +1116,15 @@ export default function Attendance() {
         return { data: { face_status: 'verified' } };
       } else {
         if (!showSelfieModal) {
+          const isOnLeaveErr = typeof msg === 'string' && msg.toLowerCase().includes('on approved');
           showAlert({
-            title: msg.toLowerCase().includes('wait') ? 'Clock-In Cooldown Active' : 'Clock-In Notice',
+            title: isOnLeaveErr
+              ? 'Clock-In Blocked (On Leave)'
+              : msg.toLowerCase().includes('wait')
+                ? 'Clock-In Cooldown Active'
+                : 'Clock-In Notice',
             message: msg,
-            type: 'warning',
+            type: isOnLeaveErr ? 'error' : 'warning',
           });
         }
         throw e;
@@ -1126,6 +1137,14 @@ export default function Attendance() {
   const triggerClock = async () => {
     if (loading) return;
     if (!clockedIn) {
+      if (onLeaveToday) {
+        showAlert({
+          title: 'Clock-In Blocked (On Leave)',
+          message: `You cannot clock in today because you are on approved ${leaveTypeToday || 'Leave'}. Please cancel or update your leave request before clocking in.`,
+          type: 'error',
+        });
+        return;
+      }
       if (faceConfig?.enabled && faceConfig?.my_profile?.status === 'approved') {
         setShowSelfieModal(true);
         return;
@@ -1421,9 +1440,9 @@ export default function Attendance() {
               display: 'inline-flex',
               alignItems: 'center',
               gap: 6,
-              background: todayClockInTime ? '#dcfce7' : '#f8fafc',
-              color: todayClockInTime ? '#15803d' : '#64748b',
-              border: `1px solid ${todayClockInTime ? '#bbf7d0' : '#e2e8f0'}`,
+              background: onLeaveToday ? '#dbeafe' : todayClockInTime ? '#dcfce7' : '#f8fafc',
+              color: onLeaveToday ? '#1d4ed8' : todayClockInTime ? '#15803d' : '#64748b',
+              border: `1px solid ${onLeaveToday ? '#bfdbfe' : todayClockInTime ? '#bbf7d0' : '#e2e8f0'}`,
               borderRadius: 20,
               padding: '6px 16px',
               fontSize: '0.85rem',
@@ -1431,8 +1450,14 @@ export default function Attendance() {
               whiteSpace: 'nowrap',
             }}
           >
-            <CheckCircle2 size={15} style={{ color: todayClockInTime ? '#16a34a' : '#94a3b8' }} />
-            <span>{todayClockInTime ? 'Attendance Marked' : 'Pending Clock In'}</span>
+            <CheckCircle2 size={15} style={{ color: onLeaveToday ? '#2563eb' : todayClockInTime ? '#16a34a' : '#94a3b8' }} />
+            <span>
+              {onLeaveToday
+                ? `On Leave${leaveTypeToday ? ` (${leaveTypeToday})` : ''}`
+                : todayClockInTime
+                  ? 'Attendance Marked'
+                  : 'Pending Clock In'}
+            </span>
           </div>
         </div>
       </div>

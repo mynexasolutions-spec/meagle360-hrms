@@ -127,6 +127,8 @@ export default function Dashboard() {
   const [pending, setPending] = useState([]);
   const [holidays, setHolidays] = useState([]);
   const [clockedIn, setClockedIn] = useState(false);
+  const [selfOnLeaveToday, setSelfOnLeaveToday] = useState(false);
+  const [leaveTypeToday, setLeaveTypeToday] = useState(null);
   const [clockLoading, setClockLoading] = useState(false);
   const [showSelfieModal, setShowSelfieModal] = useState(false);
   const [faceConfig, setFaceConfig] = useState(null);
@@ -163,6 +165,8 @@ export default function Dashboard() {
       getClockStatus()
         .then((r) => {
           setClockedIn(!!r.data?.clocked_in);
+          setSelfOnLeaveToday(!!r.data?.on_leave_today);
+          setLeaveTypeToday(r.data?.leave_type || null);
           if (r.data?.clock_in) {
             setTodayClockInTime(r.data.clock_in);
           }
@@ -252,10 +256,15 @@ export default function Dashboard() {
         return { data: { face_status: 'verified' } };
       } else {
         if (!showSelfieModal) {
+          const isOnLeaveErr = typeof msg === 'string' && msg.toLowerCase().includes('on approved');
           showAlert({
-            title: msg.toLowerCase().includes('wait') ? 'Clock-In Cooldown Active' : 'Attendance Notice',
+            title: isOnLeaveErr
+              ? 'Clock-In Blocked (On Leave)'
+              : msg.toLowerCase().includes('wait')
+                ? 'Clock-In Cooldown Active'
+                : 'Attendance Notice',
             message: msg,
-            type: 'warning',
+            type: isOnLeaveErr ? 'error' : 'warning',
           });
         }
         throw e;
@@ -292,6 +301,14 @@ export default function Dashboard() {
         setClockLoading(false);
       }
     } else {
+      if (selfOnLeaveToday) {
+        showAlert({
+          title: 'Clock-In Blocked (On Leave)',
+          message: `You cannot clock in today because you are on approved ${leaveTypeToday || 'Leave'}. Please cancel or update your leave request before clocking in.`,
+          type: 'error',
+        });
+        return;
+      }
       let faceCfg = null;
       try {
         faceCfg = (await getFaceConfig()).data;
@@ -444,7 +461,7 @@ export default function Dashboard() {
           trendDirection={(summary?.present_today || 0) > 0 ? 'up' : 'down'}
           bgColor="#ecfdf5"
           color="#059669"
-          onClick={() => navigate('/attendance')}
+          onClick={() => navigate(canSeeLiveStatus ? '/attendance?tab=daily-overview' : '/attendance')}
         />
         <StatCard
           icon={Umbrella}
