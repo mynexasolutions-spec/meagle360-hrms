@@ -4,7 +4,7 @@ import {
   Image as ImageIcon, FileSignature, UploadCloud, CheckCircle2, Building2, Phone, Mail, Globe, Camera
 } from 'lucide-react';
 import { getHolidays, createHoliday, updateHoliday, deleteHoliday } from '../api/attendance';
-import { getDepartments, createDepartment, getSites, createSite } from '../api/employees';
+import { getDepartments, createDepartment, updateDepartment, deleteDepartment, getEmployees, getSites, createSite } from '../api/employees';
 import { getAuditLogs } from '../api/audit';
 import { actionLabel, entityLabel, actionTone } from '../utils/auditLabels';
 import { getMyCompany, updateMyCompany, uploadCompanyBranding } from '../api/company';
@@ -25,6 +25,7 @@ export default function Settings() {
   const [auditLogs, setAuditLogs] = useState([]);
   const [company, setCompany] = useState(null);
   const [showAdd, setShowAdd] = useState(false);
+  const [deptSearch, setDeptSearch] = useState('');
   const [regLimitInput, setRegLimitInput] = useState('');
   const [savingRegLimit, setSavingRegLimit] = useState(false);
 
@@ -132,6 +133,26 @@ export default function Settings() {
       showAlert({
         title: 'Delete Failed',
         message: err.response?.data?.detail || 'Failed to delete holiday',
+        type: 'error',
+      });
+    }
+  };
+
+  const handleDeleteDepartment = async (d) => {
+    const ok = await showConfirm({
+      title: 'Delete Department',
+      message: `Delete "${d.name}"?`,
+      type: 'danger',
+      confirmText: 'Delete Department',
+    });
+    if (!ok) return;
+    try {
+      await deleteDepartment(d.id);
+      loadAll();
+    } catch (err) {
+      showAlert({
+        title: 'Delete Failed',
+        message: err.response?.data?.detail || 'Failed to delete department',
         type: 'error',
       });
     }
@@ -578,28 +599,84 @@ export default function Settings() {
       )}
 
       {/* Departments */}
-      {tab === 'departments' && (
-        <div className="section-card" style={{ borderTop: '3px solid #2563eb' }}>
-          <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 16, flexWrap: 'wrap', gap: 12 }}>
-            <h3 style={{ marginBottom: 0 }}><Building size={18} style={{ color: 'var(--accent-blue)' }} /> Departments</h3>
-            <button className="btn btn-primary btn-sm" onClick={() => setShowAdd('department')}>+ Add</button>
+      {tab === 'departments' && (() => {
+        const q = deptSearch.trim().toLowerCase();
+        const visible = departments.filter((d) => !q || d.name.toLowerCase().includes(q) || (d.head_name || '').toLowerCase().includes(q));
+        const noHead = departments.filter((d) => !d.head_id).length;
+        const totalEmployees = departments.reduce((n, d) => n + (d.employee_count || 0), 0);
+        const chip = (label, value, tone) => (
+          <div style={{ padding: '8px 14px', borderRadius: 10, background: tone.bg, color: tone.fg, fontSize: '0.8rem', fontWeight: 600 }}>
+            {label}: <span style={{ fontWeight: 800 }}>{value}</span>
           </div>
-          <div style={{ overflowX: 'auto' }}>
-            <table className="data-table">
-              <thead><tr><th style={{ whiteSpace: 'nowrap' }}>Name</th><th style={{ whiteSpace: 'nowrap' }}>ID</th></tr></thead>
-              <tbody>
-                {departments.map((d) => (
-                  <tr key={d.id}>
-                    <td style={{ fontWeight: 500, whiteSpace: 'nowrap' }}>{d.name}</td>
-                    <td style={{ color: 'var(--text-muted)', fontSize: '0.75rem', whiteSpace: 'nowrap' }}>{d.id.slice(0, 8)}...</td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
+        );
+        return (
+          <div className="section-card" style={{ borderTop: '3px solid #2563eb' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 16, flexWrap: 'wrap', gap: 12 }}>
+              <h3 style={{ marginBottom: 0 }}><Building size={18} style={{ color: 'var(--accent-blue)' }} /> Departments</h3>
+              <button className="btn btn-primary btn-sm" onClick={() => setShowAdd('department')}>+ Add</button>
+            </div>
+            <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap', alignItems: 'center', marginBottom: 16 }}>
+              {chip('Departments', departments.length, { bg: '#eff6ff', fg: '#1d4ed8' })}
+              {chip('Employees', totalEmployees, { bg: '#ecfdf5', fg: '#047857' })}
+              {chip('Without head', noHead, noHead ? { bg: '#fffbeb', fg: '#b45309' } : { bg: '#f1f5f9', fg: '#64748b' })}
+              <input
+                className="input-field"
+                style={{ marginLeft: 'auto', maxWidth: 260 }}
+                placeholder="Search department or head..."
+                value={deptSearch}
+                onChange={(e) => setDeptSearch(e.target.value)}
+              />
+            </div>
+            <div style={{ overflowX: 'auto' }}>
+              <table className="data-table">
+                <thead><tr><th style={{ whiteSpace: 'nowrap' }}>Name</th><th style={{ whiteSpace: 'nowrap' }}>Head</th><th style={{ whiteSpace: 'nowrap' }}>Employees</th><th style={{ whiteSpace: 'nowrap' }}>Actions</th></tr></thead>
+                <tbody>
+                  {visible.map((d) => (
+                    <tr key={d.id}>
+                      <td style={{ fontWeight: 500, whiteSpace: 'nowrap' }}>{d.name}</td>
+                      <td style={{ whiteSpace: 'nowrap' }}>
+                        {d.head_name ? (
+                          <span style={{ display: 'inline-flex', alignItems: 'center', gap: 8 }}>
+                            <span className="avatar" style={{ width: 26, height: 26, fontSize: '0.65rem' }}>
+                              {d.head_name.split(' ').map((w) => w[0]).slice(0, 2).join('').toUpperCase()}
+                            </span>
+                            {d.head_name}
+                          </span>
+                        ) : (
+                          <button
+                            type="button"
+                            onClick={() => setShowAdd({ type: 'edit-department', department: d })}
+                            style={{ background: '#fffbeb', color: '#b45309', border: '1px dashed #f59e0b', borderRadius: 999, padding: '3px 12px', fontSize: '0.78rem', fontWeight: 600, cursor: 'pointer' }}
+                          >
+                            ⚠ No head · Assign
+                          </button>
+                        )}
+                      </td>
+                      <td style={{ whiteSpace: 'nowrap' }}>
+                        {d.employee_count > 0
+                          ? `${d.employee_count} ${d.employee_count === 1 ? 'employee' : 'employees'}`
+                          : <span style={{ color: 'var(--text-muted)' }}>Empty</span>}
+                      </td>
+                      <td style={{ whiteSpace: 'nowrap' }}>
+                        <div className="table-row-actions">
+                          <button className="btn btn-secondary btn-sm" onClick={() => setShowAdd({ type: 'edit-department', department: d })}>
+                            <Pencil size={14} />
+                          </button>
+                          <button className="btn btn-danger btn-sm" onClick={() => handleDeleteDepartment(d)}>
+                            <Trash2 size={14} />
+                          </button>
+                        </div>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+            {departments.length === 0 && <div className="empty-state"><p>No departments</p></div>}
+            {departments.length > 0 && visible.length === 0 && <div className="empty-state"><p>No matching departments</p></div>}
           </div>
-          {departments.length === 0 && <div className="empty-state"><p>No departments</p></div>}
-        </div>
-      )}
+        );
+      })()}
 
       {/* Sites */}
       {tab === 'sites' && (
@@ -727,13 +804,16 @@ export default function Settings() {
 
       {/* Add Modals */}
       {showAdd === 'holiday' && (
-        <AddHolidayModal onClose={() => setShowAdd(false)} onSuccess={loadAll} />
+        <AddHolidayModal onClose={() => setShowAdd(false)} onSuccess={loadAll} weeklyOffDays={company?.weekly_off_days || [5, 6]} />
       )}
       {showAdd?.type === 'edit-holiday' && (
         <EditHolidayModal holiday={showAdd.holiday} onClose={() => setShowAdd(false)} onSuccess={loadAll} />
       )}
       {showAdd === 'department' && (
         <AddDepartmentModal onClose={() => setShowAdd(false)} onSuccess={loadAll} />
+      )}
+      {showAdd?.type === 'edit-department' && (
+        <EditDepartmentModal department={showAdd.department} onClose={() => setShowAdd(false)} onSuccess={loadAll} />
       )}
       {showAdd === 'site' && (
         <AddSiteModal onClose={() => setShowAdd(false)} onSuccess={loadAll} />
@@ -742,28 +822,80 @@ export default function Settings() {
   );
 }
 
-function AddHolidayModal({ onClose, onSuccess }) {
-  const [form, setForm] = useState({ holiday_date: '', name: '' });
+function AddHolidayModal({ onClose, onSuccess, weeklyOffDays = [5, 6] }) {
+  const [form, setForm] = useState({ holiday_date: '', end_date: '', name: '', skip_weekends: true });
+  const [error, setError] = useState('');
+  const [saving, setSaving] = useState(false);
+
+  // Mirror of the backend rule, used for the preview only. Backend is authoritative.
+  const days = (() => {
+    if (!form.holiday_date) return [];
+    const start = new Date(`${form.holiday_date}T00:00:00`);
+    const end = new Date(`${form.end_date || form.holiday_date}T00:00:00`);
+    if (end < start) return [];
+    const isRangeNow = form.end_date && form.end_date !== form.holiday_date;
+    const out = [];
+    for (let d = new Date(start); d <= end && out.length < 400; d.setDate(d.getDate() + 1)) {
+      const mondayBased = (d.getDay() + 6) % 7;
+      if (isRangeNow && form.skip_weekends && weeklyOffDays.includes(mondayBased)) continue;
+      out.push(new Date(d));
+    }
+    return out;
+  })();
+  const isRange = !!form.end_date && form.end_date !== form.holiday_date;
+  const fmt = (d) => d.toLocaleDateString('en-GB', { day: 'numeric', month: 'short' });
+
   const handleSubmit = async (e) => {
     e.preventDefault();
-    await createHoliday(form);
-    onSuccess();
-    onClose();
+    setError('');
+    setSaving(true);
+    try {
+      await createHoliday({
+        holiday_date: form.holiday_date,
+        name: form.name,
+        end_date: isRange ? form.end_date : null,
+        skip_weekends: isRange ? form.skip_weekends : false,
+      });
+      onSuccess();
+      onClose();
+    } catch (err) {
+      setError(err.response?.data?.detail || 'Failed to add holiday');
+    } finally {
+      setSaving(false);
+    }
   };
   return (
     <Modal title="Add Holiday" onClose={onClose}>
       <form onSubmit={handleSubmit}>
-        <div className="input-group">
-          <label className="input-label">Date</label>
-          <input type="date" className="input-field" value={form.holiday_date} onChange={(e) => setForm({ ...form, holiday_date: e.target.value })} required />
+        {error && <div style={{ marginBottom: 12, color: 'var(--accent-rose)', fontSize: '0.875rem' }}>{error}</div>}
+        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
+          <div className="input-group">
+            <label className="input-label">Start Date</label>
+            <input type="date" className="input-field" value={form.holiday_date} onChange={(e) => setForm({ ...form, holiday_date: e.target.value })} required />
+          </div>
+          <div className="input-group">
+            <label className="input-label">End Date <span style={{ color: 'var(--text-muted)', fontWeight: 400 }}>(optional)</span></label>
+            <input type="date" className="input-field" min={form.holiday_date || undefined} value={form.end_date} onChange={(e) => setForm({ ...form, end_date: e.target.value })} />
+          </div>
         </div>
         <div className="input-group">
           <label className="input-label">Holiday Name</label>
           <input className="input-field" value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })} required />
         </div>
+        {isRange && (
+          <label style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: '0.85rem', marginBottom: 10, cursor: 'pointer' }}>
+            <input type="checkbox" checked={form.skip_weekends} onChange={(e) => setForm({ ...form, skip_weekends: e.target.checked })} />
+            Skip weekly offs
+          </label>
+        )}
+        {days.length > 0 && (
+          <div style={{ padding: '8px 12px', borderRadius: 8, background: '#eff6ff', color: '#1d4ed8', fontSize: '0.8rem', fontWeight: 600 }}>
+            {days.length === 1 ? fmt(days[0]) : `${days.length} days: ${fmt(days[0])} – ${fmt(days[days.length - 1])}`}
+          </div>
+        )}
         <div style={{ display: 'flex', gap: 10, justifyContent: 'flex-end', marginTop: 20 }}>
           <button type="button" className="btn btn-secondary" onClick={onClose}>Cancel</button>
-          <button type="submit" className="btn btn-primary">Add</button>
+          <button type="submit" className="btn btn-primary" disabled={saving}>{saving ? 'Adding...' : 'Add'}</button>
         </div>
       </form>
     </Modal>
@@ -805,27 +937,76 @@ function EditHolidayModal({ holiday, onClose, onSuccess }) {
   );
 }
 
-function AddDepartmentModal({ onClose, onSuccess }) {
-  const [form, setForm] = useState({ name: '' });
+function useEmployeeOptions() {
+  const [employees, setEmployees] = useState([]);
+  useEffect(() => {
+    getEmployees(0, 100)
+      .then((res) => setEmployees(Array.isArray(res.data) ? res.data : res.data?.items || []))
+      .catch(() => setEmployees([]));
+  }, []);
+  return employees;
+}
+
+function DepartmentFormModal({ title, submitLabel, initial, onSubmit, onClose }) {
+  const employees = useEmployeeOptions();
+  const [form, setForm] = useState({ name: initial?.name || '', head_id: initial?.head_id || '' });
+  const [error, setError] = useState('');
   const handleSubmit = async (e) => {
     e.preventDefault();
-    await createDepartment(form);
-    onSuccess();
-    onClose();
+    setError('');
+    try {
+      await onSubmit({ name: form.name, head_id: form.head_id || null });
+      onClose();
+    } catch (err) {
+      setError(err.response?.data?.detail || 'Failed to save department');
+    }
   };
   return (
-    <Modal title="Add Department" onClose={onClose}>
+    <Modal title={title} onClose={onClose}>
       <form onSubmit={handleSubmit}>
+        {error && <div style={{ marginBottom: 12, color: 'var(--accent-rose)', fontSize: '0.875rem' }}>{error}</div>}
         <div className="input-group">
           <label className="input-label">Department Name</label>
           <input className="input-field" value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })} required />
         </div>
+        <div className="input-group">
+          <label className="input-label">Department Head</label>
+          <select className="input-field" value={form.head_id} onChange={(e) => setForm({ ...form, head_id: e.target.value })}>
+            <option value="">Not assigned</option>
+            {employees.map((emp) => (
+              <option key={emp.id} value={emp.id}>{emp.full_name}</option>
+            ))}
+          </select>
+        </div>
         <div style={{ display: 'flex', gap: 10, justifyContent: 'flex-end', marginTop: 20 }}>
           <button type="button" className="btn btn-secondary" onClick={onClose}>Cancel</button>
-          <button type="submit" className="btn btn-primary">Create</button>
+          <button type="submit" className="btn btn-primary">{submitLabel}</button>
         </div>
       </form>
     </Modal>
+  );
+}
+
+function AddDepartmentModal({ onClose, onSuccess }) {
+  return (
+    <DepartmentFormModal
+      title="Add Department"
+      submitLabel="Create"
+      onClose={onClose}
+      onSubmit={async (data) => { await createDepartment(data); onSuccess(); }}
+    />
+  );
+}
+
+function EditDepartmentModal({ department, onClose, onSuccess }) {
+  return (
+    <DepartmentFormModal
+      title="Edit Department"
+      submitLabel="Save"
+      initial={department}
+      onClose={onClose}
+      onSubmit={async (data) => { await updateDepartment(department.id, data); onSuccess(); }}
+    />
   );
 }
 

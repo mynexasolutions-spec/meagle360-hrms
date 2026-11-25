@@ -95,7 +95,9 @@ class Employee(Base, TimestampMixin):
 
     # ── Relationships ────────────────────────────────────
     company = relationship("Company", back_populates="employees")
-    department = relationship("Department", back_populates="employees")
+    department = relationship(
+        "Department", back_populates="employees", foreign_keys=[department_id]
+    )
     designation = relationship("Designation", back_populates="employees")
     site = relationship("Site", back_populates="employees")
     manager = relationship("Employee", remote_side="Employee.id", back_populates="direct_reports")

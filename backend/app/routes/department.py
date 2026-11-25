@@ -2,10 +2,13 @@
 
 from uuid import UUID
 from fastapi import APIRouter, Depends, HTTPException
+from sqlalchemy import func
 from sqlalchemy.orm import Session
 
 from app.database import get_db
 from app.dependencies import get_company_id
+from app.models.department import Department
+from app.models.employee import Employee
 from app.repositories.department_repo import DepartmentRepository
 from app.schemas.department import (
     DepartmentCreate,
@@ -17,13 +20,54 @@ from app.schemas.department import (
 router = APIRouter(prefix="/api/departments", tags=["Departments"])
 
 
+def _serialize(dept: Department, counts: dict) -> DepartmentResponse:
+    return DepartmentResponse(
+        id=dept.id,
+        company_id=dept.company_id,
+        name=dept.name,
+        parent_department_id=dept.parent_department_id,
+        head_id=dept.head_id,
+        head_name=dept.head.full_name if dept.head else None,
+        employee_count=counts.get(dept.id, 0),
+        created_at=dept.created_at,
+        updated_at=dept.updated_at,
+    )
+
+
+def _active_counts(db: Session, company_id: UUID) -> dict:
+    rows = (
+        db.query(Employee.department_id, func.count(Employee.id))
+        .filter(
+            Employee.company_id == company_id,
+            Employee.department_id.isnot(None),
+            Employee.employment_status == "active",
+        )
+        .group_by(Employee.department_id)
+        .all()
+    )
+    return {dept_id: n for dept_id, n in rows}
+
+
+def _validate_head(db: Session, company_id: UUID, head_id: UUID | None):
+    if head_id is None:
+        return
+    exists = (
+        db.query(Employee.id)
+        .filter(Employee.id == head_id, Employee.company_id == company_id)
+        .first()
+    )
+    if not exists:
+        raise HTTPException(status_code=400, detail="Department head must be an employee of this company")
+
+
 @router.get("/", response_model=list[DepartmentResponse])
 def list_departments(
     db: Session = Depends(get_db),
     company_id: UUID = Depends(get_company_id),
 ):
     repo = DepartmentRepository(db, company_id)
-    return repo.get_all()
+    counts = _active_counts(db, company_id)
+    return [_serialize(d, counts) for d in repo.get_all()]
 
 
 @router.post("/", response_model=DepartmentResponse, status_code=201)
@@ -32,8 +76,10 @@ def create_department(
     db: Session = Depends(get_db),
     company_id: UUID = Depends(get_company_id),
 ):
+    _validate_head(db, company_id, data.head_id)
     repo = DepartmentRepository(db, company_id)
-    return repo.create(data.model_dump())
+    dept = repo.create(data.model_dump())
+    return _serialize(dept, _active_counts(db, company_id))
 
 
 @router.put("/{dept_id}", response_model=DepartmentResponse)
@@ -44,10 +90,20 @@ def update_department(
     company_id: UUID = Depends(get_company_id),
 ):
     repo = DepartmentRepository(db, company_id)
-    dept = repo.update(dept_id, data.model_dump(exclude_unset=True))
+    fields = data.model_dump(exclude_unset=True)
+    # head_id may be explicitly set to null to clear the head; the generic
+    # repo update skips None values, so handle it here.
+    clear_head = "head_id" in fields and fields["head_id"] is None
+    if "head_id" in fields:
+        _validate_head(db, company_id, fields["head_id"])
+    dept = repo.update(dept_id, fields)
     if not dept:
         raise HTTPException(status_code=404, detail="Department not found")
-    return dept
+    if clear_head:
+        dept.head_id = None
+        db.commit()
+        db.refresh(dept)
+    return _serialize(dept, _active_counts(db, company_id))
 
 
 @router.delete("/{dept_id}", status_code=204)
@@ -57,8 +113,19 @@ def delete_department(
     company_id: UUID = Depends(get_company_id),
 ):
     repo = DepartmentRepository(db, company_id)
-    if not repo.delete(dept_id):
+    if not repo.get_by_id(dept_id):
         raise HTTPException(status_code=404, detail="Department not found")
+    has_employees = (
+        db.query(Employee.id)
+        .filter(Employee.company_id == company_id, Employee.department_id == dept_id)
+        .first()
+    )
+    if has_employees:
+        raise HTTPException(
+            status_code=409,
+            detail="Cannot delete a department that still has employees. Reassign them first.",
+        )
+    repo.delete(dept_id)
 
 
 @router.get("/tree", response_model=list[DepartmentTreeNode])

@@ -31,6 +31,10 @@ export const getDepartmentTree = () => client.get('/departments/tree');
 
 export const createDepartment = (data) => client.post('/departments/', data);
 
+export const updateDepartment = (id, data) => client.put(`/departments/${id}`, data);
+
+export const deleteDepartment = (id) => client.delete(`/departments/${id}`);
+
 export const getSites = () => client.get('/sites/');
 
 export const createSite = (data) => client.post('/sites/', data);

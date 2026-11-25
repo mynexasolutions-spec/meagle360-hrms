@@ -58,6 +58,9 @@ class AttendanceSummary(BaseModel):
 class HolidayCalendarCreate(BaseModel):
     holiday_date: date
     name: str
+    # Optional range: creates one holiday row per day from holiday_date to end_date.
+    end_date: date | None = None
+    skip_weekends: bool = False
 
 
 class HolidayCalendarUpdate(BaseModel):

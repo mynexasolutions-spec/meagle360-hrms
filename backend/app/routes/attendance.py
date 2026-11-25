@@ -1,13 +1,14 @@
 """Attendance routes — clock-in/out, records, regularization, holidays, timesheet."""
 
 from uuid import UUID
-from datetime import date, datetime
+from datetime import date, datetime, timedelta
 from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
 
 from app.database import get_db
 from app.dependencies import get_company_id, get_current_user, require_permissions, require_admin_role
 from app.models.user_account import UserAccount
+from app.models.company import Company
 from app.models.holiday_calendar import HolidayCalendar
 from app.services.attendance_service import AttendanceService
 from app.schemas.attendance import (
@@ -282,18 +283,68 @@ def list_holidays(
     return holidays
 
 
-@router.post("/holidays", response_model=HolidayCalendarResponse, status_code=201)
+MAX_HOLIDAY_RANGE_DAYS = 31
+
+
+@router.post("/holidays", response_model=list[HolidayCalendarResponse], status_code=201)
 def create_holiday(
     data: HolidayCalendarCreate,
     db: Session = Depends(get_db),
     company_id: UUID = Depends(get_company_id),
     _=Depends(require_permissions("settings:write")),
 ):
-    holiday = HolidayCalendar(company_id=company_id, **data.model_dump())
-    db.add(holiday)
+    """Create a holiday, or a multi-day holiday when end_date is given.
+
+    A range is stored as one row per day so attendance, leave and payroll
+    (which all check a single date) keep working unchanged.
+    """
+    start = data.holiday_date
+    end = data.end_date or start
+    if end < start:
+        raise HTTPException(status_code=400, detail="End date cannot be before start date")
+    span = (end - start).days + 1
+    if span > MAX_HOLIDAY_RANGE_DAYS:
+        raise HTTPException(
+            status_code=400,
+            detail=f"A holiday can span at most {MAX_HOLIDAY_RANGE_DAYS} days",
+        )
+
+    weekly_off: list[int] = []
+    if data.skip_weekends:
+        company = db.query(Company).filter(Company.id == company_id).first()
+        weekly_off = (
+            company.weekly_off_days
+            if company and company.weekly_off_days is not None
+            else [5, 6]
+        )
+
+    existing = {
+        row.holiday_date
+        for row in db.query(HolidayCalendar.holiday_date).filter(
+            HolidayCalendar.company_id == company_id,
+            HolidayCalendar.holiday_date >= start,
+            HolidayCalendar.holiday_date <= end,
+        )
+    }
+
+    created = []
+    for offset in range(span):
+        day = start + timedelta(days=offset)
+        if day in existing or day.weekday() in weekly_off:
+            continue
+        holiday = HolidayCalendar(company_id=company_id, holiday_date=day, name=data.name)
+        db.add(holiday)
+        created.append(holiday)
+
+    if not created:
+        raise HTTPException(
+            status_code=409,
+            detail="Every selected date is already a holiday or a weekly off",
+        )
     db.commit()
-    db.refresh(holiday)
-    return holiday
+    for h in created:
+        db.refresh(h)
+    return created
 
 
 @router.put("/holidays/{holiday_id}", response_model=HolidayCalendarResponse)
