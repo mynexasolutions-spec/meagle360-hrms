@@ -9,6 +9,7 @@ from app.dependencies import get_company_id, require_permissions
 from app.models.user_account import UserAccount
 from app.repositories.audit_log_repo import AuditLogRepository
 from app.schemas.audit_log import AuditLogResponse
+from app.services.audit_service import resolve_target_labels
 
 router = APIRouter(prefix="/api/audit-logs", tags=["Audit Log"])
 
@@ -23,6 +24,7 @@ def list_audit_logs(
 ):
     repo = AuditLogRepository(db, company_id)
     logs = repo.get_recent(skip, limit)
+    labels = resolve_target_labels(db, company_id, logs)
     return [
         AuditLogResponse(
             id=log.id,
@@ -30,6 +32,7 @@ def list_audit_logs(
             action=log.action,
             entity_type=log.entity_type,
             entity_id=log.entity_id,
+            target_label=labels.get(log.id),
             details=log.details or {},
             created_at=log.created_at,
         )

@@ -106,6 +106,7 @@ export default function PayrollManagement() {
 
 // ── Salary Components ──────────────────────────────────────
 function ComponentsTab() {
+  const { showAlert, showConfirm, showToast } = usePopup();
   const [components, setComponents] = useState([]);
   const [showModal, setShowModal] = useState(false);
   const [editing, setEditing] = useState(null);
@@ -324,6 +325,7 @@ function ComponentModal({ component, onClose, onSuccess }) {
 
 // ── Salary Structures ───────────────────────────────────────
 function StructuresTab() {
+  const { showAlert, showConfirm, showToast } = usePopup();
   const [structures, setStructures] = useState([]);
   const [components, setComponents] = useState([]);
   const [showModal, setShowModal] = useState(false);
@@ -609,15 +611,19 @@ function AssignmentModal({ employeeId, structures, onClose, onSuccess }) {
 
 // ── Payroll Runs ─────────────────────────────────────────────
 function RunsTab() {
+  const { showAlert, showConfirm, showToast } = usePopup();
   const [runs, setRuns] = useState([]);
   const [selectedRun, setSelectedRun] = useState(null);
   const [payslips, setPayslips] = useState([]);
   const [showRunModal, setShowRunModal] = useState(false);
   const [expandedPayslip, setExpandedPayslip] = useState(null);
   const [showAdjustModal, setShowAdjustModal] = useState(null);
+  // Single in-flight action ('run' | 'delete:<id>'). Payroll
+  // calculation takes several seconds, so overlapping clicks would race.
+  const [busy, setBusy] = useState(null);
 
   useEffect(() => { loadRuns(); }, []);
-  const loadRuns = () => getPayrollRuns().then((r) => setRuns(r.data)).catch(() => { });
+  const loadRuns = () => getPayrollRuns().then((r) => setRuns(r.data)).catch((e) => console.error('Failed to load payroll runs', e));
 
   const openRun = async (run) => {
     setSelectedRun(run);
@@ -626,16 +632,21 @@ function RunsTab() {
   };
 
   const handleCreateRun = async (year, month) => {
+    if (busy) return;
+    setBusy('run');
     try {
       await createPayrollRun({ year, month });
       setShowRunModal(false);
-      loadRuns();
+      await loadRuns();
     } catch (err) {
       showAlert({
         title: 'Payroll Run Failed',
         message: err.response?.data?.detail || 'Failed to run payroll',
         type: 'error',
       });
+      loadRuns();
+    } finally {
+      setBusy(null);
     }
   };
 
@@ -667,24 +678,32 @@ function RunsTab() {
       type: 'danger',
       confirmText: 'Delete Run',
     });
-    if (!ok) return;
+    if (!ok || busy) return;
+    setBusy(`delete:${run.id}`);
     try {
       await deleteRun(run.id);
-      if (selectedRun?.id === run.id) setSelectedRun(null);
-      loadRuns();
+      setRuns((prev) => prev.filter((r) => r.id !== run.id));
+      if (selectedRun?.id === run.id) { setSelectedRun(null); setPayslips([]); }
+      await loadRuns();
     } catch (err) {
+      if (err.response?.status === 404) {
+        setRuns((prev) => prev.filter((r) => r.id !== run.id));
+      }
+      loadRuns();
       showAlert({
         title: 'Delete Failed',
         message: err.response?.data?.detail || 'Failed to delete payroll run',
         type: 'error',
       });
+    } finally {
+      setBusy(null);
     }
   };
 
   return (
     <div>
       <div style={{ display: 'flex', justifyContent: 'flex-end', marginBottom: 16 }}>
-        <button className="btn btn-primary" onClick={() => setShowRunModal(true)}><Play size={16} /> Run Payroll</button>
+        <button className="btn btn-primary" disabled={!!busy} onClick={() => setShowRunModal(true)}><Play size={16} /> Run Payroll</button>
       </div>
 
       <div className="section-card" style={{ marginBottom: 20 }}>
@@ -700,7 +719,9 @@ function RunsTab() {
                   <td style={{ whiteSpace: 'nowrap' }}>{money(run.total_net_pay)}</td>
                   <td style={{ whiteSpace: 'nowrap' }} onClick={(e) => e.stopPropagation()}>
                     {run.status === 'draft' && (
-                      <button className="btn btn-danger btn-sm" onClick={() => handleDeleteRun(run)}><Trash2 size={13} /></button>
+                      <button className="btn btn-danger btn-sm" disabled={!!busy} onClick={() => handleDeleteRun(run)}>
+                        {busy === `delete:${run.id}` ? '…' : <Trash2 size={13} />}
+                      </button>
                     )}
                   </td>
                 </tr>
@@ -790,7 +811,7 @@ function RunsTab() {
       )}
 
       {showRunModal && (
-        <RunPayrollModal onClose={() => setShowRunModal(false)} onSubmit={handleCreateRun} />
+        <RunPayrollModal busy={busy} existingRuns={runs} onClose={() => setShowRunModal(false)} onSubmit={handleCreateRun} />
       )}
       {showAdjustModal && (
         <AdjustmentModal
@@ -803,14 +824,22 @@ function RunsTab() {
   );
 }
 
-function RunPayrollModal({ onClose, onSubmit }) {
+function RunPayrollModal({ busy, existingRuns = [], onClose, onSubmit }) {
   const now = new Date();
   const [year, setYear] = useState(now.getFullYear());
   const [month, setMonth] = useState(now.getMonth() + 1);
+  const [submitting, setSubmitting] = useState(false);
+  const existing = existingRuns.find((r) => r.year === Number(year) && r.month === Number(month));
+  const submit = async (e) => {
+    e.preventDefault();
+    if (submitting || existing) return;
+    setSubmitting(true);
+    try { await onSubmit(Number(year), Number(month)); } finally { setSubmitting(false); }
+  };
 
   return (
     <Modal title="Run Payroll" onClose={onClose}>
-      <form onSubmit={(e) => { e.preventDefault(); onSubmit(Number(year), Number(month)); }}>
+      <form onSubmit={submit}>
         <div className="input-group">
           <label className="input-label">Month</label>
           <select className="input-field" value={month} onChange={(e) => setMonth(e.target.value)}>
@@ -821,12 +850,18 @@ function RunPayrollModal({ onClose, onSubmit }) {
           <label className="input-label">Year</label>
           <input type="number" className="input-field" value={year} onChange={(e) => setYear(e.target.value)} required />
         </div>
+        {existing && (
+          <p style={{ fontSize: '0.8125rem', color: 'var(--accent-red, #dc2626)', marginBottom: 12 }}>
+            A {existing.status} payroll run already exists for {MONTH_NAMES[existing.month - 1]} {existing.year}.
+            {existing.status === 'draft' ? ' Delete it first to run again.' : ''}
+          </p>
+        )}
         <p style={{ fontSize: '0.8125rem', color: 'var(--text-muted)', marginBottom: 12 }}>
           This generates a draft payslip for every employee with an active salary assignment. You can review and adjust before finalizing.
         </p>
         <div style={{ display: 'flex', gap: 10, justifyContent: 'flex-end', marginTop: 8 }}>
           <button type="button" className="btn btn-secondary" onClick={onClose}>Cancel</button>
-          <button type="submit" className="btn btn-primary"><Play size={14} /> Run Payroll</button>
+          <button type="submit" className="btn btn-primary" disabled={!!existing || submitting || !!busy}><Play size={14} /> {submitting ? 'Running…' : 'Run Payroll'}</button>
         </div>
       </form>
     </Modal>
@@ -882,6 +917,7 @@ function AdjustmentModal({ payslip, onClose, onSuccess }) {
 
 // ── Tax Slabs ────────────────────────────────────────────────
 function TaxSlabsTab() {
+  const { showAlert, showConfirm, showToast } = usePopup();
   const [slabs, setSlabs] = useState([]);
   const [showModal, setShowModal] = useState(false);
 
@@ -996,6 +1032,7 @@ function TaxSlabModal({ onClose, onSuccess }) {
 
 // ── Professional Tax Slabs ──────────────────────────────────
 function PtSlabsTab() {
+  const { showAlert, showConfirm, showToast } = usePopup();
   const [slabs, setSlabs] = useState([]);
   const [showModal, setShowModal] = useState(false);
 
@@ -1107,6 +1144,7 @@ function PtSlabModal({ onClose, onSuccess }) {
 
 // ── Employee Loans ───────────────────────────────────────────
 function LoansTab() {
+  const { showAlert, showConfirm, showToast } = usePopup();
   const [employees, setEmployees] = useState([]);
   const [selectedEmployeeId, setSelectedEmployeeId] = useState('');
   const [loans, setLoans] = useState([]);
@@ -1203,17 +1241,26 @@ function LoansTab() {
 }
 
 function LoanModal({ employeeId, onClose, onSuccess }) {
-  const [form, setForm] = useState({ principal_amount: '', monthly_installment: '', start_date: '', reason: '' });
+  const [form, setForm] = useState({ principal_amount: '', monthly_installment: '', installment_percent: '', start_date: '', reason: '' });
+  const [installmentType, setInstallmentType] = useState('fixed'); // 'fixed' | 'percentage'
   const [error, setError] = useState('');
+
+  const principal = Number(form.principal_amount) || 0;
+  const installment = installmentType === 'percentage'
+    ? Math.round(principal * (Number(form.installment_percent) || 0)) / 100
+    : Number(form.monthly_installment) || 0;
+  const months = installment > 0 && principal > 0 ? Math.ceil(principal / installment) : 0;
 
   const handleSubmit = async (e) => {
     e.preventDefault();
     setError('');
+    if (installment <= 0) { setError('Installment must be greater than 0'); return; }
+    if (installment > principal) { setError('Installment cannot exceed the principal amount'); return; }
     try {
       await createLoan({
         employee_id: employeeId,
-        principal_amount: Number(form.principal_amount),
-        monthly_installment: Number(form.monthly_installment),
+        principal_amount: principal,
+        monthly_installment: installment,
         start_date: form.start_date,
         reason: form.reason || null,
       });
@@ -1224,26 +1271,53 @@ function LoanModal({ employeeId, onClose, onSuccess }) {
   };
 
   return (
-    <Modal title="New Loan / Advance" onClose={onClose}>
+    <Modal title="New Loan / Advance" onClose={onClose} compact maxWidth={640}>
       <form onSubmit={handleSubmit}>
         {error && <div style={{ marginBottom: 12, color: 'var(--accent-rose)', fontSize: '0.875rem' }}>{error}</div>}
-        <div className="input-group">
-          <label className="input-label">Principal Amount</label>
-          <input type="number" step="0.01" className="input-field" value={form.principal_amount} onChange={(e) => setForm({ ...form, principal_amount: e.target.value })} required />
+        <div className="form-grid-2">
+          <div className="input-group">
+            <label className="input-label">Principal Amount</label>
+            <input type="number" min="0" step="0.01" className="input-field" value={form.principal_amount} onChange={(e) => setForm({ ...form, principal_amount: e.target.value })} required />
+          </div>
+          <div className="input-group">
+            <label className="input-label">Start Date</label>
+            <input type="date" className="input-field" value={form.start_date} onChange={(e) => setForm({ ...form, start_date: e.target.value })} required />
+          </div>
         </div>
         <div className="input-group">
-          <label className="input-label">Monthly Installment</label>
-          <input type="number" step="0.01" className="input-field" value={form.monthly_installment} onChange={(e) => setForm({ ...form, monthly_installment: e.target.value })} required />
+          <label className="input-label">Installment Type</label>
+          <div style={{ display: 'flex', gap: 8 }}>
+            {[['fixed', 'Fixed Amount'], ['percentage', '% of Principal']].map(([val, label]) => (
+              <button
+                key={val}
+                type="button"
+                className={`btn btn-sm ${installmentType === val ? 'btn-primary' : 'btn-secondary'}`}
+                style={{ flex: 1 }}
+                onClick={() => setInstallmentType(val)}
+              >{label}</button>
+            ))}
+          </div>
         </div>
-        <div className="input-group">
-          <label className="input-label">Start Date</label>
-          <input type="date" className="input-field" value={form.start_date} onChange={(e) => setForm({ ...form, start_date: e.target.value })} required />
+        <div className="form-grid-2">
+          <div className="input-group">
+            <label className="input-label">{installmentType === 'percentage' ? 'Monthly Installment (%)' : 'Monthly Installment (amount)'}</label>
+            {installmentType === 'percentage' ? (
+              <input type="number" min="0" max="100" step="0.01" className="input-field" value={form.installment_percent} onChange={(e) => setForm({ ...form, installment_percent: e.target.value })} required />
+            ) : (
+              <input type="number" min="0" step="0.01" className="input-field" value={form.monthly_installment} onChange={(e) => setForm({ ...form, monthly_installment: e.target.value })} required />
+            )}
+          </div>
+          <div className="input-group">
+            <label className="input-label">Reason (optional)</label>
+            <input className="input-field" value={form.reason} onChange={(e) => setForm({ ...form, reason: e.target.value })} />
+          </div>
         </div>
-        <div className="input-group">
-          <label className="input-label">Reason (optional)</label>
-          <input className="input-field" value={form.reason} onChange={(e) => setForm({ ...form, reason: e.target.value })} />
-        </div>
-        <div style={{ display: 'flex', gap: 10, justifyContent: 'flex-end', marginTop: 20 }}>
+        {months > 0 && (
+          <div style={{ fontSize: '0.85rem', color: 'var(--text-secondary)', background: 'var(--bg-tertiary, rgba(100,116,139,0.1))', padding: '8px 12px', borderRadius: 8 }}>
+            Deduction: <strong>{money(installment)}</strong> / month · approx. <strong>{months}</strong> month{months > 1 ? 's' : ''} to repay
+          </div>
+        )}
+        <div style={{ display: 'flex', gap: 10, justifyContent: 'flex-end', marginTop: 16 }}>
           <button type="button" className="btn btn-secondary" onClick={onClose}>Cancel</button>
           <button type="submit" className="btn btn-primary">Create Loan</button>
         </div>
@@ -1254,6 +1328,7 @@ function LoanModal({ employeeId, onClose, onSuccess }) {
 
 // ── Payroll Policy ───────────────────────────────────────────
 function PolicyTab() {
+  const { showAlert, showConfirm, showToast } = usePopup();
   const [policy, setPolicy] = useState(null);
   const [saving, setSaving] = useState(false);
   const [saved, setSaved] = useState(false);

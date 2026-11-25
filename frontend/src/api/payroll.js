@@ -17,11 +17,11 @@ export const getAssignmentHistory = (employeeId) => client.get(`/payroll/assignm
 export const assignEmployee = (data) => client.post('/payroll/assignments', data);
 
 // ── Payroll Runs ─────────────────────────────────────────────
-export const getPayrollRuns = () => client.get('/payroll/runs');
+export const getPayrollRuns = () => client.get('/payroll/runs', { params: { _t: Date.now() }, headers: { 'Cache-Control': 'no-cache' } });
 export const createPayrollRun = (data) => client.post('/payroll/runs', data);
 export const getRunPayslips = (runId) => client.get(`/payroll/runs/${runId}/payslips`);
 export const finalizeRun = (runId) => client.post(`/payroll/runs/${runId}/finalize`);
-export const deleteRun = (runId) => client.delete(`/payroll/runs/${runId}`);
+export const deleteRun =(runId) => client.delete(`/payroll/runs/${runId}`);
 
 // ── Adjustments ──────────────────────────────────────────────
 export const addPayslipAdjustment = (payslipId, data) =>

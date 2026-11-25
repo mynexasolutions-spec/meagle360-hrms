@@ -11,6 +11,7 @@ class AuditLogResponse(BaseModel):
     action: str
     entity_type: str
     entity_id: UUID | None
+    target_label: str | None = None
     details: dict
     created_at: datetime
 

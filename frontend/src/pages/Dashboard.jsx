@@ -471,7 +471,7 @@ export default function Dashboard() {
           trendDirection="up"
           bgColor="#fffbeb"
           color="#d97706"
-          onClick={() => navigate('/leave')}
+          onClick={() => navigate(canSeeLiveStatus ? '/attendance?tab=daily-overview&status=on-leave' : '/leave')}
         />
         <StatCard
           icon={FileClock}

@@ -207,7 +207,9 @@ export default function GeofenceSettings() {
         <Modal
           title={form.enabling ? 'Enable geofencing — set your office' : form.id ? 'Edit office' : 'Add office'}
           onClose={() => setForm(null)}
-          maxWidth="880px"
+          maxWidth="min(960px, 94vw)"
+          maxHeight="calc(100vh - 40px)"
+          compact
         >
           <form onSubmit={submitForm}>
             <div
@@ -219,7 +221,7 @@ export default function GeofenceSettings() {
               }}
             >
               {/* Left Column: Office Details & Controls */}
-              <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 'clamp(8px, 1.6vh, 14px)' }}>
                 {/* Office Name */}
                 <div>
                   <label className="input-label" style={{ fontWeight: 700, fontSize: '0.82rem', marginBottom: 4 }}>
@@ -371,7 +373,7 @@ export default function GeofenceSettings() {
                     name: !f.name?.trim() && pin?.primaryName ? pin.primaryName : f.name,
                   }))}
                   others={cfg.offices.filter((o) => o.id !== form.id)}
-                  height={310}
+                  height="clamp(220px, calc(100vh - 290px), 480px)"
                 />
               </div>
             </div>

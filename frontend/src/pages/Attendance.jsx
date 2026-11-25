@@ -241,6 +241,9 @@ function FaceVerificationBadge({ faceStatus }) {
   return <span style={{ color: 'var(--text-muted)', fontSize: '0.85rem' }}>—</span>;
 }
 
+// Filter value for the "Present" card: clocked-out + still-in-progress
+const PRESENT_ALL = '__present_all__';
+
 function DailyAttendanceOverview() {
   const todayStr = useMemo(() => getTodayISTDateString(), []);
   const [targetDate, setTargetDate] = useState(todayStr);
@@ -250,7 +253,11 @@ function DailyAttendanceOverview() {
 
   const [searchTerm, setSearchTerm] = useState('');
   const [deptFilter, setDeptFilter] = useState('');
-  const [statusFilter, setStatusFilter] = useState('');
+  // Deep-link support, e.g. /attendance?tab=daily-overview&status=on-leave
+  const [urlParams] = useSearchParams();
+  const [statusFilter, setStatusFilter] = useState(
+    () => ({ 'on-leave': 'On Leave', present: PRESENT_ALL, absent: 'Absent' }[urlParams.get('status')] || '')
+  );
 
   const [sortField, setSortField] = useState('check_in');
   const [sortDirection, setSortDirection] = useState('asc');
@@ -313,7 +320,10 @@ function DailyAttendanceOverview() {
         (emp.employee_name && emp.employee_name.toLowerCase().includes(s)) ||
         (emp.department && emp.department.toLowerCase().includes(s));
       const matchesDept = !deptFilter || emp.department === deptFilter;
-      const matchesStatus = !statusFilter || emp.status === statusFilter;
+      const matchesStatus = !statusFilter
+        || (statusFilter === PRESENT_ALL
+          ? (emp.status === 'Present' || emp.status === 'Present (Not Clocked Out)')
+          : emp.status === statusFilter);
       return matchesSearch && matchesDept && matchesStatus;
     });
   }, [employees, searchTerm, deptFilter, statusFilter]);
@@ -452,26 +462,39 @@ function DailyAttendanceOverview() {
 
         {/* KPI Stat Cards */}
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(140px, 1fr))', gap: 12, marginBottom: 20 }}>
-          <div style={{ background: '#f8fafc', border: '1px solid #e2e8f0', borderRadius: 14, padding: '12px 16px' }}>
-            <div style={{ fontSize: '0.75rem', fontWeight: 600, color: '#64748b', textTransform: 'uppercase', letterSpacing: '0.04em' }}>Total Staff</div>
-            <div style={{ fontSize: '1.4rem', fontWeight: 800, color: '#0f172a', marginTop: 4 }}>{stats.total}</div>
-          </div>
-          <div style={{ background: '#f0fdf4', border: '1px solid #bbf7d0', borderRadius: 14, padding: '12px 16px' }}>
-            <div style={{ fontSize: '0.75rem', fontWeight: 600, color: '#15803d', textTransform: 'uppercase', letterSpacing: '0.04em' }}>Present</div>
-            <div style={{ fontSize: '1.4rem', fontWeight: 800, color: '#16a34a', marginTop: 4 }}>{stats.presentTotal}</div>
-          </div>
-          <div style={{ background: '#fffbeb', border: '1px solid #fde68a', borderRadius: 14, padding: '12px 16px' }}>
-            <div style={{ fontSize: '0.75rem', fontWeight: 600, color: '#b45309', textTransform: 'uppercase', letterSpacing: '0.04em' }}>In Progress</div>
-            <div style={{ fontSize: '1.4rem', fontWeight: 800, color: '#d97706', marginTop: 4 }}>{stats.notClockedOut}</div>
-          </div>
-          <div style={{ background: '#eff6ff', border: '1px solid #bfdbfe', borderRadius: 14, padding: '12px 16px' }}>
-            <div style={{ fontSize: '0.75rem', fontWeight: 600, color: '#1d4ed8', textTransform: 'uppercase', letterSpacing: '0.04em' }}>On Leave</div>
-            <div style={{ fontSize: '1.4rem', fontWeight: 800, color: '#2563eb', marginTop: 4 }}>{stats.onLeave}</div>
-          </div>
-          <div style={{ background: '#fef2f2', border: '1px solid #fecaca', borderRadius: 14, padding: '12px 16px' }}>
-            <div style={{ fontSize: '0.75rem', fontWeight: 600, color: '#b91c1c', textTransform: 'uppercase', letterSpacing: '0.04em' }}>Absent</div>
-            <div style={{ fontSize: '1.4rem', fontWeight: 800, color: '#dc2626', marginTop: 4 }}>{stats.absent}</div>
-          </div>
+          {[
+            { label: 'Total Staff', value: stats.total, filter: '', bg: '#f8fafc', border: '#e2e8f0', labelColor: '#64748b', valueColor: '#0f172a' },
+            { label: 'Present', value: stats.presentTotal, filter: PRESENT_ALL, bg: '#f0fdf4', border: '#bbf7d0', labelColor: '#15803d', valueColor: '#16a34a' },
+            { label: 'In Progress', value: stats.notClockedOut, filter: 'Present (Not Clocked Out)', bg: '#fffbeb', border: '#fde68a', labelColor: '#b45309', valueColor: '#d97706' },
+            { label: 'On Leave', value: stats.onLeave, filter: 'On Leave', bg: '#eff6ff', border: '#bfdbfe', labelColor: '#1d4ed8', valueColor: '#2563eb' },
+            { label: 'Absent', value: stats.absent, filter: 'Absent', bg: '#fef2f2', border: '#fecaca', labelColor: '#b91c1c', valueColor: '#dc2626' },
+          ].map((c) => {
+            const active = statusFilter === c.filter;
+            return (
+              <button
+                key={c.label}
+                type="button"
+                aria-pressed={active}
+                title={c.filter && active ? 'Click to clear filter' : `Show ${c.label}`}
+                onClick={() => setStatusFilter(c.filter && active ? '' : c.filter)}
+                style={{
+                  background: c.bg,
+                  border: `1px solid ${c.border}`,
+                  borderRadius: 14,
+                  padding: '12px 16px',
+                  textAlign: 'left',
+                  cursor: 'pointer',
+                  font: 'inherit',
+                  transition: 'transform 0.15s ease, box-shadow 0.15s ease',
+                  boxShadow: active ? `0 0 0 2px ${c.valueColor}` : 'none',
+                  transform: active ? 'translateY(-2px)' : 'none',
+                }}
+              >
+                <div style={{ fontSize: '0.75rem', fontWeight: 600, color: c.labelColor, textTransform: 'uppercase', letterSpacing: '0.04em' }}>{c.label}</div>
+                <div style={{ fontSize: '1.4rem', fontWeight: 800, color: c.valueColor, marginTop: 4 }}>{c.value}</div>
+              </button>
+            );
+          })}
         </div>
 
         {/* Search & Filters */}
@@ -514,7 +537,8 @@ function DailyAttendanceOverview() {
             onChange={(e) => setStatusFilter(e.target.value)}
           >
             <option value="">All Statuses</option>
-            <option value="Present">Present</option>
+            <option value={PRESENT_ALL}>Present (All)</option>
+            <option value="Present">Present (Clocked Out)</option>
             <option value="Present (Not Clocked Out)">Present (Not Clocked Out)</option>
             <option value="On Leave">On Leave</option>
             <option value="Absent">Absent</option>

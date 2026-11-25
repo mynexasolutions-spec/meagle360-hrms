@@ -590,3 +590,65 @@
     background: linear-gradient(155deg, #f4f8ff 0%, #ffffff 45%);
   }
 }
+
+/* ---- Forgot / Reset password (shared split layout) ---- */
+.login-logo-card.is-success {
+  background: #ecfdf5;
+  border-color: #a7f3d0;
+}
+
+.login-back-link {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  color: #64748b;
+  font-size: 0.875rem;
+  font-weight: 600;
+  text-decoration: none;
+  transition: color 0.15s ease;
+}
+
+.login-back-link:hover {
+  color: #2563eb;
+}
+
+.login-helper-text {
+  font-size: 0.8125rem;
+  color: #64748b;
+  text-align: center;
+  margin: 0 0 16px;
+  line-height: 1.5;
+}
+
+.login-info-box {
+  padding: 12px 14px;
+  border-radius: 12px;
+  background: #eff6ff;
+  border: 1px solid #bfdbfe;
+  font-size: 0.8125rem;
+  color: #1e40af;
+  margin-bottom: 14px;
+}
+
+.login-info-box a {
+  color: #2563eb;
+  font-weight: 600;
+  text-decoration: underline;
+  word-break: break-all;
+}
+
+/* Fade when right panel switches between login / forgot / reset */
+.login-form-fade {
+  animation: loginFormFade 0.3s ease both;
+}
+
+@keyframes loginFormFade {
+  from { opacity: 0; transform: translateY(6px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+.login-title-check {
+  color: #10b981;
+  vertical-align: -3px;
+  margin-right: 8px;
+}

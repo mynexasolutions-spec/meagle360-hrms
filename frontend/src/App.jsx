@@ -5,6 +5,7 @@ import { PlatformAuthProvider, usePlatformAuth } from './context/PlatformAuthCon
 import { PopupProvider } from './context/PopupContext';
 import DashboardLayout from './layouts/DashboardLayout';
 import AuthLayout from './layouts/AuthLayout';
+import SplitAuthLayout from './components/SplitAuthLayout';
 import PlatformLayout from './layouts/PlatformLayout';
 import LoadingScreen from './components/LoadingScreen';
 
@@ -95,13 +96,15 @@ function AppRoutes() {
     <Suspense fallback={<LoadingScreen subtitle="Loading workspace..." />}>
       <Routes>
         {/* Tenant Auth Routes */}
-        <Route path="/login" element={<PublicRoute><Login /></PublicRoute>} />
-        <Route element={<PublicRoute><AuthLayout /></PublicRoute>}>
+        <Route element={<PublicRoute><SplitAuthLayout /></PublicRoute>}>
+          <Route path="/login" element={<Login />} />
           <Route path="/forgot-password" element={<ForgotPassword />} />
+        </Route>
+        <Route element={<SplitAuthLayout />}>
+          <Route path="/reset-password" element={<ResetPassword />} />
         </Route>
         <Route element={<AuthLayout />}>
           <Route path="/set-password" element={<SetPassword />} />
-          <Route path="/reset-password" element={<ResetPassword />} />
         </Route>
 
         {/* Public Careers Page (No login required) */}

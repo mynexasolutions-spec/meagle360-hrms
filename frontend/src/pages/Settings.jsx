@@ -6,6 +6,7 @@ import {
 import { getHolidays, createHoliday, updateHoliday, deleteHoliday } from '../api/attendance';
 import { getDepartments, createDepartment, getSites, createSite } from '../api/employees';
 import { getAuditLogs } from '../api/audit';
+import { actionLabel, entityLabel, actionTone } from '../utils/auditLabels';
 import { getMyCompany, updateMyCompany, uploadCompanyBranding } from '../api/company';
 import client from '../api/client';
 import Modal from '../components/Modal';
@@ -694,14 +695,27 @@ export default function Settings() {
           <h3><ScrollText size={18} style={{ color: 'var(--accent-rose)' }} /> Audit Log</h3>
           <div style={{ overflowX: 'auto' }}>
             <table className="data-table">
-              <thead><tr><th style={{ whiteSpace: 'nowrap' }}>When</th><th style={{ whiteSpace: 'nowrap' }}>Actor</th><th style={{ whiteSpace: 'nowrap' }}>Action</th><th style={{ whiteSpace: 'nowrap' }}>Entity</th></tr></thead>
+              <thead><tr><th style={{ whiteSpace: 'nowrap' }}>When</th><th style={{ whiteSpace: 'nowrap' }}>Actor</th><th style={{ whiteSpace: 'nowrap' }}>Action</th><th style={{ whiteSpace: 'nowrap' }}>Target</th></tr></thead>
               <tbody>
                 {auditLogs.map((log) => (
                   <tr key={log.id}>
                     <td style={{ color: 'var(--text-muted)', fontSize: '0.8125rem', whiteSpace: 'nowrap' }}>{new Date(log.created_at).toLocaleString()}</td>
                     <td style={{ fontWeight: 500, whiteSpace: 'nowrap' }}>{log.actor_name}</td>
-                    <td style={{ whiteSpace: 'nowrap' }}>{log.action}</td>
-                    <td style={{ color: 'var(--text-muted)', whiteSpace: 'nowrap' }}>{log.entity_type}</td>
+                    <td style={{ whiteSpace: 'nowrap' }}>
+                      <span style={{
+                        display: 'inline-block', padding: '3px 10px', borderRadius: 999, fontSize: '0.8125rem', fontWeight: 600,
+                        ...({
+                          success: { background: '#ecfdf5', color: '#047857' },
+                          danger: { background: '#fff1f2', color: '#be123c' },
+                          neutral: { background: '#f1f5f9', color: '#475569' },
+                        }[actionTone(log.action)]),
+                      }}>{actionLabel(log.action)}</span>
+                    </td>
+                    <td style={{ whiteSpace: 'nowrap' }}>
+                      {log.target_label
+                        ? <><span style={{ fontWeight: 500 }}>{log.target_label}</span> <span style={{ color: 'var(--text-muted)', fontSize: '0.8125rem' }}>· {entityLabel(log.entity_type)}</span></>
+                        : <span style={{ color: 'var(--text-muted)' }}>{entityLabel(log.entity_type)}</span>}
+                    </td>
                   </tr>
                 ))}
               </tbody>

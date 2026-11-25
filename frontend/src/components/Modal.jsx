@@ -1,7 +1,7 @@
 import { createPortal } from 'react-dom';
 import { X } from 'lucide-react';
 
-export default function Modal({ title, onClose, children, closeOnOverlay = false, maxWidth, maxHeight, style = {} }) {
+export default function Modal({ title, onClose, children, closeOnOverlay = false, maxWidth, maxHeight, compact = false, style = {} }) {
   return createPortal(
     <div
       className="modal-overlay"
@@ -12,7 +12,7 @@ export default function Modal({ title, onClose, children, closeOnOverlay = false
       }}
     >
       <div
-        className="modal-content"
+        className={`modal-content${compact ? ' modal-compact' : ''}`}
         style={{
           ...(maxWidth ? { maxWidth } : {}),
           ...(maxHeight ? { maxHeight } : {}),
