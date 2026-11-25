@@ -1,17 +1,21 @@
-import { useState, useEffect, useRef } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useState, useEffect, useRef, useCallback } from 'react';
+import { useLocation, useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { getPendingRequests } from '../api/leave';
+import { canViewEmployees } from '../utils/access';
 import { getMyCompany } from '../api/company';
-import { Menu, Search, Bell, HelpCircle, ChevronDown, LogOut, User } from 'lucide-react';
+import GuidePanel from './GuidePanel';
+import { Menu, Search, Bell, HelpCircle, BookOpen, ChevronDown, LogOut, User } from 'lucide-react';
 
 export default function TopBar({ onToggleSidebar }) {
-  const { user, logout } = useAuth();
+  const { user, logout, isPlanExpired } = useAuth();
   const navigate = useNavigate();
+  const { pathname } = useLocation();
   const [search, setSearch] = useState('');
   const [pendingCount, setPendingCount] = useState(0);
   const [company, setCompany] = useState(null);
   const [menuOpen, setMenuOpen] = useState(false);
+  const [guidePage, setGuidePage] = useState(null);
   const menuRef = useRef(null);
 
   const canApprove = !!user?.permissions?.['leave:approve'];
@@ -38,8 +42,10 @@ export default function TopBar({ onToggleSidebar }) {
 
   const handleSearchSubmit = (e) => {
     e.preventDefault();
-    if (search.trim()) navigate(`/employees?q=${encodeURIComponent(search.trim())}`);
+    if (search.trim()) navigate(`${canViewEmployees(user) ? '/employees' : '/my-team'}?q=${encodeURIComponent(search.trim())}`);
   };
+
+  const closeGuides = useCallback(() => setGuidePage(null), []);
 
   const handleLogout = () => {
     logout();
@@ -53,6 +59,7 @@ export default function TopBar({ onToggleSidebar }) {
     .toUpperCase() || 'U';
 
   return (
+    <>
     <header
       className="glass-card"
       style={{
@@ -74,17 +81,20 @@ export default function TopBar({ onToggleSidebar }) {
         <Menu size={20} />
       </button>
 
+      {/* My Team has its own search box */}
+      {pathname !== '/my-team' && (
       <form onSubmit={handleSearchSubmit} className="topbar-search topbar-search-form" style={{ flex: 1, maxWidth: 420 }}>
         <Search size={16} style={{ position: 'absolute', left: 14, top: '50%', transform: 'translateY(-50%)', color: 'var(--text-muted)' }} />
         <input
           type="text"
           className="input-field"
           style={{ paddingLeft: 38, background: 'var(--bg-input)' }}
-          placeholder="Search employees, documents, policies..."
+          placeholder={canViewEmployees(user) ? 'Search employees...' : 'Find a colleague...'}
           value={search}
           onChange={(e) => setSearch(e.target.value)}
         />
       </form>
+      )}
 
       <div style={{ flex: 1 }} />
 
@@ -92,7 +102,7 @@ export default function TopBar({ onToggleSidebar }) {
         className="btn-icon btn-ghost topbar-icon-btn"
         style={{ position: 'relative' }}
         title="Notifications"
-        onClick={() => canApprove && navigate('/leave')}
+        onClick={() => canApprove && navigate('/leave?tab=approvals')}
       >
         <Bell size={20} />
         {pendingCount > 0 && (
@@ -120,6 +130,16 @@ export default function TopBar({ onToggleSidebar }) {
           </span>
         )}
       </button>
+
+      {!isPlanExpired && (
+        <button
+          className="btn-icon btn-ghost topbar-icon-btn"
+          title="How-to guides"
+          onClick={() => setGuidePage(pathname)}
+        >
+          <BookOpen size={20} />
+        </button>
+      )}
 
       <button
         className="btn-icon btn-ghost topbar-help topbar-icon-btn"
@@ -207,5 +227,8 @@ export default function TopBar({ onToggleSidebar }) {
         )}
       </div>
     </header>
+    {/* Outside the header: its blur would trap a fixed panel */}
+    {guidePage === pathname && <GuidePanel page={pathname} onClose={closeGuides} />}
+    </>
   );
 }

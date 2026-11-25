@@ -12,6 +12,13 @@ class ChatHistoryItem(BaseModel):
 class AIChatRequest(BaseModel):
     message: str = Field(..., min_length=1, max_length=2000)
     history: list[ChatHistoryItem] = Field(default_factory=list)
+    page: str | None = Field(
+        default=None,
+        max_length=200,
+        pattern=r"^/[A-Za-z0-9/_-]*$",
+        description="Page the user came from",
+    )
+    guide_id: str | None = Field(default=None, max_length=60, description="Guide used in the previous reply")
 
 
 class AIActionCard(BaseModel):
@@ -47,6 +54,17 @@ class AIActionCard(BaseModel):
     unassigned_employees_count: int | None = None
 
 
+class AIGuideLink(BaseModel):
+    id: str
+    title: str
+    path: str
+    button: str
+
+
+class AIGuideResponse(AIGuideLink):
+    reply: str
+
+
 class AIQuotaResponse(BaseModel):
     is_demo: bool = True
     daily_limit: int | None = 10
@@ -63,6 +81,7 @@ class AIChatResponse(BaseModel):
     role_mode: str = "admin"
     provider: str = "groq"
     mode: str = "llm"
+    guide: AIGuideLink | None = None
     quota: AIQuotaResponse | None = None
 
 

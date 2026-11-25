@@ -6,6 +6,10 @@ export const getEmployees = (skip = 0, limit = 100) =>
 export const getDirectory = (skip = 0, limit = 100) =>
   client.get(`/employees/directory?skip=${skip}&limit=${limit}`);
 
+export const getMyTeam = () => client.get('/employees/my-team');
+
+export const findColleagues = (q) => client.get('/employees/colleagues', { params: { q } });
+
 export const getEmployee = (id) => client.get(`/employees/${id}`);
 
 export const createEmployee = (data) => client.post('/employees/', data);

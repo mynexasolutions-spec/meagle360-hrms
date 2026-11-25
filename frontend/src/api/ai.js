@@ -1,7 +1,12 @@
 import client from './client';
 
-export const sendAiChat = (message, history = []) =>
-  client.post('/ai/chat', { message, history });
+export const sendAiChat = (message, history = [], context = {}) =>
+  client.post('/ai/chat', { message, history, ...context });
+
+// Saved how-to guides: no AI tokens, no daily limit.
+export const getAiGuides = (page) => client.get('/ai/guides', { params: page ? { page } : {} });
+
+export const getAiGuide = (id) => client.get(`/ai/guides/${id}`);
 
 export const getAiDailyDigest = () => client.get('/ai/daily-digest');
 

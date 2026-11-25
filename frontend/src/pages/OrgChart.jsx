@@ -55,9 +55,9 @@ function OrgTreeNode({ node, depth = 0 }) {
           {colorScheme.label}
         </span>
         {node.department_name && (
-          <div style={{ fontSize: '0.75rem', color: '#526077', marginTop: 2 }}>{node.department_name}</div>
+          <div style={{ fontSize: '0.75rem', color: '#3d4a5e', marginTop: 2 }}>{node.department_name}</div>
         )}
-        <div style={{ fontSize: '0.75rem', color: '#64748b', marginTop: 1 }}>{node.employee_code}</div>
+        <div style={{ fontSize: '0.75rem', color: '#475569', marginTop: 1 }}>{node.employee_code}</div>
 
         {hasChildren && (
           <div className="org-card-toggle">
@@ -144,13 +144,13 @@ function OrgNode({ node, depth = 0 }) {
               {colorScheme.label}
             </span>
           </div>
-          <div className="org-node-info-row" style={{ fontSize: '0.8125rem', color: '#526077', marginTop: 3, display: 'flex', gap: 16 }}>
+          <div className="org-node-info-row" style={{ fontSize: '0.8125rem', color: '#3d4a5e', marginTop: 3, display: 'flex', gap: 16 }}>
             <span>Code: <strong style={{ color: '#334155' }}>{node.employee_code}</strong></span>
             {node.department_name && (
               <span>Dept: <strong style={{ color: '#2563eb' }}>{node.department_name}</strong></span>
             )}
             {node.work_email && (
-              <span style={{ color: '#526077' }}>{node.work_email}</span>
+              <span style={{ color: '#3d4a5e' }}>{node.work_email}</span>
             )}
           </div>
         </div>
@@ -223,7 +223,7 @@ export default function OrgChart({ embedded = false }) {
             </div>
             <div>
               <h1 style={{ fontSize: '1.5rem', fontWeight: 800, color: '#0f172a', margin: 0 }}>Organization Chart</h1>
-              <p style={{ color: '#526077', fontSize: '0.875rem', margin: '2px 0 0 0' }}>Visual hierarchy of your organization's reporting structure</p>
+              <p style={{ color: '#3d4a5e', fontSize: '0.875rem', margin: '2px 0 0 0' }}>Visual hierarchy of your organization's reporting structure</p>
             </div>
           </div>
 
@@ -235,7 +235,7 @@ export default function OrgChart({ embedded = false }) {
                   display: 'flex', alignItems: 'center', gap: 6, padding: '6px 14px', borderRadius: 8, border: 'none',
                   fontSize: '0.8125rem', fontWeight: 600, cursor: 'pointer', transition: 'all 0.15s ease',
                   background: viewMode === 'tree' ? '#ffffff' : 'transparent',
-                  color: viewMode === 'tree' ? '#0f172a' : '#64748b',
+                  color: viewMode === 'tree' ? '#0f172a' : '#475569',
                   boxShadow: viewMode === 'tree' ? '0 2px 6px rgba(0,0,0,0.06)' : 'none',
                 }}
               >
@@ -247,7 +247,7 @@ export default function OrgChart({ embedded = false }) {
                   display: 'flex', alignItems: 'center', gap: 6, padding: '6px 14px', borderRadius: 8, border: 'none',
                   fontSize: '0.8125rem', fontWeight: 600, cursor: 'pointer', transition: 'all 0.15s ease',
                   background: viewMode === 'list' ? '#ffffff' : 'transparent',
-                  color: viewMode === 'list' ? '#0f172a' : '#64748b',
+                  color: viewMode === 'list' ? '#0f172a' : '#475569',
                   boxShadow: viewMode === 'list' ? '0 2px 6px rgba(0,0,0,0.06)' : 'none',
                 }}
               >
@@ -284,7 +284,7 @@ export default function OrgChart({ embedded = false }) {
                 display: 'flex', alignItems: 'center', gap: 6, padding: '5px 12px', borderRadius: 7, border: 'none',
                 fontSize: '0.78rem', fontWeight: 600, cursor: 'pointer', transition: 'all 0.15s ease',
                 background: viewMode === 'tree' ? '#ffffff' : 'transparent',
-                color: viewMode === 'tree' ? '#0f172a' : '#64748b',
+                color: viewMode === 'tree' ? '#0f172a' : '#475569',
                 boxShadow: viewMode === 'tree' ? '0 1px 4px rgba(0,0,0,0.06)' : 'none',
               }}
             >
@@ -296,7 +296,7 @@ export default function OrgChart({ embedded = false }) {
                 display: 'flex', alignItems: 'center', gap: 6, padding: '5px 12px', borderRadius: 7, border: 'none',
                 fontSize: '0.78rem', fontWeight: 600, cursor: 'pointer', transition: 'all 0.15s ease',
                 background: viewMode === 'list' ? '#ffffff' : 'transparent',
-                color: viewMode === 'list' ? '#0f172a' : '#64748b',
+                color: viewMode === 'list' ? '#0f172a' : '#475569',
                 boxShadow: viewMode === 'list' ? '0 1px 4px rgba(0,0,0,0.06)' : 'none',
               }}
             >

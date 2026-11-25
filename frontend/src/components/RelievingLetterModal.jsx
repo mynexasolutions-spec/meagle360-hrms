@@ -160,7 +160,7 @@ export default function RelievingLetterModal({ employee, onClose, onSuccess }) {
             padding: '10px 14px',
             borderRadius: 8,
             background: '#fef2f2',
-            color: '#dc2626',
+            color: '#b91c1c',
             fontSize: '0.85rem',
             border: '1px solid #fecaca',
             marginBottom: 14,
@@ -394,7 +394,7 @@ export default function RelievingLetterModal({ employee, onClose, onSuccess }) {
                 </div>
                 <div>
                   <div style={{ fontWeight: 700, color: '#0f172a', fontSize: '0.95rem' }}>{employee.full_name}</div>
-                  <div style={{ fontSize: '0.8rem', color: '#526077' }}>
+                  <div style={{ fontSize: '0.8rem', color: '#3d4a5e' }}>
                     {employee.employee_code} • {employee.designation_name || employee.department_name || 'Team Member'}
                   </div>
                   {employee.date_of_hire && (

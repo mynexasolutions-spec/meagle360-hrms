@@ -15,6 +15,7 @@ import {
   Wallet, Plus, Pencil, Trash2, Play, Lock, Users, Receipt, Settings2, Landmark, HandCoins,
 } from 'lucide-react';
 import Modal from '../components/Modal';
+import { rowClick } from '../utils/rowClick';
 import { usePopup } from '../context/PopupContext';
 
 const MONTH_NAMES = [
@@ -63,7 +64,7 @@ export default function PayrollManagement() {
           </div>
           <div style={{ minWidth: 0 }}>
             <h1 style={{ fontSize: 'clamp(1.25rem, 4.5vw, 1.75rem)', fontWeight: 800, color: '#0f172a' }}>Payroll Management</h1>
-            <p style={{ color: '#526077', fontSize: '0.875rem' }}>Configure salary structures, assign employee CTC, and run monthly payroll</p>
+            <p style={{ color: '#3d4a5e', fontSize: '0.875rem' }}>Configure salary structures, assign employee CTC, and run monthly payroll</p>
           </div>
         </div>
       </div>
@@ -81,7 +82,7 @@ export default function PayrollManagement() {
               fontWeight: 700,
               border: tab === item.key ? 'none' : '1px solid #cbd5e1',
               background: tab === item.key ? '#0f172a' : '#ffffff',
-              color: tab === item.key ? '#ffffff' : '#64748b',
+              color: tab === item.key ? '#ffffff' : '#475569',
               cursor: 'pointer',
               boxShadow: tab === item.key ? '0 4px 12px rgba(15, 23, 42, 0.15)' : 'none',
               transition: 'all 0.15s ease',
@@ -712,7 +713,7 @@ function RunsTab() {
             <thead><tr><th style={{ whiteSpace: 'nowrap' }}>Period</th><th style={{ whiteSpace: 'nowrap' }}>Status</th><th style={{ whiteSpace: 'nowrap' }}>Employees</th><th style={{ whiteSpace: 'nowrap' }}>Total Net Pay</th><th style={{ whiteSpace: 'nowrap' }}>Actions</th></tr></thead>
             <tbody>
               {runs.map((run) => (
-                <tr key={run.id} style={{ cursor: 'pointer' }} onClick={() => openRun(run)}>
+                <tr key={run.id} {...rowClick(() => openRun(run))}>
                   <td style={{ fontWeight: 500, whiteSpace: 'nowrap' }}>{MONTH_NAMES[run.month - 1]} {run.year}</td>
                   <td style={{ whiteSpace: 'nowrap' }}><span className={`badge ${run.status === 'finalized' ? 'badge-active' : 'badge-pending'}`}>{run.status}</span></td>
                   <td style={{ whiteSpace: 'nowrap' }}>{run.payslip_count}</td>
@@ -758,7 +759,7 @@ function RunsTab() {
               <tbody>
                 {payslips.map((p) => (
                   <Fragment key={p.id}>
-                    <tr>
+                    <tr {...rowClick(() => setExpandedPayslip(expandedPayslip === p.id ? null : p.id))}>
                       <td style={{ fontWeight: 500, whiteSpace: 'nowrap' }}>{p.employee_name} ({p.employee_code})</td>
                       <td style={{ whiteSpace: 'nowrap' }}>{money(p.basic_pay)}</td>
                       <td style={{ whiteSpace: 'nowrap' }}>{money(p.gross_earnings)}</td>

@@ -1,9 +1,11 @@
 import { useState, useEffect, useMemo } from 'react';
-import { Link, useSearchParams, useNavigate } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import { getDirectory, inviteEmployee, getDepartments, getRoles, getSites } from '../api/employees';
 import { Users, Search, Plus, Copy, Check, LayoutGrid, List, Mail, UserCheck, UserX, FileText, Award, Building2 } from 'lucide-react';
 import Modal from '../components/Modal';
 import StatCard from '../components/StatCard';
+import useUrlFilters from '../utils/useUrlFilters';
+import { rowClick } from '../utils/rowClick';
 import OrgChart from './OrgChart';
 import { useAuth } from '../context/AuthContext';
 
@@ -42,13 +44,24 @@ export default function EmployeeDirectory() {
   const navigate = useNavigate();
   const { user } = useAuth();
   const canInvite = !!user?.permissions?.['employees:write'];
-  const [searchParams, setSearchParams] = useSearchParams();
-  const activeTab = searchParams.get('tab') === 'organization' ? 'organization' : 'directory';
+  const [filters, setFilters] = useUrlFilters({ tab: 'directory', q: '', status: '', department: '' });
+  const activeTab = filters.tab === 'organization' ? 'organization' : 'directory';
   const [employees, setEmployees] = useState([]);
   const [departments, setDepartments] = useState([]);
   const [sites, setSites] = useState([]);
   const [roles, setRoles] = useState([]);
-  const [search, setSearch] = useState('');
+  // Typed text stays local; ?q= only carries a search in from the top bar.
+  const [search, setSearchText] = useState(filters.q);
+  useEffect(() => { if (filters.q) setSearchText(filters.q); }, [filters.q]);
+  const setSearch = (text) => {
+    setSearchText(text);
+    if (filters.q) setFilters({ q: '' });
+  };
+  // Clicking the active card again clears it.
+  const cardFilter = (status) => ({
+    active: filters.status === status,
+    onClick: () => setFilters({ status: filters.status === status ? '' : status }),
+  });
   const [viewMode, setViewMode] = useState('table'); // 'table' or 'grid'
   const [showInvite, setShowInvite] = useState(false);
   const [form, setForm] = useState(EMPTY_FORM);
@@ -58,11 +71,8 @@ export default function EmployeeDirectory() {
   const [linkCopied, setLinkCopied] = useState(false);
 
   const handleTabChange = (tab) => {
-    if (tab === 'organization') {
-      setSearchParams({ tab: 'organization' });
-    } else {
-      setSearchParams({});
-    }
+    setSearchText('');
+    setFilters({ tab, q: '', status: '', department: '' });
   };
 
   useEffect(() => {
@@ -76,7 +86,7 @@ export default function EmployeeDirectory() {
 
   const loadEmployees = async () => {
     try {
-      const res = await getDirectory();
+      const res = await getDirectory(0, 1000);
       setEmployees(Array.isArray(res?.data) ? res.data : []);
     } catch (e) {
       console.error(e);
@@ -91,11 +101,15 @@ export default function EmployeeDirectory() {
     noLogin: employees.filter((e) => e.account_status === 'no_login').length,
   }), [employees]);
 
+  const departmentNames = [...new Set(employees.map((e) => e.department_name || 'Unassigned'))].sort();
+
   const filtered = employees.filter(
     (e) =>
-      e.full_name.toLowerCase().includes(search.toLowerCase()) ||
+      (!filters.status || e.account_status === filters.status) &&
+      (!filters.department || (e.department_name || 'Unassigned') === filters.department) &&
+      (e.full_name.toLowerCase().includes(search.toLowerCase()) ||
       e.employee_code.toLowerCase().includes(search.toLowerCase()) ||
-      (e.department_name || '').toLowerCase().includes(search.toLowerCase())
+      (e.department_name || '').toLowerCase().includes(search.toLowerCase()))
   );
 
   const openInvite = () => {
@@ -169,7 +183,7 @@ export default function EmployeeDirectory() {
             <h1 style={{ fontSize: '1.5rem', fontWeight: 800, color: '#0f172a', margin: 0 }}>
               {activeTab === 'organization' ? 'Organization Structure' : 'Employee Directory'}
             </h1>
-            <p style={{ color: '#526077', fontSize: '0.875rem', margin: '2px 0 0 0' }}>
+            <p style={{ color: '#3d4a5e', fontSize: '0.875rem', margin: '2px 0 0 0' }}>
               {activeTab === 'organization'
                 ? "Visual hierarchy of your organization's reporting structure"
                 : `${employees.length} employees in your organization`}
@@ -223,14 +237,14 @@ export default function EmployeeDirectory() {
             display: 'flex', alignItems: 'center', gap: 8, padding: '7px 18px', borderRadius: 9, border: 'none',
             fontSize: '0.84rem', fontWeight: activeTab === 'directory' ? 700 : 600, cursor: 'pointer',
             background: activeTab === 'directory' ? '#ffffff' : 'transparent',
-            color: activeTab === 'directory' ? '#0f172a' : '#64748b',
+            color: activeTab === 'directory' ? '#0f172a' : '#475569',
             boxShadow: activeTab === 'directory' ? '0 2px 8px rgba(0,0,0,0.06)' : 'none',
             transition: 'all 0.15s ease',
           }}
         >
           <Users size={16} style={{ color: activeTab === 'directory' ? '#2563eb' : '#94a3b8' }} />
           <span>Employee Directory</span>
-          <span style={{ fontSize: '0.70rem', padding: '1px 7px', borderRadius: 99, background: activeTab === 'directory' ? '#eff6ff' : '#e2e8f0', color: activeTab === 'directory' ? '#2563eb' : '#64748b', fontWeight: 700 }}>
+          <span style={{ fontSize: '0.70rem', padding: '1px 7px', borderRadius: 99, background: activeTab === 'directory' ? '#eff6ff' : '#e2e8f0', color: activeTab === 'directory' ? '#2563eb' : '#475569', fontWeight: 700 }}>
             {employees.length}
           </span>
         </button>
@@ -241,7 +255,7 @@ export default function EmployeeDirectory() {
             display: 'flex', alignItems: 'center', gap: 8, padding: '7px 18px', borderRadius: 9, border: 'none',
             fontSize: '0.84rem', fontWeight: activeTab === 'organization' ? 700 : 600, cursor: 'pointer',
             background: activeTab === 'organization' ? '#ffffff' : 'transparent',
-            color: activeTab === 'organization' ? '#0f172a' : '#64748b',
+            color: activeTab === 'organization' ? '#0f172a' : '#475569',
             boxShadow: activeTab === 'organization' ? '0 2px 8px rgba(0,0,0,0.06)' : 'none',
             transition: 'all 0.15s ease',
           }}
@@ -257,10 +271,10 @@ export default function EmployeeDirectory() {
       ) : (
         <>
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: 16, marginBottom: 24 }}>
-            <StatCard icon={Users} label="Total Employees" value={stats.total} bgColor="#eff6ff" color="#2563eb" />
-            <StatCard icon={UserCheck} label="Active Accounts" value={stats.active} bgColor="#ecfdf5" color="#059669" />
-            <StatCard icon={Mail} label="Invited" value={stats.invited} bgColor="#fffbeb" color="#d97706" />
-            <StatCard icon={UserX} label="No Login Access" value={stats.noLogin} bgColor="#f8fafc" color="#64748b" />
+            <StatCard icon={Users} label="Total Employees" value={stats.total} {...cardFilter('')} bgColor="#eff6ff" color="#2563eb" />
+            <StatCard icon={UserCheck} label="Active Accounts" value={stats.active} {...cardFilter('active')} bgColor="#ecfdf5" color="#059669" />
+            <StatCard icon={Mail} label="Invited" value={stats.invited} {...cardFilter('invited')} bgColor="#fffbeb" color="#d97706" />
+            <StatCard icon={UserX} label="No Login Access" value={stats.noLogin} {...cardFilter('no_login')} bgColor="#f8fafc" color="#64748b" />
           </div>
 
           {/* Search & View Switcher Bar */}
@@ -270,7 +284,7 @@ export default function EmployeeDirectory() {
                 size={18}
                 style={{
                   position: 'absolute', left: 14, top: '50%',
-                  transform: 'translateY(-50%)', color: '#64748b',
+                  transform: 'translateY(-50%)', color: '#475569',
                 }}
               />
               <input
@@ -289,6 +303,21 @@ export default function EmployeeDirectory() {
               />
             </div>
 
+            <select
+              className="input-field" aria-label="Filter by department"
+              style={{ maxWidth: 220 }}
+              value={filters.department}
+              onChange={(e) => setFilters({ department: e.target.value })}
+            >
+              <option value="">All Departments</option>
+              {departmentNames.map((name) => <option key={name} value={name}>{name}</option>)}
+            </select>
+            {(search || filters.status || filters.department) && (
+              <button className="btn btn-secondary btn-sm" onClick={() => { setSearchText(''); setFilters({ q: '', status: '', department: '' }); }}>
+                Clear Filters
+              </button>
+            )}
+
             {/* View Mode Toggle Switcher */}
             <div style={{ display: 'flex', background: '#f1f5f9', padding: 4, borderRadius: 12, border: '1px solid #e2e8f0' }}>
           <button
@@ -303,7 +332,7 @@ export default function EmployeeDirectory() {
               fontSize: '0.8125rem',
               fontWeight: 600,
               background: viewMode === 'table' ? '#ffffff' : 'transparent',
-              color: viewMode === 'table' ? '#0f172a' : '#64748b',
+              color: viewMode === 'table' ? '#0f172a' : '#475569',
               boxShadow: viewMode === 'table' ? '0 2px 6px rgba(0,0,0,0.06)' : 'none',
               cursor: 'pointer',
               transition: 'all 0.15s ease',
@@ -323,7 +352,7 @@ export default function EmployeeDirectory() {
               fontSize: '0.8125rem',
               fontWeight: 600,
               background: viewMode === 'grid' ? '#ffffff' : 'transparent',
-              color: viewMode === 'grid' ? '#0f172a' : '#64748b',
+              color: viewMode === 'grid' ? '#0f172a' : '#475569',
               boxShadow: viewMode === 'grid' ? '0 2px 6px rgba(0,0,0,0.06)' : 'none',
               cursor: 'pointer',
               transition: 'all 0.15s ease',
@@ -367,7 +396,7 @@ export default function EmployeeDirectory() {
                   padding: '3px 10px',
                   borderRadius: 10,
                   background: emp.account_status === 'active' ? '#dcfce7' : emp.account_status === 'invited' ? '#fef3c7' : '#f1f5f9',
-                  color: emp.account_status === 'active' ? '#15803d' : emp.account_status === 'invited' ? '#b45309' : '#64748b',
+                  color: emp.account_status === 'active' ? '#15803d' : emp.account_status === 'invited' ? '#b45309' : '#475569',
                 }}
               >
                 {ACCOUNT_STATUS_LABEL[emp.account_status] || emp.account_status}
@@ -402,7 +431,7 @@ export default function EmployeeDirectory() {
               )}
 
               <h3 style={{ margin: '0 0 4px 0', fontSize: '1.05rem', fontWeight: 800, color: '#0f172a' }}>{emp.full_name}</h3>
-              <div style={{ fontSize: '0.78125rem', color: '#526077', marginBottom: 12 }}>{emp.work_email || emp.email || '—'}</div>
+              <div style={{ fontSize: '0.78125rem', color: '#3d4a5e', marginBottom: 12 }}>{emp.work_email || emp.email || '—'}</div>
 
               {/* Department Tag */}
               {emp.department_name && (
@@ -411,7 +440,7 @@ export default function EmployeeDirectory() {
                 </span>
               )}
 
-              <div style={{ width: '100%', borderTop: '1px solid #f1f5f9', paddingTop: 14, display: 'flex', justifyContent: 'space-between', fontSize: '0.78125rem', color: '#526077' }}>
+              <div style={{ width: '100%', borderTop: '1px solid #f1f5f9', paddingTop: 14, display: 'flex', justifyContent: 'space-between', fontSize: '0.78125rem', color: '#3d4a5e' }}>
                 <span>Code: <strong style={{ color: '#334155' }}>{emp.employee_code}</strong></span>
                 <span>Site: <strong style={{ color: '#334155' }}>{emp.site_name || 'Main Office'}</strong></span>
               </div>
@@ -434,18 +463,18 @@ export default function EmployeeDirectory() {
           <table className="data-table" style={{ width: '100%', borderCollapse: 'collapse' }}>
             <thead>
               <tr style={{ background: '#f8fafc', borderBottom: '1px solid #e2e8f0' }}>
-                <th style={{ padding: '16px 20px', textAlign: 'left', fontSize: '0.75rem', fontWeight: 700, color: '#526077', textTransform: 'uppercase', whiteSpace: 'nowrap' }}>Employee</th>
-                <th style={{ padding: '16px 20px', textAlign: 'left', fontSize: '0.75rem', fontWeight: 700, color: '#526077', textTransform: 'uppercase', whiteSpace: 'nowrap' }}>Code</th>
-                <th style={{ padding: '16px 20px', textAlign: 'left', fontSize: '0.75rem', fontWeight: 700, color: '#526077', textTransform: 'uppercase', whiteSpace: 'nowrap' }}>Department</th>
-                <th style={{ padding: '16px 20px', textAlign: 'left', fontSize: '0.75rem', fontWeight: 700, color: '#526077', textTransform: 'uppercase', whiteSpace: 'nowrap' }}>Location / Site</th>
-                <th style={{ padding: '16px 20px', textAlign: 'left', fontSize: '0.75rem', fontWeight: 700, color: '#526077', textTransform: 'uppercase', whiteSpace: 'nowrap' }}>Role</th>
-                <th style={{ padding: '16px 20px', textAlign: 'left', fontSize: '0.75rem', fontWeight: 700, color: '#526077', textTransform: 'uppercase', whiteSpace: 'nowrap' }}>Account Status</th>
-                <th style={{ padding: '16px 20px', textAlign: 'right', fontSize: '0.75rem', fontWeight: 700, color: '#526077', textTransform: 'uppercase', whiteSpace: 'nowrap' }}>Actions</th>
+                <th style={{ padding: '16px 20px', textAlign: 'left', fontSize: '0.75rem', fontWeight: 700, color: '#3d4a5e', textTransform: 'uppercase', whiteSpace: 'nowrap' }}>Employee</th>
+                <th style={{ padding: '16px 20px', textAlign: 'left', fontSize: '0.75rem', fontWeight: 700, color: '#3d4a5e', textTransform: 'uppercase', whiteSpace: 'nowrap' }}>Code</th>
+                <th style={{ padding: '16px 20px', textAlign: 'left', fontSize: '0.75rem', fontWeight: 700, color: '#3d4a5e', textTransform: 'uppercase', whiteSpace: 'nowrap' }}>Department</th>
+                <th style={{ padding: '16px 20px', textAlign: 'left', fontSize: '0.75rem', fontWeight: 700, color: '#3d4a5e', textTransform: 'uppercase', whiteSpace: 'nowrap' }}>Location / Site</th>
+                <th style={{ padding: '16px 20px', textAlign: 'left', fontSize: '0.75rem', fontWeight: 700, color: '#3d4a5e', textTransform: 'uppercase', whiteSpace: 'nowrap' }}>Role</th>
+                <th style={{ padding: '16px 20px', textAlign: 'left', fontSize: '0.75rem', fontWeight: 700, color: '#3d4a5e', textTransform: 'uppercase', whiteSpace: 'nowrap' }}>Account Status</th>
+                <th style={{ padding: '16px 20px', textAlign: 'right', fontSize: '0.75rem', fontWeight: 700, color: '#3d4a5e', textTransform: 'uppercase', whiteSpace: 'nowrap' }}>Actions</th>
               </tr>
             </thead>
             <tbody>
               {filtered.map((emp, i) => (
-                <tr key={emp.id} style={{ borderBottom: '1px solid #f1f5f9' }}>
+                <tr key={emp.id} {...rowClick(() => navigate(`/employees/${emp.id}`))} style={{ borderBottom: '1px solid #f1f5f9' }}>
                   <td style={{ padding: '14px 20px', whiteSpace: 'nowrap' }}>
                     <Link
                       to={`/employees/${emp.id}`}
@@ -478,7 +507,7 @@ export default function EmployeeDirectory() {
                       )}
                       <div>
                         <div style={{ fontWeight: 700, fontSize: '0.925rem', color: '#0f172a' }}>{emp.full_name}</div>
-                        <div style={{ fontSize: '0.78125rem', color: '#526077' }}>{emp.work_email || emp.email || '—'}</div>
+                        <div style={{ fontSize: '0.78125rem', color: '#3d4a5e' }}>{emp.work_email || emp.email || '—'}</div>
                       </div>
                     </Link>
                   </td>
@@ -489,7 +518,7 @@ export default function EmployeeDirectory() {
                         {emp.department_name}
                       </span>
                     ) : (
-                      <span style={{ color: '#64748b' }}>—</span>
+                      <span style={{ color: '#475569' }}>—</span>
                     )}
                   </td>
                   <td style={{ padding: '14px 20px', color: '#475569', fontSize: '0.85rem', whiteSpace: 'nowrap' }}>{emp.site_name || 'Main Office'}</td>
@@ -504,7 +533,7 @@ export default function EmployeeDirectory() {
                         fontWeight: 700,
                         fontSize: '0.78125rem',
                         background: emp.account_status === 'active' ? '#dcfce7' : emp.account_status === 'invited' ? '#fef3c7' : '#f1f5f9',
-                        color: emp.account_status === 'active' ? '#15803d' : emp.account_status === 'invited' ? '#b45309' : '#64748b',
+                        color: emp.account_status === 'active' ? '#15803d' : emp.account_status === 'invited' ? '#b45309' : '#475569',
                       }}
                     >
                       {ACCOUNT_STATUS_LABEL[emp.account_status] || emp.account_status}
@@ -528,7 +557,7 @@ export default function EmployeeDirectory() {
                         <Award size={14} style={{ color: '#059669' }} /> Relieving Letter
                       </button>
                     ) : (
-                      <span style={{ color: '#64748b', fontSize: '0.85rem' }}>—</span>
+                      <span style={{ color: '#475569', fontSize: '0.85rem' }}>—</span>
                     )}
                   </td>
                 </tr>
@@ -537,6 +566,9 @@ export default function EmployeeDirectory() {
           </table>
           </div>
         </div>
+      )}
+      {employees.length > 0 && filtered.length === 0 && (
+        <div className="empty-state"><Users size={48} /><p>No employees match these filters</p></div>
       )}
       </>
       )}

@@ -87,7 +87,7 @@ export default function CompanyToastContainer({ toasts, onDismiss }) {
               style={{
                 background: 'transparent',
                 border: 'none',
-                color: '#64748b',
+                color: '#475569',
                 cursor: 'pointer',
                 padding: '2px',
                 borderRadius: '4px',

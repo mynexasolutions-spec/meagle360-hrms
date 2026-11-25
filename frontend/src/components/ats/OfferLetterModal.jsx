@@ -236,7 +236,7 @@ export default function OfferLetterModal({
                   </h3>
                   {currentOffer && getStatusBadge(currentOffer.status)}
                 </div>
-                <p className="text-xs text-gray-500">
+                <p className="text-xs text-gray-600">
                   Candidate: <strong className="text-gray-800">{candidateName}</strong> • Job: {jobTitle}
                 </p>
               </div>
@@ -274,7 +274,7 @@ export default function OfferLetterModal({
               <button
                 type="button"
                 onClick={onClose}
-                className="p-2 text-gray-400 hover:text-gray-600 hover:bg-gray-100 rounded-lg transition-colors ml-1"
+                className="p-2 text-gray-600 hover:text-gray-900 hover:bg-gray-100 rounded-lg transition-colors ml-1"
               >
                 <X size={20} />
               </button>
@@ -285,11 +285,11 @@ export default function OfferLetterModal({
           <div className="px-5 py-2.5 bg-gray-50 border-b border-gray-200 flex flex-wrap items-center justify-between gap-3 text-xs shrink-0">
             {/* Version Switcher */}
             <div className="flex items-center gap-2">
-              <span className="text-gray-500 font-semibold uppercase tracking-wider text-[11px]">
+              <span className="text-gray-600 font-semibold uppercase tracking-wider text-[0.8125rem]">
                 Version:
               </span>
               {offers.length === 0 ? (
-                <span className="text-gray-400 italic">No offers yet</span>
+                <span className="text-gray-600 italic">No offers yet</span>
               ) : (
                 <div className="flex items-center gap-1.5 overflow-x-auto">
                   {offers.map((off) => (
@@ -385,7 +385,7 @@ export default function OfferLetterModal({
           {/* Modal Body */}
           <div className="flex-1 overflow-y-auto p-4 sm:p-6 bg-gray-100">
             {loading ? (
-              <div className="py-24 text-center text-gray-500">
+              <div className="py-24 text-center text-gray-600">
                 <div className="inline-block w-8 h-8 border-4 border-purple-600 border-t-transparent rounded-full animate-spin mb-3"></div>
                 <p className="text-sm font-medium">Loading offer data...</p>
               </div>
@@ -396,7 +396,7 @@ export default function OfferLetterModal({
                   <h4 className="text-base font-bold text-gray-900">
                     {offers.length === 0 ? 'Create Initial Offer Letter' : `Create Offer Version ${offers.length + 1}`}
                   </h4>
-                  <p className="text-xs text-gray-500 mt-0.5">
+                  <p className="text-xs text-gray-600 mt-0.5">
                     Configure official compensation, role, joining timeline, and terms for <strong>{candidateName}</strong>.
                   </p>
                 </div>
@@ -432,7 +432,7 @@ export default function OfferLetterModal({
                         className="w-full p-2.5 text-xs border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-purple-500"
                       />
                       {formCtc > 0 && (
-                        <span className="text-[11px] text-gray-500 mt-1 block">
+                        <span className="text-[0.8125rem] text-gray-600 mt-1 block">
                           Monthly Gross: ~₹{Math.round(formCtc / 12).toLocaleString('en-IN')} / month
                         </span>
                       )}
@@ -538,7 +538,7 @@ export default function OfferLetterModal({
                       <h1 className="text-xl sm:text-2xl font-black text-gray-900 tracking-tight">
                         {printData.company?.name || 'Company'}
                       </h1>
-                      <p className="text-xs text-gray-500">
+                      <p className="text-xs text-gray-600">
                         Official Employment Offer Letter • Version {printData.version_number}
                       </p>
                     </div>
@@ -582,7 +582,7 @@ export default function OfferLetterModal({
 
                 {/* Compensation & Terms Table */}
                 <div className="mb-6 border border-gray-300 rounded-xl overflow-hidden text-xs">
-                  <div className="bg-gray-100 px-4 py-2.5 font-bold text-gray-900 uppercase tracking-wider text-[11px] border-b border-gray-300">
+                  <div className="bg-gray-100 px-4 py-2.5 font-bold text-gray-900 uppercase tracking-wider text-[0.8125rem] border-b border-gray-300">
                     Employment & Compensation Summary
                   </div>
                   <table className="w-full text-left">
@@ -631,7 +631,7 @@ export default function OfferLetterModal({
 
                 {/* Terms and Conditions Clauses */}
                 <div className="space-y-3 text-xs text-gray-700 mb-8 leading-relaxed">
-                  <h4 className="font-bold text-gray-900 uppercase text-[11px] tracking-wider">
+                  <h4 className="font-bold text-gray-900 uppercase text-[0.8125rem] tracking-wider">
                     Terms & Standard Conditions
                   </h4>
                   <ol className="list-decimal list-inside space-y-1.5 pl-1">
@@ -659,7 +659,7 @@ export default function OfferLetterModal({
                     <div>
                       <div className="border-b border-gray-400 w-48 mb-1"></div>
                       <p className="font-bold text-gray-900">Authorized HR Signatory</p>
-                      <p className="text-gray-500">{printData.company?.name}</p>
+                      <p className="text-gray-600">{printData.company?.name}</p>
                     </div>
                   </div>
 
@@ -668,13 +668,13 @@ export default function OfferLetterModal({
                     <div>
                       <div className="border-b border-gray-400 w-48 mb-1"></div>
                       <p className="font-bold text-gray-900">{printData.candidate?.full_name}</p>
-                      <p className="text-gray-500">Signature & Date</p>
+                      <p className="text-gray-600">Signature & Date</p>
                     </div>
                   </div>
                 </div>
               </div>
             ) : (
-              <div className="py-20 text-center text-gray-400">
+              <div className="py-20 text-center text-gray-600">
                 <FileCheck size={48} className="mx-auto mb-2 opacity-40" />
                 <p>No offer letter selected.</p>
               </div>
@@ -692,7 +692,7 @@ export default function OfferLetterModal({
               <button
                 type="button"
                 onClick={() => setShowStatusModal(false)}
-                className="text-gray-400 hover:text-gray-600"
+                className="text-gray-600 hover:text-gray-900"
               >
                 <X size={18} />
               </button>

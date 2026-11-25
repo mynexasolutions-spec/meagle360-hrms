@@ -9,6 +9,9 @@ import {
 import { getEmployees } from '../api/employees';
 import { CalendarDays, Plus, Check, X, Clock, Pencil, Layers, RefreshCw, SlidersHorizontal } from 'lucide-react';
 import Modal from '../components/Modal';
+import EmployeeLink from '../components/EmployeeLink';
+import useUrlFilters from '../utils/useUrlFilters';
+import { leaveGroup } from '../utils/leaveGroup';
 
 export default function LeaveManagement() {
   const { user } = useAuth();
@@ -16,7 +19,18 @@ export default function LeaveManagement() {
   const isAdmin = user?.role_name === 'Admin';
   const canApprove = !!user?.permissions?.['leave:approve'];
   const canManageBalances = !!user?.permissions?.['settings:write'];
-  const [tab, setTab] = useState(isAdmin ? 'approvals' : 'my-leave');
+  const now = new Date();
+  const [filters, setFilters] = useUrlFilters({
+    tab: '', status: '', type: '', year: String(now.getFullYear()), month: String(now.getMonth() + 1), employee: '',
+  });
+  const allowedTabs = [
+    ...(!isAdmin ? ['my-leave'] : []),
+    ...(canApprove || isAdmin ? ['approvals', 'history'] : []),
+    ...(canManageBalances ? ['leave-types'] : []),
+  ];
+  const tab = allowedTabs.includes(filters.tab) ? filters.tab : allowedTabs[0];
+  // A status picked on one tab means something else on the next.
+  const setTab = (next) => setFilters({ tab: next, status: '', type: '' });
   const [types, setTypes] = useState([]);
   const [balances, setBalances] = useState([]);
   const [myRequests, setMyRequests] = useState([]);
@@ -33,24 +47,21 @@ export default function LeaveManagement() {
   const [requestSaving, setRequestSaving] = useState(false);
   const [applyBtnHover, setApplyBtnHover] = useState(false);
 
-  const now = new Date();
   const [history, setHistory] = useState([]);
-  const [historyFilters, setHistoryFilters] = useState({
-    year: now.getFullYear(),
-    month: now.getMonth() + 1,
-    employee_id: '',
-    status: '',
-  });
+  const visibleHistory = filters.type ? history.filter((r) => leaveGroup(r.leave_type_name) === filters.type) : history;
+  const today = now.toLocaleDateString('en-CA');
+  const myVisible = myRequests.filter((r) => (
+    filters.status === 'upcoming' ? r.status === 'approved' && r.end_date >= today : !filters.status || r.status === filters.status
+  ));
 
   useEffect(() => {
     if (!user) return;
-    setTab(isAdmin ? 'approvals' : 'my-leave');
     loadData();
   }, [user?.id, isAdmin, canApprove, canManageBalances]);
 
   useEffect(() => {
     if (tab === 'history' && (canApprove || isAdmin)) loadHistory();
-  }, [tab, historyFilters, canApprove, isAdmin]);
+  }, [tab, filters.year, filters.month, filters.employee, filters.status, canApprove, isAdmin]);
 
   const loadData = async () => {
     if (!user) return;
@@ -88,10 +99,11 @@ export default function LeaveManagement() {
   const loadHistory = async () => {
     try {
       const params = {
-        year: historyFilters.year,
-        month: historyFilters.month,
-        employee_id: historyFilters.employee_id || undefined,
-        status: historyFilters.status || undefined,
+        year: filters.year,
+        month: filters.month === 'all' ? undefined : filters.month,
+        employee_id: filters.employee || undefined,
+        status: filters.status || undefined,
+        limit: 1000,
       };
       const res = await getLeaveHistory(params);
       setHistory(res.data);
@@ -200,7 +212,7 @@ export default function LeaveManagement() {
           </div>
           <div>
             <h1 style={{ fontSize: 'clamp(1.25rem, 4.5vw, 1.75rem)', fontWeight: 800, color: '#0f172a' }}>Leave Management</h1>
-            <p style={{ color: '#526077', fontSize: '0.875rem' }}>
+            <p style={{ color: '#3d4a5e', fontSize: '0.875rem' }}>
               {isAdmin ? 'Review and manage employee leave approvals' : 'Track leave balances, apply for time off & monitor requests'}
             </p>
           </div>
@@ -279,7 +291,7 @@ export default function LeaveManagement() {
                       <span style={{ fontSize: '0.925rem', fontWeight: 700, color: '#0f172a' }}>
                         {b.leave_type_name || 'Leave'}
                       </span>
-                      <span style={{ fontSize: '0.8125rem', fontWeight: 600, color: '#526077' }}>
+                      <span style={{ fontSize: '0.8125rem', fontWeight: 600, color: '#3d4a5e' }}>
                         {usedInt} / {totalInt} Used
                       </span>
                     </div>
@@ -303,7 +315,7 @@ export default function LeaveManagement() {
               })}
 
               {balances.length === 0 && (
-                <div style={{ color: '#64748b', fontSize: '0.875rem', textAlign: 'center', padding: '16px 0' }}>
+                <div style={{ color: '#475569', fontSize: '0.875rem', textAlign: 'center', padding: '16px 0' }}>
                   No leave balances configured yet
                 </div>
               )}
@@ -325,7 +337,7 @@ export default function LeaveManagement() {
                   fontWeight: 700,
                   border: tab === 'my-leave' ? 'none' : '1px solid #cbd5e1',
                   background: tab === 'my-leave' ? '#0f172a' : '#ffffff',
-                  color: tab === 'my-leave' ? '#ffffff' : '#64748b',
+                  color: tab === 'my-leave' ? '#ffffff' : '#475569',
                   cursor: 'pointer',
                   boxShadow: tab === 'my-leave' ? '0 4px 12px rgba(15, 23, 42, 0.15)' : 'none',
                 }}
@@ -343,7 +355,7 @@ export default function LeaveManagement() {
                   fontWeight: 700,
                   border: tab === 'approvals' ? 'none' : '1px solid #cbd5e1',
                   background: tab === 'approvals' ? '#0f172a' : '#ffffff',
-                  color: tab === 'approvals' ? '#ffffff' : '#64748b',
+                  color: tab === 'approvals' ? '#ffffff' : '#475569',
                   cursor: 'pointer',
                   boxShadow: tab === 'approvals' ? '0 4px 12px rgba(15, 23, 42, 0.15)' : 'none',
                 }}
@@ -361,7 +373,7 @@ export default function LeaveManagement() {
                   fontWeight: 700,
                   border: tab === 'history' ? 'none' : '1px solid #cbd5e1',
                   background: tab === 'history' ? '#0f172a' : '#ffffff',
-                  color: tab === 'history' ? '#ffffff' : '#64748b',
+                  color: tab === 'history' ? '#ffffff' : '#475569',
                   cursor: 'pointer',
                   boxShadow: tab === 'history' ? '0 4px 12px rgba(15, 23, 42, 0.15)' : 'none',
                 }}
@@ -379,7 +391,7 @@ export default function LeaveManagement() {
                   fontWeight: 700,
                   border: tab === 'leave-types' ? 'none' : '1px solid #cbd5e1',
                   background: tab === 'leave-types' ? '#0f172a' : '#ffffff',
-                  color: tab === 'leave-types' ? '#ffffff' : '#64748b',
+                  color: tab === 'leave-types' ? '#ffffff' : '#475569',
                   cursor: 'pointer',
                   boxShadow: tab === 'leave-types' ? '0 4px 12px rgba(15, 23, 42, 0.15)' : 'none',
                 }}
@@ -414,6 +426,18 @@ export default function LeaveManagement() {
       {/* My Requests */}
       {!isAdmin && tab === 'my-leave' && (
         <div className="section-card" style={{ borderTop: '3px solid #2563eb' }}>
+          <select
+            className="input-field" aria-label="Filter by status"
+            style={{ maxWidth: 200, marginBottom: 16 }}
+            value={filters.status}
+            onChange={(e) => setFilters({ status: e.target.value })}
+          >
+            <option value="">All Statuses</option>
+            <option value="upcoming">Upcoming (approved)</option>
+            <option value="pending">Pending</option>
+            <option value="approved">Approved</option>
+            <option value="rejected">Rejected</option>
+          </select>
           <div style={{ overflowX: 'auto' }}>
           <table className="data-table">
             <thead>
@@ -426,7 +450,7 @@ export default function LeaveManagement() {
               </tr>
             </thead>
             <tbody>
-              {myRequests.map((r) => (
+              {myVisible.map((r) => (
                 <tr key={r.id}>
                   <td style={{ fontWeight: 500, whiteSpace: 'nowrap' }}>{r.leave_type_name || '—'}</td>
                   <td style={{ whiteSpace: 'nowrap' }}>{r.start_date}</td>
@@ -438,10 +462,10 @@ export default function LeaveManagement() {
             </tbody>
           </table>
           </div>
-          {myRequests.length === 0 && (
+          {myVisible.length === 0 && (
             <div className="empty-state">
               <CalendarDays size={48} />
-              <p>No leave requests yet</p>
+              <p>{filters.status ? 'No leave requests match this filter' : 'No leave requests yet'}</p>
             </div>
           )}
         </div>
@@ -465,7 +489,7 @@ export default function LeaveManagement() {
             <tbody>
               {pending.map((r) => (
                 <tr key={r.id}>
-                  <td style={{ fontWeight: 600, whiteSpace: 'nowrap' }}>{r.employee_name || '—'}</td>
+                  <td style={{ fontWeight: 600, whiteSpace: 'nowrap' }}><EmployeeLink id={r.employee_id}>{r.employee_name || '—'}</EmployeeLink></td>
                   <td style={{ fontWeight: 500, whiteSpace: 'nowrap' }}>{r.leave_type_name || '—'}</td>
                   <td style={{ whiteSpace: 'nowrap' }}>{r.start_date}</td>
                   <td style={{ whiteSpace: 'nowrap' }}>{r.end_date}</td>
@@ -504,8 +528,8 @@ export default function LeaveManagement() {
             <select
               className="input-field"
               style={{ flex: '1 1 160px', minWidth: 0 }}
-              value={historyFilters.employee_id}
-              onChange={(e) => setHistoryFilters({ ...historyFilters, employee_id: e.target.value })}
+              value={filters.employee}
+              onChange={(e) => setFilters({ employee: e.target.value })}
             >
               <option value="">All Employees</option>
               {employees.map((e) => (
@@ -515,9 +539,10 @@ export default function LeaveManagement() {
             <select
               className="input-field"
               style={{ flex: '1 1 130px', minWidth: 0 }}
-              value={historyFilters.month}
-              onChange={(e) => setHistoryFilters({ ...historyFilters, month: Number(e.target.value) })}
+              value={filters.month}
+              onChange={(e) => setFilters({ month: e.target.value })}
             >
+              <option value="all">All Months</option>
               {Array.from({ length: 12 }).map((_, i) => (
                 <option key={i} value={i + 1}>
                   {new Date(2000, i, 1).toLocaleString('en-US', { month: 'long' })}
@@ -527,8 +552,8 @@ export default function LeaveManagement() {
             <select
               className="input-field"
               style={{ flex: '1 1 100px', minWidth: 0 }}
-              value={historyFilters.year}
-              onChange={(e) => setHistoryFilters({ ...historyFilters, year: Number(e.target.value) })}
+              value={filters.year}
+              onChange={(e) => setFilters({ year: e.target.value })}
             >
               {Array.from({ length: 5 }).map((_, i) => {
                 const y = now.getFullYear() - 2 + i;
@@ -538,23 +563,28 @@ export default function LeaveManagement() {
             <select
               className="input-field"
               style={{ flex: '1 1 130px', minWidth: 0 }}
-              value={historyFilters.status}
-              onChange={(e) => setHistoryFilters({ ...historyFilters, status: e.target.value })}
+              value={filters.status}
+              onChange={(e) => setFilters({ status: e.target.value })}
             >
               <option value="">All Statuses</option>
               <option value="pending">Pending</option>
               <option value="approved">Approved</option>
               <option value="rejected">Rejected</option>
             </select>
+            {filters.type && (
+              <button className="btn btn-secondary btn-sm" onClick={() => setFilters({ type: '' })} title="Clear leave type filter">
+                {filters.type} <X size={14} />
+              </button>
+            )}
           </div>
 
           <div style={{ display: 'flex', gap: 16, flexWrap: 'wrap', marginBottom: 16 }}>
             {(() => {
-              const totalDays = history
+              const totalDays = visibleHistory
                 .filter((r) => r.status === 'approved')
                 .reduce((sum, r) => sum + Math.max(1, Math.round((new Date(r.end_date) - new Date(r.start_date)) / 86400000) + 1), 0);
               return (
-                <div style={{ fontSize: '0.8125rem', color: '#526077' }}>
+                <div style={{ fontSize: '0.8125rem', color: '#3d4a5e' }}>
                   <strong style={{ color: '#0f172a', fontSize: '1rem' }}>{totalDays}</strong> approved leave day{totalDays === 1 ? '' : 's'} matching these filters
                 </div>
               );
@@ -576,15 +606,15 @@ export default function LeaveManagement() {
                 </tr>
               </thead>
               <tbody>
-                {history.map((r) => (
+                {visibleHistory.map((r) => (
                   <tr key={r.id}>
-                    <td style={{ fontWeight: 600, whiteSpace: 'nowrap' }}>{r.employee_name || '—'}</td>
+                    <td style={{ fontWeight: 600, whiteSpace: 'nowrap' }}><EmployeeLink id={r.employee_id}>{r.employee_name || '—'}</EmployeeLink></td>
                     <td style={{ fontWeight: 500, whiteSpace: 'nowrap' }}>{r.leave_type_name || '—'}</td>
                     <td style={{ whiteSpace: 'nowrap' }}>{r.start_date}</td>
                     <td style={{ whiteSpace: 'nowrap' }}>{r.end_date}</td>
                     <td style={{ whiteSpace: 'nowrap' }}>{Math.max(1, Math.round((new Date(r.end_date) - new Date(r.start_date)) / 86400000) + 1)}</td>
                     <td style={{ whiteSpace: 'nowrap' }}><span className={`badge badge-${r.status}`}>{r.status}</span></td>
-                    <td style={{ whiteSpace: 'nowrap', color: '#526077' }}>{new Date(r.created_at).toLocaleDateString()}</td>
+                    <td style={{ whiteSpace: 'nowrap', color: '#3d4a5e' }}>{new Date(r.created_at).toLocaleDateString()}</td>
                     <td style={{ whiteSpace: 'nowrap' }}>
                       <div className="leave-row-actions" style={{ display: 'flex', gap: 6 }}>
                         <button
@@ -601,7 +631,7 @@ export default function LeaveManagement() {
               </tbody>
             </table>
           </div>
-          {history.length === 0 && (
+          {visibleHistory.length === 0 && (
             <div className="empty-state">
               <CalendarDays size={48} />
               <p>No leave requests match these filters</p>
@@ -1020,7 +1050,7 @@ function RecordLeaveModal({ employees, leaveTypes, onClose, onSuccess }) {
             {error}
           </div>
         )}
-        <p style={{ fontSize: '0.8125rem', color: '#526077', marginTop: 0, marginBottom: 14, lineHeight: 1.45 }}>
+        <p style={{ fontSize: '0.8125rem', color: '#3d4a5e', marginTop: 0, marginBottom: 14, lineHeight: 1.45 }}>
           Directly enter past (retroactive) or upcoming leave for an employee. Approved entries immediately deduct from their leave balance.
         </p>
 
@@ -1163,7 +1193,7 @@ function EditLeaveRequestModal({ request, leaveTypes, onClose, onSuccess }) {
             {error}
           </div>
         )}
-        <p style={{ fontSize: '0.8125rem', color: '#526077', marginTop: 0, marginBottom: 14, lineHeight: 1.45 }}>
+        <p style={{ fontSize: '0.8125rem', color: '#3d4a5e', marginTop: 0, marginBottom: 14, lineHeight: 1.45 }}>
           Update dates, leave type, or status. The employee&apos;s leave balance will be automatically recalculated and adjusted.
         </p>
 

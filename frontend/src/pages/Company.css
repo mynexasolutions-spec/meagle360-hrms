@@ -1,0 +1,96 @@
+/* Company Policies, Holidays and Announcements */
+.company-page { container-type: inline-size; }
+.company-title { display: flex; align-items: center; gap: 14px; }
+.company-title h1 { margin: 0; }
+.company-title p { margin: 2px 0 0; font-size: 0.95rem; font-weight: 500; }
+.company-icon {
+  width: 48px; height: 48px; border-radius: 16px; flex-shrink: 0;
+  display: flex; align-items: center; justify-content: center;
+  background: #eff6ff; color: #2563eb; box-shadow: 0 4px 14px rgba(37, 99, 235, 0.13);
+}
+.policy-muted { color: #334155; font-size: 0.9rem; font-weight: 500; margin: 0; }
+.policy-empty { padding: 32px; text-align: center; color: #334155; }
+.policy-empty p { margin: 0 0 12px; }
+.policy-notice {
+  padding: 12px 16px; margin-bottom: 18px; border-radius: 12px;
+  background: #fffbeb; border: 1px solid #fde68a; color: #92400e; font-size: 0.9rem; font-weight: 600;
+}
+.policy-error {
+  padding: 10px 14px; margin: 12px 0; border-radius: 10px;
+  background: #fef2f2; border: 1px solid #fecaca; color: #991b1b; font-size: 0.9rem;
+}
+.policy-row { display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 10px; }
+.policy-actions { display: flex; align-items: center; flex-wrap: wrap; gap: 8px; }
+.badge.policy-badge-grey { background: #e2e8f0; color: #1e293b; }
+
+/* Reading */
+.policy-layout { display: grid; gap: 20px; align-items: start; }
+.policy-layout > * { min-width: 0; }
+@container (min-width: 860px) {
+  .policy-layout { grid-template-columns: 320px minmax(0, 1fr); }
+}
+.policy-list { padding: 14px; display: grid; gap: 4px; }
+.policy-search { position: relative; margin-bottom: 8px; }
+.policy-search svg { position: absolute; left: 12px; top: 50%; transform: translateY(-50%); color: #475569; }
+.policy-search .input-field { padding-left: 36px; }
+.policy-list button {
+  display: flex; align-items: center; justify-content: space-between; gap: 10px; width: 100%;
+  padding: 11px 12px; border: none; border-radius: 10px; background: transparent; cursor: pointer;
+  font: inherit; font-size: 0.95rem; font-weight: 600; text-align: left; color: var(--text-primary);
+}
+.policy-list button > span:first-child { min-width: 0; overflow-wrap: anywhere; }
+.policy-list button:hover { background: #f1f5f9; }
+.policy-list button.active { background: #eff6ff; color: #1d4ed8; }
+.policy-list .badge, .policy-done { flex-shrink: 0; }
+.policy-done { color: #047857; }
+.policy-view { padding: 28px 32px; }
+.policy-view h2 { margin: 0 0 4px; font-size: 1.35rem; font-weight: 800; }
+.policy-view > .btn { margin-top: 14px; }
+.policy-text { max-width: 78ch; margin-top: 18px; color: #1e293b; line-height: 1.65; overflow-wrap: anywhere; }
+.policy-text h3 { margin: 22px 0 6px; font-size: 1.05rem; font-weight: 700; color: var(--text-primary); }
+.policy-text p { margin: 0 0 10px; white-space: pre-line; }
+.policy-text ul { margin: 0 0 10px; padding-left: 22px; list-style: disc; }
+.policy-text li { margin-bottom: 4px; }
+.policy-agree {
+  display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 14px;
+  margin-top: 26px; padding: 16px 18px; border-radius: 12px; background: #f8fafc; border: 1px solid var(--border-color);
+}
+.policy-agree label, .policy-check { display: flex; align-items: center; gap: 10px; font-weight: 600; cursor: pointer; }
+.policy-agree .policy-error { flex-basis: 100%; margin: 0; }
+.policy-agreed { display: flex; align-items: center; gap: 8px; margin: 24px 0 0; color: #047857; font-weight: 600; }
+
+/* Managing */
+.policy-manage-head { margin-bottom: 16px; }
+.policy-manage { padding: 6px 20px; }
+.policy-item { display: flex; align-items: center; flex-wrap: wrap; gap: 14px; padding: 14px 0; }
+.policy-item + .policy-item { border-top: 1px solid var(--border-color); }
+.policy-order { display: flex; flex-direction: column; }
+.policy-order button { width: 26px; height: 22px; padding: 0; }
+.policy-item-main { flex: 1 1 260px; min-width: 0; overflow-wrap: anywhere; }
+.policy-tags { display: flex; align-items: center; flex-wrap: wrap; gap: 8px 12px; margin-top: 5px; }
+.policy-preview { max-height: 360px; overflow-y: auto; padding: 4px 18px 14px; border: 1px solid var(--border-color); border-radius: 12px; }
+.policy-pdf { margin: 14px 0; padding: 12px 14px; border: 1px solid var(--border-color); border-radius: 12px; }
+.policy-pdf > span { display: inline-flex; align-items: center; gap: 8px; min-width: 0; overflow-wrap: anywhere; }
+.policy-disabled { opacity: 0.5; pointer-events: none; }
+.policy-check { margin-top: 10px; font-size: 0.9rem; }
+.policy-footer { margin-top: 20px; }
+.policy-version { padding: 12px 0; border-bottom: 1px solid var(--border-color); }
+.policy-version summary { cursor: pointer; font-weight: 600; }
+
+/* Holidays and announcements */
+.holiday-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(min(100%, 320px), 1fr)); gap: 16px; }
+.holiday-card { display: flex; align-items: center; gap: 16px; padding: 18px 20px; }
+.holiday-card.past { background: #f8fafc; box-shadow: none; }
+.holiday-date {
+  width: 56px; height: 56px; border-radius: 14px; flex-shrink: 0; line-height: 1.15;
+  display: flex; flex-direction: column; align-items: center; justify-content: center;
+  background: #eff6ff; color: #1d4ed8;
+}
+.holiday-card.past .holiday-date { background: #e2e8f0; color: #334155; }
+.holiday-date strong { font-size: 1.2rem; }
+.holiday-date span { font-size: 0.78rem; font-weight: 600; }
+.holiday-info { flex: 1; min-width: 0; overflow-wrap: anywhere; }
+.notice-list { display: grid; gap: 16px; margin-bottom: 18px; }
+.notice-card { padding: 22px 26px; }
+.notice-card h2 { margin: 0 0 4px; font-size: 1.1rem; font-weight: 700; overflow-wrap: anywhere; }
+.notice-body { max-width: 90ch; margin: 12px 0 0; line-height: 1.6; white-space: pre-line; overflow-wrap: anywhere; color: #1e293b; }

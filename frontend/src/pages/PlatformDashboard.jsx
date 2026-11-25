@@ -5,6 +5,8 @@ import {
 } from 'lucide-react';
 import Modal from '../components/Modal';
 import StatCard from '../components/StatCard';
+import useUrlFilters from '../utils/useUrlFilters';
+import { rowClick } from '../utils/rowClick';
 import {
   listCompanies, createCompany, updateCompanyStatus, inviteCompanyAdmin,
   listCompanyUsers, updateCompany, deleteCompany, resendCompanyAdminInvite,
@@ -131,6 +133,12 @@ export default function PlatformDashboard() {
   const [deleting, setDeleting] = useState(false);
 
   const [search, setSearch] = useState('');
+  const [{ status: statusFilter }, setFilters] = useUrlFilters({ status: '' });
+  // Clicking the active card again clears it.
+  const cardFilter = (status) => ({
+    active: statusFilter === status,
+    onClick: () => setFilters({ status: statusFilter === status ? '' : status }),
+  });
 
   const stats = useMemo(() => ({
     total: companies.length,
@@ -141,11 +149,11 @@ export default function PlatformDashboard() {
 
   const filteredCompanies = useMemo(() => {
     const q = search.trim().toLowerCase();
-    if (!q) return companies;
     return companies.filter((c) =>
-      c.name.toLowerCase().includes(q) || (c.country || '').toLowerCase().includes(q)
+      (!statusFilter || c.status === statusFilter) &&
+      (!q || c.name.toLowerCase().includes(q) || (c.country || '').toLowerCase().includes(q))
     );
-  }, [companies, search]);
+  }, [companies, search, statusFilter]);
 
   const loadCompanies = () => {
     setLoading(true);
@@ -359,10 +367,10 @@ export default function PlatformDashboard() {
       )}
 
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: 16, marginBottom: 24 }}>
-        <StatCard icon={Building2} label="Total Companies" value={stats.total} bgColor="#eff6ff" color="#2563eb" />
-        <StatCard icon={CheckCircle2} label="Active" value={stats.active} bgColor="#ecfdf5" color="#059669" />
-        <StatCard icon={Clock3} label="Pending Setup" value={stats.pending} bgColor="#fffbeb" color="#d97706" />
-        <StatCard icon={Ban} label="Suspended" value={stats.suspended} bgColor="#fef2f2" color="#dc2626" />
+        <StatCard icon={Building2} label="Total Companies" value={stats.total} {...cardFilter('')} bgColor="#eff6ff" color="#2563eb" />
+        <StatCard icon={CheckCircle2} label="Active" value={stats.active} {...cardFilter('active')} bgColor="#ecfdf5" color="#059669" />
+        <StatCard icon={Clock3} label="Pending Setup" value={stats.pending} {...cardFilter('pending_setup')} bgColor="#fffbeb" color="#d97706" />
+        <StatCard icon={Ban} label="Suspended" value={stats.suspended} {...cardFilter('suspended')} bgColor="#fef2f2" color="#dc2626" />
       </div>
 
       <div className="glass-card" style={{ padding: 0, overflow: 'hidden' }}>
@@ -391,7 +399,7 @@ export default function PlatformDashboard() {
           <div style={{ padding: 40, textAlign: 'center', color: 'var(--text-muted)', fontSize: '0.875rem' }}>Loading tenants...</div>
         ) : filteredCompanies.length === 0 ? (
           <div style={{ padding: 40, textAlign: 'center', color: 'var(--text-muted)', fontSize: '0.875rem' }}>
-            {companies.length === 0 ? 'No companies yet. Create the first one.' : 'No companies match your search.'}
+            {companies.length === 0 ? 'No companies yet. Create the first one.' : 'No companies match your search or filter.'}
           </div>
         ) : (
         <div style={{ overflowX: 'auto', width: '100%' }}>
@@ -414,7 +422,7 @@ export default function PlatformDashboard() {
                 const isExpired = daysLeft === 0 || (c.plan_ends_at && new Date(c.plan_ends_at) <= new Date());
                 const isExpiringSoon = daysLeft != null && daysLeft > 0 && daysLeft < 7;
                 return (
-                  <tr key={c.id}>
+                  <tr key={c.id} {...rowClick(() => openUsers(c))}>
                     <td>
                       <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
                         <div
@@ -442,7 +450,7 @@ export default function PlatformDashboard() {
                               maxWidth: '100%',
                             }}
                           >
-                            <Globe size={11} style={{ color: '#526077', flexShrink: 0 }} />
+                            <Globe size={11} style={{ color: '#3d4a5e', flexShrink: 0 }} />
                             <span
                               style={{
                                 fontSize: '0.72rem',
@@ -501,10 +509,10 @@ export default function PlatformDashboard() {
                             borderRadius: 6,
                             whiteSpace: 'nowrap',
                             ...(isExpired
-                              ? { background: '#fef2f2', color: '#dc2626', border: '1px solid #fecaca' }
+                              ? { background: '#fef2f2', color: '#b91c1c', border: '1px solid #fecaca' }
                               : isExpiringSoon
-                              ? { background: '#fffbeb', color: '#d97706', border: '1px solid #fde68a' }
-                              : { background: '#ecfdf5', color: '#059669', border: '1px solid #a7f3d0' }),
+                              ? { background: '#fffbeb', color: '#b45309', border: '1px solid #fde68a' }
+                              : { background: '#ecfdf5', color: '#047857', border: '1px solid #a7f3d0' }),
                           }}
                         >
                           {daysLeft} {daysLeft === 1 ? 'day' : 'days'}

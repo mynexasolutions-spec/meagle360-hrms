@@ -67,6 +67,12 @@ class LLMClient:
         return (self.settings.GROQ_API_KEY or self.settings.OPENAI_API_KEY or "").strip()
 
     @property
+    def guide_model(self) -> str:
+        """Small model for how-to answers; other providers use their main model."""
+        configured = (self.settings.AI_GUIDE_MODEL or "").strip()
+        return configured if self.provider == "groq" and configured else self.model
+
+    @property
     def is_configured(self) -> bool:
         return bool(self.api_key and self.api_key not in ("your-groq-api-key", "change-me"))
 
@@ -75,6 +81,7 @@ class LLMClient:
         messages: list[dict[str, Any]],
         tools: list[dict[str, Any]] | None = None,
         temperature: float = 0.1,
+        model: str | None = None,
     ) -> dict[str, Any]:
         """Send chat completion request with optional function-calling tools.
         Automatically retries with `fallback_model` on 429/404/400 errors.
@@ -82,19 +89,20 @@ class LLMClient:
         if not self.is_configured:
             raise LLMProviderError("AI API key is not configured.", status_code=503)
 
+        primary = model or self.model
         try:
             return self._call_completions(
-                model=self.model,
+                model=primary,
                 messages=messages,
                 tools=tools,
                 temperature=temperature,
             )
         except LLMProviderError as exc:
-            if exc.status_code in (429, 404, 400) and self.fallback_model and self.fallback_model != self.model:
+            if exc.status_code in (429, 404, 400) and self.fallback_model and self.fallback_model != primary:
                 logger.warning(
                     "Error (%s) on primary model %s; retrying with fallback %s",
                     exc.status_code,
-                    self.model,
+                    primary,
                     self.fallback_model,
                 )
                 return self._call_completions(

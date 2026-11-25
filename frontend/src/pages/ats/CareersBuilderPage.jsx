@@ -299,7 +299,7 @@ export default function CareersBuilderPage() {
             to="/ats/jobs"
             className="inline-flex items-center gap-2 px-3.5 py-2 rounded-xl border border-slate-200 bg-white hover:bg-slate-50 hover:border-slate-300 text-slate-700 font-semibold text-xs transition-all shadow-xs group"
           >
-            <ArrowLeft size={15} className="group-hover:-translate-x-0.5 transition-transform text-slate-500" />
+            <ArrowLeft size={15} className="group-hover:-translate-x-0.5 transition-transform text-slate-600" />
             <span>Back to Job Openings</span>
           </Link>
 
@@ -308,12 +308,12 @@ export default function CareersBuilderPage() {
           <div>
             <div className="flex items-center gap-2">
               <h1 className="text-sm font-bold text-slate-900 tracking-tight">Careers Site Studio</h1>
-              <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[10px] font-semibold bg-emerald-50 text-emerald-700 border border-emerald-200">
+              <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[0.8125rem] font-semibold bg-emerald-50 text-emerald-700 border border-emerald-200">
                 <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
                 Live Sync
               </span>
             </div>
-            <p className="text-[11px] text-slate-500">
+            <p className="text-[0.8125rem] text-slate-600">
               Customize branding, copy, hero photography & live theme
             </p>
           </div>
@@ -327,7 +327,7 @@ export default function CareersBuilderPage() {
             className={`flex items-center gap-1.5 px-3.5 py-1.5 rounded-lg text-xs font-semibold transition-all ${
               viewportMode === 'desktop'
                 ? 'bg-white text-slate-900 shadow-xs'
-                : 'text-slate-500 hover:text-slate-900'
+                : 'text-slate-600 hover:text-slate-900'
             }`}
           >
             <Monitor size={14} className={viewportMode === 'desktop' ? 'text-blue-600' : ''} />
@@ -339,7 +339,7 @@ export default function CareersBuilderPage() {
             className={`flex items-center gap-1.5 px-3.5 py-1.5 rounded-lg text-xs font-semibold transition-all ${
               viewportMode === 'mobile'
                 ? 'bg-white text-slate-900 shadow-xs'
-                : 'text-slate-500 hover:text-slate-900'
+                : 'text-slate-600 hover:text-slate-900'
             }`}
           >
             <Smartphone size={14} className={viewportMode === 'mobile' ? 'text-blue-600' : ''} />
@@ -425,7 +425,7 @@ export default function CareersBuilderPage() {
                   className={`flex items-center gap-1.5 px-3.5 py-2.5 text-xs font-bold border-b-2 transition-all ${
                     isActive
                       ? 'border-blue-600 text-blue-600 bg-white rounded-t-lg shadow-2xs'
-                      : 'border-transparent text-slate-500 hover:text-slate-800 hover:bg-slate-100/60 rounded-t-lg'
+                      : 'border-transparent text-slate-600 hover:text-slate-800 hover:bg-slate-100/60 rounded-t-lg'
                   }`}
                 >
                   <Icon size={14} />
@@ -449,9 +449,9 @@ export default function CareersBuilderPage() {
                     value={brandName}
                     onChange={(e) => setBrandName(e.target.value)}
                     placeholder="e.g. Meagle 360"
-                    className="w-full bg-slate-50 hover:bg-slate-100/50 focus:bg-white border border-slate-250 focus:border-blue-500 focus:ring-4 focus:ring-blue-100/60 rounded-xl p-3 text-xs text-slate-900 placeholder-slate-400 outline-none transition-all"
+                    className="w-full bg-slate-50 hover:bg-slate-100/50 focus:bg-white border border-slate-250 focus:border-blue-500 focus:ring-4 focus:ring-blue-100/60 rounded-xl p-3 text-xs text-slate-900 placeholder-slate-600 outline-none transition-all"
                   />
-                  <span className="text-[11px] text-slate-500 mt-1.5 block">
+                  <span className="text-[0.8125rem] text-slate-600 mt-1.5 block">
                     Displayed across the header, tab title and candidate notifications.
                   </span>
                 </div>
@@ -484,14 +484,14 @@ export default function CareersBuilderPage() {
                             </>
                           )}
                         </div>
-                        <p className="text-[11px] text-slate-500 mt-1">
+                        <p className="text-[0.8125rem] text-slate-600 mt-1">
                           PNG, JPG, SVG or WEBP (Max 5MB)
                         </p>
                         {logoUrl && (
                           <button
                             type="button"
                             onClick={handleRemoveLogo}
-                            className="mt-2 text-[11px] font-semibold text-rose-600 hover:text-rose-700 inline-flex items-center gap-1 transition-colors"
+                            className="mt-2 text-[0.8125rem] font-semibold text-rose-600 hover:text-rose-700 inline-flex items-center gap-1 transition-colors"
                           >
                             <Trash2 size={12} />
                             <span>Remove Logo</span>
@@ -501,14 +501,14 @@ export default function CareersBuilderPage() {
                     </div>
 
                     {uploadError && (
-                      <p className="text-[11px] text-rose-600 mb-2 font-medium">
+                      <p className="text-[0.8125rem] text-rose-600 mb-2 font-medium">
                         {uploadError}
                       </p>
                     )}
 
                     <label className={`w-full py-2.5 px-3 rounded-xl font-bold text-xs flex items-center justify-center gap-2 transition-all cursor-pointer shadow-xs ${
                       uploadingLogo
-                        ? 'bg-slate-200 text-slate-500 cursor-not-allowed'
+                        ? 'bg-slate-200 text-slate-400 cursor-not-allowed'
                         : 'bg-blue-600 hover:bg-blue-700 active:bg-blue-800 text-white'
                     }`}>
                       {uploadingLogo ? (
@@ -531,7 +531,7 @@ export default function CareersBuilderPage() {
                       />
                     </label>
                   </div>
-                  <span className="text-[11px] text-slate-500 mt-1.5 block">
+                  <span className="text-[0.8125rem] text-slate-600 mt-1.5 block">
                     Upload your company logo photo directly. It will be hosted securely and appear in your public careers header.
                   </span>
                 </div>
@@ -550,7 +550,7 @@ export default function CareersBuilderPage() {
                     value={badgeText}
                     onChange={(e) => setBadgeText(e.target.value)}
                     placeholder="e.g. CAREERS, WE ARE HIRING!"
-                    className="w-full bg-slate-50 hover:bg-slate-100/50 focus:bg-white border border-slate-250 focus:border-blue-500 focus:ring-4 focus:ring-blue-100/60 rounded-xl p-3 text-xs text-slate-900 placeholder-slate-400 outline-none transition-all"
+                    className="w-full bg-slate-50 hover:bg-slate-100/50 focus:bg-white border border-slate-250 focus:border-blue-500 focus:ring-4 focus:ring-blue-100/60 rounded-xl p-3 text-xs text-slate-900 placeholder-slate-600 outline-none transition-all"
                   />
                 </div>
 
@@ -562,7 +562,7 @@ export default function CareersBuilderPage() {
                       value={titlePrefix}
                       onChange={(e) => setTitlePrefix(e.target.value)}
                       placeholder="e.g. Join our"
-                      className="w-full bg-slate-50 hover:bg-slate-100/50 focus:bg-white border border-slate-250 focus:border-blue-500 focus:ring-4 focus:ring-blue-100/60 rounded-xl p-3 text-xs text-slate-900 placeholder-slate-400 outline-none transition-all"
+                      className="w-full bg-slate-50 hover:bg-slate-100/50 focus:bg-white border border-slate-250 focus:border-blue-500 focus:ring-4 focus:ring-blue-100/60 rounded-xl p-3 text-xs text-slate-900 placeholder-slate-600 outline-none transition-all"
                     />
                   </div>
                   <div>
@@ -574,7 +574,7 @@ export default function CareersBuilderPage() {
                       value={titleHighlight}
                       onChange={(e) => setTitleHighlight(e.target.value)}
                       placeholder="e.g. team, revolution"
-                      className="w-full bg-slate-50 hover:bg-slate-100/50 focus:bg-white border border-slate-250 focus:border-blue-500 focus:ring-4 focus:ring-blue-100/60 rounded-xl p-3 text-xs text-slate-900 placeholder-slate-400 outline-none transition-all"
+                      className="w-full bg-slate-50 hover:bg-slate-100/50 focus:bg-white border border-slate-250 focus:border-blue-500 focus:ring-4 focus:ring-blue-100/60 rounded-xl p-3 text-xs text-slate-900 placeholder-slate-600 outline-none transition-all"
                     />
                   </div>
                 </div>
@@ -588,7 +588,7 @@ export default function CareersBuilderPage() {
                     value={subtitle}
                     onChange={(e) => setSubtitle(e.target.value)}
                     placeholder="Build amazing products, work with great people..."
-                    className="w-full bg-slate-50 hover:bg-slate-100/50 focus:bg-white border border-slate-250 focus:border-blue-500 focus:ring-4 focus:ring-blue-100/60 rounded-xl p-3 text-xs text-slate-900 placeholder-slate-400 outline-none transition-all"
+                    className="w-full bg-slate-50 hover:bg-slate-100/50 focus:bg-white border border-slate-250 focus:border-blue-500 focus:ring-4 focus:ring-blue-100/60 rounded-xl p-3 text-xs text-slate-900 placeholder-slate-600 outline-none transition-all"
                   />
                 </div>
               </div>
@@ -604,7 +604,7 @@ export default function CareersBuilderPage() {
                     value={heroImageUrl}
                     onChange={(e) => setHeroImageUrl(e.target.value)}
                     placeholder="https://..."
-                    className="w-full bg-slate-50 hover:bg-slate-100/50 focus:bg-white border border-slate-250 focus:border-blue-500 focus:ring-4 focus:ring-blue-100/60 rounded-xl p-3 text-xs text-slate-900 placeholder-slate-400 outline-none transition-all"
+                    className="w-full bg-slate-50 hover:bg-slate-100/50 focus:bg-white border border-slate-250 focus:border-blue-500 focus:ring-4 focus:ring-blue-100/60 rounded-xl p-3 text-xs text-slate-900 placeholder-slate-600 outline-none transition-all"
                   />
                 </div>
 
@@ -630,7 +630,7 @@ export default function CareersBuilderPage() {
                           <img src={p.url} alt={p.name} className="w-full h-20 object-cover" />
                           <div className="p-2.5 bg-white">
                             <span className="font-bold text-xs text-slate-900 block truncate">{p.name}</span>
-                            <span className="text-[10px] text-slate-400">
+                            <span className="text-[0.8125rem] text-slate-600">
                               {isSelected ? '✓ Active Photo' : 'Select'}
                             </span>
                           </div>
@@ -648,7 +648,7 @@ export default function CareersBuilderPage() {
                       value={heroCardBadge}
                       onChange={(e) => setHeroCardBadge(e.target.value)}
                       placeholder="e.g. Better Together"
-                      className="w-full bg-slate-50 hover:bg-slate-100/50 focus:bg-white border border-slate-250 focus:border-blue-500 focus:ring-4 focus:ring-blue-100/60 rounded-xl p-2.5 text-xs text-slate-900 placeholder-slate-400 outline-none"
+                      className="w-full bg-slate-50 hover:bg-slate-100/50 focus:bg-white border border-slate-250 focus:border-blue-500 focus:ring-4 focus:ring-blue-100/60 rounded-xl p-2.5 text-xs text-slate-900 placeholder-slate-600 outline-none"
                     />
                   </div>
                   <div>
@@ -658,7 +658,7 @@ export default function CareersBuilderPage() {
                       value={heroCardQuote}
                       onChange={(e) => setHeroCardQuote(e.target.value)}
                       placeholder="Better Code.\nBigger Dreams."
-                      className="w-full bg-slate-50 hover:bg-slate-100/50 focus:bg-white border border-slate-250 focus:border-blue-500 focus:ring-4 focus:ring-blue-100/60 rounded-xl p-2.5 text-xs text-slate-900 placeholder-slate-400 outline-none"
+                      className="w-full bg-slate-50 hover:bg-slate-100/50 focus:bg-white border border-slate-250 focus:border-blue-500 focus:ring-4 focus:ring-blue-100/60 rounded-xl p-2.5 text-xs text-slate-900 placeholder-slate-600 outline-none"
                     />
                   </div>
                 </div>
@@ -690,7 +690,7 @@ export default function CareersBuilderPage() {
                             className="w-4 h-4 rounded-full shrink-0 shadow-xs border border-white"
                             style={{ backgroundColor: c.hex }}
                           />
-                          <span className="text-[11px] truncate">{c.name.split(' ')[0]}</span>
+                          <span className="text-[0.8125rem] truncate">{c.name.split(' ')[0]}</span>
                         </button>
                       );
                     })}
@@ -733,7 +733,7 @@ export default function CareersBuilderPage() {
                     <Tv size={16} className="text-blue-600" />
                     <span>Silver Studio Display • 4K Retina</span>
                   </div>
-                  <span className="text-[10px] px-2.5 py-0.5 rounded-full bg-emerald-50 text-emerald-700 border border-emerald-200 font-semibold flex items-center gap-1.5 shadow-2xs">
+                  <span className="text-[0.8125rem] px-2.5 py-0.5 rounded-full bg-emerald-50 text-emerald-700 border border-emerald-200 font-semibold flex items-center gap-1.5 shadow-2xs">
                     <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
                     Live Preview (Fit to Screen)
                   </span>
@@ -753,7 +753,7 @@ export default function CareersBuilderPage() {
 
                     <div className="flex items-center gap-2">
                       <div className="tv-sensor-dot" />
-                      <span className="text-[10px] font-mono text-slate-600 bg-white px-3 py-0.5 rounded-md border border-slate-200 shadow-2xs">
+                      <span className="text-[0.8125rem] font-mono text-slate-600 bg-white px-3 py-0.5 rounded-md border border-slate-200 shadow-2xs">
                         https://{brandName.toLowerCase().replace(/[^a-z0-9]/g, '') || 'meagle360'}.meagle360.com/careers
                       </span>
                     </div>
@@ -954,7 +954,7 @@ export default function CareersBuilderPage() {
                   {/* Silver Bezel Bottom */}
                   <div className="tv-bezel-bottom">
                     <span className="tv-brand-badge">MEAGLE VISION PRO • 4K DISPLAY</span>
-                    <span className="text-[10px] text-slate-500 font-mono">
+                    <span className="text-[0.8125rem] text-slate-600 font-mono">
                       1200 × 720 ({Math.round(currentScale * 100)}%)
                     </span>
                   </div>
@@ -977,7 +977,7 @@ export default function CareersBuilderPage() {
                     <Smartphone size={16} className="text-blue-600" />
                     <span>iPhone 16 Pro • Super Retina</span>
                   </div>
-                  <span className="text-[10px] px-2.5 py-0.5 rounded-full bg-emerald-50 text-emerald-700 border border-emerald-200 font-semibold flex items-center gap-1.5 shadow-2xs">
+                  <span className="text-[0.8125rem] px-2.5 py-0.5 rounded-full bg-emerald-50 text-emerald-700 border border-emerald-200 font-semibold flex items-center gap-1.5 shadow-2xs">
                     <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
                     Live Mobile Feed
                   </span>
@@ -992,7 +992,7 @@ export default function CareersBuilderPage() {
                   <div className="iphone-dynamic-island">
                     <div className="iphone-camera-dot" />
                   </div>
-                  <div className="flex items-center gap-1.5 text-[11px] font-semibold">
+                  <div className="flex items-center gap-1.5 text-[0.8125rem] font-semibold">
                     <span>5G</span>
                     <div className="w-4 h-2.5 border border-slate-700 rounded-xs p-[1px] flex items-center">
                       <div className="h-full bg-emerald-500 rounded-[1px] w-full" />
@@ -1014,7 +1014,7 @@ export default function CareersBuilderPage() {
                       )}
                       <span className="font-extrabold text-sm text-slate-900">{brandName}</span>
                     </div>
-                    <span className="text-[10px] font-bold px-2.5 py-0.5 rounded-full bg-blue-50 text-blue-600 uppercase">
+                    <span className="text-[0.8125rem] font-bold px-2.5 py-0.5 rounded-full bg-blue-50 text-blue-600 uppercase">
                       {badgeText}
                     </span>
                   </header>
@@ -1032,7 +1032,7 @@ export default function CareersBuilderPage() {
                     {/* Hero Image Card */}
                     <div className="relative rounded-2xl overflow-hidden shadow-xs border border-slate-200/80 mb-4 h-36">
                       <img src={heroImageUrl} alt="Hero" className="w-full h-full object-cover" />
-                      <div className="absolute top-2 right-2 bg-white/90 backdrop-blur-md px-2.5 py-0.5 rounded-full text-[9px] font-bold text-slate-800 shadow-2xs">
+                      <div className="absolute top-2 right-2 bg-white/90 backdrop-blur-md px-2.5 py-0.5 rounded-full text-[0.8125rem] font-bold text-slate-800 shadow-2xs">
                         {heroCardBadge}
                       </div>
                       <div className="absolute bottom-2 right-3 text-right">
@@ -1044,7 +1044,7 @@ export default function CareersBuilderPage() {
 
                     {/* Mobile Search */}
                     <div className="flex items-center bg-white border border-slate-250 rounded-xl p-1.5 shadow-2xs">
-                      <Search size={14} className="text-slate-400 ml-2 mr-1" />
+                      <Search size={14} className="text-slate-600 ml-2 mr-1" />
                       <input
                         type="text"
                         readOnly
@@ -1054,7 +1054,7 @@ export default function CareersBuilderPage() {
                       <button
                         type="button"
                         style={{ backgroundColor: primaryColor }}
-                        className="text-white text-[11px] font-bold px-3 py-1.5 rounded-lg shrink-0"
+                        className="text-white text-[0.8125rem] font-bold px-3 py-1.5 rounded-lg shrink-0"
                       >
                         Find
                       </button>
@@ -1065,7 +1065,7 @@ export default function CareersBuilderPage() {
                   <div className="p-4 space-y-3">
                     <div className="flex items-center justify-between">
                       <span className="text-xs font-bold text-slate-800">Open Positions</span>
-                      <span className="text-[11px] text-slate-500 font-semibold">{PREVIEW_JOBS.length} jobs</span>
+                      <span className="text-[0.8125rem] text-slate-600 font-semibold">{PREVIEW_JOBS.length} jobs</span>
                     </div>
 
                     {/* Job Cards */}
@@ -1080,12 +1080,12 @@ export default function CareersBuilderPage() {
                               </div>
                               <div className="flex-1 min-w-0">
                                 <h4 className="text-xs font-bold text-slate-900 truncate">{job.title}</h4>
-                                <p className="text-[11px] text-slate-500">{job.department_name}</p>
+                                <p className="text-[0.8125rem] text-slate-600">{job.department_name}</p>
                               </div>
                             </div>
 
-                            <div className="flex items-center justify-between pt-1 border-t border-slate-100 text-[10px]">
-                              <div className="flex items-center gap-1 text-slate-500">
+                            <div className="flex items-center justify-between pt-1 border-t border-slate-100 text-[0.8125rem]">
+                              <div className="flex items-center gap-1 text-slate-600">
                                 <MapPin size={11} />
                                 <span>{job.location}</span>
                               </div>
@@ -1107,7 +1107,7 @@ export default function CareersBuilderPage() {
                 {/* iPhone Bottom Bar: Safari Capsule & Home Indicator */}
                 <div className="iphone-bottom-bar">
                   <div className="iphone-safari-capsule">
-                    <span className="text-slate-400">🔒</span>
+                    <span className="text-slate-600">🔒</span>
                     <span>meagle360.com/careers</span>
                   </div>
                   <div className="iphone-home-indicator" />

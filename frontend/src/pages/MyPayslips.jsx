@@ -220,7 +220,7 @@ export default function MyPayslips() {
             <h1 style={{ fontSize: 'clamp(1.25rem, 4.5vw, 1.75rem)', fontWeight: 800, color: '#0f172a' }}>
               My Payslips
             </h1>
-            <p style={{ color: '#526077', fontSize: '0.875rem' }}>
+            <p style={{ color: '#3d4a5e', fontSize: '0.875rem' }}>
               View &amp; download your official monthly salary statements
             </p>
           </div>
@@ -288,10 +288,10 @@ export default function MyPayslips() {
                     <h3 style={{ margin: 0, fontSize: '1.125rem', fontWeight: 700, color: '#0f172a' }}>
                       {MONTH_NAMES[p.run_month - 1]} {p.run_year} Payslip
                     </h3>
-                    <span style={{ fontSize: '0.8125rem', color: '#526077' }}>
+                    <span style={{ fontSize: '0.8125rem', color: '#3d4a5e' }}>
                       Working Days: <strong style={{ color: '#334155' }}>{p.working_days}</strong> | Paid Days:{' '}
                       <strong style={{ color: '#16a34a' }}>{paidDays}</strong> | LOP:{' '}
-                      <strong style={{ color: Number(p.lop_days) > 0 ? '#ef4444' : '#64748b' }}>
+                      <strong style={{ color: Number(p.lop_days) > 0 ? '#ef4444' : '#475569' }}>
                         {p.lop_days} days
                       </strong>
                     </span>
@@ -304,7 +304,7 @@ export default function MyPayslips() {
                       style={{
                         fontSize: '0.75rem',
                         fontWeight: 600,
-                        color: '#526077',
+                        color: '#3d4a5e',
                         textTransform: 'uppercase',
                         letterSpacing: '0.05em',
                       }}
@@ -315,7 +315,7 @@ export default function MyPayslips() {
                       ₹{money(p.net_pay)}
                     </div>
                   </div>
-                  <div style={{ color: '#64748b', flexShrink: 0 }}>
+                  <div style={{ color: '#475569', flexShrink: 0 }}>
                     {isOpen ? <ChevronUp size={20} /> : <ChevronDown size={20} />}
                   </div>
                 </div>
@@ -511,7 +511,7 @@ export default function MyPayslips() {
                               </div>
                             )}
                             {deductions.length === 0 && Number(p.lop_amount) === 0 && (
-                              <div style={{ padding: 16, textAlign: 'center', color: '#64748b', fontSize: '0.78rem' }}>
+                              <div style={{ padding: 16, textAlign: 'center', color: '#475569', fontSize: '0.78rem' }}>
                                 No deductions for this period
                               </div>
                             )}
@@ -675,7 +675,7 @@ export default function MyPayslips() {
               border: '1px solid #e2e8f0',
               padding: 48,
               textAlign: 'center',
-              color: '#526077',
+              color: '#3d4a5e',
             }}
           >
             <Wallet size={48} style={{ color: '#7c8aa0', marginBottom: 12 }} />

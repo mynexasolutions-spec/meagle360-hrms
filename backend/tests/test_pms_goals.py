@@ -3,7 +3,6 @@ from decimal import Decimal as D
 import pytest
 
 from app.services.pms_config_service import PmsConfigError
-from app.services.pms_cycle_service import next_status
 from app.services.pms_goal_service import achievement_pct, compute_goals_score
 
 
@@ -38,11 +37,3 @@ def test_goals_score_capped_and_clamped():
 def test_goals_score_missing_progress_counts_zero_and_empty_is_none():
     assert compute_goals_score([(D("100"), None)]) == D("0.00")
     assert compute_goals_score([]) is None
-
-
-def test_cycle_advance_transitions():
-    assert next_status("goal_setting") == "rating"
-    assert next_status("rating") == "review"
-    for bad in ("draft", "review", "finalized", "closed"):
-        with pytest.raises(PmsConfigError):
-            next_status(bad)

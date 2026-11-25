@@ -1,0 +1,538 @@
+"""Meagle 360 how-to guides.
+
+Every button and menu name here is copied from the real screens. When a screen
+changes, update its guide. `tests/test_ai_guides.py` checks that paths exist in
+the frontend router, but it cannot check the wording of the steps.
+
+permissions: the user needs any ONE of these; empty means everyone.
+aliases:     short ways people ask for it (English + Hinglish), used for matching.
+soft:        True when asking for the thing at all ("offer letter chahiye") can be
+             treated as a how-to. Leave False where the AI has a live tool for it.
+"""
+
+from dataclasses import dataclass
+
+
+@dataclass(frozen=True)
+class Guide:
+    id: str
+    title: str
+    path: str
+    button: str
+    aliases: tuple[str, ...]
+    steps: tuple[str, ...]
+    notes: tuple[str, ...] = ()
+    permissions: tuple[str, ...] = ()
+    soft: bool = False
+
+
+GUIDES: tuple[Guide, ...] = (
+    Guide(
+        id="offer-letter",
+        title="Create an offer letter",
+        path="/offer-letter",
+        button="Open Offer Letter Studio",
+        aliases=("offer letter", "joining letter", "appointment letter", "offer letter applicant"),
+        steps=(
+            "Open Team & HR Ops > Employee Directory and click Offer Letter at the top.",
+            "Fill Candidate Full Name, address, department, designation, employment type and work site.",
+            "Enter the salary and frequency, Joining Start Date, Acceptance Deadline and any bonus or benefits.",
+            "Check the Authorized Signatory name and email.",
+            "Check the live A4 preview, then click Print / Save as PDF.",
+        ),
+        notes=(
+            "For an ATS candidate: open the applicant in the Offer stage and click Create Offer Letter; "
+            "name, role and department are filled automatically.",
+            "The PDF is made with the browser print window, so choose 'Save as PDF' there. "
+            "The studio does not email the letter.",
+        ),
+        permissions=("settings:write", "employees:write", "ats:offer:create"),
+        soft=True,
+    ),
+    Guide(
+        id="relieving-letter",
+        title="Create a relieving letter",
+        path="/relieving-letter",
+        button="Open Relieving Letter Studio",
+        aliases=("relieving letter", "experience letter", "reliving letter", "exit letter", "resign letter",
+                 "chhod letter", "leaving company letter", "chhod raha letter"),
+        steps=(
+            "Open Team & HR Ops > Employee Directory and click Relieving Letter at the top "
+            "(or the relieving letter icon in that employee's row).",
+            "Under Auto-Fill from Employee Directory, pick the employee.",
+            "Check the name, address and Joining Date, then set the Last Working Date and Letter Issue Date.",
+            "Check the Exit Clearance / Dues Note and the Authorized Signatory Details.",
+            "Check the live preview, then click Print / Save as PDF.",
+        ),
+        notes=(
+            "Check the address, dates and signatory carefully: fields missing from the records show sample text.",
+            "The PDF is made with the browser print window. The studio does not email the letter.",
+            "The letter does not exit the employee. Use Initiate Exit / Full & Final on their profile for that.",
+        ),
+        permissions=("settings:write",),
+        soft=True,
+    ),
+    Guide(
+        id="full-and-final",
+        title="Exit an employee (full & final settlement)",
+        path="/employees",
+        button="Open Employee Directory",
+        aliases=("full final settlement", "fnf", "exit employee", "employee resign exit", "gratuity",
+                 "terminate employee", "employee nikalna", "employee chhod raha"),
+        steps=(
+            "Open Employee Directory and open the employee's profile.",
+            "In Gratuity & Exit, click Initiate Exit / Full & Final.",
+            "Enter the Exit Date and reason, then click Initiate Settlement.",
+            "Review pending salary, leave encashment, gratuity and deductions.",
+            "After paying, click Mark as Processed / Paid.",
+        ),
+        notes=("Initiating the exit deactivates the employee.",
+               "Marking it as paid needs payroll approval permission."),
+        permissions=("payroll:write",),
+        soft=True,
+    ),
+    Guide(
+        id="invite-employee",
+        title="Add / invite a new employee",
+        path="/employees",
+        button="Open Employee Directory",
+        aliases=("add employee", "invite employee", "new employee", "onboard employee", "naya employee",
+                 "employee jodna", "naya banda add", "create employee account", "employee login"),
+        steps=(
+            "Open Team & HR Ops > Employee Directory and click Invite Employee.",
+            "Fill Full Name, Email, Employee Code and Role.",
+            "Choose department, site, manager and Date of Hire.",
+            "Click Create & Generate Invite.",
+            "Use Copy link if you want to share the password setup link yourself.",
+        ),
+        notes=("If the invite was missed, open the employee's profile and click Resend Invite Link.",),
+        permissions=("employees:write",),
+        soft=True,
+    ),
+    Guide(
+        id="edit-employee",
+        title="Edit an employee or deactivate an account",
+        path="/employees",
+        button="Open Employee Directory",
+        aliases=("edit employee", "update employee details", "deactivate employee", "employee bank details update",
+                 "employee pan uan update", "reactivate employee", "change department employee"),
+        steps=(
+            "Open Employee Directory and open the employee's profile.",
+            "Click Edit, change the details (personal, PAN, UAN, bank, tax regime) and click Save.",
+            "To switch the account off or on, use Deactivate / Reactivate on the same page.",
+        ),
+        notes=("To give extra permissions, use Manage Additional Roles on the profile (needs settings access).",),
+        permissions=("employees:write",),
+    ),
+    Guide(
+        id="apply-leave",
+        title="Apply for leave",
+        path="/leave",
+        button="Open Leave",
+        aliases=("apply leave", "request leave", "leave lena", "chhutti lena", "leave daalna"),
+        steps=(
+            "Open My Space > Leave.",
+            "Click + Apply Leave.",
+            "Choose the Leave Type, Start Date and End Date.",
+            "Click Submit. Track it under My Requests.",
+        ),
+        notes=(
+            "You can also just tell Meagle AI, e.g. 'apply sick leave for tomorrow', and confirm.",
+            "An Admin account does not show + Apply Leave; it manages approvals.",
+        ),
+    ),
+    Guide(
+        id="approve-leave",
+        title="Approve or reject leave requests",
+        path="/leave?tab=approvals",
+        button="Open Leave Approvals",
+        aliases=("approve leave", "reject leave", "leave approval", "leave manjoor"),
+        steps=(
+            "Open My Space > Leave and go to the approvals tab.",
+            "Find the request and check the dates and leave type.",
+            "Click Approve or Reject.",
+            "To change dates, leave type or status, click Edit. Past decisions are in History.",
+        ),
+        notes=("You can also ask Meagle AI 'approve Rahul's leave' and confirm on the card.",),
+        permissions=("leave:approve",),
+    ),
+    Guide(
+        id="leave-setup",
+        title="Set up leave types and adjust balances",
+        path="/leave",
+        button="Open Leave",
+        aliases=("leave type add", "leave type setup", "leave balance adjust", "leave balance badhana",
+                 "leave accrual", "backdate leave", "monthly accrual", "leave policy setup"),
+        steps=(
+            "Open My Space > Leave and go to Leave Types.",
+            "Click + Add, enter the name, accrual rate and Paid/Unpaid, and save.",
+            "To change someone's balance, click Adjust Employee Balance, choose the employee and leave type, "
+            "add the reason and click Apply.",
+            "To credit monthly leave, click Run Monthly Accrual.",
+            "To enter an old leave, click Record / Backdate Leave.",
+        ),
+        permissions=("settings:write",),
+    ),
+    Guide(
+        id="clock-in",
+        title="Clock in and clock out",
+        path="/attendance",
+        button="Open Attendance",
+        aliases=("clock in", "clock out", "punch", "mark attendance", "attendance lagana", "check in", "hazri lagana"),
+        steps=(
+            "Open My Space > Attendance (the Dashboard also has the button).",
+            "Click Clock In. If selfie verification is on, follow the camera step.",
+            "At the end of the day click Clock Out, add your Day's Summary, and click Save & Clock Out.",
+        ),
+        notes=(
+            "Clock-in is blocked on an approved leave day.",
+            "A clock-in away from an allowed location can be flagged. "
+            "Forgot to clock in? Use a regularization request.",
+        ),
+    ),
+    Guide(
+        id="regularization",
+        title="Fix attendance (regularization request)",
+        path="/attendance",
+        button="Open Attendance",
+        aliases=("regularization", "regularize attendance", "attendance correction", "attendance galat",
+                 "attendance theek", "forgot clock", "forgot punch", "punch bhool gaya", "missed punch",
+                 "clock bhool gaya"),
+        steps=(
+            "Open My Space > Attendance and go to the Regularization tab.",
+            "Click New Request.",
+            "Choose the date, Requested Clock In and Clock Out, and write the reason.",
+            "Click Submit Request and track its status in the same tab.",
+        ),
+        notes=("There can be a monthly limit. Admins approve these in the Approval Queue of the same tab.",),
+        soft=True,
+    ),
+    Guide(
+        id="overtime",
+        title="Request overtime",
+        path="/attendance",
+        button="Open Attendance",
+        aliases=("overtime", "request overtime", "extra hours"),
+        steps=(
+            "Open My Space > Attendance and go to the Overtime tab.",
+            "Click New Request.",
+            "Enter the date, hours and reason, and submit.",
+        ),
+        notes=("Approvers see pending overtime in the same tab.",),
+    ),
+    Guide(
+        id="selfie-verification",
+        title="Set up selfie verification",
+        path="/attendance",
+        button="Open Attendance",
+        aliases=("selfie verification", "passport photo upload", "face verification", "selfie clock in"),
+        steps=(
+            "Open My Space > Attendance (or My Profile).",
+            "Click Upload Passport Photo, choose a clear photo and click Submit Photo.",
+            "The status shows Under Review until it is checked. After that, live selfie matching runs at clock-in.",
+        ),
+        notes=("Admins manage this in Settings > Selfie Verification.",),
+        soft=True,
+    ),
+    Guide(
+        id="salary-structure",
+        title="Set up salary components, structures and employee CTC",
+        path="/payroll",
+        button="Open Payroll",
+        aliases=("salary structure", "assign salary", "assign ctc", "salary component", "ctc set",
+                 "salary set employee"),
+        steps=(
+            "Open Team & HR Ops > Payroll.",
+            "In Salary Components, click Add Component for each earning or deduction.",
+            "In Salary Structures, click Add Structure and add the components.",
+            "In Employee Assignments, select the employee and click New Assignment.",
+            "Choose the structure, Annual CTC, Basic Pay and Effective From, and save.",
+        ),
+        notes=("An employee without an assignment is left out of the payroll run.",),
+        permissions=("payroll:write",),
+        soft=True,
+    ),
+    Guide(
+        id="run-payroll",
+        title="Run and finalize payroll",
+        path="/payroll",
+        button="Open Payroll",
+        aliases=("run payroll", "payroll", "generate payroll", "finalize payroll", "process salary",
+                 "generate payslip"),
+        steps=(
+            "First make sure each employee has a salary assignment (Employee Assignments tab).",
+            "Open Team & HR Ops > Payroll > Payroll Runs and click Run Payroll.",
+            "Choose the month and year and run it. A draft is created.",
+            "Open the run, check each payslip, and use Adjust for bonuses or deductions.",
+            "Click Finalize Run and confirm.",
+        ),
+        notes=(
+            "Finalizing locks every payslip and cannot be undone; it needs payroll approval permission.",
+            "Only one run per month: delete the draft first if you need to run it again.",
+        ),
+        permissions=("payroll:write",),
+    ),
+    Guide(
+        id="loans",
+        title="Give an employee loan or advance",
+        path="/payroll",
+        button="Open Payroll",
+        aliases=("employee loan", "salary advance", "loan create", "advance dena", "loan close"),
+        steps=(
+            "Open Team & HR Ops > Payroll and go to Loans.",
+            "Select the employee and click New Loan.",
+            "Enter the principal amount, installment type, monthly installment, start date and reason.",
+            "Click Create Loan. Use Close to end it.",
+        ),
+        permissions=("payroll:write",),
+        soft=True,
+    ),
+    Guide(
+        id="view-payslip",
+        title="View or download your payslip",
+        path="/my-payslips",
+        button="Open My Payslips",
+        aliases=("download payslip", "my payslip", "salary slip", "view payslip"),
+        steps=(
+            "Open My Space > My Payslips.",
+            "Find the month you need.",
+            "Click Print / Save as PDF and choose 'Save as PDF' in the print window.",
+        ),
+        notes=("A payslip appears only after HR finalizes that month's payroll.",),
+    ),
+    Guide(
+        id="submit-expense",
+        title="Submit an expense claim",
+        path="/expenses",
+        button="Open Expenses",
+        aliases=("expense claim", "submit expense", "reimbursement", "expense daalna", "kharcha claim",
+                 "bill claim", "add expense"),
+        steps=(
+            "Open My Space > Expenses and click Submit Expense.",
+            "Enter the category, amount, Expense Date and description.",
+            "Click Submit. Track the status under My Claims.",
+        ),
+        permissions=("expenses:write",),
+        soft=True,
+    ),
+    Guide(
+        id="approve-expense",
+        title="Approve and reimburse expenses",
+        path="/expenses",
+        button="Open Expenses",
+        aliases=("approve expense", "expense approval", "mark reimbursed", "reject expense"),
+        steps=(
+            "Open My Space > Expenses and go to Pending Approvals.",
+            "Click Approve or Reject on each claim.",
+            "After paying, click Mark Reimbursed on the approved claim.",
+        ),
+        permissions=("expenses:approve",),
+        soft=True,
+    ),
+    Guide(
+        id="create-job",
+        title="Post a job opening",
+        path="/ats/jobs",
+        button="Open Job Openings",
+        aliases=("job opening", "create job", "post job", "new vacancy", "vacancy nikalna", "careers page"),
+        steps=(
+            "Open Recruitment (ATS) > Job Openings and click Create Job.",
+            "Fill Position Details, Role Scope and Requirements, using Next between them.",
+            "Set the Status and click Create Opening.",
+            "Use Careers Link to share the public page, or Careers Site Studio to design it.",
+        ),
+        permissions=("ats:job:manage",),
+        soft=True,
+    ),
+    Guide(
+        id="hire-candidate",
+        title="Move a candidate through hiring",
+        path="/ats/applicants",
+        button="Open Applicants",
+        aliases=("hire candidate", "move candidate interview", "shortlist candidate", "convert candidate employee",
+                 "reject candidate", "applicant stage"),
+        steps=(
+            "Open Recruitment (ATS) > Applicants and open the candidate.",
+            "Click Move to Interview and set up the round.",
+            "After the interviews, click Move to Offer.",
+            "Click Create Offer Letter and save the PDF.",
+            "When they accept, click Convert to Employee, check the details and click "
+            "Confirm & Convert to Employee.",
+        ),
+        notes=("Use Reject Candidate to reject with a reason.",
+               "Only authorised HR/Admin users can move to Offer or convert."),
+        permissions=("ats:applicants:view",),
+        soft=True,
+    ),
+    Guide(
+        id="schedule-interview",
+        title="Assign an interviewer and schedule rounds",
+        path="/ats/interviews",
+        button="Open Interviews",
+        aliases=("schedule interview", "assign interviewer", "interview round", "next round interview"),
+        steps=(
+            "Open Recruitment (ATS) > Interviews.",
+            "In Needs Interviewer, click Assign, select the interviewer and click Confirm Assignment.",
+            "The interviewer sets the slot from My Interviews.",
+            "After feedback, click View Feedback, then Next Round or Move to Offer.",
+        ),
+        notes=("Interviewers are set in Recruitment (ATS) > Hiring Team.",),
+        permissions=("ats:interview:assign", "ats:feedback:view_all"),
+        soft=True,
+    ),
+    Guide(
+        id="interview-feedback",
+        title="Take an interview and submit feedback",
+        path="/ats/my-interviews",
+        button="Open My Interviews",
+        aliases=("interview feedback", "submit feedback", "interview slot", "my interviews"),
+        steps=(
+            "Open Recruitment (ATS) > My Interviews.",
+            "Click Set Slot & Confirm and enter date, time, type and location or meeting link.",
+            "After the interview click Submit Feedback.",
+            "Choose attendance, recommendation, rating and notes, and submit.",
+        ),
+        permissions=("ats:interview:view_own",),
+        soft=True,
+    ),
+    Guide(
+        id="shifts",
+        title="Create and assign shifts",
+        path="/shifts",
+        button="Open Shifts",
+        aliases=("assign shift", "create shift", "shift change", "shift template", "shift lagana", "roster"),
+        steps=(
+            "Open Team & HR Ops > Shifts.",
+            "Click New Shift Template, set the Shift Type, Start Time and End Time, and click Create.",
+            "Click Assign Shift, choose the employee, the shift and Effective From Date, and click Assign.",
+            "Change it later from Employee Roster.",
+        ),
+        notes=("Creating or editing a shift template needs settings access.",),
+        permissions=("settings:write", "shifts:write", "attendance:approve"),
+        soft=True,
+    ),
+    Guide(
+        id="my-goals",
+        title="Add goals and update progress (PMS)",
+        path="/performance",
+        button="Open Performance",
+        aliases=("add goal", "update goal", "my goals", "pms goal", "goal progress", "performance goal"),
+        steps=(
+            "Open Performance and go to My Performance.",
+            "Pick the month and click Add goal (or Copy last goals).",
+            "Enter the goal, target and unit.",
+            "Click Update progress as you work, and leave a note for your manager.",
+        ),
+        soft=True,
+    ),
+    Guide(
+        id="team-review",
+        title="Review your team's month (PMS)",
+        path="/performance",
+        button="Open Performance",
+        aliases=("review team", "performance review", "rate employee", "submit review", "employee rating"),
+        steps=(
+            "Open Team & HR Ops > Performance (PMS) and go to Team Reviews.",
+            "Pick the month and click Review next to the employee.",
+            "Check their goals and note, then choose a rating and write a comment.",
+            "Click Submit review.",
+        ),
+        notes=("Goals with no update count as 0%.", "Months in a finalized appraisal cannot be changed."),
+        permissions=("settings:write", "leave:approve", "attendance:approve"),
+        soft=True,
+    ),
+    Guide(
+        id="appraisal",
+        title="Run the yearly appraisal and salary hikes",
+        path="/performance",
+        button="Open Performance",
+        aliases=("yearly appraisal", "salary hike", "increment", "hike rule", "appraisal"),
+        steps=(
+            "Open Team & HR Ops > Performance (PMS) and go to Manage.",
+            "Set the hike rules, then click Start appraisal and choose the period.",
+            "Open the appraisal, check the scores, and click Finalize scores.",
+            "Click Share results.",
+            "In Salary hikes, Approve or Reject each hike, then Apply it.",
+            "Click Close appraisal when done.",
+        ),
+        permissions=("settings:write",),
+        soft=True,
+    ),
+    Guide(
+        id="helpdesk",
+        title="Raise a helpdesk ticket",
+        path="/helpdesk",
+        button="Open Helpdesk",
+        aliases=("raise ticket", "helpdesk", "support ticket", "complaint", "shikayat", "ticket", "contact hr"),
+        steps=(
+            "Open My Space > Helpdesk and click Raise Ticket.",
+            "Enter the subject, category and description.",
+            "Click Submit Ticket, and open View Ticket to follow the replies.",
+        ),
+        soft=True,
+    ),
+    Guide(
+        id="announcement",
+        title="Post an announcement",
+        path="/",
+        button="Open Dashboard",
+        aliases=("post announcement", "new announcement", "announcement", "notice post"),
+        steps=(
+            "Open the Dashboard and find the Announcements card.",
+            "Click Post Announcement.",
+            "Enter the title and message, and post it.",
+        ),
+        notes=("Employees read them in Company > Announcements.",),
+        permissions=("settings:write",),
+        soft=True,
+    ),
+    Guide(
+        id="policies",
+        title="Publish a company policy",
+        path="/policies?tab=manage",
+        button="Open Policies",
+        aliases=("publish policy", "company policy add", "new policy", "create policy", "edit policy"),
+        steps=(
+            "Open Company > Company Policies and switch to the manage tab.",
+            "Click New policy, write the title and text, and Attach PDF if needed.",
+            "Tick 'Employees must agree to this policy' if agreement is needed.",
+            "Click Publish. See who agreed in Report.",
+        ),
+        notes=("Employees see changes only after you publish.",),
+        permissions=("settings:write",),
+        soft=True,
+    ),
+    Guide(
+        id="company-setup",
+        title="Company settings: logo, holidays, departments, sites, geofencing",
+        path="/settings",
+        button="Open Settings",
+        aliases=("company logo", "add holiday", "add department", "add site", "geofence", "geofencing setup",
+                 "company settings", "signature upload", "office location", "weekly off", "company branding"),
+        steps=(
+            "Open Administration > Settings.",
+            "Company Branding: click Choose & Upload Logo and Choose & Upload Signature, fill signatory details and click "
+            "Save Branding Details.",
+            "Holidays: click + Add Holiday. Departments: click + Add.",
+            "Sites: add your office with its address. Geofencing: set the allowed clock-in locations.",
+            "Payroll Policy: set Weekly Off Days and the Monthly Regularization Limit.",
+        ),
+        permissions=("settings:write",),
+        soft=True,
+    ),
+    Guide(
+        id="documents",
+        title="Upload your documents",
+        path="/documents",
+        button="Open Documents",
+        aliases=("upload document", "my documents", "pan card upload", "aadhaar upload"),
+        steps=(
+            "Open My Space > Documents and click Upload Document.",
+            "Enter the document type or name and paste the file link (for example a Google Drive link).",
+            "Click Save Document.",
+        ),
+        soft=True,
+    ),
+)
+
+GUIDES_BY_ID = {g.id: g for g in GUIDES}

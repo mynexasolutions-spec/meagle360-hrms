@@ -323,14 +323,14 @@ export default function CareersPage() {
             </div>
 
             {/* Quick Keyword Suggestions */}
-            <div className="flex items-center gap-2 mt-3.5 text-xs text-slate-500 flex-wrap">
-              <span className="font-semibold text-slate-400">Popular:</span>
+            <div className="flex items-center gap-2 mt-3.5 text-xs text-slate-600 flex-wrap">
+              <span className="font-semibold text-slate-600">Popular:</span>
               {['Engineering', 'Design', 'Remote', 'Bengaluru'].map((tag) => (
                 <button
                   key={tag}
                   type="button"
                   onClick={() => setSearchQuery(tag)}
-                  className="px-2.5 py-0.5 rounded-full bg-white/90 hover:bg-white text-slate-600 border border-slate-200/90 text-[11px] font-medium shadow-2xs hover:border-slate-300 hover:text-blue-600 transition-all cursor-pointer"
+                  className="px-2.5 py-0.5 rounded-full bg-white/90 hover:bg-white text-slate-600 border border-slate-200/90 text-[0.8125rem] font-medium shadow-2xs hover:border-slate-300 hover:text-blue-600 transition-all cursor-pointer"
                 >
                   {tag}
                 </button>
@@ -794,7 +794,7 @@ export default function CareersPage() {
               <div className="form-group">
                 <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 4 }}>
                   <label className="form-label" style={{ margin: 0 }}>Cover note (optional)</label>
-                  <span style={{ fontSize: '0.75rem', color: '#64748b' }}>{coverNote.length}/500</span>
+                  <span style={{ fontSize: '0.75rem', color: '#475569' }}>{coverNote.length}/500</span>
                 </div>
                 <textarea
                   rows={3}

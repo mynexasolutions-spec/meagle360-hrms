@@ -11,6 +11,7 @@ from uuid import UUID
 
 from sqlalchemy.orm import Session
 
+from app.services.ai import guide_service
 from app.services.ai.llm_client import LLMClient, LLMProviderError
 from app.services.ai.tools import (
     ADMIN_TOOL_SCHEMAS,
@@ -49,6 +50,7 @@ def build_system_prompt(is_admin_or_manager: bool = True) -> str:
             "   - Their own Leave Balance & Leave Request status (`get_my_leave_summary`)\n"
             "   - Their own Personal Attendance record & check-in/out times (`get_my_attendance_summary`)\n"
             "   - Preparing a Leave Application for them (`prepare_my_leave_application`)\n"
+            "   - HRMS how-to steps (`search_guide`); never invent steps\n"
             "3. PRIVACY GUARDRAIL: If the employee asks about company-wide attendance, company-wide payroll, "
             "another employee's salary/attendance, or who is present/late in a department, politely tell them "
             "that company/team records and other employees' salaries are restricted to Organization Admins and "
@@ -99,7 +101,8 @@ def build_system_prompt(is_admin_or_manager: bool = True) -> str:
         "name, and amount in your answer MUST come strictly from the tool output.\n"
         "6. PINPOINT FILTERING: If the user asks about a specific department (e.g. 'in Engineering') or "
         "a specific status ('who is present', 'who is absent', 'who is late'), pass `department_filter` "
-        "and/or `status_filter` to the tool and ONLY answer what was asked — do not dump the full company overview unless asked for an overview.\n"
+        "and/or `status_filter` to the tool and ONLY answer what was asked — do not dump the full company overview unless asked for an overview. "
+        "For HRMS how-to steps call `search_guide`; never invent steps.\n"
         "7. FORMATTING (NO TABLES, NO DASH LINES): NEVER output Markdown tables (`|---|`), pipe characters (`|`), "
         "or horizontal divider lines (`---`). Always start your answer with a 1-line summary header followed by clean bullet points."
     )
@@ -150,7 +153,9 @@ class AIAgentService:
         company_id: UUID,
         employee_id: UUID | None = None,
         is_admin_or_manager: bool = True,
+        access: guide_service.UserAccess | None = None,
     ):
+        self.access = access
         self.db = db
         self.company_id = company_id
         self.employee_id = employee_id
@@ -168,6 +173,8 @@ class AIAgentService:
         self,
         user_message: str,
         history: list[dict[str, str]] | None = None,
+        page: str | None = None,
+        guide_id: str | None = None,
     ) -> dict[str, Any]:
         clean_msg = (user_message or "").strip()
         if not clean_msg:
@@ -188,6 +195,10 @@ class AIAgentService:
         self.toolbox.current_user_query = clean_msg
         tools_used: list[str] = []
 
+        guide_reply = self._answer_from_guides(clean_msg, history or [], page, guide_id)
+        if guide_reply:
+            return guide_reply
+
         # If LLM key is configured, run full function-calling loop with graceful fallback
         if self.llm.is_configured:
             try:
@@ -202,6 +213,68 @@ class AIAgentService:
         if not self.is_admin_or_manager:
             return self._run_employee_deterministic_fallback(clean_msg)
         return self._run_admin_deterministic_fallback(clean_msg)
+
+    def _answer_from_guides(
+        self,
+        message: str,
+        history: list[dict[str, str]],
+        page: str | None,
+        previous_id: str | None,
+    ) -> dict[str, Any] | None:
+        """Answer a how-to question. Returns None when it is not one, so the normal flow runs."""
+        if self.access is None:
+            return None
+        found = guide_service.find_for_message(message, page, previous_id)
+        if not found:
+            return None
+
+        allowed = [g for g in found if self.access.allows(g)]
+        denied = [g for g in found if not self.access.allows(g)]
+        if not allowed:
+            return self._guide_result(guide_service.render_denied(found[0]), "guide_local")
+
+        best = allowed[0]
+        if not self.llm.is_configured:
+            return self._guide_result(guide_service.render(best), "guide_local", best)
+
+        # A clear how-to is always answered here; anything else may turn out to be a data question.
+        may_leave = not guide_service.is_how_to(message)
+        prompt = guide_service.system_prompt(allowed, page, denied, may_leave)
+        messages = [{"role": "system", "content": prompt}]
+        for turn in history[-4:]:
+            if turn.get("role") in ("user", "assistant") and turn.get("content"):
+                messages.append({"role": turn["role"], "content": str(turn["content"])[:600]})
+        question = message + "\n" + guide_service.reply_language(message)
+        messages.append({"role": "user", "content": question})
+
+        try:
+            raw = (self.llm.chat(messages=messages, model=self.llm.guide_model).get("content") or "").strip()
+        except LLMProviderError as exc:
+            logger.warning("Guide model failed (%s); showing the saved guide.", exc)
+            raw = ""
+        if may_leave and guide_service.NOT_GUIDE in raw:
+            return None
+
+        # The model names the guide it used, so the button opens the right page.
+        tag = re.match(r"\W*GUIDE:\W*([a-z-]+)[^\n]*\n*", raw)
+        if tag:
+            best = next((g for g in allowed if g.id == tag.group(1)), best)
+            raw = raw[tag.end():]
+        reply = _sanitize_reply(raw)
+        if not reply:
+            return self._guide_result(guide_service.render(best), "guide_local", best)
+        return self._guide_result(reply, "guide", best)
+
+    def _guide_result(self, reply: str, mode: str, guide: Any = None) -> dict[str, Any]:
+        return {
+            "reply": reply,
+            "tools_used": [],
+            "pending_actions": [],
+            "role_mode": self.role_mode,
+            "provider": self.llm.provider,
+            "mode": mode,
+            "guide": guide_service.link(guide) if guide else None,
+        }
 
     def _run_llm_agent_loop(
         self,
@@ -221,6 +294,8 @@ class AIAgentService:
 
         messages.append({"role": "user", "content": user_message})
         schemas = ADMIN_TOOL_SCHEMAS if self.is_admin_or_manager else EMPLOYEE_TOOL_SCHEMAS
+        if self.access is not None:
+            schemas = [*schemas, guide_service.SEARCH_GUIDE_TOOL]
 
         for _ in range(MAX_TOOL_ITERATIONS):
             assistant_msg = self.llm.chat(messages=messages, tools=schemas)
@@ -257,7 +332,12 @@ class AIAgentService:
                 if tool_name and tool_name not in tools_used:
                     tools_used.append(tool_name)
 
-                tool_output = self.toolbox.execute(tool_name, parsed_args)
+                if tool_name == "search_guide":
+                    tool_output = guide_service.search_guide(
+                        str((parsed_args or {}).get("topic") or ""), self.access
+                    )
+                else:
+                    tool_output = self.toolbox.execute(tool_name, parsed_args)
                 messages.append({
                     "role": "tool",
                     "tool_call_id": tc.get("id", "call_1"),

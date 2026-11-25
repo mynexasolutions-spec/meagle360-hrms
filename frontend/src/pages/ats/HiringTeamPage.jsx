@@ -17,6 +17,8 @@ import {
   Sparkles,
   Lock,
 } from 'lucide-react';
+import useUrlFilters from '../../utils/useUrlFilters';
+import { rowClick } from '../../utils/rowClick';
 import { getDirectory, getRoles, getEmployee, updateEmployeeRoles } from '../../api/employees';
 import { useAuth } from '../../context/AuthContext';
 import Modal from '../../components/Modal';
@@ -30,7 +32,18 @@ export default function HiringTeamPage() {
   const [roles, setRoles] = useState([]);
 
   // Filter & Search states
-  const [activeTab, setActiveTab] = useState('HIRING_TEAM'); // 'HIRING_TEAM' | 'RECRUITERS' | 'INTERVIEWERS' | 'ALL'
+  const [{ tab: activeTab }, setFilters] = useUrlFilters({ tab: 'HIRING_TEAM' }); // 'HIRING_TEAM' | 'RECRUITERS' | 'INTERVIEWERS' | 'ALL'
+  const setActiveTab = (tab) => setFilters({ tab });
+  const tabCard = (tab) => ({
+    ...rowClick(
+      () => setActiveTab(tab),
+      `bg-white p-4 rounded-xl border shadow-sm flex items-center gap-4 transition-shadow hover:shadow-md ${
+        activeTab === tab ? 'border-blue-500 ring-1 ring-blue-500' : 'border-gray-200'
+      }`,
+    ),
+    role: 'button',
+    'aria-pressed': activeTab === tab,
+  });
   const [search, setSearch] = useState('');
   const [selectedDept, setSelectedDept] = useState('ALL');
 
@@ -302,7 +315,7 @@ export default function HiringTeamPage() {
               {stats.total_hiring_team || 0} Team Members
             </span>
           </div>
-          <p className="text-sm text-gray-500 mt-1">
+          <p className="text-sm text-gray-600 mt-1">
             Assign <strong className="text-gray-700">Recruiter</strong> and <strong className="text-gray-700">Interviewer</strong> roles to company employees. Recruiters can manage job openings and schedule rounds; Interviewers conduct candidate evaluations and submit feedback.
           </p>
         </div>
@@ -347,50 +360,50 @@ export default function HiringTeamPage() {
       {/* KPI Metric Cards */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
         {/* Card 1: Total Hiring Team */}
-        <div className="bg-white p-4 rounded-xl border border-gray-200 shadow-sm flex items-center gap-4">
+        <div {...tabCard('HIRING_TEAM')}>
           <div className="w-12 h-12 rounded-xl bg-indigo-50 border border-indigo-100 flex items-center justify-center text-indigo-600 shrink-0">
             <UserCheck size={24} />
           </div>
           <div className="min-w-0">
             <div className="text-2xl font-bold text-gray-900">{stats.total_hiring_team || 0}</div>
-            <div className="text-xs font-medium text-gray-500 truncate">Hiring Team Members</div>
-            <div className="text-[11px] text-indigo-600 mt-0.5 leading-tight">Recruiters + Interviewers</div>
+            <div className="text-xs font-medium text-gray-600 truncate">Hiring Team Members</div>
+            <div className="text-[0.8125rem] text-indigo-600 mt-0.5 leading-tight">Recruiters + Interviewers</div>
           </div>
         </div>
 
         {/* Card 2: Recruiters */}
-        <div className="bg-white p-4 rounded-xl border border-gray-200 shadow-sm flex items-center gap-4">
+        <div {...tabCard('RECRUITERS')}>
           <div className="w-12 h-12 rounded-xl bg-blue-50 border border-blue-100 flex items-center justify-center text-blue-600 shrink-0">
             <Briefcase size={24} />
           </div>
           <div className="min-w-0">
             <div className="text-2xl font-bold text-gray-900">{stats.total_recruiters || 0}</div>
-            <div className="text-xs font-medium text-gray-500 truncate">Recruiter Role</div>
-            <div className="text-[11px] text-blue-600 mt-0.5 leading-tight">Manage jobs & rounds</div>
+            <div className="text-xs font-medium text-gray-600 truncate">Recruiter Role</div>
+            <div className="text-[0.8125rem] text-blue-600 mt-0.5 leading-tight">Manage jobs & rounds</div>
           </div>
         </div>
 
         {/* Card 3: Interviewers */}
-        <div className="bg-white p-4 rounded-xl border border-gray-200 shadow-sm flex items-center gap-4">
+        <div {...tabCard('INTERVIEWERS')}>
           <div className="w-12 h-12 rounded-xl bg-emerald-50 border border-emerald-100 flex items-center justify-center text-emerald-600 shrink-0">
             <Award size={24} />
           </div>
           <div className="min-w-0">
             <div className="text-2xl font-bold text-gray-900">{stats.total_interviewers || 0}</div>
-            <div className="text-xs font-medium text-gray-500 truncate">Interviewer Panel</div>
-            <div className="text-[11px] text-emerald-600 mt-0.5 leading-tight">Interview panel pool</div>
+            <div className="text-xs font-medium text-gray-600 truncate">Interviewer Panel</div>
+            <div className="text-[0.8125rem] text-emerald-600 mt-0.5 leading-tight">Interview panel pool</div>
           </div>
         </div>
 
         {/* Card 4: Directory Pool */}
-        <div className="bg-white p-4 rounded-xl border border-gray-200 shadow-sm flex items-center gap-4">
+        <div {...tabCard('ALL')}>
           <div className="w-12 h-12 rounded-xl bg-gray-50 border border-gray-200 flex items-center justify-center text-gray-600 shrink-0">
             <Users size={24} />
           </div>
           <div className="min-w-0">
             <div className="text-2xl font-bold text-gray-900">{stats.total_employees || 0}</div>
-            <div className="text-xs font-medium text-gray-500 truncate">Company Directory</div>
-            <div className="text-[11px] text-gray-500 mt-0.5 leading-tight">Active employees pool</div>
+            <div className="text-xs font-medium text-gray-600 truncate">Company Directory</div>
+            <div className="text-[0.8125rem] text-gray-600 mt-0.5 leading-tight">Active employees pool</div>
           </div>
         </div>
       </div>
@@ -409,7 +422,7 @@ export default function HiringTeamPage() {
           <UserCheck size={14} />
           <span>Active Hiring Team</span>
           <span
-            className={`px-1.5 py-0.5 rounded-full text-[10px] ${
+            className={`px-1.5 py-0.5 rounded-full text-[0.8125rem] ${
               activeTab === 'HIRING_TEAM' ? 'bg-blue-700 text-white' : 'bg-gray-100 text-gray-600'
             }`}
           >
@@ -429,7 +442,7 @@ export default function HiringTeamPage() {
           <Briefcase size={14} />
           <span>Recruiters</span>
           <span
-            className={`px-1.5 py-0.5 rounded-full text-[10px] ${
+            className={`px-1.5 py-0.5 rounded-full text-[0.8125rem] ${
               activeTab === 'RECRUITERS' ? 'bg-blue-700 text-white' : 'bg-gray-100 text-gray-600'
             }`}
           >
@@ -449,7 +462,7 @@ export default function HiringTeamPage() {
           <Award size={14} />
           <span>Interviewers</span>
           <span
-            className={`px-1.5 py-0.5 rounded-full text-[10px] ${
+            className={`px-1.5 py-0.5 rounded-full text-[0.8125rem] ${
               activeTab === 'INTERVIEWERS' ? 'bg-blue-700 text-white' : 'bg-gray-100 text-gray-600'
             }`}
           >
@@ -469,7 +482,7 @@ export default function HiringTeamPage() {
           <Users size={14} />
           <span>All Employees Directory</span>
           <span
-            className={`px-1.5 py-0.5 rounded-full text-[10px] ${
+            className={`px-1.5 py-0.5 rounded-full text-[0.8125rem] ${
               activeTab === 'ALL' ? 'bg-blue-700 text-white' : 'bg-gray-100 text-gray-600'
             }`}
           >
@@ -481,7 +494,7 @@ export default function HiringTeamPage() {
       {/* Search & Department Filters (Row 2: Dedicated Filter Bar) */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 bg-white p-2.5 px-3.5 rounded-xl border border-gray-200 shadow-xs">
         <div className="relative flex-1 max-w-md">
-          <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
+          <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-600" />
           <input
             type="text"
             value={search}
@@ -492,7 +505,7 @@ export default function HiringTeamPage() {
         </div>
 
         <div className="flex items-center gap-2 shrink-0">
-          <label className="text-xs text-gray-500 font-medium whitespace-nowrap">Department:</label>
+          <label className="text-xs text-gray-600 font-medium whitespace-nowrap">Department:</label>
           <select
             value={selectedDept}
             onChange={(e) => setSelectedDept(e.target.value)}
@@ -526,10 +539,10 @@ export default function HiringTeamPage() {
             <div className="text-sm font-semibold text-gray-700">Loading Hiring Team Directory...</div>
           </div>
         ) : filteredMembers.length === 0 ? (
-          <div className="py-16 text-center text-gray-500">
+          <div className="py-16 text-center text-gray-600">
             <Users size={32} className="mx-auto mb-2 text-gray-300" />
             <div className="text-sm font-medium text-gray-700">No team members found</div>
-            <div className="text-xs text-gray-400 mt-1">
+            <div className="text-xs text-gray-600 mt-1">
               {search || selectedDept !== 'ALL'
                 ? 'Try adjusting your search or filters.'
                 : 'Switch to the "All Employees Directory" tab to assign roles to employees.'}
@@ -548,7 +561,7 @@ export default function HiringTeamPage() {
           <div className="overflow-x-auto">
             <table className="w-full text-left border-collapse min-w-[760px]">
               <thead>
-                <tr className="bg-gray-50/75 border-b border-gray-200 text-[11px] font-bold text-gray-600 uppercase tracking-wider">
+                <tr className="bg-gray-50/75 border-b border-gray-200 text-[0.8125rem] font-bold text-gray-600 uppercase tracking-wider">
                   <th className="py-3 px-4">Employee</th>
                   <th className="py-3 px-4">Department & Site</th>
                   <th className="py-3 px-4">Current Roles</th>
@@ -590,12 +603,12 @@ export default function HiringTeamPage() {
                             <div className="font-semibold text-gray-900 truncate flex items-center gap-1.5">
                               <span>{member.full_name}</span>
                               {member.is_admin && (
-                                <span className="px-1.5 py-0.2 rounded text-[10px] font-bold bg-amber-100 text-amber-800">
+                                <span className="px-1.5 py-0.2 rounded text-[0.8125rem] font-bold bg-amber-100 text-amber-800">
                                   Admin
                                 </span>
                               )}
                             </div>
-                            <div className="text-[11px] text-gray-400 truncate">
+                            <div className="text-[0.8125rem] text-gray-600 truncate">
                               {member.employee_code || 'ID: --'} • {member.email || 'No login account'}
                             </div>
                           </div>
@@ -607,7 +620,7 @@ export default function HiringTeamPage() {
                         <div className="font-medium text-gray-800 truncate">
                           {member.department_name || 'General Department'}
                         </div>
-                        <div className="text-[11px] text-gray-400 truncate">
+                        <div className="text-[0.8125rem] text-gray-600 truncate">
                           {member.site_name || 'Main Office'}
                         </div>
                       </td>
@@ -616,22 +629,22 @@ export default function HiringTeamPage() {
                       <td className="py-3.5 px-4">
                         <div className="flex flex-wrap gap-1">
                           {member.is_admin && (
-                            <span className="px-2 py-0.5 rounded-md text-[10px] font-semibold bg-indigo-50 text-indigo-700 border border-indigo-200">
+                            <span className="px-2 py-0.5 rounded-md text-[0.8125rem] font-semibold bg-indigo-50 text-indigo-700 border border-indigo-200">
                               Org Admin
                             </span>
                           )}
                           {member.is_recruiter && !member.is_admin && (
-                            <span className="px-2 py-0.5 rounded-md text-[10px] font-semibold bg-blue-50 text-blue-700 border border-blue-200">
+                            <span className="px-2 py-0.5 rounded-md text-[0.8125rem] font-semibold bg-blue-50 text-blue-700 border border-blue-200">
                               Recruiter
                             </span>
                           )}
                           {member.is_interviewer && !member.is_admin && (
-                            <span className="px-2 py-0.5 rounded-md text-[10px] font-semibold bg-emerald-50 text-emerald-700 border border-emerald-200">
+                            <span className="px-2 py-0.5 rounded-md text-[0.8125rem] font-semibold bg-emerald-50 text-emerald-700 border border-emerald-200">
                               Interviewer
                             </span>
                           )}
                           {!member.is_admin && !member.is_recruiter && !member.is_interviewer && (
-                            <span className="px-2 py-0.5 rounded-md text-[10px] font-semibold bg-gray-50 text-gray-500 border border-gray-200">
+                            <span className="px-2 py-0.5 rounded-md text-[0.8125rem] font-semibold bg-gray-50 text-gray-600 border border-gray-200">
                               {(member.role_names || []).join(', ') || 'Employee'}
                             </span>
                           )}
@@ -641,11 +654,11 @@ export default function HiringTeamPage() {
                       {/* Recruiter Role Toggle */}
                       <td className="py-3.5 px-4 text-center">
                         {member.is_admin ? (
-                          <span className="text-[11px] font-semibold text-gray-400" title="Admin has full recruiter privileges">
+                          <span className="text-[0.8125rem] font-semibold text-gray-600" title="Admin has full recruiter privileges">
                             Full Access (Admin)
                           </span>
                         ) : !member.has_account ? (
-                          <span className="text-[11px] text-gray-400" title="Employee needs an account invite first">
+                          <span className="text-[0.8125rem] text-gray-600" title="Employee needs an account invite first">
                             No Account
                           </span>
                         ) : (
@@ -653,10 +666,10 @@ export default function HiringTeamPage() {
                             type="button"
                             disabled={isUpdating}
                             onClick={() => handleToggleRoleInline(member, 'recruiter')}
-                            className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[11px] font-bold transition-all ${
+                            className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[0.8125rem] font-bold transition-all ${
                               member.is_recruiter
                                 ? 'bg-blue-100 text-blue-800 hover:bg-blue-200'
-                                : 'bg-gray-100 text-gray-500 hover:bg-gray-200'
+                                : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
                             }`}
                             title={member.is_recruiter ? 'Click to remove Recruiter role' : 'Click to assign Recruiter role'}
                           >
@@ -676,11 +689,11 @@ export default function HiringTeamPage() {
                       {/* Interviewer Role Toggle */}
                       <td className="py-3.5 px-4 text-center">
                         {member.is_admin ? (
-                          <span className="text-[11px] font-semibold text-gray-400" title="Admin is eligible for any interview panel">
+                          <span className="text-[0.8125rem] font-semibold text-gray-600" title="Admin is eligible for any interview panel">
                             Eligible (Admin)
                           </span>
                         ) : !member.has_account ? (
-                          <span className="text-[11px] text-gray-400" title="Employee needs an account invite first">
+                          <span className="text-[0.8125rem] text-gray-600" title="Employee needs an account invite first">
                             No Account
                           </span>
                         ) : (
@@ -688,10 +701,10 @@ export default function HiringTeamPage() {
                             type="button"
                             disabled={isUpdating}
                             onClick={() => handleToggleRoleInline(member, 'interviewer')}
-                            className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[11px] font-bold transition-all ${
+                            className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[0.8125rem] font-bold transition-all ${
                               member.is_interviewer
                                 ? 'bg-emerald-100 text-emerald-800 hover:bg-emerald-200'
-                                : 'bg-gray-100 text-gray-500 hover:bg-gray-200'
+                                : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
                             }`}
                             title={
                               member.is_interviewer
@@ -745,14 +758,14 @@ export default function HiringTeamPage() {
               </div>
               <div className="min-w-0">
                 <div className="font-semibold text-gray-900 truncate">{selectedMember.full_name}</div>
-                <div className="text-xs text-gray-500 truncate">
+                <div className="text-xs text-gray-600 truncate">
                   {selectedMember.department_name || 'General Department'} • {selectedMember.email || 'No email registered'}
                 </div>
               </div>
             </div>
 
             {modalLoading ? (
-              <div className="py-8 text-center text-gray-500">
+              <div className="py-8 text-center text-gray-600">
                 <RefreshCw size={20} className="animate-spin text-blue-600 mx-auto mb-2" />
                 <div className="text-xs">Fetching current role configurations...</div>
               </div>
@@ -777,11 +790,11 @@ export default function HiringTeamPage() {
                   <div>
                     <div className="text-sm font-bold text-gray-900 flex items-center gap-2">
                       <span>Recruiter</span>
-                      <span className="px-1.5 py-0.2 rounded text-[10px] font-semibold bg-blue-100 text-blue-800">
+                      <span className="px-1.5 py-0.2 rounded text-[0.8125rem] font-semibold bg-blue-100 text-blue-800">
                         ats:job:manage, ats:applicants:view
                       </span>
                     </div>
-                    <p className="text-xs text-gray-500 mt-0.5">
+                    <p className="text-xs text-gray-600 mt-0.5">
                       Can create and edit job openings, review candidate resumes, move applications across stages, and create interview rounds.
                     </p>
                   </div>
@@ -798,11 +811,11 @@ export default function HiringTeamPage() {
                   <div>
                     <div className="text-sm font-bold text-gray-900 flex items-center gap-2">
                       <span>Interviewer / Panelist</span>
-                      <span className="px-1.5 py-0.2 rounded text-[10px] font-semibold bg-emerald-100 text-emerald-800">
+                      <span className="px-1.5 py-0.2 rounded text-[0.8125rem] font-semibold bg-emerald-100 text-emerald-800">
                         ats:interview:view_own, ats:feedback:submit
                       </span>
                     </div>
-                    <p className="text-xs text-gray-500 mt-0.5">
+                    <p className="text-xs text-gray-600 mt-0.5">
                       Enables this employee to be selected as interviewer during round creation. They can access <em>My Interviews</em>, confirm calendar slots, and submit scorecard feedback ratings.
                     </p>
                   </div>

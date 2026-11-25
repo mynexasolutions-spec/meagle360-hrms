@@ -74,7 +74,8 @@ class PmsPayrollService:
 
     def _cycle(self, cycle_id: UUID) -> ReviewCycle:
         c = self.db.query(ReviewCycle).filter(
-            ReviewCycle.id == cycle_id, ReviewCycle.company_id == self.company_id
+            ReviewCycle.id == cycle_id, ReviewCycle.company_id == self.company_id,
+            ReviewCycle.period_type == "appraisal",
         ).first()
         if not c:
             raise LookupError("Cycle not found")
@@ -148,6 +149,10 @@ class PmsPayrollService:
             eligible, reason = evaluate_hike_eligibility(
                 emp.employment_status, emp.date_of_hire, cycle.end_date, min_tenure, eff_score
             )
+            min_months = int(snap["config"].get("min_months_for_hike", 0))
+            if eligible and (p.months_reviewed or 0) < min_months:
+                eligible = False
+                reason = f"Only {p.months_reviewed or 0} month(s) reviewed, minimum is {min_months}"
             slab = pick_slab(slabs, eff_score) if (eligible and eff_score is not None) else None
             suggested_pct = Decimal(str(slab["hike_percent"])) if slab else Decimal("0.00")
 

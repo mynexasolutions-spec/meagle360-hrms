@@ -155,7 +155,7 @@ export default function MentionNotesSection({
           {/* @mention Autocomplete Dropdown */}
           {mentionQuery !== null && suggestions.length > 0 && (
             <div className="absolute left-0 right-0 mt-1 z-30 bg-white border border-gray-200 rounded-xl shadow-lg overflow-hidden max-h-52 overflow-y-auto">
-              <div className="px-3 py-1.5 bg-gray-50 border-b border-gray-100 text-[10px] font-bold uppercase tracking-wider text-gray-500">
+              <div className="px-3 py-1.5 bg-gray-50 border-b border-gray-100 text-[0.8125rem] font-bold uppercase tracking-wider text-gray-600">
                 Mention Team Member
               </div>
               {suggestions.map((u, idx) => (
@@ -171,12 +171,12 @@ export default function MentionNotesSection({
                   }`}
                 >
                   <div className="flex items-center gap-2 min-w-0">
-                    <div className="w-6 h-6 rounded-full bg-blue-600 text-white text-[10px] font-bold flex items-center justify-center shrink-0">
+                    <div className="w-6 h-6 rounded-full bg-blue-600 text-white text-[11px] font-bold flex items-center justify-center shrink-0">
                       {(u.full_name || 'U')[0].toUpperCase()}
                     </div>
                     <div className="min-w-0">
                       <div className="font-semibold truncate">{u.full_name}</div>
-                      <div className="text-[10px] text-gray-400 truncate">
+                      <div className="text-[0.8125rem] text-gray-600 truncate">
                         {u.department_name || u.email || 'Team'}
                       </div>
                     </div>
@@ -190,13 +190,13 @@ export default function MentionNotesSection({
         {/* Selected Mentions Chips */}
         {selectedMentions.length > 0 && (
           <div className="flex flex-wrap items-center gap-1.5">
-            <span className="text-[11px] text-gray-400 inline-flex items-center gap-1">
+            <span className="text-[0.8125rem] text-gray-600 inline-flex items-center gap-1">
               <AtSign size={11} /> Will notify:
             </span>
             {selectedMentions.map((m) => (
               <span
                 key={m.id}
-                className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-blue-50 text-blue-700 border border-blue-200 text-[11px] font-semibold"
+                className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-blue-50 text-blue-700 border border-blue-200 text-[0.8125rem] font-semibold"
               >
                 <span>{m.full_name}</span>
                 <button
@@ -212,7 +212,7 @@ export default function MentionNotesSection({
         )}
 
         <div className="flex items-center justify-between">
-          <span className="text-[11px] text-gray-400">
+          <span className="text-[0.8125rem] text-gray-600">
             Tip: Type <code className="px-1 py-0.5 bg-gray-100 rounded text-gray-600">@name</code> to notify a teammate
           </span>
           <button
@@ -229,7 +229,7 @@ export default function MentionNotesSection({
       {/* Notes List */}
       <div className="space-y-2.5">
         {notes.length === 0 ? (
-          <div className="text-center py-6 text-xs text-gray-400">
+          <div className="text-center py-6 text-xs text-gray-600">
             No internal notes yet. Add a note or @mention a teammate above.
           </div>
         ) : (
@@ -238,7 +238,7 @@ export default function MentionNotesSection({
               key={noteItem.id}
               className="bg-white p-3.5 rounded-xl border border-gray-200 text-xs space-y-1.5 shadow-xs"
             >
-              <div className="flex items-center justify-between text-[11px] text-gray-400">
+              <div className="flex items-center justify-between text-[0.8125rem] text-gray-600">
                 <span className="font-semibold text-gray-800">{noteItem.author_name}</span>
                 <span>
                   {noteItem.created_at ? new Date(noteItem.created_at).toLocaleString() : ''}
@@ -252,7 +252,7 @@ export default function MentionNotesSection({
                   {noteItem.mentioned_employees.map((m) => (
                     <span
                       key={m.id}
-                      className="inline-flex items-center gap-0.5 px-1.5 py-0.5 rounded bg-slate-100 text-slate-600 text-[10px] font-medium"
+                      className="inline-flex items-center gap-0.5 px-1.5 py-0.5 rounded bg-slate-100 text-slate-600 text-[0.8125rem] font-medium"
                     >
                       <AtSign size={9} />
                       {m.full_name}

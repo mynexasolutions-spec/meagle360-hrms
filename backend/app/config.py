@@ -61,6 +61,8 @@ class Settings(BaseSettings):
     GROQ_API_KEY: str = ""
     AI_MODEL: str = "openai/gpt-oss-120b"
     AI_FALLBACK_MODEL: str = "openai/gpt-oss-20b"
+    # Small model is enough to phrase a how-to guide.
+    AI_GUIDE_MODEL: str = "openai/gpt-oss-20b"
     AI_WHISPER_MODEL: str = "whisper-large-v3-turbo"
     OPENAI_API_KEY: str = ""
     GEMINI_API_KEY: str = ""

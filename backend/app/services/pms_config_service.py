@@ -29,6 +29,7 @@ DEFAULT_SLABS = [
 ]
 
 MAX_ACTIVE_PARAMETERS = 10
+EXCLUDED_EMPLOYMENT_TYPES = ("contractor",)
 
 
 class PmsConfigError(ValueError):
@@ -78,7 +79,7 @@ _CONFIG_FIELDS = (
     "cycle_frequency", "weight_goals", "weight_competency", "weight_discipline",
     "weight_growth", "weight_manager", "weight_peer", "weight_self", "max_peer_weight",
     "min_peer_responses", "trim_outliers", "peer_anonymous", "goal_achievement_cap",
-    "rating_scale_max", "min_tenure_days_for_hike",
+    "rating_scale_max", "min_tenure_days_for_hike", "review_opens_days", "review_due_day",
 )
 
 
@@ -106,11 +107,11 @@ class PmsConfigService:
         # Column defaults only apply on flush; set explicitly so the
         # object is complete (and validated) before it's returned.
         for k, v in dict(
-            cycle_frequency="annual", weight_goals=50, weight_competency=30,
-            weight_discipline=10, weight_growth=10, weight_manager=50, weight_peer=30,
+            cycle_frequency="annual", weight_goals=60, weight_competency=40,
+            weight_discipline=0, weight_growth=0, weight_manager=50, weight_peer=30,
             weight_self=20, max_peer_weight=30, min_peer_responses=3, trim_outliers=True,
             peer_anonymous=True, goal_achievement_cap=120, rating_scale_max=5,
-            min_tenure_days_for_hike=180,
+            min_tenure_days_for_hike=180, review_opens_days=3, review_due_day=5,
         ).items():
             setattr(cfg, k, v)
         self.db.add(cfg)
@@ -127,6 +128,22 @@ class PmsConfigService:
         self.db.commit()
         self.db.refresh(cfg)
         return cfg
+
+    def build_snapshot(self) -> dict:
+        """Frozen copy of weights and hike rules, so later edits cannot
+        change the results of a month or appraisal that already exists."""
+        cfg = self.get_config()
+        slabs = self.list_slabs()
+        if not slabs:
+            raise PmsConfigError("At least one hike rule is required")
+        if find_slab_overlap([(s.min_score, s.max_score) for s in slabs]):
+            raise PmsConfigError("Hike rules overlap; fix them first")
+        return {
+            "config": _jsonable(_config_dict(cfg)),
+            "slabs": [{"label": s.label, "min_score": str(s.min_score),
+                       "max_score": str(s.max_score), "hike_percent": str(s.hike_percent)}
+                      for s in slabs],
+        }
 
     def update_config(self, actor_employee_id: UUID | None, changes: dict) -> PmsConfig:
         cfg = self.get_config()

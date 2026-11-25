@@ -8,6 +8,7 @@ import AuthLayout from './layouts/AuthLayout';
 import SplitAuthLayout from './components/SplitAuthLayout';
 import PlatformLayout from './layouts/PlatformLayout';
 import LoadingScreen from './components/LoadingScreen';
+import { canViewEmployees } from './utils/access';
 
 // Lazy-loaded routes for code-splitting
 const Login = lazy(() => import('./pages/Login'));
@@ -18,6 +19,10 @@ const PlatformLogin = lazy(() => import('./pages/PlatformLogin'));
 const PlatformDashboard = lazy(() => import('./pages/PlatformDashboard'));
 const Dashboard = lazy(() => import('./pages/Dashboard'));
 const EmployeeDirectory = lazy(() => import('./pages/EmployeeDirectory'));
+const Policies = lazy(() => import('./pages/Policies'));
+const Holidays = lazy(() => import('./pages/Holidays'));
+const Announcements = lazy(() => import('./pages/Announcements'));
+const MyTeam = lazy(() => import('./pages/MyTeam'));
 const EmployeeProfile = lazy(() => import('./pages/EmployeeProfile'));
 const Attendance = lazy(() => import('./pages/Attendance'));
 const LeaveManagement = lazy(() => import('./pages/LeaveManagement'));
@@ -91,6 +96,20 @@ function RequirePermission({ permission, children }) {
   return children;
 }
 
+// The full directory is for HR, managers and other staff roles. A plain
+// employee following an old link lands on My Team (or on their own profile).
+function RequireDirectory({ children }) {
+  const { user, loading } = useAuth();
+  const location = useLocation();
+  if (loading) return null;
+  if (canViewEmployees(user)) return children;
+  if (user?.employee_id && location.pathname === `/employees/${user.employee_id}`) {
+    return <Navigate to="/profile" replace />;
+  }
+  const q = new URLSearchParams(location.search).get('q');
+  return <Navigate to={q ? `/my-team?q=${encodeURIComponent(q)}` : '/my-team'} replace />;
+}
+
 function AppRoutes() {
   return (
     <Suspense fallback={<LoadingScreen subtitle="Loading workspace..." />}>
@@ -125,14 +144,25 @@ function AppRoutes() {
           <Route
             path="employees"
             element={
-              <RequirePermission permission={['employees:read', 'settings:write']}>
+              <RequireDirectory>
                 <EmployeeDirectory />
-              </RequirePermission>
+              </RequireDirectory>
             }
           />
-          <Route path="employees/:id" element={<EmployeeProfile />} />
+          <Route
+            path="employees/:id"
+            element={
+              <RequireDirectory>
+                <EmployeeProfile />
+              </RequireDirectory>
+            }
+          />
           <Route path="offer-letter" element={<RequirePermission permission={['settings:write', 'ats:offer:create', 'employees:read', 'ats:application:read']}><OfferLetterStudio /></RequirePermission>} />
           <Route path="relieving-letter" element={<RequirePermission permission="settings:write"><RelievingLetterStudio /></RequirePermission>} />
+          <Route path="policies" element={<Policies />} />
+          <Route path="holidays" element={<Holidays />} />
+          <Route path="announcements" element={<Announcements />} />
+          <Route path="my-team" element={<MyTeam />} />
           <Route path="attendance" element={<Attendance />} />
           <Route path="leave" element={<LeaveManagement />} />
           <Route path="expenses" element={<ExpenseManagement />} />

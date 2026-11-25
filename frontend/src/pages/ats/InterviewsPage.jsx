@@ -1,4 +1,5 @@
 import { useState, useEffect, useMemo } from 'react';
+import { useNavigate } from 'react-router-dom';
 import {
   CalendarDays,
   Clock,
@@ -38,10 +39,13 @@ import {
 } from '../../api/ats';
 import { useAuth } from '../../context/AuthContext';
 import Modal from '../../components/Modal';
+import { rowClick } from '../../utils/rowClick';
 
 export default function InterviewsPage() {
   const { user } = useAuth();
   const isAdmin = user?.role_name === 'Admin' || !!user?.permissions?.['settings:write'];
+  const canViewApplicants = isAdmin || !!user?.permissions?.['ats:applicants:view'];
+  const navigate = useNavigate();
   const canManageSettings = isAdmin || !!user?.permissions?.['ats:settings:manage'];
 
   const [activeTab, setActiveTab] = useState('ALL');
@@ -280,7 +284,7 @@ export default function InterviewsPage() {
               ATS Coordination
             </span>
           </div>
-          <p className="text-sm text-gray-500 mt-1">
+          <p className="text-sm text-gray-600 mt-1">
             Assign interviewers, coordinate candidate slots, and review feedback across rounds.
           </p>
         </div>
@@ -327,7 +331,7 @@ export default function InterviewsPage() {
       </div>
 
       {/* Sub-bar below Tabs: Count on Left, History Toggle on Right */}
-      <div className="flex items-center justify-between text-xs text-gray-500 px-1 pt-0.5">
+      <div className="flex items-center justify-between text-xs text-gray-600 px-1 pt-0.5">
         <span>
           Showing <strong className="text-gray-800">{interviews.length}</strong> {interviews.length === 1 ? 'interview' : 'interviews'}
           {showHistory ? ' (including past completed & offered rounds)' : ' (active pipeline)'}
@@ -346,7 +350,7 @@ export default function InterviewsPage() {
 
       {/* Interviews Table / List */}
       {loading ? (
-        <div className="py-24 text-center text-gray-500">
+        <div className="py-24 text-center text-gray-600">
           <div className="inline-block w-8 h-8 border-4 border-blue-600 border-t-transparent rounded-full animate-spin mb-3"></div>
           <p className="text-sm">Loading interviews...</p>
         </div>
@@ -356,7 +360,7 @@ export default function InterviewsPage() {
             <CalendarDays size={32} />
           </div>
           <h3 className="text-lg font-semibold text-gray-900">No interviews in this view</h3>
-          <p className="text-sm text-gray-500 max-w-md mx-auto mt-1">
+          <p className="text-sm text-gray-600 max-w-md mx-auto mt-1">
             Move candidates to the Interview stage from the Applicants tab to start scheduling rounds.
           </p>
         </div>
@@ -364,7 +368,7 @@ export default function InterviewsPage() {
         <div className="bg-white rounded-2xl border border-gray-200 shadow-sm overflow-hidden">
           <div className="overflow-x-auto">
             <table className="w-full text-left text-xs">
-              <thead className="bg-gray-50 border-b border-gray-200 text-gray-600 font-semibold uppercase tracking-wider text-[11px]">
+              <thead className="bg-gray-50 border-b border-gray-200 text-gray-600 font-semibold uppercase tracking-wider text-[0.8125rem]">
                 <tr>
                   <th className="py-3.5 px-4">Candidate & Role</th>
                   <th className="py-3.5 px-4">Round</th>
@@ -376,11 +380,17 @@ export default function InterviewsPage() {
               </thead>
               <tbody className="divide-y divide-gray-100 text-gray-700">
                 {interviews.map((iv) => (
-                  <tr key={iv.id} className="hover:bg-slate-50/70 transition-colors">
+                  <tr
+                    key={iv.id}
+                    {...rowClick(
+                      canViewApplicants && iv.application_id ? () => navigate(`/ats/applicants?app=${iv.application_id}`) : null,
+                      'hover:bg-slate-50/70 transition-colors',
+                    )}
+                  >
                     {/* Candidate */}
                     <td className="py-3.5 px-4">
                       <span className="font-bold text-gray-900 block">{iv.candidate_name}</span>
-                      <span className="text-[11px] text-gray-500 block">{iv.job_title}</span>
+                      <span className="text-[0.8125rem] text-gray-600 block">{iv.job_title}</span>
                     </td>
 
                     {/* Round */}
@@ -393,7 +403,7 @@ export default function InterviewsPage() {
                               <span className="font-semibold text-gray-800 block">
                                 Round {cr.num}: {cr.name}
                               </span>
-                              <span className="inline-flex items-center gap-1 mt-0.5 px-2 py-0.5 rounded text-[10px] font-medium bg-slate-100 text-slate-700">
+                              <span className="inline-flex items-center gap-1 mt-0.5 px-2 py-0.5 rounded text-[0.8125rem] font-medium bg-slate-100 text-slate-700">
                                 {String(iv.interview_type || '').toLowerCase().includes('person') ? (
                                   <>
                                     <MapPin size={11} className="text-amber-600" /> In-Person
@@ -428,7 +438,7 @@ export default function InterviewsPage() {
                                         },
                                       })
                                     }
-                                    className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-[10px] font-semibold bg-emerald-50 hover:bg-emerald-100 border border-emerald-200/80 text-emerald-800 transition-colors cursor-pointer"
+                                    className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-[0.8125rem] font-semibold bg-emerald-50 hover:bg-emerald-100 border border-emerald-200/80 text-emerald-800 transition-colors cursor-pointer"
                                     title="Click to view previous round evaluation"
                                   >
                                     <span>R{pr.round_number}: {pr.recommendation || 'Passed'}</span>
@@ -450,7 +460,7 @@ export default function InterviewsPage() {
                           <span>{iv.interviewer_name}</span>
                         </div>
                       ) : (
-                        <span className="inline-flex items-center px-2 py-0.5 rounded text-[11px] font-medium bg-amber-50 text-amber-700 border border-amber-200">
+                        <span className="inline-flex items-center px-2 py-0.5 rounded text-[0.8125rem] font-medium bg-amber-50 text-amber-700 border border-amber-200">
                           Needs Interviewer
                         </span>
                       )}
@@ -464,7 +474,7 @@ export default function InterviewsPage() {
                             <span className="inline-flex items-center gap-1 font-semibold text-emerald-700">
                               <CheckCircle2 size={13} /> Slot Confirmed
                             </span>
-                            <span className="block text-[11px] text-gray-500">
+                            <span className="block text-[0.8125rem] text-gray-600">
                               {new Date(iv.scheduled_at).toLocaleString([], {
                                 dateStyle: 'medium',
                                 timeStyle: 'short',
@@ -485,7 +495,7 @@ export default function InterviewsPage() {
                                       location: iv.meeting_link_or_location,
                                     })
                                   }
-                                  className="inline-flex items-center gap-1 px-2 py-0.5 rounded text-[10px] font-semibold bg-amber-50 hover:bg-amber-100 border border-amber-200 text-amber-800 transition-colors cursor-pointer"
+                                  className="inline-flex items-center gap-1 px-2 py-0.5 rounded text-[0.8125rem] font-semibold bg-amber-50 hover:bg-amber-100 border border-amber-200 text-amber-800 transition-colors cursor-pointer"
                                   title="View interview venue/address"
                                 >
                                   <MapPin size={10} className="text-amber-600" />
@@ -496,7 +506,7 @@ export default function InterviewsPage() {
                                   href={iv.meeting_link_or_location}
                                   target="_blank"
                                   rel="noopener noreferrer"
-                                  className="inline-flex items-center gap-1 px-2 py-0.5 rounded text-[10px] font-semibold bg-blue-50 hover:bg-blue-100 border border-blue-200 text-blue-700 transition-colors"
+                                  className="inline-flex items-center gap-1 px-2 py-0.5 rounded text-[0.8125rem] font-semibold bg-blue-50 hover:bg-blue-100 border border-blue-200 text-blue-700 transition-colors"
                                   title="Open Google Meet / Zoom link"
                                 >
                                   <Video size={10} className="text-blue-600" />
@@ -514,7 +524,7 @@ export default function InterviewsPage() {
                                       location: iv.meeting_link_or_location,
                                     })
                                   }
-                                  className="inline-flex items-center gap-1 px-2 py-0.5 rounded text-[10px] font-semibold bg-blue-50 hover:bg-blue-100 border border-blue-200 text-blue-700 transition-colors"
+                                  className="inline-flex items-center gap-1 px-2 py-0.5 rounded text-[0.8125rem] font-semibold bg-blue-50 hover:bg-blue-100 border border-blue-200 text-blue-700 transition-colors"
                                 >
                                   <Video size={10} className="text-blue-600" />
                                   <span>Meet Link</span>
@@ -522,11 +532,11 @@ export default function InterviewsPage() {
                               )}
                             </div>
                           ) : (
-                            <span className="block text-[10px] text-gray-400 italic">No link/location set</span>
+                            <span className="block text-[0.8125rem] text-gray-600 italic">No link/location set</span>
                           )}
                         </div>
                       ) : (
-                        <span className="text-gray-400 italic">Awaiting Interviewer Slot</span>
+                        <span className="text-gray-600 italic">Awaiting Interviewer Slot</span>
                       )}
                     </td>
 
@@ -536,7 +546,7 @@ export default function InterviewsPage() {
                         <div className="space-y-1.5">
                           <div>
                             <span
-                              className={`inline-flex items-center px-2 py-0.5 rounded text-[11px] font-bold ${
+                              className={`inline-flex items-center px-2 py-0.5 rounded text-[0.8125rem] font-bold ${
                                 iv.feedback.recommendation === 'Proceed'
                                   ? 'bg-emerald-50 text-emerald-700 border border-emerald-200'
                                   : iv.feedback.recommendation === 'Hold'
@@ -555,7 +565,7 @@ export default function InterviewsPage() {
                             <button
                               type="button"
                               onClick={() => setViewingFeedbackIv(iv)}
-                              className="text-[11px] font-semibold text-blue-600 hover:text-blue-800 inline-flex items-center gap-1 hover:underline"
+                              className="text-[0.8125rem] font-semibold text-blue-600 hover:text-blue-800 inline-flex items-center gap-1 hover:underline"
                               title="Click to view full feedback & evaluation"
                             >
                               <FileText size={12} />
@@ -564,7 +574,7 @@ export default function InterviewsPage() {
                           </div>
                         </div>
                       ) : (
-                        <span className="text-[11px] text-gray-400">
+                        <span className="text-[0.8125rem] text-gray-600">
                           {iv.feedback_status === 'submitted' ? 'Feedback Submitted' : 'Pending'}
                         </span>
                       )}
@@ -597,15 +607,15 @@ export default function InterviewsPage() {
                         {/* Admin Decision when completed or absent */}
                         {isAdmin && (iv.status === 'Completed' || iv.status === 'Absent') && (
                           iv.stage_name === 'Offer' ? (
-                            <span className="text-[11px] font-semibold text-purple-700 bg-purple-50 border border-purple-200 px-2.5 py-1 rounded-lg">
+                            <span className="text-[0.8125rem] font-semibold text-purple-700 bg-purple-50 border border-purple-200 px-2.5 py-1 rounded-lg">
                               Moved to Offer
                             </span>
                           ) : iv.stage_name === 'Hired' ? (
-                            <span className="text-[11px] font-semibold text-emerald-700 bg-emerald-50 border border-emerald-200 px-2.5 py-1 rounded-lg">
+                            <span className="text-[0.8125rem] font-semibold text-emerald-700 bg-emerald-50 border border-emerald-200 px-2.5 py-1 rounded-lg">
                               Hired
                             </span>
                           ) : iv.is_active_round === false ? (
-                            <span className="text-[11px] font-medium text-gray-400 bg-gray-100 px-2 py-1 rounded-md">
+                            <span className="text-[0.8125rem] font-medium text-gray-600 bg-gray-100 px-2 py-1 rounded-md">
                               Past Round
                             </span>
                           ) : (
@@ -644,7 +654,7 @@ export default function InterviewsPage() {
           onClose={() => setAssigningInterview(null)}
         >
           <form onSubmit={handleAssignSubmit} className="space-y-4">
-            <p className="text-xs text-gray-500">
+            <p className="text-xs text-gray-600">
               Select an active employee holding the <strong>Interviewer</strong> role for Round {assigningInterview.round_number} ({assigningInterview.round_name}).
             </p>
 
@@ -766,7 +776,7 @@ export default function InterviewsPage() {
               <div className="flex items-center justify-between">
                 <div>
                   <h4 className="text-sm font-bold text-gray-900">Interview Round Templates</h4>
-                  <p className="text-[11px] text-gray-500">
+                  <p className="text-[0.8125rem] text-gray-600">
                     Templates can be deactivated, never deleted (to preserve historic logs).
                   </p>
                 </div>
@@ -794,16 +804,16 @@ export default function InterviewsPage() {
               <div className="border border-gray-200 rounded-xl divide-y divide-gray-100 bg-white">
                 {roundTemplates.map((rt) => (
                   <div key={rt.id} className="p-3 flex items-center justify-between text-xs">
-                    <span className={`font-semibold ${rt.is_active ? 'text-gray-900' : 'text-gray-400 line-through'}`}>
+                    <span className={`font-semibold ${rt.is_active ? 'text-gray-900' : 'text-gray-600 line-through'}`}>
                       {rt.name}
                     </span>
                     <button
                       type="button"
                       onClick={() => handleToggleTemplate(rt.id, rt.is_active)}
-                      className={`px-2.5 py-1 rounded-lg text-[11px] font-semibold transition-colors ${
+                      className={`px-2.5 py-1 rounded-lg text-[0.8125rem] font-semibold transition-colors ${
                         rt.is_active
                           ? 'bg-emerald-50 text-emerald-700 hover:bg-emerald-100'
-                          : 'bg-gray-100 text-gray-500 hover:bg-gray-200'
+                          : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
                       }`}
                     >
                       {rt.is_active ? 'Active' : 'Deactivated'}
@@ -817,7 +827,7 @@ export default function InterviewsPage() {
             <div className="space-y-3 pt-4 border-t border-gray-200">
               <div>
                 <h4 className="text-sm font-bold text-gray-900">Configured Rejection Reasons</h4>
-                <p className="text-[11px] text-gray-500">
+                <p className="text-[0.8125rem] text-gray-600">
                   Mandatory options presented to HR/recruiters when rejecting an applicant.
                 </p>
               </div>
@@ -860,13 +870,13 @@ export default function InterviewsPage() {
             {/* Top Summary Banner */}
             <div className="p-4 bg-slate-50 rounded-xl border border-slate-200/80 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
               <div>
-                <span className="text-[11px] font-bold uppercase tracking-wider text-blue-600 block">
+                <span className="text-[0.8125rem] font-bold uppercase tracking-wider text-blue-600 block">
                   Round {viewingFeedbackIv.round_number}: {viewingFeedbackIv.round_name}
                 </span>
                 <h3 className="text-base font-bold text-gray-900 mt-0.5">
                   {viewingFeedbackIv.candidate_name}
                 </h3>
-                <p className="text-xs text-gray-500 font-medium">
+                <p className="text-xs text-gray-600 font-medium">
                   {viewingFeedbackIv.job_title}
                 </p>
               </div>
@@ -885,7 +895,7 @@ export default function InterviewsPage() {
                 >
                   Decision: {viewingFeedbackIv.feedback.recommendation}
                 </span>
-                <span className="text-[11px] text-gray-500 font-medium">
+                <span className="text-[0.8125rem] text-gray-600 font-medium">
                   Attendance: {viewingFeedbackIv.feedback.attended ? 'Attended' : 'Marked Absent'}
                 </span>
               </div>
@@ -894,7 +904,7 @@ export default function InterviewsPage() {
             {/* Key Evaluation Metrics */}
             <div className="grid grid-cols-2 gap-3 text-xs">
               <div className="p-3 bg-white rounded-xl border border-gray-200">
-                <span className="text-[11px] font-semibold text-gray-500 block mb-1">
+                <span className="text-[0.8125rem] font-semibold text-gray-600 block mb-1">
                   Interviewer
                 </span>
                 <div className="flex items-center gap-1.5 font-bold text-gray-900">
@@ -904,7 +914,7 @@ export default function InterviewsPage() {
               </div>
 
               <div className="p-3 bg-white rounded-xl border border-gray-200">
-                <span className="text-[11px] font-semibold text-gray-500 block mb-1">
+                <span className="text-[0.8125rem] font-semibold text-gray-600 block mb-1">
                   Overall Rating
                 </span>
                 <div className="flex items-center gap-1.5 font-bold text-gray-900">
@@ -938,7 +948,7 @@ export default function InterviewsPage() {
                   {viewingFeedbackIv.feedback.notes}
                 </div>
               ) : (
-                <p className="text-xs text-gray-400 italic p-4 bg-gray-50 rounded-xl border border-gray-200">
+                <p className="text-xs text-gray-600 italic p-4 bg-gray-50 rounded-xl border border-gray-200">
                   No written notes provided by interviewer.
                 </p>
               )}
@@ -1004,7 +1014,7 @@ export default function InterviewsPage() {
               <span className="font-bold text-gray-900 block">
                 {viewingLocationModal.candidateName}
               </span>
-              <span className="text-[11px] text-gray-500 block">
+              <span className="text-[0.8125rem] text-gray-600 block">
                 {viewingLocationModal.roundName}
               </span>
             </div>

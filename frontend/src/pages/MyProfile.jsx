@@ -76,7 +76,7 @@ export default function MyProfile() {
           </div>
           <div style={{ minWidth: 0 }}>
             <h1 style={{ fontSize: 'clamp(1.25rem, 4.5vw, 1.75rem)', fontWeight: 800, color: '#0f172a' }}>My Profile</h1>
-            <p style={{ color: '#526077', fontSize: '0.875rem' }}>Personal profile credentials, organization role &amp; employment details</p>
+            <p style={{ color: '#3d4a5e', fontSize: '0.875rem' }}>Personal profile credentials, organization role &amp; employment details</p>
           </div>
         </div>
       </div>
@@ -114,7 +114,7 @@ export default function MyProfile() {
               <h2 style={{ margin: 0, fontSize: 'clamp(1.15rem, 4vw, 1.5rem)', fontWeight: 800, color: '#0f172a' }}>{user?.full_name}</h2>
               <BadgeCheck size={20} style={{ color: '#2563eb', flexShrink: 0 }} />
             </div>
-            <div style={{ fontSize: '0.875rem', color: '#526077', marginTop: 2 }}>
+            <div style={{ fontSize: '0.875rem', color: '#3d4a5e', marginTop: 2 }}>
               {user?.role_name || 'Employee'} · MEAGLE360 HRMS
             </div>
           </div>
@@ -141,7 +141,7 @@ export default function MyProfile() {
             <Camera size={20} style={{ color: '#0284c7' }} />
             <div>
               <h3 style={{ margin: 0, fontSize: '1.05rem', fontWeight: 700, color: '#0f172a' }}>Selfie Attendance Verification</h3>
-              <p style={{ margin: '2px 0 0', fontSize: '0.8125rem', color: '#526077' }}>Your facial recognition status for daily clock-in</p>
+              <p style={{ margin: '2px 0 0', fontSize: '0.8125rem', color: '#3d4a5e' }}>Your facial recognition status for daily clock-in</p>
             </div>
           </div>
 
@@ -235,7 +235,7 @@ export default function MyProfile() {
                 <f.icon size={18} style={{ color: f.color }} />
               </div>
               <div style={{ minWidth: 0 }}>
-                <div style={{ fontSize: '0.75rem', fontWeight: 600, color: '#526077', textTransform: 'uppercase', letterSpacing: '0.04em' }}>{f.label}</div>
+                <div style={{ fontSize: '0.75rem', fontWeight: 600, color: '#3d4a5e', textTransform: 'uppercase', letterSpacing: '0.04em' }}>{f.label}</div>
                 <div style={{ fontSize: '0.925rem', fontWeight: 700, color: '#0f172a', marginTop: 2 }}>{f.value || '—'}</div>
               </div>
             </div>

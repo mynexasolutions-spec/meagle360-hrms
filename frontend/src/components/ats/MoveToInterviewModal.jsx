@@ -93,7 +93,7 @@ export default function MoveToInterviewModal({
         )}
 
         {loading ? (
-          <div className="py-8 text-center text-xs text-gray-500">
+          <div className="py-8 text-center text-xs text-gray-600">
             <div className="inline-block w-5 h-5 border-2 border-blue-600 border-t-transparent rounded-full animate-spin mb-2" />
             <p>Loading interview templates &amp; panelists...</p>
           </div>

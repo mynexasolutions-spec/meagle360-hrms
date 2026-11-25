@@ -54,7 +54,7 @@ export default function Documents() {
           </div>
           <div style={{ minWidth: 0 }}>
             <h1 style={{ fontSize: 'clamp(1.25rem, 4.5vw, 1.75rem)', fontWeight: 800, color: '#0f172a' }}>My Documents</h1>
-            <p style={{ color: '#526077', fontSize: '0.875rem' }}>Secure repository of your employment records, ID proofs &amp; contracts</p>
+            <p style={{ color: '#3d4a5e', fontSize: '0.875rem' }}>Secure repository of your employment records, ID proofs &amp; contracts</p>
           </div>
         </div>
         <button
@@ -91,7 +91,7 @@ export default function Documents() {
                 display: 'flex',
                 alignItems: 'center',
                 justifyContent: 'center',
-                color: '#526077',
+                color: '#3d4a5e',
                 marginBottom: 14,
               }}
             >
@@ -100,7 +100,7 @@ export default function Documents() {
             <h3 style={{ margin: 0, fontSize: '1.1rem', color: '#0f172a', fontWeight: 700, textAlign: 'center' }}>
               No Documents Uploaded
             </h3>
-            <p style={{ margin: '6px 0 0 0', fontSize: '0.875rem', color: '#526077', textAlign: 'center', maxWidth: 420 }}>
+            <p style={{ margin: '6px 0 0 0', fontSize: '0.875rem', color: '#3d4a5e', textAlign: 'center', maxWidth: 420 }}>
               Uploaded employee contracts and ID documents will appear here.
             </p>
           </div>
@@ -156,7 +156,7 @@ export default function Documents() {
                         {d.e_signed ? 'Signed' : 'Pending'}
                       </span>
                     </td>
-                    <td style={{ color: '#526077', fontSize: '0.875rem', whiteSpace: 'nowrap' }}>
+                    <td style={{ color: '#3d4a5e', fontSize: '0.875rem', whiteSpace: 'nowrap' }}>
                       {new Date(d.created_at).toLocaleDateString()}
                     </td>
                     <td style={{ textAlign: 'right', whiteSpace: 'nowrap' }}>

@@ -21,6 +21,10 @@ import {
   PieChart, Pie, Cell,
 } from 'recharts';
 import StatCard from '../components/StatCard';
+import EmployeeLink from '../components/EmployeeLink';
+import MyAttendanceChart from '../components/MyAttendanceChart';
+import { rowClick } from '../utils/rowClick';
+import { canViewEmployees } from '../utils/access';
 import Modal from '../components/Modal';
 
 const DONUT_COLORS = ['#3b82f6', '#10b981', '#f59e0b', '#8b5cf6', '#06b6d4', '#ec4899'];
@@ -114,7 +118,9 @@ export default function Dashboard() {
   const canSeeLiveStatus = !!user?.permissions?.['attendance:approve'];
   const canPostAnnouncement = !!user?.permissions?.['settings:write'];
   const isAdmin = user?.role_name === 'Admin' || !!user?.permissions?.['settings:write'];
-  const canViewEmployees = isAdmin || !!user?.permissions?.['employees:read'];
+  const seesDirectory = canViewEmployees(user);
+  // Same rule as COMPANY_STATS_PERMISSIONS on the server.
+  const seesCompanyStats = isAdmin || canApprove || canSeeLiveStatus;
   const isManager = user?.role_name === 'Manager' || canApprove || canSeeLiveStatus;
   const isAdminOrManager = isAdmin || isManager;
 
@@ -127,6 +133,8 @@ export default function Dashboard() {
   const [pending, setPending] = useState([]);
   const [holidays, setHolidays] = useState([]);
   const [clockedIn, setClockedIn] = useState(false);
+  const [statusLoaded, setStatusLoaded] = useState(false);
+  const [workedToday, setWorkedToday] = useState(false);
   const [selfOnLeaveToday, setSelfOnLeaveToday] = useState(false);
   const [leaveTypeToday, setLeaveTypeToday] = useState(null);
   const [clockLoading, setClockLoading] = useState(false);
@@ -148,9 +156,11 @@ export default function Dashboard() {
   useEffect(() => {
     if (!user) return; // wait for AuthContext to resolve before fetching
     getDashboardSummary().then((r) => setSummary(r.data)).catch(() => { });
-    getAttendanceOverview(7).then((r) => setAttendanceOverview(r.data)).catch(() => { });
-    getLeaveSummary().then((r) => setLeaveSummary(processLeaveSummary(r.data))).catch(() => { });
-    getLeaveInsight().then((r) => setLeaveInsight(r.data)).catch(() => { });
+    if (seesCompanyStats) {
+      getAttendanceOverview(7).then((r) => setAttendanceOverview(r.data)).catch(() => { });
+      getLeaveSummary().then((r) => setLeaveSummary(processLeaveSummary(r.data))).catch(() => { });
+      getLeaveInsight().then((r) => setLeaveInsight(r.data)).catch(() => { });
+    }
     getLeaveBalance().then((r) => setBalances(r.data)).catch(() => { });
     getHolidays().then((r) => setHolidays(r.data)).catch(() => { });
     if (canApprove) {
@@ -164,6 +174,7 @@ export default function Dashboard() {
       const now = new Date();
       getClockStatus()
         .then((r) => {
+          setStatusLoaded(true);
           setClockedIn(!!r.data?.clocked_in);
           setSelfOnLeaveToday(!!r.data?.on_leave_today);
           setLeaveTypeToday(r.data?.leave_type || null);
@@ -190,7 +201,7 @@ export default function Dashboard() {
         })
         .catch(() => { });
     }
-  }, [user?.id, canApprove, canSeeLiveStatus]);
+  }, [user?.id, canApprove, canSeeLiveStatus, seesCompanyStats]);
 
   useEffect(() => {
     loadAnnouncements(announcementLimit);
@@ -289,6 +300,7 @@ export default function Dashboard() {
         } catch { /* best-effort */ }
         await clockOut(outPayload);
         setClockedIn(false);
+        setWorkedToday(true);
         setTodayClockInTime(null);
       } catch (e) {
         const msg = e.response?.data?.detail || 'Failed to clock out';
@@ -342,18 +354,19 @@ export default function Dashboard() {
     .slice(0, 4);
   const totalLeaveDays = leaveSummary.reduce((sum, l) => sum + l.days, 0);
 
+  const wasPresent = clockedIn || workedToday || !!todayClockInTime;
   const presentList = Array.isArray(liveStatus) ? liveStatus.filter((e) => e.status !== 'offline') : [];
 
   const quickActions = isAdminOrManager ? [
     { label: 'Add New Employee', icon: UserPlus, path: '/employees', color: '#2563eb', bg: '#eff6ff' },
-    { label: `Review Approvals ${pending.length > 0 ? `(${pending.length})` : ''}`, icon: FileClock, path: '/leave', color: '#d97706', bg: '#fffbeb' },
-    { label: 'Payroll Overview', icon: DollarSign, path: '/payroll', color: '#059669', bg: '#ecfdf5' },
+    { label: `Review Approvals ${pending.length > 0 ? `(${pending.length})` : ''}`, icon: FileClock, path: '/leave?tab=approvals', color: '#b45309', bg: '#fffbeb' },
+    { label: 'Payroll Overview', icon: DollarSign, path: '/payroll', color: '#047857', bg: '#ecfdf5' },
     { label: 'Apply Leave', icon: CalendarPlus, path: '/leave', color: '#7c3aed', bg: '#f5f3ff' },
     { label: 'Upload Document', icon: Upload, path: '/documents', color: '#0891b2', bg: '#ecfeff' },
   ] : [
     { label: clockedIn ? 'Clock Out' : 'Clock In', icon: Clock, onClick: handleClock, color: '#2563eb', bg: '#eff6ff' },
-    { label: 'Apply Leave', icon: CalendarPlus, path: '/leave', color: '#059669', bg: '#ecfdf5' },
-    { label: 'My Payslips', icon: DollarSign, path: '/my-payslips', color: '#d97706', bg: '#fffbeb' },
+    { label: 'Apply Leave', icon: CalendarPlus, path: '/leave', color: '#047857', bg: '#ecfdf5' },
+    { label: 'My Payslips', icon: DollarSign, path: '/my-payslips', color: '#b45309', bg: '#fffbeb' },
     { label: 'My Profile', icon: Users, path: '/profile', color: '#7c3aed', bg: '#f5f3ff' },
     { label: 'Upload Document', icon: Upload, path: '/documents', color: '#0891b2', bg: '#ecfeff' },
   ];
@@ -398,7 +411,7 @@ export default function Dashboard() {
             >
               {greeting()}, {user?.full_name?.split(' ')[0] || 'there'}
             </h1>
-            <p style={{ color: 'var(--text-secondary)', fontSize: '0.85rem', fontWeight: 500, margin: '2px 0 0 0' }}>Here's what's happening in your organization today.</p>
+            <p style={{ color: 'var(--text-secondary)', fontSize: '0.85rem', fontWeight: 500, margin: '2px 0 0 0' }}>{seesCompanyStats ? "Here's what's happening in your organization today." : "Here's your day at a glance."}</p>
           </div>
         </div>
 
@@ -443,46 +456,102 @@ export default function Dashboard() {
 
       {/* 2. Top 4 Rich KPI Stat Cards */}
       <div className="dashboard-stats-grid">
-        <StatCard
-          icon={Users}
-          label="Total Employees"
-          value={summary?.total_employees ?? '—'}
-          trend="Active workforce"
-          trendDirection="up"
-          bgColor="#eff6ff"
-          color="#2563eb"
-          onClick={canViewEmployees ? () => navigate('/employees') : undefined}
-        />
-        <StatCard
-          icon={CheckCircle}
-          label="Present Today"
-          value={summary?.present_today ?? 0}
-          trend={summary?.total_employees ? `${Math.round(((summary?.present_today || 0) / (summary?.total_employees || 1)) * 100)}% attendance rate` : 'Today'}
-          trendDirection={(summary?.present_today || 0) > 0 ? 'up' : 'down'}
-          bgColor="#ecfdf5"
-          color="#059669"
-          onClick={() => navigate(canSeeLiveStatus ? '/attendance?tab=daily-overview' : '/attendance')}
-        />
-        <StatCard
-          icon={Umbrella}
-          label="On Leave Today"
-          value={summary?.on_leave_today ?? 0}
-          trend="Approved leaves"
-          trendDirection="up"
-          bgColor="#fffbeb"
-          color="#d97706"
-          onClick={() => navigate(canSeeLiveStatus ? '/attendance?tab=daily-overview&status=on-leave' : '/leave')}
-        />
-        <StatCard
-          icon={FileClock}
-          label="Pending Approvals"
-          value={summary?.pending_approvals ?? 0}
-          trend={summary?.pending_approvals > 0 ? 'Requires attention' : 'All clear'}
-          trendDirection={summary?.pending_approvals > 0 ? 'down' : 'up'}
-          bgColor="#f5f3ff"
-          color="#7c3aed"
-          onClick={() => navigate('/leave')}
-        />
+        {seesDirectory ? (
+          <StatCard
+            icon={Users}
+            label="Total Employees"
+            value={summary?.total_employees ?? '—'}
+            trend="Active workforce"
+            trendDirection="up"
+            bgColor="#eff6ff"
+            color="#2563eb"
+            onClick={() => navigate('/employees')}
+          />
+        ) : (
+          <StatCard
+            icon={Users}
+            label="My Team"
+            value={summary?.mine?.team_size ?? '—'}
+            trend="People you work with"
+            trendDirection="up"
+            bgColor="#eff6ff"
+            color="#2563eb"
+            onClick={() => navigate('/my-team')}
+          />
+        )}
+        {/* Company-wide numbers only for people who can open the company-wide
+            page behind them; everyone else sees (and opens) their own. */}
+        {canSeeLiveStatus ? (
+          <>
+            <StatCard
+              icon={CheckCircle}
+              label="Present Today"
+              value={summary?.present_today ?? '—'}
+              trend={summary?.total_employees ? `${Math.round(((summary?.present_today || 0) / (summary?.total_employees || 1)) * 100)}% attendance rate` : 'Today'}
+              trendDirection={(summary?.present_today || 0) > 0 ? 'up' : 'down'}
+              bgColor="#ecfdf5"
+              color="#059669"
+              onClick={() => navigate('/attendance?tab=daily-overview&status=present')}
+            />
+            <StatCard
+              icon={Umbrella}
+              label="On Leave Today"
+              value={summary?.on_leave_today ?? '—'}
+              trend="Approved leaves"
+              trendDirection="up"
+              bgColor="#fffbeb"
+              color="#d97706"
+              onClick={() => navigate('/attendance?tab=daily-overview&status=on-leave')}
+            />
+          </>
+        ) : (
+          <>
+            <StatCard
+              icon={CheckCircle}
+              label="My Attendance"
+              value={!statusLoaded && !wasPresent ? '—' : selfOnLeaveToday ? 'On Leave' : wasPresent ? 'Present' : summary?.mine?.day_off ? 'Day Off' : 'Not clocked in'}
+              isText
+              trend="Today"
+              trendDirection={wasPresent || selfOnLeaveToday || summary?.mine?.day_off ? 'up' : 'down'}
+              bgColor="#ecfdf5"
+              color="#059669"
+              onClick={() => navigate('/attendance')}
+            />
+            <StatCard
+              icon={Umbrella}
+              label="My Upcoming Leaves"
+              value={summary?.mine?.upcoming_leaves ?? '—'}
+              trend="Approved leaves"
+              trendDirection="up"
+              bgColor="#fffbeb"
+              color="#d97706"
+              onClick={() => navigate('/leave?status=upcoming')}
+            />
+          </>
+        )}
+        {canApprove ? (
+          <StatCard
+            icon={FileClock}
+            label="Leave Approvals"
+            value={summary?.pending_approvals ?? '—'}
+            trend={!summary ? undefined : summary.pending_approvals > 0 ? 'Requires attention' : 'All clear'}
+            trendDirection={summary?.pending_approvals > 0 ? 'down' : 'up'}
+            bgColor="#f5f3ff"
+            color="#7c3aed"
+            onClick={() => navigate('/leave?tab=approvals')}
+          />
+        ) : (
+          <StatCard
+            icon={FileClock}
+            label="My Pending Leaves"
+            value={summary?.mine?.pending_requests ?? '—'}
+            trend={!summary ? undefined : summary.mine?.pending_requests > 0 ? 'Awaiting approval' : 'All clear'}
+            trendDirection={summary?.mine?.pending_requests > 0 ? 'down' : 'up'}
+            bgColor="#f5f3ff"
+            color="#7c3aed"
+            onClick={() => navigate('/leave?status=pending')}
+          />
+        )}
       </div>
 
       {/* 3. Main Dashboard Rows (Symmetrical Row Architecture) */}
@@ -491,10 +560,11 @@ export default function Dashboard() {
         {/* Row 1: Attendance Hero Chart (Left) + Quick Actions (Right) */}
         <div className="dashboard-columns">
           {/* Attendance Overview Card */}
+          {!seesCompanyStats ? <MyAttendanceChart employeeId={user?.employee_id} /> : (
           <div className="dashboard-card">
             <div className="attendance-card-header">
               <div style={{ display: 'flex', alignItems: 'center', gap: 10, minWidth: 0 }}>
-                <div style={{ width: 36, height: 36, borderRadius: 10, background: '#ecfdf5', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#059669', flexShrink: 0 }}>
+                <div style={{ width: 36, height: 36, borderRadius: 10, background: '#ecfdf5', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#047857', flexShrink: 0 }}>
                   <Activity size={18} />
                 </div>
                 <div style={{ minWidth: 0 }}>
@@ -502,14 +572,16 @@ export default function Dashboard() {
                   <p className="dashboard-card-sub">Daily presence, absence, and leave trends across your organization</p>
                 </div>
               </div>
+              {canSeeLiveStatus && (
               <div className="attendance-card-header-pills">
-                <span style={{ fontSize: '0.8125rem', fontWeight: 600, color: '#059669', background: '#ecfdf5', padding: '4px 12px', borderRadius: 8, border: '1px solid #a7f3d0' }}>
-                  Present: {summary?.present_today ?? 0}
+                <span style={{ fontSize: '0.8125rem', fontWeight: 600, color: '#047857', background: '#ecfdf5', padding: '4px 12px', borderRadius: 8, border: '1px solid #a7f3d0' }}>
+                  Present: {summary?.present_today ?? '—'}
                 </span>
-                <span style={{ fontSize: '0.8125rem', fontWeight: 600, color: '#d97706', background: '#fffbeb', padding: '4px 12px', borderRadius: 8, border: '1px solid #fde68a' }}>
-                  On Leave: {summary?.on_leave_today ?? 0}
+                <span style={{ fontSize: '0.8125rem', fontWeight: 600, color: '#b45309', background: '#fffbeb', padding: '4px 12px', borderRadius: 8, border: '1px solid #fde68a' }}>
+                  On Leave: {summary?.on_leave_today ?? '—'}
                 </span>
               </div>
+              )}
             </div>
             <div className="dashboard-chart-box">
               <ResponsiveContainer width="100%" height="100%">
@@ -540,6 +612,7 @@ export default function Dashboard() {
               </ResponsiveContainer>
             </div>
           </div>
+          )}
 
           {/* Quick Actions (Admin / Manager Tailored) */}
           <div className="dashboard-card">
@@ -574,12 +647,13 @@ export default function Dashboard() {
         </div>
 
         {/* Row 2: Mid Content -> [Leave Summary + Announcements] (Left) & [Workforce Pulse + Approvals] (Right) */}
-        <div className="dashboard-columns">
+        <div className="dashboard-columns" style={seesCompanyStats ? undefined : { gridTemplateColumns: 'minmax(0, 1fr)' }}>
           
           {/* Left: Content Grid for Leave Summary & Announcements */}
-          <div className="content-grid" style={{ height: '100%', minWidth: 0 }}>
+          <div className="content-grid" style={{ height: '100%', minWidth: 0, ...(seesCompanyStats ? {} : { gridTemplateColumns: 'minmax(0, 1fr)' }) }}>
             
             {/* Left Card: Leave Summary (Rich Executive Distribution Card) */}
+            {seesCompanyStats && (
             <div className="dashboard-card dashboard-card-sm">
               <div
                 className="card-header-clickable"
@@ -600,7 +674,7 @@ export default function Dashboard() {
                   </div>
                 </div>
                 <div style={{ display: 'flex', alignItems: 'center', gap: 6, flexShrink: 0 }}>
-                  <span style={{ fontSize: '0.70rem', fontWeight: 700, color: '#059669', background: '#ecfdf5', padding: '2px 7px', borderRadius: 6, border: '1px solid #a7f3d0', whiteSpace: 'nowrap' }}>
+                  <span style={{ fontSize: '0.70rem', fontWeight: 700, color: '#047857', background: '#ecfdf5', padding: '2px 7px', borderRadius: 6, border: '1px solid #a7f3d0', whiteSpace: 'nowrap' }}>
                     Active Year
                   </span>
                   <div className="card-accordion-toggle">
@@ -628,7 +702,7 @@ export default function Dashboard() {
                         </ResponsiveContainer>
                         <div style={{ position: 'absolute', inset: 0, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', pointerEvents: 'none' }}>
                           <div className="leave-donut-center-num" style={{ lineHeight: 1 }}>{totalLeaveDays}</div>
-                          <div style={{ fontSize: '0.75rem', color: '#526077', fontWeight: 700, marginTop: 4, letterSpacing: '0.01em' }}>Total Days</div>
+                          <div style={{ fontSize: '0.75rem', color: '#3d4a5e', fontWeight: 700, marginTop: 4, letterSpacing: '0.01em' }}>Total Days</div>
                         </div>
                       </div>
 
@@ -636,7 +710,7 @@ export default function Dashboard() {
                       <div className="leave-summary-distribution-box" style={{ flex: 1, minWidth: 0, display: 'flex', flexDirection: 'column', gap: 6 }}>
                         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline' }}>
                           <span style={{ fontSize: '0.74rem', fontWeight: 700, color: '#475569' }}>Distribution</span>
-                          <span style={{ fontSize: '0.75rem', fontWeight: 700, color: '#059669', background: '#ecfdf5', padding: '1px 6px', borderRadius: 5 }}>
+                          <span style={{ fontSize: '0.75rem', fontWeight: 700, color: '#047857', background: '#ecfdf5', padding: '1px 6px', borderRadius: 5 }}>
                             {leaveSummary.length} Types
                           </span>
                         </div>
@@ -655,7 +729,7 @@ export default function Dashboard() {
                             />
                           ))}
                         </div>
-                        <div style={{ fontSize: '0.71rem', color: '#526077', marginTop: 1, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                        <div style={{ fontSize: '0.71rem', color: '#3d4a5e', marginTop: 1, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
                           Top: <strong style={{ color: '#0f172a' }}>{formatLeaveTypeName(leaveSummary[0]?.leave_type).replace(' Leave', '')} ({leaveSummary[0]?.percentage}%)</strong>
                         </div>
                       </div>
@@ -701,7 +775,7 @@ export default function Dashboard() {
                             {/* Line 2: Big Bold Days Count + Percentage Badge */}
                             <div style={{ display: 'flex', alignItems: 'baseline', justifyContent: 'space-between', marginTop: 4, width: '100%' }}>
                               <span className="leave-summary-tile-count">
-                                {l.days} <span style={{ fontSize: '0.75rem', color: '#526077', fontWeight: 600 }}>days</span>
+                                {l.days} <span style={{ fontSize: '0.75rem', color: '#3d4a5e', fontWeight: 600 }}>days</span>
                               </span>
                               <span
                                 style={{
@@ -743,7 +817,7 @@ export default function Dashboard() {
                   <div style={{ display: 'flex', alignItems: 'center', gap: 6, minWidth: 0 }}>
                     <span style={{ width: 7, height: 7, borderRadius: '50%', background: '#059669', flexShrink: 0 }} />
                     <span style={{ fontSize: '0.73rem', color: '#475569', fontWeight: 600, whiteSpace: 'nowrap' }}>
-                      Org Balance: <strong style={{ color: '#059669' }}>88% intact</strong>
+                      Org Balance: <strong style={{ color: '#047857' }}>88% intact</strong>
                     </span>
                   </div>
                   <Link to="/leave" style={{ fontSize: '0.73rem', fontWeight: 700, color: 'var(--accent-blue)', textDecoration: 'none', whiteSpace: 'nowrap', flexShrink: 0 }}>
@@ -752,6 +826,7 @@ export default function Dashboard() {
                 </div>
               </div>
             </div>
+            )}
 
             {/* Right Card: Recent Announcements */}
             <div className="dashboard-card dashboard-card-sm" style={{ display: 'flex', flexDirection: 'column', justifyContent: 'space-between', height: '100%' }}>
@@ -762,7 +837,7 @@ export default function Dashboard() {
                   style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: mobileCards.announcements ? 14 : 16, gap: 10 }}
                 >
                   <div style={{ display: 'flex', alignItems: 'center', gap: 8, minWidth: 0 }}>
-                    <div style={{ width: 32, height: 32, borderRadius: 8, background: '#fdf2f8', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#db2777', flexShrink: 0 }}>
+                    <div style={{ width: 32, height: 32, borderRadius: 8, background: '#fdf2f8', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#be185d', flexShrink: 0 }}>
                       <Megaphone size={16} />
                     </div>
                     <div style={{ minWidth: 0 }}>
@@ -806,7 +881,7 @@ export default function Dashboard() {
                     >
                       View all
                     </button>
-                    <span className="card-mobile-badge" style={{ fontSize: '0.70rem', fontWeight: 700, color: '#db2777', background: '#fdf2f8', padding: '2px 7px', borderRadius: 6, border: '1px solid #fbcfe8' }}>
+                    <span className="card-mobile-badge" style={{ fontSize: '0.70rem', fontWeight: 700, color: '#be185d', background: '#fdf2f8', padding: '2px 7px', borderRadius: 6, border: '1px solid #fbcfe8' }}>
                       {announcements.length}
                     </span>
                     <div className="card-accordion-toggle">
@@ -840,7 +915,7 @@ export default function Dashboard() {
                             <div style={{ fontWeight: 700, fontSize: '0.86rem', color: '#0f172a', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
                               {a.title}
                             </div>
-                            <div style={{ color: '#526077', fontSize: '0.76rem', marginTop: 3, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                            <div style={{ color: '#3d4a5e', fontSize: '0.76rem', marginTop: 3, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
                               {a.body}
                             </div>
                             <div style={{ color: '#7a889c', fontSize: '0.75rem', marginTop: 5 }}>
@@ -867,7 +942,7 @@ export default function Dashboard() {
                   gap: 6,
                 }}
               >
-                <span style={{ fontSize: '0.71rem', color: '#64748b' }}>Latest updates</span>
+                <span style={{ fontSize: '0.71rem', color: '#475569' }}>Latest updates</span>
                 <button
                   onClick={() => setShowAllAnnouncements(true)}
                   style={{
@@ -883,7 +958,7 @@ export default function Dashboard() {
           </div>
 
           {/* Right: Workforce Pulse + My Approvals */}
-          <div style={{ display: 'flex', flexDirection: 'column', gap: 14, minWidth: 0 }}>
+          <div style={{ display: seesCompanyStats ? 'flex' : 'none', flexDirection: 'column', gap: 14, minWidth: 0 }}>
             
             {/* Unified Workforce Pulse */}
             {canSeeLiveStatus && (
@@ -896,7 +971,7 @@ export default function Dashboard() {
                   >
                     <div style={{ display: 'flex', alignItems: 'center', gap: 6, minWidth: 0, flexShrink: 0 }}>
                       <h3 className="dashboard-card-title" style={{ fontSize: '0.94rem', whiteSpace: 'nowrap' }}>Workforce Pulse</h3>
-                      <span className="card-mobile-badge" style={{ fontSize: '0.70rem', fontWeight: 700, color: '#059669', background: '#ecfdf5', padding: '2px 7px', borderRadius: 6 }}>
+                      <span className="card-mobile-badge" style={{ fontSize: '0.70rem', fontWeight: 700, color: '#047857', background: '#ecfdf5', padding: '2px 7px', borderRadius: 6 }}>
                         {presentList.length} Online
                       </span>
                     </div>
@@ -909,7 +984,7 @@ export default function Dashboard() {
                           }}
                           style={{
                             border: 'none', background: workforceTab === 'present' ? '#ffffff' : 'transparent',
-                            color: workforceTab === 'present' ? '#059669' : '#64748b',
+                            color: workforceTab === 'present' ? '#059669' : '#475569',
                             padding: '2px 7px', borderRadius: 6, fontSize: '0.70rem', fontWeight: 700, cursor: 'pointer',
                             boxShadow: workforceTab === 'present' ? '0 1px 3px rgba(0,0,0,0.06)' : 'none',
                           }}
@@ -923,7 +998,7 @@ export default function Dashboard() {
                           }}
                           style={{
                             border: 'none', background: workforceTab === 'leave' ? '#ffffff' : 'transparent',
-                            color: workforceTab === 'leave' ? '#d97706' : '#64748b',
+                            color: workforceTab === 'leave' ? '#d97706' : '#475569',
                             padding: '2px 7px', borderRadius: 6, fontSize: '0.70rem', fontWeight: 700, cursor: 'pointer',
                             boxShadow: workforceTab === 'leave' ? '0 1px 3px rgba(0,0,0,0.06)' : 'none',
                           }}
@@ -943,7 +1018,7 @@ export default function Dashboard() {
                         onClick={() => setWorkforceTab('present')}
                         style={{
                           border: 'none', background: workforceTab === 'present' ? '#ffffff' : 'transparent',
-                          color: workforceTab === 'present' ? '#059669' : '#64748b',
+                          color: workforceTab === 'present' ? '#059669' : '#475569',
                           padding: '3px 9px', borderRadius: 7, fontSize: '0.75rem', fontWeight: 700, cursor: 'pointer',
                           boxShadow: workforceTab === 'present' ? '0 1px 4px rgba(0,0,0,0.06)' : 'none',
                         }}
@@ -954,7 +1029,7 @@ export default function Dashboard() {
                         onClick={() => setWorkforceTab('leave')}
                         style={{
                           border: 'none', background: workforceTab === 'leave' ? '#ffffff' : 'transparent',
-                          color: workforceTab === 'leave' ? '#d97706' : '#64748b',
+                          color: workforceTab === 'leave' ? '#d97706' : '#475569',
                           padding: '3px 9px', borderRadius: 7, fontSize: '0.75rem', fontWeight: 700, cursor: 'pointer',
                           boxShadow: workforceTab === 'leave' ? '0 1px 4px rgba(0,0,0,0.06)' : 'none',
                         }}
@@ -974,7 +1049,7 @@ export default function Dashboard() {
                             {presentList.map((e) => (
                               <div key={e.employee_id} style={{ display: 'flex', alignItems: 'center', gap: 10, fontSize: '0.8125rem' }}>
                                 <span style={{ width: 8, height: 8, borderRadius: '50%', background: 'var(--accent-emerald)', flexShrink: 0 }} />
-                                <span style={{ flex: 1, fontWeight: 600 }}>{e.full_name}</span>
+                                <span style={{ flex: 1, fontWeight: 600 }}><EmployeeLink id={e.employee_id}>{e.full_name}</EmployeeLink></span>
                                 <span style={{ color: 'var(--text-muted)', fontSize: '0.75rem' }}>
                                   {e.online_since ? `Since ${new Date(e.online_since).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}` : 'Clocked in'}
                                 </span>
@@ -998,16 +1073,16 @@ export default function Dashboard() {
                                     width: 30, height: 30, borderRadius: '50%', flexShrink: 0,
                                     display: 'flex', alignItems: 'center', justifyContent: 'center',
                                     background: e.photo_url ? `center/cover no-repeat url(${e.photo_url})` : '#fffbeb',
-                                    color: '#d97706', fontSize: '0.75rem', fontWeight: 700, border: '1px solid #fde68a',
+                                    color: '#b45309', fontSize: '0.75rem', fontWeight: 700, border: '1px solid #fde68a',
                                   }}
                                 >
                                   {!e.photo_url && initials(e.full_name)}
                                 </div>
                                 <div style={{ flex: 1, minWidth: 0 }}>
-                                  <div style={{ fontWeight: 600 }}>{e.full_name}</div>
+                                  <div style={{ fontWeight: 600 }}><EmployeeLink id={e.employee_id}>{e.full_name}</EmployeeLink></div>
                                   <div style={{ color: 'var(--text-muted)', fontSize: '0.75rem' }}>{e.department_name || 'Staff'}</div>
                                 </div>
-                                <span style={{ color: '#d97706', fontSize: '0.75rem', fontWeight: 600, background: '#fffbeb', padding: '2px 8px', borderRadius: 6 }}>
+                                <span style={{ color: '#b45309', fontSize: '0.75rem', fontWeight: 600, background: '#fffbeb', padding: '2px 8px', borderRadius: 6 }}>
                                   {formatLeaveTypeName(e.leave_type_name)}
                                 </span>
                               </div>
@@ -1027,7 +1102,7 @@ export default function Dashboard() {
                 <div>
                   <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 }}>
                     <h3 className="dashboard-card-title">My Approvals</h3>
-                    <span style={{ fontSize: '0.75rem', fontWeight: 700, color: '#d97706', background: '#fffbeb', padding: '2px 8px', borderRadius: 99, border: '1px solid #fef3c7' }}>
+                    <span style={{ fontSize: '0.75rem', fontWeight: 700, color: '#b45309', background: '#fffbeb', padding: '2px 8px', borderRadius: 99, border: '1px solid #fef3c7' }}>
                       {pending.length}
                     </span>
                   </div>
@@ -1036,7 +1111,7 @@ export default function Dashboard() {
                   ) : (
                     <div style={{ display: 'grid', gap: 8 }}>
                       {pending.slice(0, 3).map((r) => (
-                        <div key={r.id} style={{ display: 'flex', flexDirection: 'column', gap: 2, fontSize: '0.8125rem', padding: '8px 10px', borderRadius: 8, background: 'var(--bg-input)' }}>
+                        <div key={r.id} {...rowClick(() => navigate('/leave?tab=approvals'))} style={{ display: 'flex', flexDirection: 'column', gap: 2, fontSize: '0.8125rem', padding: '8px 10px', borderRadius: 8, background: 'var(--bg-input)' }}>
                           <div style={{ display: 'flex', justifyContent: 'space-between' }}>
                             <span style={{ fontWeight: 600 }}>{r.employee_name || 'Unknown employee'}</span>
                             <span style={{ color: 'var(--text-muted)', fontSize: '0.75rem' }}>{r.start_date}</span>
@@ -1048,7 +1123,7 @@ export default function Dashboard() {
                   )}
                 </div>
                 {pending.length > 0 && (
-                  <Link to="/leave" style={{ fontSize: '0.8125rem', color: 'var(--accent-blue)', fontWeight: 600, textDecoration: 'none', marginTop: 8 }}>
+                  <Link to="/leave?tab=approvals" style={{ fontSize: '0.8125rem', color: 'var(--accent-blue)', fontWeight: 600, textDecoration: 'none', marginTop: 8 }}>
                     View all approvals
                   </Link>
                 )}
@@ -1187,9 +1262,9 @@ export default function Dashboard() {
 
                         {/* Progress Bar & Allocation Info */}
                         <div>
-                          <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.75rem', color: '#526077', marginBottom: 4 }}>
+                          <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.75rem', color: '#3d4a5e', marginBottom: 4 }}>
                             <span>Allocated</span>
-                            <span style={{ fontWeight: 600, color: total ? '#334155' : '#64748b' }}>
+                            <span style={{ fontWeight: 600, color: total ? '#334155' : '#475569' }}>
                               {total ? `${Math.round(pct)}% remaining` : 'Unlimited'}
                             </span>
                           </div>
@@ -1226,7 +1301,7 @@ export default function Dashboard() {
                 }}
               >
                 <div style={{ display: 'flex', alignItems: 'center', gap: 8, minWidth: 0 }}>
-                  <div style={{ width: 24, height: 24, borderRadius: 6, background: '#ffffff', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#16a34a', flexShrink: 0 }}>
+                  <div style={{ width: 24, height: 24, borderRadius: 6, background: '#ffffff', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#15803d', flexShrink: 0 }}>
                     <CalendarPlus size={13} />
                   </div>
                   <div style={{ minWidth: 0 }}>
@@ -1269,7 +1344,7 @@ export default function Dashboard() {
                 style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: mobileCards.upcomingHolidays ? 14 : 16, width: '100%', gap: 8 }}
               >
                 <div style={{ display: 'flex', alignItems: 'center', gap: 8, minWidth: 0 }}>
-                  <div style={{ width: 30, height: 30, borderRadius: 8, background: '#fee2e2', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#ef4444', flexShrink: 0 }}>
+                  <div style={{ width: 30, height: 30, borderRadius: 8, background: '#fee2e2', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#b91c1c', flexShrink: 0 }}>
                     <CalendarHeart size={15} />
                   </div>
                   <h3 className="dashboard-card-title" style={{ fontSize: '0.94rem', whiteSpace: 'nowrap' }}>
@@ -1290,7 +1365,7 @@ export default function Dashboard() {
                   >
                     Calendar
                   </Link>
-                  <span className="card-mobile-badge" style={{ fontSize: '0.70rem', fontWeight: 700, color: '#ef4444', background: '#fee2e2', padding: '2px 7px', borderRadius: 6, border: '1px solid #fecaca', whiteSpace: 'nowrap' }}>
+                  <span className="card-mobile-badge" style={{ fontSize: '0.70rem', fontWeight: 700, color: '#b91c1c', background: '#fee2e2', padding: '2px 7px', borderRadius: 6, border: '1px solid #fecaca', whiteSpace: 'nowrap' }}>
                     {upcomingHolidays.length} Upcoming
                   </span>
                   <div className="card-accordion-toggle">
@@ -1355,7 +1430,7 @@ export default function Dashboard() {
                           style={{
                             fontSize: '0.72rem',
                             fontWeight: 700,
-                            color: diffDays <= 7 ? '#ef4444' : '#64748b',
+                            color: diffDays <= 7 ? '#ef4444' : '#475569',
                             background: diffDays <= 7 ? '#fee2e2' : '#ffffff',
                             padding: '3px 8px',
                             borderRadius: 8,
@@ -1426,7 +1501,7 @@ function AnnouncementDetailModal({ announcement, onClose }) {
           </div>
           <div>
             <h3 style={{ margin: 0, fontSize: '1.05rem', fontWeight: 800, color: '#0f172a' }}>{announcement.title}</h3>
-            <div style={{ fontSize: '0.75rem', color: '#526077', marginTop: 2 }}>
+            <div style={{ fontSize: '0.75rem', color: '#3d4a5e', marginTop: 2 }}>
               Posted on {new Date(announcement.created_at).toLocaleDateString(undefined, { weekday: 'short', day: '2-digit', month: 'short', year: 'numeric' })}
             </div>
           </div>
@@ -1502,11 +1577,11 @@ function AllAnnouncementsModal({ announcements, onClose, onNewAnnouncement, isAd
                 <div style={{ flex: 1, minWidth: 0 }}>
                   <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 8 }}>
                     <div style={{ fontWeight: 700, fontSize: '0.875rem', color: '#0f172a' }}>{a.title}</div>
-                    <span style={{ fontSize: '0.70rem', color: '#64748b', flexShrink: 0 }}>
+                    <span style={{ fontSize: '0.70rem', color: '#475569', flexShrink: 0 }}>
                       {new Date(a.created_at).toLocaleDateString(undefined, { day: '2-digit', month: 'short', year: 'numeric' })}
                     </span>
                   </div>
-                  <div style={{ color: '#526077', fontSize: '0.775rem', marginTop: 3, lineHeight: 1.4 }}>
+                  <div style={{ color: '#3d4a5e', fontSize: '0.775rem', marginTop: 3, lineHeight: 1.4 }}>
                     {a.body}
                   </div>
                 </div>

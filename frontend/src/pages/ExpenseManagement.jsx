@@ -8,6 +8,8 @@ import {
 import { Receipt, Plus, Check, X, Clock, Wallet, CheckSquare } from 'lucide-react';
 import Modal from '../components/Modal';
 import StatCard from '../components/StatCard';
+import useUrlFilters from '../utils/useUrlFilters';
+import EmployeeLink from '../components/EmployeeLink';
 
 const EMPTY_FORM = { category_id: '', amount: '', expense_date: '', description: '', receipt_url: '' };
 
@@ -16,7 +18,16 @@ export default function ExpenseManagement() {
   const { showAlert, showToast } = usePopup();
   const canSubmit = !!user?.permissions?.['expenses:write'];
   const canApprove = !!user?.permissions?.['expenses:approve'];
-  const [tab, setTab] = useState('my-claims');
+  const [filters, setFilters] = useUrlFilters({ tab: 'my-claims', status: '' });
+  const allowedTabs = ['my-claims', ...(canApprove ? ['approvals', 'ledger'] : [])];
+  const tab = allowedTabs.includes(filters.tab) ? filters.tab : 'my-claims';
+  const setTab = (next) => setFilters({ tab: next, status: '' });
+  const matchesStatus = (c) => !filters.status || c.status === filters.status;
+  // Clicking the active card again clears it.
+  const myClaimsCard = (status) => {
+    const active = tab === 'my-claims' && filters.status === status;
+    return { active, onClick: () => setFilters({ tab: 'my-claims', status: active ? '' : status }) };
+  };
   const [categories, setCategories] = useState([]);
   const [myClaims, setMyClaims] = useState([]);
   const [pending, setPending] = useState([]);
@@ -112,7 +123,7 @@ export default function ExpenseManagement() {
           </div>
           <div style={{ minWidth: 0 }}>
             <h1 style={{ fontSize: 'clamp(1.25rem, 4.5vw, 1.75rem)', fontWeight: 800, color: '#0f172a' }}>Expense Management</h1>
-            <p style={{ color: '#526077', fontSize: '0.875rem' }}>Submit claims, track approvals &amp; manage company reimbursements</p>
+            <p style={{ color: '#3d4a5e', fontSize: '0.875rem' }}>Submit claims, track approvals &amp; manage company reimbursements</p>
           </div>
         </div>
         {canSubmit && (
@@ -149,6 +160,7 @@ export default function ExpenseManagement() {
           icon={Clock}
           label="Pending Claims (Mine)"
           value={`₹${totalPending.toFixed(2)}`}
+          {...myClaimsCard('pending')}
           color="#d97706"
           bgColor="var(--accent-amber-light)"
         />
@@ -156,6 +168,7 @@ export default function ExpenseManagement() {
           icon={Wallet}
           label="Reimbursed Total (Mine)"
           value={`₹${totalReimbursed.toFixed(2)}`}
+          {...myClaimsCard('reimbursed')}
           color="#059669"
           bgColor="var(--accent-emerald-light)"
         />
@@ -164,6 +177,8 @@ export default function ExpenseManagement() {
             icon={CheckSquare}
             label="Awaiting Approval Queue"
             value={`${pending.length} Claims`}
+            active={tab === 'approvals'}
+            onClick={() => setTab('approvals')}
             color="#2563eb"
             bgColor="var(--accent-blue-light)"
           />
@@ -181,7 +196,7 @@ export default function ExpenseManagement() {
             fontWeight: 700,
             border: tab === 'my-claims' ? 'none' : '1px solid #cbd5e1',
             background: tab === 'my-claims' ? '#0f172a' : '#ffffff',
-            color: tab === 'my-claims' ? '#ffffff' : '#64748b',
+            color: tab === 'my-claims' ? '#ffffff' : '#475569',
             cursor: 'pointer',
             boxShadow: tab === 'my-claims' ? '0 4px 12px rgba(15, 23, 42, 0.15)' : 'none',
           }}
@@ -198,7 +213,7 @@ export default function ExpenseManagement() {
               fontWeight: 700,
               border: tab === 'approvals' ? 'none' : '1px solid #cbd5e1',
               background: tab === 'approvals' ? '#0f172a' : '#ffffff',
-              color: tab === 'approvals' ? '#ffffff' : '#64748b',
+              color: tab === 'approvals' ? '#ffffff' : '#475569',
               cursor: 'pointer',
               boxShadow: tab === 'approvals' ? '0 4px 12px rgba(15, 23, 42, 0.15)' : 'none',
             }}
@@ -216,13 +231,27 @@ export default function ExpenseManagement() {
               fontWeight: 700,
               border: tab === 'ledger' ? 'none' : '1px solid #cbd5e1',
               background: tab === 'ledger' ? '#0f172a' : '#ffffff',
-              color: tab === 'ledger' ? '#ffffff' : '#64748b',
+              color: tab === 'ledger' ? '#ffffff' : '#475569',
               cursor: 'pointer',
               boxShadow: tab === 'ledger' ? '0 4px 12px rgba(15, 23, 42, 0.15)' : 'none',
             }}
           >
             All Claims
           </button>
+        )}
+        {tab !== 'approvals' && (
+          <select
+            className="input-field" aria-label="Filter by status"
+            style={{ maxWidth: 170, marginLeft: 'auto' }}
+            value={filters.status}
+            onChange={(e) => setFilters({ status: e.target.value })}
+          >
+            <option value="">All Statuses</option>
+            <option value="pending">Pending</option>
+            <option value="approved">Approved</option>
+            <option value="rejected">Rejected</option>
+            <option value="reimbursed">Reimbursed</option>
+          </select>
         )}
       </div>
 
@@ -242,7 +271,7 @@ export default function ExpenseManagement() {
                 </tr>
               </thead>
               <tbody>
-                {myClaims.map((c) => (
+                {myClaims.filter(matchesStatus).map((c) => (
                   <tr key={c.id}>
                     <td style={{ fontWeight: 500, whiteSpace: 'nowrap' }}>{c.category_name || '—'}</td>
                     <td style={{ whiteSpace: 'nowrap', fontWeight: 600 }}>₹{Number(c.amount).toFixed(2)}</td>
@@ -254,10 +283,10 @@ export default function ExpenseManagement() {
               </tbody>
             </table>
           </div>
-          {myClaims.length === 0 && (
+          {myClaims.filter(matchesStatus).length === 0 && (
             <div className="empty-state">
               <Receipt size={48} />
-              <p>No expense claims yet</p>
+              <p>{filters.status ? 'No claims match this filter' : 'No expense claims yet'}</p>
             </div>
           )}
         </div>
@@ -281,7 +310,7 @@ export default function ExpenseManagement() {
               <tbody>
                 {pending.map((c) => (
                   <tr key={c.id}>
-                    <td style={{ fontWeight: 500, whiteSpace: 'nowrap' }}>{c.employee_name || '—'}</td>
+                    <td style={{ fontWeight: 500, whiteSpace: 'nowrap' }}><EmployeeLink id={c.employee_id}>{c.employee_name || '—'}</EmployeeLink></td>
                     <td style={{ whiteSpace: 'nowrap' }}>{c.category_name || '—'}</td>
                     <td style={{ whiteSpace: 'nowrap', fontWeight: 600 }}>₹{Number(c.amount).toFixed(2)}</td>
                     <td style={{ whiteSpace: 'nowrap' }}>{c.expense_date}</td>
@@ -326,9 +355,9 @@ export default function ExpenseManagement() {
                 </tr>
               </thead>
               <tbody>
-                {allClaims.map((c) => (
+                {allClaims.filter(matchesStatus).map((c) => (
                   <tr key={c.id}>
-                    <td style={{ fontWeight: 500, whiteSpace: 'nowrap' }}>{c.employee_name || '—'}</td>
+                    <td style={{ fontWeight: 500, whiteSpace: 'nowrap' }}><EmployeeLink id={c.employee_id}>{c.employee_name || '—'}</EmployeeLink></td>
                     <td style={{ whiteSpace: 'nowrap' }}>{c.category_name || '—'}</td>
                     <td style={{ whiteSpace: 'nowrap', fontWeight: 600 }}>₹{Number(c.amount).toFixed(2)}</td>
                     <td style={{ whiteSpace: 'nowrap' }}>{c.expense_date}</td>
@@ -345,10 +374,10 @@ export default function ExpenseManagement() {
               </tbody>
             </table>
           </div>
-          {allClaims.length === 0 && (
+          {allClaims.filter(matchesStatus).length === 0 && (
             <div className="empty-state">
               <Receipt size={48} />
-              <p>No expense claims yet</p>
+              <p>{filters.status ? 'No claims match this filter' : 'No expense claims yet'}</p>
             </div>
           )}
         </div>

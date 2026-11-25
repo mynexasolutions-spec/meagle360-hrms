@@ -1,5 +1,5 @@
-"""PMS routes — Phase 4 & 5: finalize, release, close, score adjustment,
-results (me / team / company), rating history, audit logs, and payroll revisions."""
+"""PMS routes: appraisal finalize / release / close, score adjustment,
+audit log and payroll revisions."""
 
 from uuid import UUID
 
@@ -12,7 +12,7 @@ from app.models.pms import ReviewParticipant
 from app.models.user_account import UserAccount
 from app.routes.pms import _call
 from app.schemas.pms import (
-    CompanyResultsOut, CycleOut, HistoryEntryOut, ParticipantResultOut,
+    CycleOut, ParticipantResultOut,
     PayrollRevisionApprove, PayrollRevisionOut, PayrollRevisionReject,
     PmsAuditLogOut, ScoreAdjustRequest,
 )
@@ -97,91 +97,6 @@ def adjust_score(
         current_user.employee_id, _is_admin(current_user),
     )
     return _to_result_out(part)
-
-
-# ── Results (me / team / company) ────────────────────────────
-@router.get("/cycles/{cycle_id}/results/me", response_model=ParticipantResultOut)
-def my_result(
-    cycle_id: UUID,
-    db: Session = Depends(get_db), company_id: UUID = Depends(get_company_id),
-    current_user: UserAccount = Depends(get_current_user),
-):
-    part = _call(PmsResultsService(db, company_id).my_result,
-                 cycle_id, current_user.employee_id)
-    return _to_result_out(part)
-
-
-@router.get("/cycles/{cycle_id}/results/team", response_model=list[ParticipantResultOut])
-def team_results(
-    cycle_id: UUID,
-    db: Session = Depends(get_db), company_id: UUID = Depends(get_company_id),
-    current_user: UserAccount = Depends(get_current_user),
-):
-    parts = _call(PmsResultsService(db, company_id).team_results,
-                  cycle_id, current_user.employee_id, _is_admin(current_user))
-    return [_to_result_out(p) for p in parts]
-
-
-@router.get("/cycles/{cycle_id}/results/company", response_model=CompanyResultsOut)
-def company_results(
-    cycle_id: UUID,
-    db: Session = Depends(get_db), company_id: UUID = Depends(get_company_id),
-    _: UserAccount = Depends(require_admin_role()),
-):
-    res = _call(PmsResultsService(db, company_id).company_results, cycle_id)
-    return CompanyResultsOut(
-        cycle_id=res["cycle_id"],
-        cycle_name=res["cycle_name"],
-        status=res["status"],
-        participant_count=res["participant_count"],
-        average_score=res["average_score"],
-        distribution=res["distribution"],
-        participants=[_to_result_out(p) for p in res["participants"]],
-    )
-
-
-# ── Rating history ───────────────────────────────────────────
-@router.get("/history/me", response_model=list[HistoryEntryOut])
-def my_history(
-    db: Session = Depends(get_db), company_id: UUID = Depends(get_company_id),
-    current_user: UserAccount = Depends(get_current_user),
-):
-    if not current_user.employee_id:
-        return []
-    rows = _call(
-        PmsResultsService(db, company_id).history,
-        current_user.employee_id, current_user.employee_id, _is_admin(current_user),
-    )
-    return [
-        HistoryEntryOut(
-            cycle_id=c.id, cycle_name=c.name, start_date=c.start_date, end_date=c.end_date,
-            goals_score=p.goals_score, competency_score=p.competency_score,
-            effective_score=effective_score_of(p), final_rating_label=p.final_rating_label,
-            released_at=p.released_at,
-        )
-        for p, c in rows
-    ]
-
-
-@router.get("/history/{employee_id}", response_model=list[HistoryEntryOut])
-def employee_history(
-    employee_id: UUID,
-    db: Session = Depends(get_db), company_id: UUID = Depends(get_company_id),
-    current_user: UserAccount = Depends(get_current_user),
-):
-    rows = _call(
-        PmsResultsService(db, company_id).history,
-        employee_id, current_user.employee_id, _is_admin(current_user),
-    )
-    return [
-        HistoryEntryOut(
-            cycle_id=c.id, cycle_name=c.name, start_date=c.start_date, end_date=c.end_date,
-            goals_score=p.goals_score, competency_score=p.competency_score,
-            effective_score=effective_score_of(p), final_rating_label=p.final_rating_label,
-            released_at=p.released_at,
-        )
-        for p, c in rows
-    ]
 
 
 # ── Audit log ────────────────────────────────────────────────

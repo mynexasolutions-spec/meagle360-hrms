@@ -44,7 +44,7 @@ export default function BulkReassignModal({
   return (
     <Modal isOpen={true} onClose={onClose} title="Bulk Reassign Applications">
       <form onSubmit={handleSubmit} className="space-y-4">
-        <p className="text-xs text-gray-500">
+        <p className="text-xs text-gray-600">
           Reassign selected applications or transfer an entire recruiter&apos;s pipeline (for example,
           when a recruiter leaves or goes on leave).
         </p>
@@ -71,7 +71,7 @@ export default function BulkReassignModal({
             }`}
           >
             <div className="font-bold">Selected Cards ({selectedAppIds.length})</div>
-            <div className="text-[11px] font-normal opacity-80 mt-0.5">
+            <div className="text-[0.8125rem] font-normal opacity-80 mt-0.5">
               Reassign checked rows in Table view
             </div>
           </button>
@@ -86,7 +86,7 @@ export default function BulkReassignModal({
             }`}
           >
             <div className="font-bold">By Recruiter</div>
-            <div className="text-[11px] font-normal opacity-80 mt-0.5">
+            <div className="text-[0.8125rem] font-normal opacity-80 mt-0.5">
               Transfer a recruiter&apos;s workload
             </div>
           </button>

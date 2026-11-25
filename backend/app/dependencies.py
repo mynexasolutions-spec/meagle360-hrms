@@ -119,6 +119,35 @@ def get_company_id(
     return current_user.company_id
 
 
+# Holding any of these makes someone more than a plain employee: they get the
+# full employee directory. Keep in sync with frontend/src/utils/access.js.
+DIRECTORY_PERMISSIONS = (
+    "settings:write", "employees:write", "attendance:approve", "leave:approve",
+    "expenses:approve", "payroll:read", "payroll:write", "shifts:read", "shifts:write",
+    "helpdesk:manage", "projects:manage",
+    "ats:job:manage", "ats:applicants:view", "ats:offer:manage", "ats:settings:manage",
+)
+COMPANY_STATS_PERMISSIONS = ("settings:write", "attendance:approve", "leave:approve")
+
+
+def has_any_permission(user: UserAccount, permissions) -> bool:
+    merged = user.merged_permissions
+    return any(merged.get(p) for p in permissions)
+
+
+def require_any_permission(permissions):
+    """Like require_permissions, but one of them is enough."""
+    def _check(current_user: UserAccount = Depends(get_current_user)):
+        if not has_any_permission(current_user, permissions):
+            raise HTTPException(
+                status_code=status.HTTP_403_FORBIDDEN,
+                detail="Insufficient permissions",
+            )
+        return current_user
+
+    return _check
+
+
 def require_admin_role():
     """Dependency — unlike require_permissions (any role holding a
     permission flag), this checks the user's actual role name is "Admin",

@@ -15,9 +15,12 @@ from app.schemas.ai import (
     AIChatResponse,
     AIExecuteActionRequest,
     AIExecuteActionResponse,
+    AIGuideLink,
+    AIGuideResponse,
     AIQuotaResponse,
     AITranscribeResponse,
 )
+from app.services.ai import guide_service
 from app.services.ai.agent_service import AIAgentService
 from app.services.ai.llm_client import LLMClient, LLMProviderError
 from app.services.ai.quota_service import (
@@ -68,15 +71,52 @@ def chat_with_assistant(
         company_id=company_id,
         employee_id=current_user.employee_id,
         is_admin_or_manager=admin_mode,
+        access=guide_service.UserAccess.of(current_user),
     )
     history_dicts = [{"role": h.role, "content": h.content} for h in payload.history]
-    result = agent.chat(user_message=payload.message, history=history_dicts)
+    result = agent.chat(
+        user_message=payload.message,
+        history=history_dicts,
+        page=payload.page,
+        guide_id=payload.guide_id,
+    )
 
-    # Record usage towards daily quota
-    record_chat_usage(db, company_id=company_id, user_id=current_user.id, message_type="chat")
+    # Record usage towards daily quota. Saved guides use no tokens, so they are free.
+    if result["mode"] != "guide_local":
+        record_chat_usage(db, company_id=company_id, user_id=current_user.id, message_type="chat")
     quota = get_user_chat_quota(db, current_user, company)
 
     return AIChatResponse(**result, quota=quota)
+
+
+@router.get("/guides", response_model=list[AIGuideLink])
+def list_guides(
+    page: str | None = None,
+    db: Session = Depends(get_db),
+    company_id: UUID = Depends(get_company_id),
+    current_user: UserAccount = Depends(get_current_user),
+):
+    """How-to guides this user may use, optionally for one page. No tokens, no quota."""
+    company = db.query(Company).filter(Company.id == company_id).first()
+    enforce_ai_role_access(current_user, company)
+    access = guide_service.UserAccess.of(current_user)
+    return [guide_service.link(g) for g in guide_service.guides_for(access, page)]
+
+
+@router.get("/guides/{guide_id}", response_model=AIGuideResponse)
+def get_guide(
+    guide_id: str,
+    db: Session = Depends(get_db),
+    company_id: UUID = Depends(get_company_id),
+    current_user: UserAccount = Depends(get_current_user),
+):
+    """One saved guide. No tokens, no quota."""
+    company = db.query(Company).filter(Company.id == company_id).first()
+    enforce_ai_role_access(current_user, company)
+    guide = guide_service.GUIDES_BY_ID.get(guide_id)
+    if guide is None or not guide_service.UserAccess.of(current_user).allows(guide):
+        raise HTTPException(status_code=404, detail="Guide not found.")
+    return {**guide_service.link(guide), "reply": guide_service.render(guide)}
 
 
 @router.post("/execute-action", response_model=AIExecuteActionResponse)

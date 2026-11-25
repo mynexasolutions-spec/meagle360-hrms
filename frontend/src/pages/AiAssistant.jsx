@@ -1,4 +1,5 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
+import { useLocation, useNavigate } from 'react-router-dom';
 import {
   Sparkles,
   Send,
@@ -29,7 +30,10 @@ import {
   getAiQuota,
   transcribeVoiceAudio,
   executeAiAction,
+  getAiGuides,
+  getAiGuide,
 } from '../api/ai';
+import { formatMessageHtml } from '../utils/aiText';
 import { useAuth } from '../context/AuthContext';
 import botAvatarVideo from '../assets/meagle-bot-bust-transparent.webm';
 
@@ -300,64 +304,6 @@ const createWelcomeMessage = () => ({
   timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
 });
 
-function formatMessageHtml(text) {
-  if (!text) return '';
-  const lines = text.split('\n');
-  const htmlLines = [];
-
-  for (const rawLine of lines) {
-    const trimmed = rawLine.trim();
-    if (/^[|\s:\-_]{3,}$/.test(trimmed)) continue;
-
-    let processedLine = rawLine;
-    if (trimmed.startsWith('|') && trimmed.endsWith('|')) {
-      const cells = trimmed
-        .slice(1, -1)
-        .split('|')
-        .map((c) => c.trim())
-        .filter(Boolean);
-      if (!cells.length) continue;
-      const lower = cells.map((c) => c.replace(/\*+/g, '').trim().toLowerCase());
-      if (
-        lower.some((h) => ['employee', 'employee name', 'name'].includes(h)) &&
-        lower.some((h) => ['department', 'status', 'check-in', 'late by', 'leave type'].includes(h))
-      ) {
-        continue;
-      }
-      const first = cells[0].startsWith('**') ? cells[0] : `**${cells[0]}**`;
-      const rest = cells.slice(1).join(' • ');
-      processedLine = `- ${first}${rest ? ` — ${rest}` : ''}`;
-    }
-
-    const escaped = processedLine
-      .replace(/&/g, '&amp;')
-      .replace(/</g, '&lt;')
-      .replace(/>/g, '&gt;')
-      .replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>')
-      .replace(
-        /`([^`]+)`/g,
-        '<code style="background:#f1f5f9;padding:2px 6px;border-radius:4px;font-size:0.84em;color:#0f172a;">$1</code>'
-      )
-      .replace(/\*(.+?)\*/g, '<em>$1</em>');
-
-    const bulletMatch = escaped.match(/^\s*[-•]\s+(.+)$/);
-    if (bulletMatch) {
-      htmlLines.push(
-        `<div style="display:flex;align-items:flex-start;gap:8px;margin:4px 0;padding:4px 8px;border-radius:8px;background:rgba(241,245,249,0.65);">` +
-          `<span style="color:#2563eb;font-weight:800;line-height:1.4;">•</span>` +
-          `<span style="flex:1;">${bulletMatch[1]}</span>` +
-        `</div>`
-      );
-    } else if (trimmed === '') {
-      htmlLines.push('<div style="height:6px;"></div>');
-    } else {
-      htmlLines.push(`<div style="margin:2px 0;">${escaped}</div>`);
-    }
-  }
-
-  return htmlLines.join('');
-}
-
 function stripMarkdownForSpeech(text) {
   if (!text) return '';
   return text
@@ -470,7 +416,7 @@ function ActionConfirmationCard({ card, onActionComplete }) {
           borderRadius: 12,
           background: '#f8fafc',
           border: '1px solid #cbd5e1',
-          color: '#526077',
+          color: '#3d4a5e',
           fontSize: '0.82rem',
           fontWeight: 600,
           display: 'flex',
@@ -565,7 +511,7 @@ function ActionConfirmationCard({ card, onActionComplete }) {
                 display: 'block',
                 fontSize: '0.75rem',
                 fontWeight: 700,
-                color: '#526077',
+                color: '#3d4a5e',
                 marginBottom: 3,
                 textTransform: 'uppercase',
               }}
@@ -607,7 +553,7 @@ function ActionConfirmationCard({ card, onActionComplete }) {
                 display: 'block',
                 fontSize: '0.75rem',
                 fontWeight: 700,
-                color: '#526077',
+                color: '#3d4a5e',
                 marginBottom: 3,
                 textTransform: 'uppercase',
               }}
@@ -641,7 +587,7 @@ function ActionConfirmationCard({ card, onActionComplete }) {
                 display: 'block',
                 fontSize: '0.75rem',
                 fontWeight: 700,
-                color: '#526077',
+                color: '#3d4a5e',
                 marginBottom: 3,
                 textTransform: 'uppercase',
               }}
@@ -683,7 +629,7 @@ function ActionConfirmationCard({ card, onActionComplete }) {
               borderRadius: 8,
               background: '#fef2f2',
               border: '1px solid #fecaca',
-              color: '#dc2626',
+              color: '#b91c1c',
               fontSize: '0.76rem',
               fontWeight: 600,
               display: 'flex',
@@ -809,7 +755,7 @@ function ActionConfirmationCard({ card, onActionComplete }) {
           }}
         >
           <div>
-            <div style={{ fontSize: '0.75rem', fontWeight: 700, color: '#526077', textTransform: 'uppercase' }}>
+            <div style={{ fontSize: '0.75rem', fontWeight: 700, color: '#3d4a5e', textTransform: 'uppercase' }}>
               Total Gross
             </div>
             <div style={{ fontSize: '0.86rem', fontWeight: 800, color: '#0f172a', marginTop: 2 }}>
@@ -817,7 +763,7 @@ function ActionConfirmationCard({ card, onActionComplete }) {
             </div>
           </div>
           <div>
-            <div style={{ fontSize: '0.75rem', fontWeight: 700, color: '#526077', textTransform: 'uppercase' }}>
+            <div style={{ fontSize: '0.75rem', fontWeight: 700, color: '#3d4a5e', textTransform: 'uppercase' }}>
               Total Deductions
             </div>
             <div style={{ fontSize: '0.86rem', fontWeight: 800, color: '#b91c1c', marginTop: 2 }}>
@@ -825,7 +771,7 @@ function ActionConfirmationCard({ card, onActionComplete }) {
             </div>
           </div>
           <div>
-            <div style={{ fontSize: '0.75rem', fontWeight: 700, color: '#526077', textTransform: 'uppercase' }}>
+            <div style={{ fontSize: '0.75rem', fontWeight: 700, color: '#3d4a5e', textTransform: 'uppercase' }}>
               Total Net Payout
             </div>
             <div style={{ fontSize: '0.9rem', fontWeight: 800, color: '#15803d', marginTop: 2 }}>
@@ -865,7 +811,7 @@ function ActionConfirmationCard({ card, onActionComplete }) {
               borderRadius: 8,
               background: '#fef2f2',
               border: '1px solid #fecaca',
-              color: '#dc2626',
+              color: '#b91c1c',
               fontSize: '0.75rem',
               fontWeight: 600,
             }}
@@ -948,7 +894,7 @@ function ActionConfirmationCard({ card, onActionComplete }) {
           <div style={{ fontSize: '0.88rem', fontWeight: 800, color: '#0f172a' }}>
             {card.employee_name}{' '}
             {card.department && (
-              <span style={{ fontSize: '0.76rem', fontWeight: 600, color: '#526077' }}>
+              <span style={{ fontSize: '0.76rem', fontWeight: 600, color: '#3d4a5e' }}>
                 ({card.department})
               </span>
             )}
@@ -987,7 +933,7 @@ function ActionConfirmationCard({ card, onActionComplete }) {
             borderRadius: 8,
             background: '#fef2f2',
             border: '1px solid #fecaca',
-            color: '#dc2626',
+            color: '#b91c1c',
             fontSize: '0.75rem',
             fontWeight: 600,
           }}
@@ -1032,7 +978,7 @@ function ActionConfirmationCard({ card, onActionComplete }) {
             borderRadius: 9,
             border: '1px solid #fecaca',
             background: '#fef2f2',
-            color: '#dc2626',
+            color: '#b91c1c',
             fontSize: '0.78rem',
             fontWeight: 700,
             cursor: status === 'submitting' ? 'not-allowed' : 'pointer',
@@ -1048,6 +994,10 @@ function ActionConfirmationCard({ card, onActionComplete }) {
 
 export default function AiAssistant() {
   const { user } = useAuth();
+  const navigate = useNavigate();
+  const fromPage = useLocation().state?.fromPage;
+  const [guides, setGuides] = useState([]);
+  const [showAllGuides, setShowAllGuides] = useState(false);
   const [messages, setMessages] = useState([createWelcomeMessage()]);
   const [input, setInput] = useState('');
   const [loading, setLoading] = useState(false);
@@ -1169,6 +1119,81 @@ export default function AiAssistant() {
     setSpeakingMsgId(null);
   }, []);
 
+  // How-to guides: the ones for the page the user came from go first.
+  useEffect(() => {
+    let active = true;
+    Promise.all([fromPage ? getAiGuides(fromPage) : { data: [] }, getAiGuides()])
+      .then(([forPage, all]) => {
+        if (!active) return;
+        const first = new Set(forPage.data.map((g) => g.id));
+        setGuides([...forPage.data, ...all.data.filter((g) => !first.has(g.id))]);
+      })
+      .catch(() => {}); // the chips are optional
+    return () => { active = false; };
+  }, [fromPage]);
+
+  const handleOpenGuide = useCallback(
+    async (guide) => {
+      stopSpeaking();
+      const timestamp = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+      setLoading(true);
+      try {
+        const { data } = await getAiGuide(guide.id);
+        setMessages((prev) => [
+          ...prev,
+          { id: `user-${Date.now()}`, role: 'user', content: `How to: ${guide.title}`, timestamp },
+          {
+            id: `ai-${Date.now()}`,
+            role: 'assistant',
+            content: data.reply,
+            guide: data,
+            tools_used: [],
+            pending_actions: [],
+            timestamp,
+          },
+        ]);
+      } catch {
+        setMessages((prev) => [
+          ...prev,
+          {
+            id: `err-${Date.now()}`,
+            role: 'assistant',
+            content: '**Error:** Could not load this guide.',
+            isError: true,
+            tools_used: [],
+            pending_actions: [],
+            timestamp,
+          },
+        ]);
+      } finally {
+        setLoading(false);
+      }
+    },
+    [stopSpeaking]
+  );
+
+  const guideChip = (guide) => (
+    <button
+      key={guide.id}
+      type="button"
+      disabled={loading}
+      onClick={() => handleOpenGuide(guide)}
+      style={{
+        padding: '5px 12px',
+        borderRadius: 999,
+        border: '1px solid #c7d2fe',
+        background: '#ffffff',
+        color: '#3730a3',
+        fontSize: '0.75rem',
+        fontWeight: 600,
+        whiteSpace: 'nowrap',
+        cursor: loading ? 'not-allowed' : 'pointer',
+      }}
+    >
+      {guide.title}
+    </button>
+  );
+
   const handleClearChat = useCallback(() => {
     stopSpeaking();
     setMessages([createWelcomeMessage()]);
@@ -1215,6 +1240,7 @@ export default function AiAssistant() {
       if (
         isAdminOrManager &&
         selectedDept &&
+        !/\b(kaise|kese|how (do|to|can)|steps?|guide|letter)\b/i.test(textToSend) &&
         !textToSend.toLowerCase().includes(selectedDept.toLowerCase()) &&
         !textToSend.toLowerCase().includes('approval') &&
         !textToSend.toLowerCase().includes('approve') &&
@@ -1243,7 +1269,10 @@ export default function AiAssistant() {
       setLoading(true);
 
       try {
-        const res = await sendAiChat(textToSend, historyPayload);
+        const res = await sendAiChat(textToSend, historyPayload, {
+          page: fromPage,
+          guide_id: messages[messages.length - 1]?.guide?.id,
+        });
         const data = res.data;
         if (data.quota) {
           setQuota(data.quota);
@@ -1253,6 +1282,7 @@ export default function AiAssistant() {
           id: aiMsgId,
           role: 'assistant',
           content: data.reply,
+          guide: data.guide,
           tools_used: data.tools_used || [],
           pending_actions: data.pending_actions || [],
           provider: data.provider,
@@ -1294,7 +1324,7 @@ export default function AiAssistant() {
         setLoading(false);
       }
     },
-    [input, loading, messages, autoSpeak, isAdminOrManager, selectedDept, speakReply, stopSpeaking, quota]
+    [input, loading, messages, autoSpeak, isAdminOrManager, selectedDept, speakReply, stopSpeaking, quota, fromPage]
   );
 
   // ── Voice Recording (Groq Whisper + Browser SpeechRecognition Fallback) ──
@@ -1549,7 +1579,7 @@ export default function AiAssistant() {
                   Online • Voice & Chat
                 </span>
               </div>
-              <p style={{ margin: '1px 0 0 0', fontSize: '0.72rem', color: '#526077', fontWeight: 500, whiteSpace: 'nowrap' }}>
+              <p style={{ margin: '1px 0 0 0', fontSize: '0.72rem', color: '#3d4a5e', fontWeight: 500, whiteSpace: 'nowrap' }}>
                 {isAdminOrManager
                   ? 'Live Team Attendance & Leave Approvals'
                   : 'My Leaves, Personal Attendance & Instant Leave Apply'}
@@ -1575,7 +1605,7 @@ export default function AiAssistant() {
                 }}
                 title="Filter queries by Department"
               >
-                <Building2 size={14} style={{ color: selectedDept ? '#2563eb' : '#64748b' }} />
+                <Building2 size={14} style={{ color: selectedDept ? '#2563eb' : '#475569' }} />
                 <select
                   value={selectedDept}
                   onChange={(e) => setSelectedDept(e.target.value)}
@@ -1616,7 +1646,7 @@ export default function AiAssistant() {
                 cursor: 'pointer',
                 border: autoSpeak ? '1px solid #bfdbfe' : '1px solid #cbd5e1',
                 background: autoSpeak ? '#eff6ff' : 'rgba(255, 255, 255, 0.85)',
-                color: autoSpeak ? '#1d4ed8' : '#64748b',
+                color: autoSpeak ? '#1d4ed8' : '#475569',
                 boxShadow: '0 1px 2px rgba(15, 23, 42, 0.03)',
               }}
               title="Automatically speak AI replies in English"
@@ -1693,6 +1723,7 @@ export default function AiAssistant() {
                   : ''}
               </button>
             ))}
+            {guides.slice(0, 4).map(guideChip)}
           </div>
         )}
 
@@ -1842,7 +1873,7 @@ export default function AiAssistant() {
                     style={{
                       margin: '4px auto 0',
                       fontSize: '0.82rem',
-                      color: '#526077',
+                      color: '#3d4a5e',
                       lineHeight: 1.4,
                     }}
                   >
@@ -1938,6 +1969,26 @@ export default function AiAssistant() {
                   );
                 })}
               </div>
+
+              {guides.length > 0 && (
+                <div style={{ width: '100%', maxWidth: 760, marginTop: 4 }}>
+                  <div style={{ fontSize: '0.75rem', fontWeight: 700, color: '#475569', marginBottom: 8 }}>
+                    How-to guides
+                  </div>
+                  <div style={{ display: 'flex', flexWrap: 'wrap', justifyContent: 'center', gap: 8 }}>
+                    {(showAllGuides ? guides : guides.slice(0, 6)).map(guideChip)}
+                    {guides.length > 6 && (
+                      <button
+                        type="button"
+                        onClick={() => setShowAllGuides((v) => !v)}
+                        style={{ border: 'none', background: 'none', color: '#2563eb', fontSize: '0.75rem', fontWeight: 700, cursor: 'pointer' }}
+                      >
+                        {showAllGuides ? 'Show less' : `Show all (${guides.length})`}
+                      </button>
+                    )}
+                  </div>
+                </div>
+              )}
             </div>
           ) : (
             messages
@@ -1991,6 +2042,17 @@ export default function AiAssistant() {
                         style={{ fontSize: '0.92rem', lineHeight: 1.6 }}
                         dangerouslySetInnerHTML={{ __html: formatMessageHtml(msg.content) }}
                       />
+
+                      {!isUser && msg.guide && (
+                        <button
+                          type="button"
+                          className="btn btn-primary btn-sm"
+                          style={{ marginTop: 10 }}
+                          onClick={() => navigate(msg.guide.path)}
+                        >
+                          {msg.guide.button} <ArrowUpRight size={14} />
+                        </button>
+                      )}
 
                       {/* Interactive Action Cards Below AI Message (Leave Apply / Leave Approve) */}
                       {!isUser && msg.pending_actions?.length > 0 && (
@@ -2115,7 +2177,7 @@ export default function AiAssistant() {
           )}
 
           {loading && (
-            <div style={{ display: 'flex', alignItems: 'center', gap: '10px', color: '#526077', fontSize: '0.875rem' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '10px', color: '#3d4a5e', fontSize: '0.875rem' }}>
               <BotAvatar size={36} />
               <span>
                 {isAdminOrManager

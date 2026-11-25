@@ -553,7 +553,7 @@ export default function SelfieClockInModal({ isOpen, onClose, onConfirm, loading
                 <div style={{ fontSize: 24, fontWeight: 800, color: '#ef4444', letterSpacing: 1 }}>
                   {formatRemainingTime(cooldownSeconds)}
                 </div>
-                <div style={{ fontSize: 12, color: '#64748b', lineHeight: 1.4 }}>
+                <div style={{ fontSize: 12, color: '#cbd5e1', lineHeight: 1.4 }}>
                   3 failed verification attempts. Please wait for cooldown to expire before retrying.
                 </div>
               </div>
@@ -652,7 +652,7 @@ export default function SelfieClockInModal({ isOpen, onClose, onConfirm, loading
                         width: 60,
                         height: 60,
                         borderRadius: '50%',
-                        background: '#22c55e',
+                        background: '#15803d',
                         color: '#ffffff',
                         display: 'flex',
                         alignItems: 'center',

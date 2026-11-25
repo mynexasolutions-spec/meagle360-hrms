@@ -13,8 +13,8 @@ from datetime import date as date_type, datetime, timezone
 from decimal import Decimal
 
 from sqlalchemy import (
-    Boolean, CheckConstraint, Date, DateTime, ForeignKey, Integer, Numeric,
-    SmallInteger, String, Text, UniqueConstraint,
+    Boolean, CheckConstraint, Date, DateTime, ForeignKey, Index, Integer, Numeric,
+    SmallInteger, String, Text, UniqueConstraint, text,
 )
 from sqlalchemy.dialects.postgresql import JSONB, UUID
 from sqlalchemy.orm import Mapped, mapped_column, relationship
@@ -56,6 +56,9 @@ class PmsConfig(Base, TimestampMixin):
         ),
         CheckConstraint("min_peer_responses >= 1", name="ck_pms_config_min_peer_resp"),
         CheckConstraint("max_peer_weight BETWEEN 0 AND 100", name="ck_pms_config_max_peer_weight"),
+        CheckConstraint(
+            "review_opens_days BETWEEN 1 AND 31 AND review_due_day BETWEEN 1 AND 28",
+            name="ck_pms_config_review_window"),
     )
 
     id: Mapped[uuid.UUID] = _uuid_pk()
@@ -84,6 +87,13 @@ class PmsConfig(Base, TimestampMixin):
     goal_achievement_cap: Mapped[Decimal] = mapped_column(Numeric(5, 2), nullable=False, default=120)
     rating_scale_max: Mapped[int] = mapped_column(SmallInteger, nullable=False, default=5)
     min_tenure_days_for_hike: Mapped[int] = mapped_column(Integer, nullable=False, default=180)
+
+    # Monthly review window: opens on the last N days of the month, due on
+    # this day of the next month.
+    review_opens_days: Mapped[int] = mapped_column(
+        SmallInteger, nullable=False, default=3, server_default="3")
+    review_due_day: Mapped[int] = mapped_column(
+        SmallInteger, nullable=False, default=5, server_default="5")
 
 
 class CompetencyParameter(Base, TimestampMixin):
@@ -147,6 +157,10 @@ class ReviewCycle(Base, TimestampMixin):
             "'released','payroll_approved','closed')",
             name="ck_review_cycle_status",
         ),
+        CheckConstraint(
+            "period_type IN ('custom','monthly','appraisal')", name="ck_review_cycle_period_type"),
+        Index("uq_review_cycle_company_month", "company_id", "start_date", unique=True,
+              postgresql_where=text("period_type = 'monthly'")),
     )
 
     id: Mapped[uuid.UUID] = _uuid_pk()
@@ -159,6 +173,10 @@ class ReviewCycle(Base, TimestampMixin):
     rating_end: Mapped[date_type | None] = mapped_column(Date, nullable=True)
     review_end: Mapped[date_type | None] = mapped_column(Date, nullable=True)
     status: Mapped[str] = mapped_column(String(20), nullable=False, default="draft")
+    # custom = retired 360 cycle (data only); monthly = auto-created, one per calendar
+    # month; appraisal = yearly average of monthly scores, drives hikes.
+    period_type: Mapped[str] = mapped_column(
+        String(12), nullable=False, default="custom", server_default="custom")
     # Frozen copy of pms_config + rating_slab + parameters at launch so later
     # config edits cannot change an in-flight/finalized cycle's results.
     config_snapshot: Mapped[dict | None] = mapped_column(JSONB, nullable=True)
@@ -178,6 +196,8 @@ class ReviewParticipant(Base, TimestampMixin):
     __tablename__ = "review_participant"
     __table_args__ = (
         UniqueConstraint("cycle_id", "employee_id", name="uq_review_participant_cycle_employee"),
+        CheckConstraint("manager_score IS NULL OR manager_score BETWEEN 1 AND 5",
+                        name="ck_review_participant_manager_score"),
     )
 
     id: Mapped[uuid.UUID] = _uuid_pk()
@@ -211,6 +231,13 @@ class ReviewParticipant(Base, TimestampMixin):
     adjustment_reason: Mapped[str | None] = mapped_column(Text, nullable=True)
     attendance_snapshot: Mapped[dict | None] = mapped_column(JSONB, nullable=True)
     parameter_breakdown: Mapped[list | None] = mapped_column(JSONB, nullable=True)  # per-parameter self/manager/peer + gap
+
+    # Monthly review
+    self_note: Mapped[str | None] = mapped_column(Text, nullable=True)
+    manager_score: Mapped[int | None] = mapped_column(SmallInteger, nullable=True)
+    manager_comment: Mapped[str | None] = mapped_column(Text, nullable=True)
+    # Appraisal only: how many monthly scores the average is built from
+    months_reviewed: Mapped[int | None] = mapped_column(SmallInteger, nullable=True)
 
     locked_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
     released_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)

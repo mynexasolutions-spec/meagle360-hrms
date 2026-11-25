@@ -177,7 +177,7 @@ export default function Subscriptions() {
           <h2 style={{ fontSize: '1.35rem', fontWeight: 800, color: '#0f172a', marginBottom: 10 }}>
             Access Restricted
           </h2>
-          <p style={{ color: '#526077', fontSize: '0.925rem', lineHeight: 1.5, margin: 0 }}>
+          <p style={{ color: '#3d4a5e', fontSize: '0.925rem', lineHeight: 1.5, margin: 0 }}>
             Only Organization Administrators can view or manage subscription and plan tracking details.
           </p>
         </div>
@@ -216,7 +216,7 @@ export default function Subscriptions() {
                 height: 46,
                 borderRadius: 14,
                 background: '#fee2e2',
-                color: '#dc2626',
+                color: '#b91c1c',
                 display: 'flex',
                 alignItems: 'center',
                 justifyContent: 'center',
@@ -292,7 +292,7 @@ export default function Subscriptions() {
           Transparent Pricing for Modern Workforces
         </h1>
 
-        <p style={{ color: '#526077', fontSize: '1rem', lineHeight: 1.5 }}>
+        <p style={{ color: '#3d4a5e', fontSize: '1rem', lineHeight: 1.5 }}>
           Choose the ideal billing cycle tailored to your organization size with premium perks and guaranteed SLA.
         </p>
 
@@ -351,7 +351,7 @@ export default function Subscriptions() {
             ) : (
               <>
                 <span style={{ opacity: 0.5 }}>•</span>
-                <span style={{ color: '#526077', fontStyle: 'italic' }}>No expiry set</span>
+                <span style={{ color: '#3d4a5e', fontStyle: 'italic' }}>No expiry set</span>
               </>
             )}
           </div>
@@ -433,7 +433,7 @@ export default function Subscriptions() {
                   </span>
                 </div>
 
-                <p style={{ fontSize: '0.8125rem', color: '#526077', margin: '0 0 18px 0', lineHeight: 1.4 }}>
+                <p style={{ fontSize: '0.8125rem', color: '#3d4a5e', margin: '0 0 18px 0', lineHeight: 1.4 }}>
                   {plan.subtitle}
                 </p>
 
@@ -449,7 +449,7 @@ export default function Subscriptions() {
                   >
                     ₹{plan.price.toLocaleString('en-IN')}
                   </span>
-                  <span style={{ fontSize: '0.875rem', fontWeight: 600, color: '#526077' }}>
+                  <span style={{ fontSize: '0.875rem', fontWeight: 600, color: '#3d4a5e' }}>
                     {plan.period}
                   </span>
                 </div>
@@ -637,11 +637,11 @@ export default function Subscriptions() {
                 <span style={{ fontWeight: 700, color: '#0f172a' }}>{selectedPlan.name} ({selectedPlan.duration})</span>
                 <span style={{ fontWeight: 800, fontSize: '1.2rem', color: '#2563eb' }}>₹{selectedPlan.price.toLocaleString('en-IN')}</span>
               </div>
-              <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.8125rem', color: '#526077', marginBottom: 4 }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.8125rem', color: '#3d4a5e', marginBottom: 4 }}>
                 <span>Workforce Capacity:</span>
                 <span style={{ fontWeight: 600, color: '#0f172a' }}>{selectedPlan.population} Employees</span>
               </div>
-              <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.8125rem', color: '#526077' }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.8125rem', color: '#3d4a5e' }}>
                 <span>GST (18% Input Credit):</span>
                 <span>Included</span>
               </div>

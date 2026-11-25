@@ -15,6 +15,7 @@ from app.models.leave_type import LeaveType
 from app.repositories.employee_repo import EmployeeRepository
 from app.repositories.attendance_repo import AttendanceRepository
 from app.repositories.leave_repo import LeaveRequestRepository
+from app.services.team_service import TeamService
 
 # Company operates in IST — "today" for attendance purposes means the local
 # calendar day, not the UTC one. clock_in is stored in UTC, so a clock-in at
@@ -53,18 +54,46 @@ class DashboardService:
             or 0
         )
 
-    def get_summary(self) -> dict:
-        today = date.today()
-        total_employees = EmployeeRepository(self.db, self.company_id).count()
-        present_today = AttendanceRepository(self.db, self.company_id).count_present_today()
-        on_leave_today = self._count_on_leave(today)
-        pending_approvals = LeaveRequestRepository(self.db, self.company_id).count_pending()
-
+    def get_summary(
+        self, employee_id: UUID | None, show_headcount: bool, show_attendance: bool,
+        show_approvals: bool,
+    ) -> dict:
+        """Company-wide counts only for people who can open the matching
+        company-wide page (None otherwise); everyone also gets their own."""
+        today = (_today_utc_bounds()[0] + _IST_OFFSET).date()
+        team = TeamService(self.db, self.company_id)
         return {
-            "total_employees": total_employees,
-            "present_today": present_today,
-            "on_leave_today": on_leave_today,
-            "pending_approvals": pending_approvals,
+            "total_employees": (
+                EmployeeRepository(self.db, self.company_id).count() if show_headcount else None
+            ),
+            "present_today": (
+                AttendanceRepository(self.db, self.company_id).count_present_today()
+                if show_attendance else None
+            ),
+            "on_leave_today": self._count_on_leave(today) if show_attendance else None,
+            "pending_approvals": (
+                LeaveRequestRepository(self.db, self.company_id).count_pending()
+                if show_approvals else None
+            ),
+            "mine": {
+                **self._my_leave_counts(employee_id, today),
+                "team_size": team.count(employee_id),
+                "day_off": team.is_day_off(today),
+            },
+        }
+
+    def _my_leave_counts(self, employee_id: UUID | None, today: date) -> dict:
+        if not employee_id:
+            return {"upcoming_leaves": 0, "pending_requests": 0}
+        mine = self.db.query(LeaveRequest).filter(
+            LeaveRequest.company_id == self.company_id,
+            LeaveRequest.employee_id == employee_id,
+        )
+        return {
+            "upcoming_leaves": mine.filter(
+                LeaveRequest.status == "approved", LeaveRequest.end_date >= today
+            ).count(),
+            "pending_requests": mine.filter(LeaveRequest.status == "pending").count(),
         }
 
     def get_on_leave_today(self) -> list[dict]:

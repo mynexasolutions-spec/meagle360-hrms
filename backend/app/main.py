@@ -12,7 +12,7 @@ from fastapi.responses import JSONResponse
 
 from app.config import get_settings
 from app.services.auth_service import _get_jwt_secret
-from app.routes import auth, company, department, designation, employee, attendance, leave, shift, platform, dashboard, announcement, overtime, audit, role, expense, site, payroll, action_tracker, helpdesk, ai, pms, pms_cycles, pms_ratings, pms_results, geofence, face, ats
+from app.routes import auth, company, department, designation, employee, attendance, leave, shift, platform, dashboard, announcement, overtime, audit, role, expense, site, payroll, action_tracker, helpdesk, ai, pms, pms_results, pms_monthly, geofence, face, ats, policy
 from app.middleware.plan_expiry import PlanExpiryMiddleware
 
 settings = get_settings()
@@ -76,6 +76,7 @@ app.include_router(leave.router)
 app.include_router(shift.router)
 app.include_router(dashboard.router)
 app.include_router(announcement.router)
+app.include_router(policy.router)
 app.include_router(overtime.router)
 app.include_router(expense.router)
 app.include_router(payroll.router)
@@ -84,9 +85,8 @@ app.include_router(action_tracker.router)
 app.include_router(helpdesk.router)
 app.include_router(ai.router)
 app.include_router(pms.router)
-app.include_router(pms_cycles.router)
-app.include_router(pms_ratings.router)
 app.include_router(pms_results.router)
+app.include_router(pms_monthly.router)
 app.include_router(ats.router)
 
 

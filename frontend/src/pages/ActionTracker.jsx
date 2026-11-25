@@ -5,6 +5,8 @@ import { getActionItems, createActionItem, updateActionItemStatus, deleteActionI
 import client from '../api/client';
 import Modal from '../components/Modal';
 import StatCard from '../components/StatCard';
+import useUrlFilters from '../utils/useUrlFilters';
+import { rowClick } from '../utils/rowClick';
 import {
   CheckSquare,
   Plus,
@@ -28,7 +30,13 @@ export default function ActionTracker() {
 
   const [tasks, setTasks] = useState([]);
   const [employees, setEmployees] = useState([]);
-  const [filterStatus, setFilterStatus] = useState('all');
+  const [{ status: filterStatus }, setFilters] = useUrlFilters({ status: 'all' });
+  const setFilterStatus = (status) => setFilters({ status });
+  // Clicking the active card again clears it.
+  const cardFilter = (status) => ({
+    active: filterStatus === status,
+    onClick: () => setFilterStatus(filterStatus === status ? 'all' : status),
+  });
   const [loading, setLoading] = useState(true);
 
   // New Task Modal State
@@ -149,7 +157,7 @@ export default function ActionTracker() {
     switch (priority) {
       case 'urgent': return { bg: '#fee2e2', color: '#dc2626', label: 'Urgent' };
       case 'high': return { bg: '#fef3c7', color: '#d97706', label: 'High' };
-      case 'low': return { bg: '#f1f5f9', color: '#526077', label: 'Low' };
+      case 'low': return { bg: '#f1f5f9', color: '#3d4a5e', label: 'Low' };
       default: return { bg: '#e0f2fe', color: '#0284c7', label: 'Medium' };
     }
   };
@@ -158,7 +166,7 @@ export default function ActionTracker() {
     switch (status) {
       case 'completed': return { bg: '#dcfce7', color: '#15803d', label: 'Completed' };
       case 'in_progress': return { bg: '#e0e7ff', color: '#4338ca', label: 'In Progress' };
-      case 'cancelled': return { bg: '#f1f5f9', color: '#64748b', label: 'Cancelled' };
+      case 'cancelled': return { bg: '#f1f5f9', color: '#475569', label: 'Cancelled' };
       default: return { bg: '#fef3c7', color: '#b45309', label: 'To Do' };
     }
   };
@@ -179,7 +187,7 @@ export default function ActionTracker() {
           </div>
           <div style={{ minWidth: 0 }}>
             <h1 style={{ fontSize: 'clamp(1.25rem, 4.5vw, 1.75rem)', fontWeight: 800, color: '#0f172a' }}>Action Tracker</h1>
-            <p style={{ color: '#526077', fontSize: '0.875rem' }}>Assign deliverables, track progress &amp; meet team deadlines</p>
+            <p style={{ color: '#3d4a5e', fontSize: '0.875rem' }}>Assign deliverables, track progress &amp; meet team deadlines</p>
           </div>
         </div>
         {canCreateTask && (
@@ -208,10 +216,10 @@ export default function ActionTracker() {
 
       {/* KPI Stats Cards */}
       <div className="stats-grid" style={{ marginBottom: 28 }}>
-        <StatCard icon={CheckSquare} label="Total Action Items" value={totalTasks} color="#64748b" bgColor="#f1f5f9" />
-        <StatCard icon={Clock} label="In Progress" value={inProgressTasks} color="#4338ca" bgColor="#e0e7ff" />
-        <StatCard icon={CheckCircle2} label="Completed Tasks" value={completedTasks} color="#059669" bgColor="var(--accent-emerald-light)" />
-        <StatCard icon={AlertCircle} label="Overdue Deadlines" value={overdueTasks} color="#dc2626" bgColor="var(--accent-rose-light)" />
+        <StatCard icon={CheckSquare} label="Total Action Items" value={totalTasks} {...cardFilter('all')} color="#64748b" bgColor="#f1f5f9" />
+        <StatCard icon={Clock} label="In Progress" value={inProgressTasks} {...cardFilter('in_progress')} color="#4338ca" bgColor="#e0e7ff" />
+        <StatCard icon={CheckCircle2} label="Completed Tasks" value={completedTasks} {...cardFilter('completed')} color="#059669" bgColor="var(--accent-emerald-light)" />
+        <StatCard icon={AlertCircle} label="Overdue Deadlines" value={overdueTasks} {...cardFilter('overdue')} color="#dc2626" bgColor="var(--accent-rose-light)" />
       </div>
 
       {/* Tabs Filter */}
@@ -233,7 +241,7 @@ export default function ActionTracker() {
               fontWeight: 700,
               border: filterStatus === tab.key ? 'none' : '1px solid #cbd5e1',
               background: filterStatus === tab.key ? '#0f172a' : '#ffffff',
-              color: filterStatus === tab.key ? '#ffffff' : '#64748b',
+              color: filterStatus === tab.key ? '#ffffff' : '#475569',
               cursor: 'pointer',
               boxShadow: filterStatus === tab.key ? '0 4px 12px rgba(15, 23, 42, 0.15)' : 'none',
               transition: 'all 0.15s ease',
@@ -254,7 +262,7 @@ export default function ActionTracker() {
           return (
             <div
               key={t.id}
-              className="action-task-card"
+              {...rowClick(() => handleOpenStatusModal(t), 'action-task-card')}
               style={{
                 borderTop: `3px solid ${priorityStyle.color}`,
                 borderLeft: isOverdue ? '1px solid #fca5a5' : '1px solid #e2e8f0',
@@ -271,7 +279,7 @@ export default function ActionTracker() {
                     {statusStyle.label}
                   </span>
                   {isOverdue && (
-                    <span style={{ fontSize: '0.75rem', fontWeight: 700, padding: '3px 10px', borderRadius: 8, background: '#fee2e2', color: '#dc2626' }}>
+                    <span style={{ fontSize: '0.75rem', fontWeight: 700, padding: '3px 10px', borderRadius: 8, background: '#fee2e2', color: '#b91c1c' }}>
                       ⚠️ Overdue
                     </span>
                   )}
@@ -280,7 +288,7 @@ export default function ActionTracker() {
                 <h3 style={{ margin: '0 0 6px 0', fontSize: '1.1rem', fontWeight: 700, color: '#0f172a' }}>{t.title}</h3>
                 {t.description && <p style={{ margin: '0 0 12px 0', fontSize: '0.875rem', color: '#475569', lineHeight: 1.5 }}>{t.description}</p>}
 
-                <div style={{ display: 'flex', gap: 20, flexWrap: 'wrap', fontSize: '0.8125rem', color: '#526077' }}>
+                <div style={{ display: 'flex', gap: 20, flexWrap: 'wrap', fontSize: '0.8125rem', color: '#3d4a5e' }}>
                   <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
                     <User size={15} style={{ color: '#2563eb' }} />
                     <span>Assignee: <strong style={{ color: '#334155' }}>{t.assigned_to_name || 'Unassigned'}</strong></span>
@@ -292,7 +300,7 @@ export default function ActionTracker() {
                   )}
                   {t.due_date && (
                     <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-                      <Calendar size={15} style={{ color: isOverdue ? '#dc2626' : '#64748b' }} />
+                      <Calendar size={15} style={{ color: isOverdue ? '#dc2626' : '#475569' }} />
                       <span>Deadline: <strong style={{ color: isOverdue ? '#dc2626' : '#334155' }}>{t.due_date}</strong></span>
                     </div>
                   )}
@@ -337,7 +345,7 @@ export default function ActionTracker() {
                     style={{
                       border: 'none',
                       background: 'transparent',
-                      color: '#64748b',
+                      color: '#475569',
                       padding: 4,
                       cursor: 'pointer',
                     }}
@@ -352,7 +360,7 @@ export default function ActionTracker() {
         })}
 
         {filteredTasks.length === 0 && !loading && (
-          <div style={{ background: '#ffffff', borderRadius: 16, border: '1px solid #e2e8f0', padding: 48, textAlign: 'center', color: '#526077' }}>
+          <div style={{ background: '#ffffff', borderRadius: 16, border: '1px solid #e2e8f0', padding: 48, textAlign: 'center', color: '#3d4a5e' }}>
             <CheckSquare size={48} style={{ color: '#7c8aa0', marginBottom: 12 }} />
             <h3 style={{ margin: 0, fontSize: '1.1rem', color: '#0f172a', fontWeight: 700 }}>No Action Tasks Found</h3>
             <p style={{ margin: '4px 0 0 0', fontSize: '0.875rem' }}>Assigned tasks and action items will appear here.</p>

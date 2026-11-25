@@ -1,9 +1,4 @@
-"""PMS routes — Phase 1: configuration (config, parameters, slabs).
-
-Writes and sensitive reads (config weights, hike slabs) are Admin-only.
-The competency parameter list is readable by any authenticated user since
-raters need it to fill in reviews.
-"""
+"""PMS routes: configuration (weights and hike rules). Admin only."""
 
 from uuid import UUID
 
@@ -11,10 +6,9 @@ from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
 
 from app.database import get_db
-from app.dependencies import get_company_id, get_current_user, require_admin_role
+from app.dependencies import get_company_id, require_admin_role
 from app.models.user_account import UserAccount
 from app.schemas.pms import (
-    ParameterCreate, ParameterOut, ParameterUpdate,
     PmsConfigOut, PmsConfigUpdate, SlabCreate, SlabOut,
 )
 from app.services.pms_config_service import PmsConfigError, PmsConfigService
@@ -51,39 +45,6 @@ def update_config(
 ):
     svc = PmsConfigService(db, company_id)
     return _call(svc.update_config, current_user.employee_id, data.model_dump(exclude_unset=True))
-
-
-# ── Competency parameters ────────────────────────────────────
-@router.get("/parameters", response_model=list[ParameterOut])
-def list_parameters(
-    include_inactive: bool = False,
-    db: Session = Depends(get_db), company_id: UUID = Depends(get_company_id),
-    current_user: UserAccount = Depends(get_current_user),
-):
-    # Only admins may see deactivated parameters.
-    if include_inactive and not any(r.name == "Admin" for r in current_user.all_roles):
-        include_inactive = False
-    return PmsConfigService(db, company_id).list_parameters(include_inactive)
-
-
-@router.post("/parameters", response_model=ParameterOut, status_code=201)
-def create_parameter(
-    data: ParameterCreate,
-    db: Session = Depends(get_db), company_id: UUID = Depends(get_company_id),
-    current_user: UserAccount = Depends(require_admin_role()),
-):
-    return _call(PmsConfigService(db, company_id).create_parameter,
-                 current_user.employee_id, data.model_dump())
-
-
-@router.put("/parameters/{parameter_id}", response_model=ParameterOut)
-def update_parameter(
-    parameter_id: UUID, data: ParameterUpdate,
-    db: Session = Depends(get_db), company_id: UUID = Depends(get_company_id),
-    current_user: UserAccount = Depends(require_admin_role()),
-):
-    return _call(PmsConfigService(db, company_id).update_parameter,
-                 current_user.employee_id, parameter_id, data.model_dump(exclude_unset=True))
 
 
 # ── Rating slabs ─────────────────────────────────────────────

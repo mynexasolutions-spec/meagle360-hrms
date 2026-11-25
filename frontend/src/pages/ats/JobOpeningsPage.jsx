@@ -28,10 +28,13 @@ import {
   deleteJobOpening,
   getAtsDropdowns,
 } from '../../api/ats';
+import { useAuth } from '../../context/AuthContext';
 import Modal from '../../components/Modal';
 import CareersCustomizerModal from '../../components/ats/CareersCustomizerModal';
 
 export default function JobOpeningsPage() {
+  const { user } = useAuth();
+  const canViewApplicants = user?.role_name === 'Admin' || !!user?.permissions?.['settings:write'] || !!user?.permissions?.['ats:applicants:view'];
   const [jobs, setJobs] = useState([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState('');
@@ -212,7 +215,7 @@ export default function JobOpeningsPage() {
               ATS
             </span>
           </div>
-          <p className="text-sm text-gray-500 mt-1">
+          <p className="text-sm text-gray-600 mt-1">
             Create, manage and publish open positions to your public careers page.
           </p>
         </div>
@@ -281,7 +284,7 @@ export default function JobOpeningsPage() {
         {/* Search Input */}
         <form onSubmit={handleSearchSubmit} className="flex items-center gap-2 w-full sm:w-80">
           <div className="relative flex-1">
-            <Search size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
+            <Search size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-600" />
             <input
               type="text"
               placeholder="Search by title..."
@@ -298,7 +301,7 @@ export default function JobOpeningsPage() {
 
       {/* Jobs Grid */}
       {loading ? (
-        <div className="py-20 text-center text-gray-500">
+        <div className="py-20 text-center text-gray-600">
           <div className="inline-block w-8 h-8 border-4 border-blue-600 border-t-transparent rounded-full animate-spin mb-3"></div>
           <p className="text-sm">Loading job openings...</p>
         </div>
@@ -308,7 +311,7 @@ export default function JobOpeningsPage() {
             <Briefcase size={32} />
           </div>
           <h3 className="text-lg font-semibold text-gray-900">No job openings found</h3>
-          <p className="text-sm text-gray-500 max-w-md mx-auto mt-1 mb-6">
+          <p className="text-sm text-gray-600 max-w-md mx-auto mt-1 mb-6">
             {search || statusFilter !== 'ALL'
               ? 'Try adjusting your search query or status filter.'
               : 'Create your first job posting to start attracting top talent on your careers portal.'}
@@ -335,7 +338,7 @@ export default function JobOpeningsPage() {
                     <h3 className="font-semibold text-gray-900 text-base leading-snug hover:text-blue-600 transition-colors">
                       {job.title}
                     </h3>
-                    <p className="text-xs font-medium text-gray-500 mt-0.5">
+                    <p className="text-xs font-medium text-gray-600 mt-0.5">
                       {job.department_name || 'General Department'}
                     </p>
                   </div>
@@ -356,11 +359,11 @@ export default function JobOpeningsPage() {
                 {/* Badges / Meta */}
                 <div className="flex flex-wrap items-center gap-2 text-xs text-gray-600 mb-4">
                   <span className="inline-flex items-center gap-1 bg-gray-50 border border-gray-200 px-2.5 py-1 rounded-md">
-                    <MapPin size={13} className="text-gray-400" />
+                    <MapPin size={13} className="text-gray-600" />
                     {job.location || 'Remote'}
                   </span>
                   <span className="inline-flex items-center gap-1 bg-gray-50 border border-gray-200 px-2.5 py-1 rounded-md">
-                    <Briefcase size={13} className="text-gray-400" />
+                    <Briefcase size={13} className="text-gray-600" />
                     {job.job_type}
                   </span>
                   {job.number_of_openings > 1 && (
@@ -372,24 +375,34 @@ export default function JobOpeningsPage() {
 
                 {/* Description snippet */}
                 {job.description && (
-                  <p className="text-xs text-gray-500 line-clamp-2 mb-4 leading-relaxed">
+                  <p className="text-xs text-gray-600 line-clamp-2 mb-4 leading-relaxed">
                     {job.description}
                   </p>
                 )}
               </div>
 
               {/* Card Footer */}
-              <div className="pt-3 border-t border-gray-100 flex items-center justify-between text-xs text-gray-500">
-                <div className="flex items-center gap-1.5 font-medium text-gray-700">
-                  <Users size={14} className="text-blue-600" />
-                  <span>{job.applicants_count || 0} applicants</span>
-                </div>
+              <div className="pt-3 border-t border-gray-100 flex items-center justify-between text-xs text-gray-600">
+                {canViewApplicants ? (
+                  <Link
+                    to={`/ats/applicants?job=${job.id}`}
+                    className="flex items-center gap-1.5 font-medium text-gray-700 hover:text-blue-600 hover:underline"
+                  >
+                    <Users size={14} className="text-blue-600" />
+                    <span>{job.applicants_count || 0} applicants</span>
+                  </Link>
+                ) : (
+                  <div className="flex items-center gap-1.5 font-medium text-gray-700">
+                    <Users size={14} className="text-blue-600" />
+                    <span>{job.applicants_count || 0} applicants</span>
+                  </div>
+                )}
 
                 <div className="flex items-center gap-1">
                   <button
                     type="button"
                     onClick={() => openEditModal(job)}
-                    className="p-1.5 text-gray-500 hover:text-blue-600 hover:bg-blue-50 rounded-lg transition-colors"
+                    className="p-1.5 text-gray-600 hover:text-blue-600 hover:bg-blue-50 rounded-lg transition-colors"
                     title="Edit Opening"
                   >
                     <Edit2 size={15} />
@@ -397,7 +410,7 @@ export default function JobOpeningsPage() {
                   <button
                     type="button"
                     onClick={() => handleDeleteJob(job.id)}
-                    className="p-1.5 text-gray-500 hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors"
+                    className="p-1.5 text-gray-600 hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors"
                     title="Delete Opening"
                   >
                     <Trash2 size={15} />
@@ -440,10 +453,10 @@ export default function JobOpeningsPage() {
                     className={`flex items-center gap-2 pb-3 px-3 text-xs sm:text-sm font-semibold border-b-2 transition-all cursor-pointer ${
                       isActive
                         ? 'border-blue-600 text-blue-600'
-                        : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
+                        : 'border-transparent text-gray-600 hover:text-gray-900 hover:border-gray-300'
                     }`}
                   >
-                    <Icon size={15} className={isActive ? 'text-blue-600' : 'text-gray-400'} />
+                    <Icon size={15} className={isActive ? 'text-blue-600' : 'text-gray-600'} />
                     <span>{tab.label}</span>
                   </button>
                 );
@@ -569,7 +582,7 @@ export default function JobOpeningsPage() {
                     <label className="block text-xs font-semibold text-gray-700">
                       About the Role (Overview)
                     </label>
-                    <span className="text-[11px] text-gray-400">Introduction and mission for candidates</span>
+                    <span className="text-[0.8125rem] text-gray-600">Introduction and mission for candidates</span>
                   </div>
                   <textarea
                     rows={4}
@@ -585,7 +598,7 @@ export default function JobOpeningsPage() {
                     <label className="block text-xs font-semibold text-gray-700">
                       Key Responsibilities (Bullet points)
                     </label>
-                    <span className="text-[11px] text-gray-400">Use • for clean bullet list</span>
+                    <span className="text-[0.8125rem] text-gray-600">Use • for clean bullet list</span>
                   </div>
                   <textarea
                     rows={6}
@@ -606,7 +619,7 @@ export default function JobOpeningsPage() {
                     <label className="block text-xs font-semibold text-gray-700">
                       Candidate Requirements & Qualifications
                     </label>
-                    <span className="text-[11px] text-gray-400">Use • for clean bullet list</span>
+                    <span className="text-[0.8125rem] text-gray-600">Use • for clean bullet list</span>
                   </div>
                   <textarea
                     rows={8}

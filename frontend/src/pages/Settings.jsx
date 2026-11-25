@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
 import {
   Settings as SettingsIcon, Building, Shield, Calendar, ScrollText, MapPin, Wallet, Pencil, Trash2,
   Image as ImageIcon, FileSignature, UploadCloud, CheckCircle2, Building2, Phone, Mail, Globe, Camera
@@ -13,10 +14,12 @@ import Modal from '../components/Modal';
 import GeofenceSettings from '../components/GeofenceSettings';
 import SelfieSettings from '../components/SelfieSettings';
 import { usePopup } from '../context/PopupContext';
+import { rowClick } from '../utils/rowClick';
 
 const WEEKDAY_LABELS = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'];
 
 export default function Settings() {
+  const navigate = useNavigate();
   const { showAlert, showConfirm, showToast } = usePopup();
   const [tab, setTab] = useState('branding');
   const [holidays, setHolidays] = useState([]);
@@ -247,7 +250,7 @@ export default function Settings() {
           </div>
           <div style={{ minWidth: 0 }}>
             <h1 style={{ fontSize: 'clamp(1.25rem, 4.5vw, 1.75rem)', fontWeight: 800, color: '#0f172a' }}>Settings</h1>
-            <p style={{ color: '#526077', fontSize: '0.875rem' }}>Configure company branding, policies, holiday calendars, work sites &amp; system audit logs</p>
+            <p style={{ color: '#3d4a5e', fontSize: '0.875rem' }}>Configure company branding, policies, holiday calendars, work sites &amp; system audit logs</p>
           </div>
         </div>
       </div>
@@ -265,7 +268,7 @@ export default function Settings() {
               fontWeight: 700,
               border: tab === t.id ? 'none' : '1px solid #cbd5e1',
               background: tab === t.id ? '#0f172a' : '#ffffff',
-              color: tab === t.id ? '#ffffff' : '#64748b',
+              color: tab === t.id ? '#ffffff' : '#475569',
               cursor: 'pointer',
               boxShadow: tab === t.id ? '0 4px 12px rgba(15, 23, 42, 0.15)' : 'none',
               display: 'inline-flex',
@@ -311,7 +314,7 @@ export default function Settings() {
                 <h3 style={{ display: 'flex', alignItems: 'center', gap: 8, margin: '0 0 8px 0' }}>
                   <ImageIcon size={18} style={{ color: '#2563eb' }} /> Company Logo
                 </h3>
-                <p style={{ fontSize: '0.8125rem', color: '#526077', margin: '0 0 16px 0' }}>
+                <p style={{ fontSize: '0.8125rem', color: '#3d4a5e', margin: '0 0 16px 0' }}>
                   Uploaded logo will appear on all employee payslips, offer letters, and system headers.
                 </p>
 
@@ -333,14 +336,14 @@ export default function Settings() {
                     {company?.logo_url ? (
                       <img src={company.logo_url} alt="Logo" style={{ width: '100%', height: '100%', objectFit: 'contain' }} />
                     ) : (
-                      <Building2 size={36} style={{ color: '#64748b' }} />
+                      <Building2 size={36} style={{ color: '#475569' }} />
                     )}
                   </div>
                   <div>
                     <div style={{ fontSize: '0.875rem', fontWeight: 600, color: '#0f172a' }}>
                       {company?.logo_url ? 'Active Logo' : 'No Logo Uploaded'}
                     </div>
-                    <div style={{ fontSize: '0.75rem', color: '#526077', marginTop: 2 }}>
+                    <div style={{ fontSize: '0.75rem', color: '#3d4a5e', marginTop: 2 }}>
                       PNG, JPG or SVG (Max 5MB)
                     </div>
                   </div>
@@ -385,7 +388,7 @@ export default function Settings() {
                 <h3 style={{ display: 'flex', alignItems: 'center', gap: 8, margin: '0 0 8px 0' }}>
                   <FileSignature size={18} style={{ color: '#0056d6' }} /> Authorized Signature
                 </h3>
-                <p style={{ fontSize: '0.8125rem', color: '#526077', margin: '0 0 16px 0' }}>
+                <p style={{ fontSize: '0.8125rem', color: '#3d4a5e', margin: '0 0 16px 0' }}>
                   Official digital signature used for salary slip approval and legal letters.
                 </p>
 
@@ -407,14 +410,14 @@ export default function Settings() {
                     {company?.signature_url ? (
                       <img src={company.signature_url} alt="Signature" style={{ width: '100%', height: '100%', objectFit: 'contain', padding: 4 }} />
                     ) : (
-                      <span style={{ fontSize: '0.75rem', color: '#64748b', fontStyle: 'italic' }}>No Signature</span>
+                      <span style={{ fontSize: '0.75rem', color: '#475569', fontStyle: 'italic' }}>No Signature</span>
                     )}
                   </div>
                   <div>
                     <div style={{ fontSize: '0.875rem', fontWeight: 600, color: '#0f172a' }}>
                       {company?.signature_url ? 'Active Signature' : 'No Signature Uploaded'}
                     </div>
-                    <div style={{ fontSize: '0.75rem', color: '#526077', marginTop: 2 }}>
+                    <div style={{ fontSize: '0.75rem', color: '#3d4a5e', marginTop: 2 }}>
                       Transparent PNG recommended (Max 5MB)
                     </div>
                   </div>
@@ -531,7 +534,7 @@ export default function Settings() {
                     padding: '10px 24px',
                     borderRadius: 10,
                     border: 'none',
-                    background: '#10b981',
+                    background: '#047857',
                     color: '#ffffff',
                     fontWeight: 700,
                     fontSize: '0.875rem',
@@ -618,7 +621,7 @@ export default function Settings() {
             <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap', alignItems: 'center', marginBottom: 16 }}>
               {chip('Departments', departments.length, { bg: '#eff6ff', fg: '#1d4ed8' })}
               {chip('Employees', totalEmployees, { bg: '#ecfdf5', fg: '#047857' })}
-              {chip('Without head', noHead, noHead ? { bg: '#fffbeb', fg: '#b45309' } : { bg: '#f1f5f9', fg: '#64748b' })}
+              {chip('Without head', noHead, noHead ? { bg: '#fffbeb', fg: '#b45309' } : { bg: '#f1f5f9', fg: '#475569' })}
               <input
                 className="input-field"
                 style={{ marginLeft: 'auto', maxWidth: 260 }}
@@ -632,7 +635,7 @@ export default function Settings() {
                 <thead><tr><th style={{ whiteSpace: 'nowrap' }}>Name</th><th style={{ whiteSpace: 'nowrap' }}>Head</th><th style={{ whiteSpace: 'nowrap' }}>Employees</th><th style={{ whiteSpace: 'nowrap' }}>Actions</th></tr></thead>
                 <tbody>
                   {visible.map((d) => (
-                    <tr key={d.id}>
+                    <tr key={d.id} {...rowClick(d.employee_count > 0 ? () => navigate(`/employees?department=${encodeURIComponent(d.name)}`) : null)}>
                       <td style={{ fontWeight: 500, whiteSpace: 'nowrap' }}>{d.name}</td>
                       <td style={{ whiteSpace: 'nowrap' }}>
                         {d.head_name ? (

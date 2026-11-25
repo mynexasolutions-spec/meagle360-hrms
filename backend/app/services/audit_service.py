@@ -85,6 +85,8 @@ def resolve_target_labels(db: Session, company_id: UUID, logs: list[AuditLog]) -
             label = f"{r.subject} — {name(r.employee_id)}"
         elif et == "announcement" and eid in notices:
             label = notices[eid].title
+        elif et == "company_policy":
+            label = (log.details or {}).get("title")
         elif et == "payroll_run" and eid in runs:
             r = runs[eid]
             label = f"Payroll {r.month:02d}/{r.year}"

@@ -131,7 +131,7 @@ export default function ConvertToEmployeeModal({
               <h3 className="text-base font-bold text-gray-900">
                 Onboard Candidate as Employee
               </h3>
-              <p className="text-xs text-gray-500">
+              <p className="text-xs text-gray-600">
                 Convert <strong>{candidate?.full_name}</strong> into an active employee & invite to HRMS.
               </p>
             </div>
@@ -140,7 +140,7 @@ export default function ConvertToEmployeeModal({
           <button
             type="button"
             onClick={onClose}
-            className="p-2 text-gray-400 hover:text-gray-600 hover:bg-gray-100 rounded-lg transition-colors"
+            className="p-2 text-gray-600 hover:text-gray-900 hover:bg-gray-100 rounded-lg transition-colors"
           >
             <X size={20} />
           </button>
@@ -176,7 +176,7 @@ export default function ConvertToEmployeeModal({
                 <p className="text-xs text-gray-600 max-w-sm mx-auto">
                   {successData.message}
                 </p>
-                <div className="inline-flex items-center gap-1.5 px-2.5 py-1 bg-emerald-50 text-emerald-700 rounded-full font-semibold text-[11px] mt-1 border border-emerald-200">
+                <div className="inline-flex items-center gap-1.5 px-2.5 py-1 bg-emerald-50 text-emerald-700 rounded-full font-semibold text-[0.8125rem] mt-1 border border-emerald-200">
                   <Check size={13} />
                   <span>Applicant moved to <strong>Hired</strong> stage in ATS</span>
                 </div>
@@ -188,7 +188,7 @@ export default function ConvertToEmployeeModal({
                   <Mail size={16} className="text-emerald-600 shrink-0 mt-0.5" />
                   <div>
                     <span className="font-bold block">Setup Email Sent</span>
-                    <p className="text-[11px] text-emerald-700">
+                    <p className="text-[0.8125rem] text-emerald-700">
                       An onboarding invite has been sent to <strong>{successData.email || candidate?.email}</strong>. The setup link expires in 48 hours.
                     </p>
                   </div>
@@ -198,7 +198,7 @@ export default function ConvertToEmployeeModal({
                   <AlertCircle size={16} className="text-amber-600 shrink-0 mt-0.5" />
                   <div>
                     <span className="font-bold block">Account Created (Share Link Manually)</span>
-                    <p className="text-[11px] text-amber-700">
+                    <p className="text-[0.8125rem] text-amber-700">
                       Account created for <strong>{successData.email || candidate?.email}</strong>. Email delivery was unavailable, so please copy the setup link below and share it directly.
                     </p>
                   </div>
@@ -210,7 +210,7 @@ export default function ConvertToEmployeeModal({
                 <div className="space-y-1.5 text-left bg-gray-50 p-3.5 rounded-xl border border-gray-200">
                   <div className="flex items-center justify-between">
                     <span className="font-bold text-gray-700 text-xs">Direct Password Setup Link</span>
-                    <span className="text-[10px] text-gray-400">Valid for 48 hours</span>
+                    <span className="text-[0.8125rem] text-gray-600">Valid for 48 hours</span>
                   </div>
                   <div className="flex items-center gap-2">
                     <input
@@ -238,19 +238,19 @@ export default function ConvertToEmployeeModal({
               {/* Employee Summary Card */}
               <div className="bg-gray-50 p-3.5 rounded-xl border border-gray-200 max-w-md mx-auto text-left space-y-1.5 text-xs">
                 <div className="flex justify-between">
-                  <span className="text-gray-500">Employee Code:</span>
+                  <span className="text-gray-600">Employee Code:</span>
                   <strong className="text-gray-900 font-mono">{successData.employee_code}</strong>
                 </div>
                 <div className="flex justify-between">
-                  <span className="text-gray-500">Full Name:</span>
+                  <span className="text-gray-600">Full Name:</span>
                   <strong className="text-gray-900">{successData.full_name}</strong>
                 </div>
                 <div className="flex justify-between">
-                  <span className="text-gray-500">Date of Hire:</span>
+                  <span className="text-gray-600">Date of Hire:</span>
                   <strong className="text-gray-900">{successData.date_of_hire}</strong>
                 </div>
                 {successData.job_auto_closed && (
-                  <div className="p-2 bg-purple-50 text-purple-700 rounded-lg text-[11px] font-semibold">
+                  <div className="p-2 bg-purple-50 text-purple-700 rounded-lg text-[0.8125rem] font-semibold">
                     ✓ Job Opening auto-closed (all positions filled).
                   </div>
                 )}
@@ -286,21 +286,21 @@ export default function ConvertToEmployeeModal({
               {/* Candidate Quick Info Card */}
               <div className="bg-gray-50 p-3.5 rounded-xl border border-gray-200 grid grid-cols-2 gap-3">
                 <div>
-                  <span className="text-[11px] text-gray-400 font-semibold uppercase block">Candidate Name</span>
+                  <span className="text-[0.8125rem] text-gray-600 font-semibold uppercase block">Candidate Name</span>
                   <strong className="text-gray-900">{candidate?.full_name}</strong>
                 </div>
                 <div>
-                  <span className="text-[11px] text-gray-400 font-semibold uppercase block">Login Email</span>
+                  <span className="text-[0.8125rem] text-gray-600 font-semibold uppercase block">Login Email</span>
                   <span className="text-gray-900 font-medium truncate block">{candidate?.email}</span>
                 </div>
                 <div>
-                  <span className="text-[11px] text-gray-400 font-semibold uppercase block">Offered Role</span>
+                  <span className="text-[0.8125rem] text-gray-600 font-semibold uppercase block">Offered Role</span>
                   <span className="text-purple-700 font-semibold block">
                     {latestOffer?.designation || job?.title}
                   </span>
                 </div>
                 <div>
-                  <span className="text-[11px] text-gray-400 font-semibold uppercase block">Offered CTC</span>
+                  <span className="text-[0.8125rem] text-gray-600 font-semibold uppercase block">Offered CTC</span>
                   <span className="text-gray-900 font-semibold block">
                     {latestOffer ? `₹${latestOffer.ctc?.toLocaleString('en-IN')}` : 'Not specified'}
                   </span>
@@ -311,7 +311,7 @@ export default function ConvertToEmployeeModal({
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div>
                   <label className="block text-gray-700 font-bold mb-1">
-                    Employee Code <span className="text-gray-400 font-normal">(Auto if blank)</span>
+                    Employee Code <span className="text-gray-600 font-normal">(Auto if blank)</span>
                   </label>
                   <input
                     type="text"
@@ -419,7 +419,7 @@ export default function ConvertToEmployeeModal({
                   <span className="font-bold text-gray-800 block">
                     Create User Account & Trigger Invite Flow
                   </span>
-                  <span className="text-gray-500 block text-[11px]">
+                  <span className="text-gray-600 block text-[0.8125rem]">
                     Creates credentials, sends welcome setup email, and transitions application into the <strong>Hired</strong> stage.
                   </span>
                 </label>

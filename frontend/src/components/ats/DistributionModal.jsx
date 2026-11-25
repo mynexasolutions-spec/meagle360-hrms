@@ -177,7 +177,7 @@ export default function DistributionModal({
         )}
 
         {loadingSettings ? (
-          <div className="py-10 text-center text-xs text-gray-500">
+          <div className="py-10 text-center text-xs text-gray-600">
             <div className="inline-block w-5 h-5 border-2 border-blue-600 border-t-transparent rounded-full animate-spin mb-2" />
             <p>Loading recruiter pool...</p>
           </div>
@@ -194,7 +194,7 @@ export default function DistributionModal({
                 <label className="text-xs font-bold text-gray-700">
                   Select Recruiters ({selectedSplitIds.length} selected)
                 </label>
-                <div className="flex items-center gap-2 text-[11px]">
+                <div className="flex items-center gap-2 text-[0.8125rem]">
                   <button
                     type="button"
                     onClick={() => setSelectedSplitIds(recruiters.map((r) => r.id))}
@@ -206,7 +206,7 @@ export default function DistributionModal({
                   <button
                     type="button"
                     onClick={() => setSelectedSplitIds([])}
-                    className="text-gray-500 hover:underline"
+                    className="text-gray-600 hover:underline"
                   >
                     Clear
                   </button>
@@ -214,7 +214,7 @@ export default function DistributionModal({
               </div>
 
               {recruiters.length === 0 ? (
-                <div className="p-4 text-center text-xs text-gray-400 border border-dashed border-gray-200 rounded-xl">
+                <div className="p-4 text-center text-xs text-gray-600 border border-dashed border-gray-200 rounded-xl">
                   No active recruiters found. Assign the Recruiter role on the Hiring Team page first.
                 </div>
               ) : (
@@ -237,12 +237,12 @@ export default function DistributionModal({
                           />
                           <div className="min-w-0">
                             <div className="font-semibold text-gray-900 truncate">{rec.full_name}</div>
-                            <div className="text-[10px] text-gray-400 truncate">
+                            <div className="text-[0.8125rem] text-gray-600 truncate">
                               {(rec.role_names || []).join(', ')}
                             </div>
                           </div>
                         </div>
-                        <span className="text-[11px] font-semibold text-gray-500 shrink-0">
+                        <span className="text-[0.8125rem] font-semibold text-gray-600 shrink-0">
                           {rec.pending_count ?? 0} pending
                         </span>
                       </label>
@@ -264,7 +264,7 @@ export default function DistributionModal({
 
             {splitResult && splitResult.breakdown && splitResult.breakdown.length > 0 && (
               <div className="p-3 bg-slate-50 border border-gray-200 rounded-xl space-y-1.5 text-xs">
-                <div className="font-bold text-gray-700 text-[11px] uppercase tracking-wider">
+                <div className="font-bold text-gray-700 text-[0.8125rem] uppercase tracking-wider">
                   Distribution Breakdown
                 </div>
                 {splitResult.breakdown.map((b) => (
@@ -301,7 +301,7 @@ export default function DistributionModal({
                 <div className="text-xs font-bold text-gray-900">
                   Automatic Round-Robin Assignment
                 </div>
-                <div className="text-[11px] text-gray-500 mt-0.5">
+                <div className="text-[0.8125rem] text-gray-600 mt-0.5">
                   New applications rotate automatically through the selected recruiters (A → B → C → A).
                 </div>
               </div>
@@ -321,7 +321,7 @@ export default function DistributionModal({
                 <label className="text-xs font-bold text-gray-700">
                   Round-Robin Recruiter Pool ({poolIds.length} active in rotation)
                 </label>
-                <div className="flex items-center gap-2 text-[11px]">
+                <div className="flex items-center gap-2 text-[0.8125rem]">
                   <button
                     type="button"
                     onClick={() => setPoolIds(recruiters.map((r) => r.id))}
@@ -333,7 +333,7 @@ export default function DistributionModal({
                   <button
                     type="button"
                     onClick={() => setPoolIds([])}
-                    className="text-gray-500 hover:underline"
+                    className="text-gray-600 hover:underline"
                   >
                     Clear
                   </button>
@@ -359,13 +359,13 @@ export default function DistributionModal({
                         />
                         <div className="min-w-0">
                           <div className="font-semibold text-gray-900 truncate">{rec.full_name}</div>
-                          <div className="text-[10px] text-gray-400 truncate">
+                          <div className="text-[0.8125rem] text-gray-600 truncate">
                             {(rec.role_names || []).join(', ')}
                           </div>
                         </div>
                       </div>
                       {inPool && (
-                        <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-emerald-50 text-emerald-700 border border-emerald-200">
+                        <span className="px-2 py-0.5 rounded-full text-[0.8125rem] font-bold bg-emerald-50 text-emerald-700 border border-emerald-200">
                           In Rotation
                         </span>
                       )}
@@ -373,7 +373,7 @@ export default function DistributionModal({
                   );
                 })}
               </div>
-              <p className="text-[11px] text-gray-400">
+              <p className="text-[0.8125rem] text-gray-600">
                 If auto-assign is OFF or the pool is empty, new applications land in the Unassigned pool.
               </p>
             </div>

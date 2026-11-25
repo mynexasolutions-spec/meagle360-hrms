@@ -251,7 +251,7 @@ export default function MyInterviewsPage() {
               Interviewer Portal
             </span>
           </div>
-          <p className="text-sm text-gray-500 mt-1">
+          <p className="text-sm text-gray-600 mt-1">
             Interviews assigned to you. Review candidate resumes, confirm your time slots, and submit feedback.
           </p>
         </div>
@@ -267,7 +267,7 @@ export default function MyInterviewsPage() {
 
       {/* Interviews List */}
       {loading ? (
-        <div className="py-24 text-center text-gray-500">
+        <div className="py-24 text-center text-gray-600">
           <div className="inline-block w-8 h-8 border-4 border-blue-600 border-t-transparent rounded-full animate-spin mb-3"></div>
           <p className="text-sm">Loading your assigned interviews...</p>
         </div>
@@ -277,7 +277,7 @@ export default function MyInterviewsPage() {
             <Clock size={32} />
           </div>
           <h3 className="text-lg font-semibold text-gray-900">No interviews currently assigned</h3>
-          <p className="text-sm text-gray-500 max-w-md mx-auto mt-1">
+          <p className="text-sm text-gray-600 max-w-md mx-auto mt-1">
             When recruiters assign candidates to you for technical or cultural rounds, they will show up here.
           </p>
         </div>
@@ -310,7 +310,7 @@ export default function MyInterviewsPage() {
                         <h3 className="text-base font-bold text-gray-900 truncate leading-tight">
                           {iv.candidate_name}
                         </h3>
-                        <p className="text-xs text-gray-500 font-medium truncate mt-0.5">
+                        <p className="text-xs text-gray-600 font-medium truncate mt-0.5">
                           {iv.job_title}
                         </p>
                       </div>
@@ -352,7 +352,7 @@ export default function MyInterviewsPage() {
                   {/* Candidate Contact & Resume Pill */}
                   <div className="flex items-center justify-between gap-2 py-2 px-3 bg-gray-50/80 rounded-xl border border-gray-100 mb-3.5 text-xs">
                     <div className="flex items-center gap-1.5 min-w-0 text-gray-600">
-                      <Mail size={13} className="shrink-0 text-gray-400" />
+                      <Mail size={13} className="shrink-0 text-gray-600" />
                       <span className="truncate font-medium">{iv.candidate_email}</span>
                     </div>
 
@@ -378,7 +378,7 @@ export default function MyInterviewsPage() {
                     {iv.scheduled_at ? (
                       <div className="p-3 bg-emerald-50/60 rounded-xl border border-emerald-200/70 text-emerald-950 flex items-start gap-3">
                         <div className="bg-white rounded-lg border border-emerald-200 px-2.5 py-1 text-center shrink-0 shadow-2xs min-w-[44px]">
-                          <div className="text-[10px] font-bold tracking-wider text-emerald-700 uppercase leading-none">
+                          <div className="text-[0.8125rem] font-bold tracking-wider text-emerald-700 uppercase leading-none">
                             {monthStr}
                           </div>
                           <div className="text-base font-extrabold text-emerald-900 leading-tight">
@@ -390,7 +390,7 @@ export default function MyInterviewsPage() {
                           <div className="flex items-center gap-1.5 text-xs font-bold text-emerald-900">
                             <Clock size={13} className="text-emerald-700 shrink-0" />
                             <span>{weekdayTimeStr}</span>
-                            <span className="text-[11px] font-normal text-emerald-700">
+                            <span className="text-[0.8125rem] font-normal text-emerald-700">
                               ({iv.duration_minutes}m)
                             </span>
                           </div>
@@ -409,14 +409,14 @@ export default function MyInterviewsPage() {
                                         location: iv.meeting_link_or_location,
                                       })
                                     }
-                                    className="w-full text-left py-1 px-2 rounded-lg bg-amber-50 hover:bg-amber-100/90 border border-amber-200/90 text-[11px] font-medium text-amber-900 flex items-center justify-between gap-1 transition-colors group cursor-pointer"
+                                    className="w-full text-left py-1 px-2 rounded-lg bg-amber-50 hover:bg-amber-100/90 border border-amber-200/90 text-[0.8125rem] font-medium text-amber-900 flex items-center justify-between gap-1 transition-colors group cursor-pointer"
                                     title="Click to view full office address"
                                   >
                                     <span className="truncate flex items-center gap-1 min-w-0">
                                       <MapPin size={11} className="shrink-0 text-amber-700" />
                                       <span className="truncate">{iv.meeting_link_or_location}</span>
                                     </span>
-                                    <span className="shrink-0 text-[10px] font-bold text-amber-700 underline group-hover:text-amber-900">
+                                    <span className="shrink-0 text-[0.8125rem] font-bold text-amber-700 underline group-hover:text-amber-900">
                                       View
                                     </span>
                                   </button>
@@ -425,7 +425,7 @@ export default function MyInterviewsPage() {
                                     href={iv.meeting_link_or_location}
                                     target="_blank"
                                     rel="noopener noreferrer"
-                                    className="inline-flex items-center gap-1.5 py-0.5 px-2 rounded-md bg-blue-50 hover:bg-blue-100 border border-blue-200 text-[11px] font-semibold text-blue-700 transition-colors"
+                                    className="inline-flex items-center gap-1.5 py-0.5 px-2 rounded-md bg-blue-50 hover:bg-blue-100 border border-blue-200 text-[0.8125rem] font-semibold text-blue-700 transition-colors"
                                     title="Join virtual interview meeting"
                                   >
                                     <Video size={11} className="shrink-0 text-blue-600" />
@@ -443,7 +443,7 @@ export default function MyInterviewsPage() {
                                         location: iv.meeting_link_or_location,
                                       })
                                     }
-                                    className="inline-flex items-center gap-1.5 py-0.5 px-2 rounded-md bg-blue-50 hover:bg-blue-100 border border-blue-200 text-[11px] font-semibold text-blue-700 transition-colors"
+                                    className="inline-flex items-center gap-1.5 py-0.5 px-2 rounded-md bg-blue-50 hover:bg-blue-100 border border-blue-200 text-[0.8125rem] font-semibold text-blue-700 transition-colors"
                                   >
                                     <Video size={11} className="shrink-0 text-blue-600" />
                                     <span>Meeting Link</span>
@@ -456,7 +456,7 @@ export default function MyInterviewsPage() {
                               href={buildGoogleCalendarUrl(iv, roundInfo)}
                               target="_blank"
                               rel="noopener noreferrer"
-                              className="inline-flex items-center gap-1.5 py-0.5 px-2 rounded-md bg-white hover:bg-emerald-100/80 border border-emerald-300 text-[11px] font-semibold text-emerald-800 transition-colors shadow-2xs"
+                              className="inline-flex items-center gap-1.5 py-0.5 px-2 rounded-md bg-white hover:bg-emerald-100/80 border border-emerald-300 text-[0.8125rem] font-semibold text-emerald-800 transition-colors shadow-2xs"
                               title="Save this interview to your Google Calendar"
                             >
                               <Calendar size={11} className="shrink-0 text-emerald-600" />
@@ -638,7 +638,7 @@ export default function MyInterviewsPage() {
             <div className="p-3 bg-gray-50 rounded-xl border border-gray-200 flex items-center justify-between">
               <div>
                 <span className="text-xs font-bold text-gray-900 block">Candidate Attended?</span>
-                <span className="text-[11px] text-gray-500">
+                <span className="text-[0.8125rem] text-gray-600">
                   {attended
                     ? 'Candidate attended the scheduled interview.'
                     : 'Candidate did not attend (Status will become Absent).'}
@@ -763,7 +763,7 @@ export default function MyInterviewsPage() {
               <span className="font-bold text-gray-900 block">
                 {viewingLocationModal.candidateName}
               </span>
-              <span className="text-[11px] text-gray-500 block">
+              <span className="text-[0.8125rem] text-gray-600 block">
                 {viewingLocationModal.roundName}
               </span>
             </div>

@@ -194,20 +194,20 @@ export default function RelievingLetterStudio() {
               gap: 5,
               fontSize: '0.78rem',
               fontWeight: 600,
-              color: '#526077',
+              color: '#3d4a5e',
               marginBottom: 4,
               textDecoration: 'none',
               transition: 'color 0.15s ease',
             }}
             onMouseEnter={(e) => (e.currentTarget.style.color = '#2563eb')}
-            onMouseLeave={(e) => (e.currentTarget.style.color = '#64748b')}
+            onMouseLeave={(e) => (e.currentTarget.style.color = '#475569')}
           >
             <ArrowLeft size={13} /> Back to Directory
           </Link>
           <h1 style={{ fontSize: '1.25rem', fontWeight: 800, color: '#0f172a', margin: 0, display: 'flex', alignItems: 'center', gap: 8 }}>
             <FileText size={20} style={{ color: '#2563eb' }} /> Relieving Letter Studio
           </h1>
-          <p style={{ fontSize: '0.75rem', color: '#526077', margin: '2px 0 0 0' }}>
+          <p style={{ fontSize: '0.75rem', color: '#3d4a5e', margin: '2px 0 0 0' }}>
             Real-time split-screen editor • Instant single-page live preview
           </p>
         </div>
@@ -303,7 +303,7 @@ export default function RelievingLetterStudio() {
                   padding: '2px 5px',
                   fontSize: '0.70rem',
                   fontWeight: 700,
-                  color: zoomLevel === 0.58 ? '#2563eb' : '#64748b',
+                  color: zoomLevel === 0.58 ? '#2563eb' : '#475569',
                   display: 'flex',
                   alignItems: 'center',
                   gap: 3,
@@ -547,19 +547,19 @@ export default function RelievingLetterStudio() {
                             >
                               {matched.employee_code}
                             </span>
-                            <span style={{ fontSize: '0.75rem', color: '#526077' }}>
+                            <span style={{ fontSize: '0.75rem', color: '#3d4a5e' }}>
                               • {matched.department_name || 'General'}
                             </span>
                           </div>
                         </div>
                       );
                     }
-                    return <span style={{ color: '#64748b', fontSize: '0.86rem' }}>-- Choose Employee to Auto-Fill --</span>;
+                    return <span style={{ color: '#475569', fontSize: '0.86rem' }}>-- Choose Employee to Auto-Fill --</span>;
                   })()}
                   <ChevronDown
                     size={16}
                     style={{
-                      color: '#526077',
+                      color: '#3d4a5e',
                       transform: isDropdownOpen ? 'rotate(180deg)' : 'rotate(0deg)',
                       transition: 'transform 0.2s ease',
                       flexShrink: 0,
@@ -585,7 +585,7 @@ export default function RelievingLetterStudio() {
                   >
                     {/* Search Bar */}
                     <div style={{ padding: '8px 10px', borderBottom: '1px solid #f1f5f9', background: '#f8fafc', display: 'flex', alignItems: 'center', gap: 6 }}>
-                      <Search size={14} style={{ color: '#64748b', flexShrink: 0 }} />
+                      <Search size={14} style={{ color: '#475569', flexShrink: 0 }} />
                       <input
                         type="text"
                         placeholder="Search employee by name, code, dept..."
@@ -667,7 +667,7 @@ export default function RelievingLetterStudio() {
                                     <span style={{ fontSize: '0.75rem', background: '#f1f5f9', color: '#475569', padding: '0 4px', borderRadius: 3 }}>
                                       {emp.employee_code}
                                     </span>
-                                    <span style={{ fontSize: '0.70rem', color: '#526077' }}>
+                                    <span style={{ fontSize: '0.70rem', color: '#3d4a5e' }}>
                                       {emp.department_name || 'General'}
                                     </span>
                                   </div>

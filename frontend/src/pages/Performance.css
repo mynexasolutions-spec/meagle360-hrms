@@ -1,0 +1,72 @@
+/* Columns follow the width of the page area (not the window), so they also
+   adapt when the sidebar is collapsed. */
+.pms { container-type: inline-size; width: 100%; display: flex; flex-direction: column; gap: 16px; }
+.pms .glass-card { padding: 20px; }
+.pms .tabs { margin-bottom: 0; }
+.pms h1 { font-size: 1.45rem; font-weight: 700; margin: 0; }
+.pms h2 { font-size: 1.05rem; font-weight: 700; margin: 0; }
+
+.pms-head, .pms-card-head, .pms-now, .pms-line, .pms-goal-foot {
+  display: flex; align-items: center; justify-content: space-between; gap: 12px; flex-wrap: wrap;
+}
+.pms-card-head { margin-bottom: 8px; }
+.pms-now p { margin: 6px 0 0; font-size: 1.05rem; font-weight: 600; }
+.pms-month { display: flex; align-items: center; gap: 6px; }
+.pms-month strong { min-width: 136px; text-align: center; }
+.pms-actions { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+.pms-muted { color: var(--text-muted); font-size: 0.85rem; }
+.pms-empty { text-align: center; color: var(--text-muted); display: flex; flex-direction: column; gap: 12px; align-items: center; }
+.pms-alert {
+  padding: 10px 14px; border-radius: var(--radius-md); margin: 4px 0;
+  background: var(--accent-amber-light); color: #78350f; font-size: 0.875rem;
+}
+.pms-quote { border-left: 3px solid var(--border-active); padding-left: 12px; margin: 8px 0; white-space: pre-wrap; overflow-wrap: anywhere; }
+
+.pms-cols, .pms-people { display: grid; grid-template-columns: minmax(0, 1fr); gap: 16px; align-items: start; }
+.pms-col { display: flex; flex-direction: column; gap: 16px; min-width: 0; }
+.pms-side:empty { display: none; }
+.pms .pms-person {
+  display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 14px 18px;
+}
+.pms-person > :first-child { min-width: 0; overflow-wrap: anywhere; }
+.pms-person .pms-actions { flex-shrink: 0; }
+@container (min-width: 680px) {
+  .pms-people { grid-template-columns: repeat(auto-fill, minmax(320px, 1fr)); align-items: stretch; }
+}
+@container (min-width: 900px) {
+  .pms-cols:has(> .pms-side:not(:empty)) { grid-template-columns: minmax(0, 1.8fr) minmax(300px, 1fr); }
+  .pms-even:has(> :nth-child(2)) { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+}
+
+.pms-line { padding: 12px 0; border-top: 1px solid var(--border-color); }
+.pms-line:first-child { border-top: none; }
+.pms-line > :first-child { min-width: 0; overflow-wrap: anywhere; }
+
+.pms-goal { padding: 12px 0; border-top: 1px solid var(--border-color); }
+.pms-goal-top { display: flex; align-items: baseline; gap: 12px; flex-wrap: wrap; }
+.pms-goal-title { font-weight: 600; flex: 1; min-width: 140px; overflow-wrap: anywhere; }
+.pms-bar { height: 8px; border-radius: 4px; background: var(--border-color); margin: 8px 0; overflow: hidden; }
+.pms-bar span { display: block; height: 100%; background: var(--accent-blue); }
+
+.pms-history { display: flex; gap: 8px; flex-wrap: wrap; }
+.pms-history div {
+  display: flex; flex-direction: column; align-items: center; min-width: 56px; padding: 8px;
+  border: 1px solid var(--border-color); border-radius: var(--radius-md);
+}
+.pms-history div.active { border-color: var(--accent-blue); background: var(--bg-hover); }
+.pms-history span { font-size: 0.75rem; color: var(--text-muted); }
+
+.pms-rating { display: flex; align-items: center; gap: 8px; margin: 8px 0 14px; flex-wrap: wrap; }
+.pms-rating button {
+  width: 44px; height: 44px; border-radius: var(--radius-md); border: 1px solid var(--border-color);
+  background: var(--bg-card); color: var(--text-primary); font: inherit; font-weight: 700; cursor: pointer;
+}
+.pms-rating button:disabled { cursor: not-allowed; opacity: 0.7; }
+.pms-rating button:focus-visible { outline: 2px solid var(--accent-blue); outline-offset: 2px; }
+.pms-rating button.active { background: var(--accent-blue); border-color: var(--accent-blue); color: #fff; }
+
+.pms-review .pms-card-head { margin-bottom: 0; }
+.pms-review h3 { font-size: 0.95rem; font-weight: 600; margin: 14px 0 4px; }
+.pms-two { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+.pms-check { display: flex; align-items: center; gap: 8px; font-size: 0.875rem; }
+.pms-form-actions { display: flex; justify-content: flex-end; align-items: center; gap: 10px; margin-top: 16px; }

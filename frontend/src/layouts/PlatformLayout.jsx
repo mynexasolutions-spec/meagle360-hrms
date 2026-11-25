@@ -53,7 +53,7 @@ export default function PlatformLayout() {
           </div>
           <div style={{ minWidth: 0 }}>
             <div className="truncate" style={{ fontSize: '0.9375rem', fontWeight: 800, color: '#f8fafc', letterSpacing: '-0.01em' }}>Nexa Solutions</div>
-            <div style={{ fontSize: '0.75rem', color: '#64748b', fontWeight: 500, letterSpacing: '0.02em' }}>PLATFORM CONSOLE</div>
+            <div style={{ fontSize: '0.75rem', color: '#cbd5e1', fontWeight: 500, letterSpacing: '0.02em' }}>PLATFORM CONSOLE</div>
           </div>
         </div>
 
@@ -71,7 +71,7 @@ export default function PlatformLayout() {
             </div>
             <div className="platform-admin-text" style={{ lineHeight: 1.3, minWidth: 0 }}>
               <div className="truncate" style={{ fontSize: '0.8125rem', fontWeight: 600, color: '#f1f5f9', maxWidth: 180 }}>{admin?.full_name}</div>
-              <div className="truncate" style={{ fontSize: '0.75rem', color: '#64748b', maxWidth: 180 }}>{admin?.email}</div>
+              <div className="truncate" style={{ fontSize: '0.75rem', color: '#cbd5e1', maxWidth: 180 }}>{admin?.email}</div>
             </div>
             <span
               className="platform-admin-badge"

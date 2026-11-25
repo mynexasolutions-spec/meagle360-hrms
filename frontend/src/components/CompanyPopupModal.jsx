@@ -202,7 +202,7 @@ export default function CompanyPopupModal({
               width: 28,
               height: 28,
               borderRadius: '8px',
-              color: '#526077',
+              color: '#3d4a5e',
               display: 'flex',
               alignItems: 'center',
               justifyContent: 'center',

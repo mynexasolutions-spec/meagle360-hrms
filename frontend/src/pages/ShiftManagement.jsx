@@ -2,6 +2,9 @@ import { useState, useEffect } from 'react';
 import { GitBranch, Plus, Clock, Users, Pencil, Trash2 } from 'lucide-react';
 import client from '../api/client';
 import Modal from '../components/Modal';
+import EmployeeLink from '../components/EmployeeLink';
+import useUrlFilters from '../utils/useUrlFilters';
+import { rowClick } from '../utils/rowClick';
 
 import { useAuth } from '../context/AuthContext';
 import { usePopup } from '../context/PopupContext';
@@ -14,7 +17,10 @@ export default function ShiftManagement() {
   const canManageShifts = isAdmin || isManager;
   const [shifts, setShifts] = useState([]);
   const [roster, setRoster] = useState([]);
-  const [tab, setTab] = useState('shifts');
+  const [filters, setFilters] = useUrlFilters({ tab: 'shifts', shift: '' });
+  const tab = filters.tab === 'roster' ? 'roster' : 'shifts';
+  const setTab = (next) => setFilters({ tab: next, shift: '' });
+  const visibleRoster = filters.shift ? roster.filter((r) => r.shift_id === filters.shift) : roster;
   const [showAdd, setShowAdd] = useState(false);
   const [form, setForm] = useState({ shift_type: '', start_time: '', end_time: '' });
   const [editingShift, setEditingShift] = useState(null);
@@ -188,7 +194,7 @@ export default function ShiftManagement() {
           </div>
           <div style={{ minWidth: 0 }}>
             <h1 style={{ fontSize: 'clamp(1.25rem, 4.5vw, 1.75rem)', fontWeight: 800, color: '#0f172a' }}>Shift Management</h1>
-            <p style={{ color: '#526077', fontSize: '0.875rem' }}>Configure shift templates and manage employee work rosters</p>
+            <p style={{ color: '#3d4a5e', fontSize: '0.875rem' }}>Configure shift templates and manage employee work rosters</p>
           </div>
         </div>
         {canManageShifts && (
@@ -224,7 +230,7 @@ export default function ShiftManagement() {
             fontWeight: 700,
             border: tab === 'shifts' ? 'none' : '1px solid #cbd5e1',
             background: tab === 'shifts' ? '#0f172a' : '#ffffff',
-            color: tab === 'shifts' ? '#ffffff' : '#64748b',
+            color: tab === 'shifts' ? '#ffffff' : '#475569',
             cursor: 'pointer',
             boxShadow: tab === 'shifts' ? '0 4px 12px rgba(15, 23, 42, 0.15)' : 'none',
           }}
@@ -240,7 +246,7 @@ export default function ShiftManagement() {
             fontWeight: 700,
             border: tab === 'roster' ? 'none' : '1px solid #cbd5e1',
             background: tab === 'roster' ? '#0f172a' : '#ffffff',
-            color: tab === 'roster' ? '#ffffff' : '#64748b',
+            color: tab === 'roster' ? '#ffffff' : '#475569',
             cursor: 'pointer',
             boxShadow: tab === 'roster' ? '0 4px 12px rgba(15, 23, 42, 0.15)' : 'none',
           }}
@@ -255,7 +261,8 @@ export default function ShiftManagement() {
           {shifts.map((s) => (
             <div
               key={s.id}
-              className="shift-card"
+              {...rowClick(() => setFilters({ tab: 'roster', shift: s.id }), 'shift-card')}
+              title={`Show employees on ${s.shift_type}`}
             >
               <div>
                 <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12, marginBottom: 16 }}>
@@ -277,7 +284,7 @@ export default function ShiftManagement() {
                     </div>
                     <div style={{ minWidth: 0 }}>
                       <div style={{ fontWeight: 800, fontSize: '1.05rem', color: '#0f172a' }}>{s.shift_type}</div>
-                      <span style={{ fontSize: '0.75rem', fontWeight: 600, color: '#526077' }}>Shift Template</span>
+                      <span style={{ fontSize: '0.75rem', fontWeight: 600, color: '#3d4a5e' }}>Shift Template</span>
                     </div>
                   </div>
                   {isAdmin && (
@@ -311,11 +318,11 @@ export default function ShiftManagement() {
                   }}
                 >
                   <div>
-                    <div style={{ color: '#526077', fontSize: '0.725rem', fontWeight: 700, textTransform: 'uppercase' }}>Start Time</div>
+                    <div style={{ color: '#3d4a5e', fontSize: '0.725rem', fontWeight: 700, textTransform: 'uppercase' }}>Start Time</div>
                     <div style={{ color: '#059669', fontWeight: 800, fontSize: '1rem', marginTop: 2 }}>{formatTime(s.start_time)}</div>
                   </div>
                   <div style={{ textAlign: 'right' }}>
-                    <div style={{ color: '#526077', fontSize: '0.725rem', fontWeight: 700, textTransform: 'uppercase' }}>End Time</div>
+                    <div style={{ color: '#3d4a5e', fontSize: '0.725rem', fontWeight: 700, textTransform: 'uppercase' }}>End Time</div>
                     <div style={{ color: '#dc2626', fontWeight: 800, fontSize: '1rem', marginTop: 2 }}>{formatTime(s.end_time)}</div>
                   </div>
                 </div>
@@ -341,7 +348,16 @@ export default function ShiftManagement() {
 
       {tab === 'roster' && (
         <div className="section-card" style={{ borderTop: '3px solid #2563eb' }}>
-          <h3><Users size={18} style={{ color: 'var(--accent-blue)' }} /> Employee Roster</h3>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: 10, marginBottom: 12 }}>
+            <h3 style={{ marginBottom: 0 }}><Users size={18} style={{ color: 'var(--accent-blue)' }} /> Employee Roster</h3>
+            <select
+              className="input-field" aria-label="Filter by shift" style={{ maxWidth: 220 }}
+              value={filters.shift} onChange={(e) => setFilters({ shift: e.target.value })}
+            >
+              <option value="">All Shifts</option>
+              {shifts.map((s) => <option key={s.id} value={s.id}>{s.shift_type}</option>)}
+            </select>
+          </div>
           <div style={{ overflowX: 'auto' }}>
             <table className="data-table" style={{ width: '100%' }}>
               <thead>
@@ -353,15 +369,15 @@ export default function ShiftManagement() {
                 </tr>
               </thead>
               <tbody>
-                {roster.map((r) => (
+                {visibleRoster.map((r) => (
                   <tr key={r.id}>
-                    <td style={{ fontWeight: 700, color: '#0f172a', whiteSpace: 'nowrap' }}>{r.employee_name || '—'}</td>
+                    <td style={{ fontWeight: 700, color: '#0f172a', whiteSpace: 'nowrap' }}><EmployeeLink id={r.employee_id}>{r.employee_name || '—'}</EmployeeLink></td>
                     <td style={{ whiteSpace: 'nowrap' }}>
                       <span style={{ fontSize: '0.8125rem', fontWeight: 700, padding: '4px 12px', borderRadius: 8, background: '#eff6ff', color: '#2563eb' }}>
                         {r.shift_type || '—'}
                       </span>
                     </td>
-                    <td style={{ color: '#526077', whiteSpace: 'nowrap' }}>{r.effective_from ? new Date(r.effective_from).toLocaleDateString() : '—'}</td>
+                    <td style={{ color: '#3d4a5e', whiteSpace: 'nowrap' }}>{r.effective_from ? new Date(r.effective_from).toLocaleDateString() : '—'}</td>
                     {canManageShifts && (
                       <td style={{ textAlign: 'left', whiteSpace: 'nowrap' }}>
                         <div style={{ display: 'inline-flex', gap: 6, alignItems: 'center' }}>

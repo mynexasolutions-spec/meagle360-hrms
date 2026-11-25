@@ -218,7 +218,7 @@
 
 .login-welcome-subtitle {
   font-size: clamp(0.84rem, 1.4vh, 0.925rem);
-  color: #64748b;
+  color: #475569;
   font-weight: 400;
 }
 
@@ -227,7 +227,7 @@
   border-radius: 12px;
   background: #fef2f2;
   border: 1px solid #fecaca;
-  color: #dc2626;
+  color: #b91c1c;
   font-size: 0.8125rem;
   font-weight: 500;
   margin-bottom: 16px;
@@ -321,7 +321,7 @@
   transform: translateY(-50%);
   background: none;
   border: none;
-  color: #64748b;
+  color: #475569;
   cursor: pointer;
   display: inline-flex;
   align-items: center;
@@ -522,7 +522,7 @@
   }
 
   .login-input::placeholder {
-    color: #64748b;
+    color: #475569;
     font-weight: 500;
   }
 
@@ -544,7 +544,7 @@
     margin: 26px 0;
     font-size: 0.9rem;
     font-weight: 600;
-    color: #64748b;
+    color: #475569;
   }
 
   .login-sales-btn {
@@ -601,7 +601,7 @@
   display: inline-flex;
   align-items: center;
   gap: 6px;
-  color: #64748b;
+  color: #475569;
   font-size: 0.875rem;
   font-weight: 600;
   text-decoration: none;
@@ -614,7 +614,7 @@
 
 .login-helper-text {
   font-size: 0.8125rem;
-  color: #64748b;
+  color: #475569;
   text-align: center;
   margin: 0 0 16px;
   line-height: 1.5;

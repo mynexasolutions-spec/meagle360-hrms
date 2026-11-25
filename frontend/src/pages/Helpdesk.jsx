@@ -11,6 +11,7 @@ import {
 } from '../api/helpdesk';
 import Modal from '../components/Modal';
 import StatCard from '../components/StatCard';
+import useUrlFilters from '../utils/useUrlFilters';
 import {
   LifeBuoy,
   Plus,
@@ -94,7 +95,13 @@ export default function Helpdesk() {
   // Filters & Search
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedCategory, setSelectedCategory] = useState('all');
-  const [selectedStatus, setSelectedStatus] = useState('all');
+  const [{ status: selectedStatus }, setUrlFilters] = useUrlFilters({ status: 'all' });
+  const setSelectedStatus = (status) => setUrlFilters({ status });
+  // Clicking the active card again clears it.
+  const cardFilter = (status) => ({
+    active: selectedStatus === status,
+    onClick: () => setSelectedStatus(selectedStatus === status ? 'all' : status),
+  });
 
   // Create Modal
   const [showCreateModal, setShowCreateModal] = useState(false);
@@ -249,7 +256,8 @@ export default function Helpdesk() {
     const matchCategory =
       selectedCategory === 'all' ||
       ticket.category?.toLowerCase() === selectedCategory.toLowerCase();
-    const matchStatus = selectedStatus === 'all' || ticket.status === selectedStatus;
+    const matchStatus = selectedStatus === 'all' || ticket.status === selectedStatus
+      || (selectedStatus === 'done' && (ticket.status === 'resolved' || ticket.status === 'closed'));
     const searchLower = searchQuery.toLowerCase();
     const matchSearch =
       !searchQuery ||
@@ -352,6 +360,7 @@ export default function Helpdesk() {
           icon={Layers}
           label="Total Tickets"
           value={loading ? '...' : totalCount}
+          {...cardFilter('all')}
           color="var(--accent-blue)"
           bgColor="var(--accent-blue-light)"
         />
@@ -359,6 +368,7 @@ export default function Helpdesk() {
           icon={Clock}
           label="Open Tickets"
           value={loading ? '...' : openCount}
+          {...cardFilter('open')}
           color="var(--accent-amber)"
           bgColor="var(--accent-amber-light)"
         />
@@ -366,6 +376,7 @@ export default function Helpdesk() {
           icon={RefreshCw}
           label="In Progress"
           value={loading ? '...' : inProgressCount}
+          {...cardFilter('in_progress')}
           color="var(--accent-violet)"
           bgColor="var(--accent-violet-light)"
         />
@@ -373,6 +384,7 @@ export default function Helpdesk() {
           icon={CheckCircle2}
           label="Resolved / Closed"
           value={loading ? '...' : resolvedCount}
+          {...cardFilter('done')}
           color="var(--accent-emerald)"
           bgColor="var(--accent-emerald-light)"
         />
@@ -513,6 +525,7 @@ export default function Helpdesk() {
             <option value="in_progress">In Progress</option>
             <option value="resolved">Resolved</option>
             <option value="closed">Closed</option>
+            <option value="done">Resolved / Closed</option>
           </select>
         </div>
       </div>

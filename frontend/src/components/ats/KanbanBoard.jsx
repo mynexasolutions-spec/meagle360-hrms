@@ -118,15 +118,15 @@ function KanbanCardContent({
       <div className="flex items-start justify-between gap-1.5">
         <div className="flex items-center gap-2 min-w-0">
           <div
-            className={`w-8 h-8 rounded-full ${avatarBg} text-white font-bold text-[11px] flex items-center justify-center shrink-0 shadow-xs`}
+            className={`w-8 h-8 rounded-full ${avatarBg} text-white font-bold text-[0.8125rem] flex items-center justify-center shrink-0 shadow-xs`}
           >
             {initial}
           </div>
           <div className="min-w-0">
-            <div className="text-xs font-bold text-gray-900 truncate leading-tight">
+            <div className="text-sm font-bold text-gray-900 truncate leading-tight">
               {app.candidate_name}
             </div>
-            <div className="text-[10px] text-gray-500 truncate mt-0.5" title={app.candidate_email}>
+            <div className="text-[0.8125rem] text-slate-700 truncate mt-0.5 font-medium" title={app.candidate_email}>
               {app.candidate_email}
             </div>
           </div>
@@ -141,10 +141,10 @@ function KanbanCardContent({
                 e.stopPropagation();
                 setAssignMenuOpen((v) => !v);
               }}
-              className={`w-6 h-6 rounded-full flex items-center justify-center text-[9px] font-bold transition-all overflow-hidden ${
+              className={`w-6 h-6 rounded-full flex items-center justify-center text-[11px] font-bold transition-all overflow-hidden ${
                 app.assignee
                   ? 'bg-indigo-100 border border-indigo-200 text-indigo-800 hover:ring-2 hover:ring-blue-400'
-                  : 'bg-gray-50 border border-dashed border-gray-300 text-gray-400 hover:border-blue-400 hover:text-blue-600'
+                  : 'bg-gray-50 border border-dashed border-gray-300 text-slate-700 hover:border-blue-400 hover:text-blue-600'
               }`}
               title={
                 app.assignee
@@ -168,7 +168,7 @@ function KanbanCardContent({
                     .slice(0, 2)
                 )
               ) : (
-                <UserPlus size={11} />
+                <UserPlus size={13} />
               )}
             </button>
 
@@ -182,7 +182,7 @@ function KanbanCardContent({
                   }}
                 />
                 <div className="absolute right-0 mt-1 w-48 bg-white rounded-xl border border-gray-200 shadow-xl z-30 py-1 text-xs max-h-56 overflow-y-auto">
-                  <div className="px-2.5 py-1 text-[10px] font-bold uppercase tracking-wider text-gray-400 border-b border-gray-100">
+                  <div className="px-2.5 py-1 text-[0.8125rem] font-bold uppercase tracking-wider text-slate-700 border-b border-gray-100">
                     Assign Recruiter
                   </div>
                   <button
@@ -193,7 +193,7 @@ function KanbanCardContent({
                       onQuickAssign?.(app, null);
                     }}
                     className={`w-full px-2.5 py-1.5 text-left hover:bg-gray-50 flex items-center justify-between ${
-                      !app.assigned_to ? 'bg-blue-50 text-blue-700 font-semibold' : 'text-gray-600'
+                      !app.assigned_to ? 'bg-blue-50 text-blue-700 font-semibold' : 'text-slate-700'
                     }`}
                   >
                     <span>Unassigned Pool</span>
@@ -215,7 +215,7 @@ function KanbanCardContent({
                     >
                       <span className="truncate">{rec.full_name}</span>
                       {typeof rec.pending_count === 'number' && (
-                        <span className="text-[10px] text-gray-400 shrink-0">
+                        <span className="text-[0.8125rem] text-slate-700 shrink-0 font-medium">
                           {rec.pending_count}
                         </span>
                       )}
@@ -232,17 +232,17 @@ function KanbanCardContent({
       <div className="mt-2 space-y-0.5">
         <div className="flex items-center justify-between gap-1">
           {showJobBadge ? (
-            <div className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded-md bg-slate-100 text-slate-700 text-[10px] font-semibold max-w-full min-w-0">
-              <Briefcase size={10} className="shrink-0 text-slate-500" />
+            <div className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded-md bg-slate-100 text-slate-700 text-[0.8125rem] font-semibold max-w-full min-w-0">
+              <Briefcase size={13} className="shrink-0 text-slate-600" />
               <span className="truncate">{app.job_title}</span>
             </div>
           ) : (
-            <div className="text-[11px] font-bold text-gray-800 truncate">{app.job_title}</div>
+            <div className="text-[0.8125rem] font-bold text-gray-800 truncate">{app.job_title}</div>
           )}
 
           {app.other_applications_count > 0 && (
             <span
-              className="shrink-0 inline-flex items-center px-1.5 py-0.2 rounded-full text-[9px] font-bold bg-indigo-50 text-indigo-700 border border-indigo-200"
+              className="shrink-0 inline-flex items-center px-1.5 py-0.2 rounded-full text-[0.8125rem] font-bold bg-indigo-50 text-indigo-700 border border-indigo-200"
               title={`This candidate has ${app.other_applications_count} other application(s)`}
             >
               +{app.other_applications_count}
@@ -250,14 +250,14 @@ function KanbanCardContent({
           )}
         </div>
         <div className="flex items-center justify-between gap-1.5">
-          <div className="text-[10px] text-gray-500 truncate">
+          <div className="text-[0.8125rem] text-slate-700 truncate font-medium">
             {app.department_name || 'General'}
           </div>
           <span
-            className="inline-flex items-center gap-0.5 text-[10px] font-medium text-gray-400 shrink-0"
+            className="inline-flex items-center gap-0.5 text-[0.8125rem] font-medium text-slate-700 shrink-0"
             title={app.days_in_stage === 0 ? 'Entered stage today' : `${app.days_in_stage} days in stage`}
           >
-            <Clock size={10} className="text-gray-400" />
+            <Clock size={13} className="text-slate-700" />
             <span>{app.days_in_stage === 0 ? 'Today' : `${app.days_in_stage}d`}</span>
           </span>
         </div>
@@ -275,14 +275,14 @@ function KanbanCardContent({
               e.stopPropagation();
               onOpenResume?.(app);
             }}
-            className="inline-flex items-center gap-1 px-2 py-1 rounded-md text-[10px] font-semibold bg-emerald-50 text-emerald-700 border border-emerald-200 hover:bg-emerald-100 transition-colors shrink-0"
+            className="inline-flex items-center gap-1 px-2 py-1 rounded-md text-[0.8125rem] font-semibold bg-emerald-50 text-emerald-700 border border-emerald-200 hover:bg-emerald-100 transition-colors shrink-0"
             title="View Resume PDF"
           >
-            <FileText size={10} />
+            <FileText size={13} />
             <span>PDF</span>
           </button>
         ) : (
-          <span className="text-[10px] text-gray-300 italic">No PDF</span>
+          <span className="text-[0.8125rem] text-gray-300 italic">No PDF</span>
         )}
         <button
           type="button"
@@ -290,10 +290,10 @@ function KanbanCardContent({
             e.stopPropagation();
             onOpenDetail?.(app.id);
           }}
-          className="inline-flex items-center gap-0.5 px-2 py-1 rounded-md text-[10px] font-semibold bg-white text-blue-600 border border-blue-200 hover:bg-blue-50 transition-colors shrink-0"
+          className="inline-flex items-center gap-0.5 px-2 py-1 rounded-md text-[0.8125rem] font-semibold bg-white text-blue-600 border border-blue-200 hover:bg-blue-50 transition-colors shrink-0"
         >
           <span>Review</span>
-          <ChevronRight size={11} />
+          <ChevronRight size={13} />
         </button>
       </div>
     </div>
@@ -390,13 +390,13 @@ function KanbanColumn({
       {/* Column Header */}
       <div className="px-3 py-2.5 flex items-center justify-between border-b border-gray-200/60 bg-white/70 shrink-0">
         <div className="flex items-center gap-1.5 min-w-0">
-          <h3 className="text-[13px] font-bold text-gray-900 truncate">{stage.name}</h3>
+          <h3 className="text-sm font-bold text-gray-900 truncate">{stage.name}</h3>
           {isBlockedTarget && (
-            <Lock size={12} className="text-gray-400 shrink-0" title="Org Admin only" />
+            <Lock size={12} className="text-slate-700 shrink-0" title="Org Admin only" />
           )}
         </div>
         <span
-          className={`px-2 py-0.5 rounded-full text-[11px] font-bold shrink-0 ${accent.badge}`}
+          className={`px-2 py-0.5 rounded-full text-[0.8125rem] font-bold shrink-0 ${accent.badge}`}
         >
           {count}
         </span>
@@ -410,9 +410,9 @@ function KanbanColumn({
         style={wide ? { gridTemplateColumns: 'repeat(auto-fill, minmax(250px, 300px))' } : undefined}
       >
         {items.length === 0 ? (
-          <div className="col-span-full h-44 rounded-xl border-2 border-dashed border-gray-200/90 bg-white/50 flex flex-col items-center justify-center text-gray-400 px-4 text-center">
+          <div className="col-span-full h-44 rounded-xl border-2 border-dashed border-gray-200/90 bg-white/50 flex flex-col items-center justify-center text-slate-700 px-4 text-center">
             <Inbox size={26} className="mb-2 text-gray-300" />
-            <span className="text-xs font-medium text-gray-400">
+            <span className="text-xs font-medium text-slate-700">
               {isBlockedTarget ? 'Org Admin only' : 'Drag candidate card here'}
             </span>
           </div>
@@ -433,14 +433,14 @@ function KanbanColumn({
             {hasMore && (
               <div ref={sentinelRef} className="py-2 text-center col-span-full">
                 {loadingMore ? (
-                  <span className="inline-flex items-center gap-1.5 text-[11px] text-gray-500">
+                  <span className="inline-flex items-center gap-1.5 text-[0.8125rem] text-slate-700 font-medium">
                     <Loader2 size={13} className="animate-spin" /> Loading more...
                   </span>
                 ) : (
                   <button
                     type="button"
                     onClick={() => onLoadMore?.(stage.id)}
-                    className="text-[11px] font-semibold text-blue-600 hover:text-blue-700"
+                    className="text-[0.8125rem] font-semibold text-blue-600 hover:text-blue-700"
                   >
                     Load more ({count - items.length} remaining)
                   </button>
@@ -578,7 +578,7 @@ export default function KanbanBoard({
 
   if (loading) {
     return (
-      <div className="py-24 text-center text-gray-500">
+      <div className="py-24 text-center text-slate-700">
         <div className="inline-block w-8 h-8 border-4 border-blue-600 border-t-transparent rounded-full animate-spin mb-3" />
         <p className="text-sm font-medium">Loading Kanban board...</p>
       </div>
@@ -661,7 +661,7 @@ export default function KanbanBoard({
       {/* Mobile Fallback: List view with stage dropdown */}
       <div className="md:hidden space-y-3">
         {allLoadedCards.length === 0 ? (
-          <div className="bg-white rounded-2xl border border-gray-200 p-10 text-center text-gray-500 text-xs">
+          <div className="bg-white rounded-2xl border border-gray-200 p-10 text-center text-slate-700 text-xs font-medium">
             No applicants found in the active pipeline.
           </div>
         ) : (
@@ -677,13 +677,13 @@ export default function KanbanBoard({
                     <div className="text-sm font-bold text-gray-900 truncate">
                       {app.candidate_name}
                     </div>
-                    <div className="text-xs text-gray-500 truncate">{app.candidate_email}</div>
+                    <div className="text-xs text-slate-700 truncate font-medium">{app.candidate_email}</div>
                     <div className="text-xs font-medium text-gray-700 mt-1 truncate">
                       {app.job_title} • {app.department_name || 'General'}
                     </div>
                   </div>
-                  <span className="text-[11px] text-gray-500 inline-flex items-center gap-1 shrink-0">
-                    <Clock size={11} />
+                  <span className="text-[0.8125rem] text-slate-700 inline-flex items-center gap-1 shrink-0 font-medium">
+                    <Clock size={13} />
                     {app.days_in_stage === 0 ? 'Today' : `${app.days_in_stage}d`}
                   </span>
                 </div>

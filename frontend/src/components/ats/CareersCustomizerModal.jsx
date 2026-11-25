@@ -177,7 +177,7 @@ export default function CareersCustomizerModal({ onClose, onSaved }) {
               <h3 className="text-base sm:text-lg font-bold text-gray-900">
                 Customize Public Careers Page
               </h3>
-              <p className="text-xs text-gray-500">
+              <p className="text-xs text-gray-600">
                 Tailor header branding, hero banner headlines, photos, quotes, and colors for your organization.
               </p>
             </div>
@@ -195,7 +195,7 @@ export default function CareersCustomizerModal({ onClose, onSaved }) {
             <button
               type="button"
               onClick={onClose}
-              className="p-2 text-gray-400 hover:text-gray-600 hover:bg-gray-100 rounded-lg transition-colors"
+              className="p-2 text-gray-600 hover:text-gray-900 hover:bg-gray-100 rounded-lg transition-colors"
             >
               <X size={20} />
             </button>
@@ -236,7 +236,7 @@ export default function CareersCustomizerModal({ onClose, onSaved }) {
           >
             {/* Section 1: Header & Branding */}
             <div className="space-y-3 pb-4 border-b border-gray-100">
-              <span className="font-bold uppercase tracking-wider text-gray-500 text-[11px] block">
+              <span className="font-bold uppercase tracking-wider text-gray-600 text-[0.8125rem] block">
                 1. Header Branding
               </span>
 
@@ -277,12 +277,12 @@ export default function CareersCustomizerModal({ onClose, onSaved }) {
                             </>
                           )}
                         </div>
-                        <p className="text-[11px] text-slate-500 mt-0.5">PNG, JPG, SVG or WEBP</p>
+                        <p className="text-[0.8125rem] text-slate-600 mt-0.5">PNG, JPG, SVG or WEBP</p>
                         {logoUrl && (
                           <button
                             type="button"
                             onClick={handleRemoveLogo}
-                            className="mt-1.5 text-[11px] font-semibold text-rose-600 hover:text-rose-700 inline-flex items-center gap-1"
+                            className="mt-1.5 text-[0.8125rem] font-semibold text-rose-600 hover:text-rose-700 inline-flex items-center gap-1"
                           >
                             <Trash2 size={12} />
                             <span>Remove</span>
@@ -292,12 +292,12 @@ export default function CareersCustomizerModal({ onClose, onSaved }) {
                     </div>
 
                     {uploadError && (
-                      <p className="text-[11px] text-rose-600 mb-2 font-medium">{uploadError}</p>
+                      <p className="text-[0.8125rem] text-rose-600 mb-2 font-medium">{uploadError}</p>
                     )}
 
                     <label className={`w-full py-2 px-3 rounded-xl font-bold text-xs flex items-center justify-center gap-2 transition-all cursor-pointer shadow-xs ${
                       uploadingLogo
-                        ? 'bg-slate-200 text-slate-500 cursor-not-allowed'
+                        ? 'bg-slate-200 text-slate-600 cursor-not-allowed'
                         : 'bg-blue-600 hover:bg-blue-700 text-white'
                     }`}>
                       {uploadingLogo ? (
@@ -326,7 +326,7 @@ export default function CareersCustomizerModal({ onClose, onSaved }) {
 
             {/* Section 2: Hero Section Headlines */}
             <div className="space-y-3 pb-4 border-b border-gray-100">
-              <span className="font-bold uppercase tracking-wider text-gray-500 text-[11px] block">
+              <span className="font-bold uppercase tracking-wider text-gray-600 text-[0.8125rem] block">
                 2. Hero Headline & Description
               </span>
 
@@ -380,7 +380,7 @@ export default function CareersCustomizerModal({ onClose, onSaved }) {
 
             {/* Section 3: Hero Photo & Quote Card */}
             <div className="space-y-3 pb-4 border-b border-gray-100">
-              <span className="font-bold uppercase tracking-wider text-gray-500 text-[11px] block">
+              <span className="font-bold uppercase tracking-wider text-gray-600 text-[0.8125rem] block">
                 3. Hero Photo & Motivation Card
               </span>
 
@@ -397,14 +397,14 @@ export default function CareersCustomizerModal({ onClose, onSaved }) {
 
               {/* Presets */}
               <div className="space-y-1">
-                <span className="text-[11px] text-gray-400 block font-semibold">Or pick a photo preset:</span>
+                <span className="text-[0.8125rem] text-gray-600 block font-semibold">Or pick a photo preset:</span>
                 <div className="flex flex-wrap gap-2">
                   {PRESET_IMAGES.map((p) => (
                     <button
                       key={p.name}
                       type="button"
                       onClick={() => setHeroImageUrl(p.url)}
-                      className={`px-2.5 py-1 rounded-lg text-[11px] font-semibold border transition-all ${
+                      className={`px-2.5 py-1 rounded-lg text-[0.8125rem] font-semibold border transition-all ${
                         heroImageUrl === p.url
                           ? 'bg-blue-50 border-blue-400 text-blue-700'
                           : 'bg-gray-50 border-gray-200 text-gray-600 hover:bg-gray-100'
@@ -442,7 +442,7 @@ export default function CareersCustomizerModal({ onClose, onSaved }) {
 
             {/* Section 4: Brand Accent Color */}
             <div className="space-y-2">
-              <span className="font-bold uppercase tracking-wider text-gray-500 text-[11px] block">
+              <span className="font-bold uppercase tracking-wider text-gray-600 text-[0.8125rem] block">
                 4. Primary Brand Color
               </span>
               <div className="flex items-center gap-2">
@@ -494,12 +494,12 @@ export default function CareersCustomizerModal({ onClose, onSaved }) {
 
           {/* ── Right Pane: Real-Time Live Preview (6 Cols) ───────── */}
           <div className="lg:col-span-6 p-6 flex flex-col justify-start overflow-y-auto bg-slate-100/70">
-            <div className="flex items-center justify-between mb-3 text-xs text-gray-500 font-semibold">
+            <div className="flex items-center justify-between mb-3 text-xs text-gray-600 font-semibold">
               <span className="flex items-center gap-1.5">
                 <Eye size={15} className="text-blue-600" />
                 <span>Live Candidate View Preview</span>
               </span>
-              <span className="text-[11px] text-gray-400">Updates in real-time</span>
+              <span className="text-[0.8125rem] text-gray-600">Updates in real-time</span>
             </div>
 
             {/* Simulated Desktop Screen Container */}
@@ -524,7 +524,7 @@ export default function CareersCustomizerModal({ onClose, onSaved }) {
                   <div className="md:col-span-7 space-y-2">
                     <span
                       style={{ color: primaryColor, backgroundColor: `${primaryColor}1a` }}
-                      className="px-2.5 py-0.5 rounded-full text-[10px] font-extrabold uppercase tracking-wider inline-block"
+                      className="px-2.5 py-0.5 rounded-full text-[0.8125rem] font-extrabold uppercase tracking-wider inline-block"
                     >
                       {badgeText}
                     </span>
@@ -536,23 +536,23 @@ export default function CareersCustomizerModal({ onClose, onSaved }) {
                       </span>
                     </h2>
 
-                    <p className="text-[11px] text-slate-500 leading-relaxed">
+                    <p className="text-[0.8125rem] text-slate-600 leading-relaxed">
                       {subtitle}
                     </p>
 
                     {/* Preview Search Bar */}
                     <div className="bg-white p-1 rounded-xl border border-gray-200 flex items-center shadow-xs max-w-xs">
-                      <Search size={14} className="text-gray-400 ml-2" />
+                      <Search size={14} className="text-gray-600 ml-2" />
                       <input
                         type="text"
                         readOnly
                         placeholder="Search roles..."
-                        className="w-full text-[11px] bg-transparent outline-none px-2 py-0.5 text-gray-700"
+                        className="w-full text-[0.8125rem] bg-transparent outline-none px-2 py-0.5 text-gray-700"
                       />
                       <button
                         type="button"
                         style={{ backgroundColor: primaryColor }}
-                        className="text-white text-[10px] font-bold px-3 py-1 rounded-lg"
+                        className="text-white text-[0.8125rem] font-bold px-3 py-1 rounded-lg"
                       >
                         Search
                       </button>
@@ -567,7 +567,7 @@ export default function CareersCustomizerModal({ onClose, onSaved }) {
                         alt="Hero Preview"
                         className="w-full h-full object-cover opacity-80"
                       />
-                      <div className="absolute top-2 right-2 px-2 py-0.5 bg-white/20 backdrop-blur-md rounded-full text-[9px] font-bold text-white border border-white/30">
+                      <div className="absolute top-2 right-2 px-2 py-0.5 bg-white/20 backdrop-blur-md rounded-full text-[0.8125rem] font-bold text-white border border-white/30">
                         {heroCardBadge}
                       </div>
                       <div className="absolute bottom-2 right-2 text-right">
@@ -581,7 +581,7 @@ export default function CareersCustomizerModal({ onClose, onSaved }) {
               </div>
             </div>
 
-            <p className="text-[11px] text-gray-400 text-center mt-3">
+            <p className="text-[0.8125rem] text-gray-600 text-center mt-3">
               Candidate public link: <code className="bg-gray-200/70 px-1.5 py-0.5 rounded text-gray-700">/careers</code>
             </p>
           </div>

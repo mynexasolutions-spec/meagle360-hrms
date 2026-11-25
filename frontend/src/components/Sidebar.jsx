@@ -22,10 +22,16 @@ import {
   Briefcase,
   Settings2,
   UserPlus,
-  Palette,
+  Building2,
+  CalendarHeart,
+  Megaphone,
+  ScrollText,
 } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import Modal from './Modal';
+import { getPendingPolicyCount } from '../api/policies';
+import { hasDirectoryAccess } from '../utils/access';
+import { POLICIES_CHANGED } from './policies/shared';
 import botAvatarVideo from '../assets/meagle-bot-bust-transparent.webm';
 
 function MeagleAiLogoIcon({ size = 19 }) {
@@ -84,11 +90,13 @@ const NAV_GROUPS = [
     icon: UserCheck,
     items: [
       { path: '/profile', label: 'My Profile', icon: UserCircle },
+      { path: '/my-team', label: 'My Team', icon: Users, audience: 'employee' },
       { path: '/attendance', label: 'Attendance', icon: Clock },
       { path: '/leave', label: 'Leave', icon: CalendarDays },
       { path: '/my-payslips', label: 'My Payslips', icon: Wallet, hideIfAdmin: true, hideIfPermission: 'settings:write' },
       { path: '/expenses', label: 'Expenses', icon: Receipt },
       { path: '/documents', label: 'Documents', icon: FileText, hideIfAdmin: true, hideIfPermission: 'settings:write' },
+      { path: '/performance', label: 'Performance', icon: Award, audience: 'employee', permission: 'employees:read' },
       { path: '/helpdesk', label: 'Helpdesk', icon: LifeBuoy },
     ],
   },
@@ -98,16 +106,28 @@ const NAV_GROUPS = [
     label: 'Team & HR Ops',
     icon: Briefcase,
     items: [
-      { path: '/employees', label: 'Employee Directory', icon: Users, permission: ['employees:read', 'settings:write'] },
+      { path: '/employees', label: 'Employee Directory', icon: Users, audience: 'staff' },
       { path: '/shifts', label: 'Shifts', icon: GitBranch, permission: ['shifts:read', 'attendance:approve', 'settings:write'] },
       { path: '/payroll', label: 'Payroll', icon: Wallet, permission: ['payroll:read', 'settings:write'] },
       {
         path: '/performance',
         label: 'Performance (PMS)',
         icon: Award,
+        audience: 'staff',
         permission: ['leave:approve', 'attendance:approve', 'shifts:read', 'payroll:read', 'employees:read', 'settings:write'],
       },
       { path: '/reports', label: 'Reports & Analytics', icon: BarChart3, permission: ['leave:approve', 'settings:write'] },
+    ],
+  },
+  {
+    id: 'company',
+    type: 'group',
+    label: 'Company',
+    icon: Building2,
+    items: [
+      { path: '/policies', label: 'Company Policies', icon: ScrollText, pendingBadge: true },
+      { path: '/holidays', label: 'Holidays', icon: CalendarHeart },
+      { path: '/announcements', label: 'Announcements', icon: Megaphone },
     ],
   },
   {
@@ -154,6 +174,7 @@ function isItemVisible(item, permissions, roleName, isPlanExpired) {
   }
   const perms = permissions || {};
   const isAdmin = roleName === 'Admin' || !!perms['settings:write'];
+  if (item.audience && item.audience !== (hasDirectoryAccess(perms, roleName) ? 'staff' : 'employee')) return false;
   if (item.hideIfAdmin && isAdmin) return false;
   if (item.hideIfPermission) {
     const hideList = Array.isArray(item.hideIfPermission) ? item.hideIfPermission : [item.hideIfPermission];
@@ -169,6 +190,17 @@ export default function Sidebar({ sidebarOpen, permissions, roleName }) {
   const { isPlanExpired } = useAuth();
   const location = useLocation();
   const [showAiModal, setShowAiModal] = useState(false);
+  const [pendingPolicies, setPendingPolicies] = useState(0);
+
+  useEffect(() => {
+    if (isPlanExpired) return undefined;
+    const refresh = () => getPendingPolicyCount()
+      .then((r) => setPendingPolicies(r.data.count))
+      .catch(() => {}); // the badge is optional
+    refresh();
+    window.addEventListener(POLICIES_CHANGED, refresh);
+    return () => window.removeEventListener(POLICIES_CHANGED, refresh);
+  }, [isPlanExpired]);
 
   // Default state (Hybrid approach):
   // 'My Space' is open by default for quick daily actions (attendance, leave, payslips).
@@ -176,6 +208,8 @@ export default function Sidebar({ sidebarOpen, permissions, roleName }) {
   // but will auto-expand whenever the active route is inside them.
   const [openGroups, setOpenGroups] = useState({
     'my-space': true,
+    // Open for employees, whose sidebar is short; closed for staff like the rest.
+    'company': !hasDirectoryAccess(permissions, roleName),
     'hr-ops': false,
     'recruitment': false,
     'administration': false,
@@ -244,6 +278,9 @@ export default function Sidebar({ sidebarOpen, permissions, roleName }) {
               )}
             </div>
             {item.badge && <span className="sidebar-badge-soon">{item.badge}</span>}
+            {item.pendingBadge && pendingPolicies > 0 && (
+              <span className="sidebar-badge-soon" title={`${pendingPolicies} to agree to`}>{pendingPolicies}</span>
+            )}
           </div>
         )}
       </NavLink>

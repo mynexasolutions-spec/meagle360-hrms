@@ -1,5 +1,8 @@
 import { useState, useEffect, useMemo } from 'react';
 import { useSearchParams } from 'react-router-dom';
+import useUrlFilters from '../utils/useUrlFilters';
+import { rowClick } from '../utils/rowClick';
+import EmployeeLink from '../components/EmployeeLink';
 import { useAuth } from '../context/AuthContext';
 import { usePopup } from '../context/PopupContext';
 import { getEmployeeOverview, getDailyOverview, clockIn, clockOut, getClockStatus } from '../api/attendance';
@@ -161,7 +164,7 @@ function DailyStatusBadge({ status, leaveType }) {
           fontSize: '0.8125rem',
           fontWeight: 600,
           background: '#fee2e2',
-          color: '#dc2626',
+          color: '#b91c1c',
           border: '1px solid #fecaca',
           whiteSpace: 'nowrap',
         }}
@@ -244,20 +247,30 @@ function FaceVerificationBadge({ faceStatus }) {
 // Filter value for the "Present" card: clocked-out + still-in-progress
 const PRESENT_ALL = '__present_all__';
 
-function DailyAttendanceOverview() {
+// ?status= values, e.g. /attendance?tab=daily-overview&status=on-leave&date=2026-01-31
+const STATUS_BY_SLUG = {
+  present: PRESENT_ALL,
+  'clocked-out': 'Present',
+  'in-progress': 'Present (Not Clocked Out)',
+  'on-leave': 'On Leave',
+  absent: 'Absent',
+};
+
+function DailyAttendanceOverview({ onOpenRecord }) {
   const todayStr = useMemo(() => getTodayISTDateString(), []);
-  const [targetDate, setTargetDate] = useState(todayStr);
+  const [filters, setFilters] = useUrlFilters({ status: '', date: todayStr });
+  const targetDate = /^\d{4}-\d{2}-\d{2}$/.test(filters.date) ? filters.date : todayStr;
+  const setTargetDate = (date) => setFilters({ date });
+  const statusFilter = STATUS_BY_SLUG[filters.status] || '';
+  const setStatusFilter = (value) => setFilters({
+    status: Object.keys(STATUS_BY_SLUG).find((slug) => STATUS_BY_SLUG[slug] === value) || '',
+  });
   const [data, setData] = useState(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
 
   const [searchTerm, setSearchTerm] = useState('');
   const [deptFilter, setDeptFilter] = useState('');
-  // Deep-link support, e.g. /attendance?tab=daily-overview&status=on-leave
-  const [urlParams] = useSearchParams();
-  const [statusFilter, setStatusFilter] = useState(
-    () => ({ 'on-leave': 'On Leave', present: PRESENT_ALL, absent: 'Absent' }[urlParams.get('status')] || '')
-  );
 
   const [sortField, setSortField] = useState('check_in');
   const [sortDirection, setSortDirection] = useState('asc');
@@ -391,7 +404,7 @@ function DailyAttendanceOverview() {
               <CalendarDays size={20} style={{ color: 'var(--accent-blue)' }} />
               Daily Attendance Overview
             </h3>
-            <p style={{ color: '#526077', fontSize: '0.875rem', margin: 0 }}>
+            <p style={{ color: '#3d4a5e', fontSize: '0.875rem', margin: 0 }}>
               Company-wide attendance status for {formatDisplayDate(targetDate)}
             </p>
           </div>
@@ -463,7 +476,7 @@ function DailyAttendanceOverview() {
         {/* KPI Stat Cards */}
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(140px, 1fr))', gap: 12, marginBottom: 20 }}>
           {[
-            { label: 'Total Staff', value: stats.total, filter: '', bg: '#f8fafc', border: '#e2e8f0', labelColor: '#64748b', valueColor: '#0f172a' },
+            { label: 'Total Staff', value: stats.total, filter: '', bg: '#f8fafc', border: '#e2e8f0', labelColor: '#475569', valueColor: '#0f172a' },
             { label: 'Present', value: stats.presentTotal, filter: PRESENT_ALL, bg: '#f0fdf4', border: '#bbf7d0', labelColor: '#15803d', valueColor: '#16a34a' },
             { label: 'In Progress', value: stats.notClockedOut, filter: 'Present (Not Clocked Out)', bg: '#fffbeb', border: '#fde68a', labelColor: '#b45309', valueColor: '#d97706' },
             { label: 'On Leave', value: stats.onLeave, filter: 'On Leave', bg: '#eff6ff', border: '#bfdbfe', labelColor: '#1d4ed8', valueColor: '#2563eb' },
@@ -557,7 +570,7 @@ function DailyAttendanceOverview() {
 
         {/* Table Area */}
         {loading ? (
-          <div style={{ padding: '60px 20px', textAlign: 'center', color: '#526077' }}>
+          <div style={{ padding: '60px 20px', textAlign: 'center', color: '#3d4a5e' }}>
             <div className="animate-spin" style={{ width: 28, height: 28, border: '3px solid #e2e8f0', borderTopColor: '#2563eb', borderRadius: '50%', margin: '0 auto 12px' }} />
             <p style={{ fontSize: '0.9rem', fontWeight: 500 }}>Loading attendance overview for {formatDisplayDate(targetDate)}...</p>
           </div>
@@ -656,7 +669,7 @@ function DailyAttendanceOverview() {
                 </thead>
                 <tbody>
                   {sortedEmployees.map((emp) => (
-                    <tr key={emp.employee_id || emp.employee_name}>
+                    <tr key={emp.employee_id || emp.employee_name} {...rowClick(emp.employee_id ? () => onOpenRecord(emp.employee_id, targetDate) : null)}>
                       <td style={{ whiteSpace: 'nowrap' }}>
                         <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
                           <div
@@ -888,7 +901,7 @@ export default function Attendance() {
     loadRegularizations();
     loadOvertime();
     if (canApprove) {
-      getDirectory().then((res) => setErEmployees(res.data)).catch(() => {});
+      getDirectory(0, 1000).then((res) => setErEmployees(res.data)).catch(() => {});
       getDepartments().then((res) => setErDepartments(res.data)).catch(() => {});
       getSites().then((res) => setErSites(res.data)).catch(() => {});
       getLiveStatus().then((res) => setErLiveStatus(res.data)).catch(() => {});
@@ -1290,7 +1303,7 @@ export default function Attendance() {
           </div>
           <div>
             <h1 style={{ fontSize: 'clamp(1.25rem, 4.5vw, 1.75rem)', fontWeight: 800, color: '#0f172a' }}>Attendance</h1>
-            <p style={{ color: '#526077', fontSize: '0.875rem' }}>Track your daily work hours, punctuality & regularization requests</p>
+            <p style={{ color: '#3d4a5e', fontSize: '0.875rem' }}>Track your daily work hours, punctuality & regularization requests</p>
           </div>
         </div>
         <button
@@ -1436,7 +1449,7 @@ export default function Attendance() {
           </div>
           <div style={{ height: 28, width: 1, backgroundColor: '#e2e8f0', flexShrink: 0 }} />
           <div style={{ display: 'flex', flexDirection: 'column', gap: 2, whiteSpace: 'nowrap' }}>
-            <span style={{ fontSize: '0.75rem', fontWeight: 500, color: '#64748b', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Shift Timing</span>
+            <span style={{ fontSize: '0.75rem', fontWeight: 500, color: '#475569', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Shift Timing</span>
             <span style={{ fontSize: '0.85rem', fontWeight: 600, color: '#334155' }}>
               {shiftInfo?.start_time ? `${shiftInfo.start_time} - ${shiftInfo.end_time}` : '09:00 AM - 06:00 PM (Default)'}
             </span>
@@ -1465,7 +1478,7 @@ export default function Attendance() {
               alignItems: 'center',
               gap: 6,
               background: onLeaveToday ? '#dbeafe' : todayClockInTime ? '#dcfce7' : '#f8fafc',
-              color: onLeaveToday ? '#1d4ed8' : todayClockInTime ? '#15803d' : '#64748b',
+              color: onLeaveToday ? '#1d4ed8' : todayClockInTime ? '#15803d' : '#475569',
               border: `1px solid ${onLeaveToday ? '#bfdbfe' : todayClockInTime ? '#bbf7d0' : '#e2e8f0'}`,
               borderRadius: 20,
               padding: '6px 16px',
@@ -1508,7 +1521,7 @@ export default function Attendance() {
               fontWeight: 700,
               border: tab === item.key ? 'none' : '1px solid #cbd5e1',
               background: tab === item.key ? '#0f172a' : '#ffffff',
-              color: tab === item.key ? '#ffffff' : '#64748b',
+              color: tab === item.key ? '#ffffff' : '#475569',
               cursor: 'pointer',
               boxShadow: tab === item.key ? '0 4px 12px rgba(15, 23, 42, 0.15)' : 'none',
               transition: 'all 0.15s ease',
@@ -1522,7 +1535,17 @@ export default function Attendance() {
 
       {/* Daily Overview Tab (Admin/Manager) */}
       {tab === 'daily-overview' && canApprove && (
-        <DailyAttendanceOverview />
+        <DailyAttendanceOverview
+          onOpenRecord={(employeeId, dateStr) => {
+            const [y, m] = dateStr.split('-').map(Number);
+            // Clear list filters that could hide this person from the picker.
+            setErSearch(''); setErDeptFilter(''); setErSiteFilter(''); setErOnlineFilter(''); setErStatusFilter('all');
+            setErYear(y);
+            setErMonth(m);
+            setErEmployeeId(employeeId);
+            handleTabChange('employee-records');
+          }}
+        />
       )}
 
       {/* My Timesheet Tab */}
@@ -1538,7 +1561,7 @@ export default function Attendance() {
               <div className="timesheet-summary">
                 <div className="timesheet-stat" style={{ background: '#eff6ff', borderRadius: 14, padding: '8px 16px' }}>
                   <span className="stat-value" style={{ color: '#2563eb', fontWeight: 800 }}>{formatHours(timesheetData.month_total_hours)}</span>
-                  <span className="stat-label" style={{ color: '#526077', fontWeight: 600 }}>Total Hours</span>
+                  <span className="stat-label" style={{ color: '#3d4a5e', fontWeight: 600 }}>Total Hours</span>
                 </div>
               </div>
             )}
@@ -1731,7 +1754,7 @@ export default function Attendance() {
                 <tbody>
                   {pendingRegularizations.map((r) => (
                     <tr key={r.id}>
-                      <td style={{ fontWeight: 500, whiteSpace: 'nowrap' }}>{r.employee_name}</td>
+                      <td style={{ fontWeight: 500, whiteSpace: 'nowrap' }}><EmployeeLink id={r.employee_id}>{r.employee_name}</EmployeeLink></td>
                       <td style={{ whiteSpace: 'nowrap' }}>{r.record_date}</td>
                       <td style={{ whiteSpace: 'nowrap' }}>{formatTime(r.requested_clock_in)}</td>
                       <td style={{ whiteSpace: 'nowrap' }}>{formatTime(r.requested_clock_out)}</td>
@@ -1816,7 +1839,7 @@ export default function Attendance() {
                   <tbody>
                     {regHistory.map((r) => (
                       <tr key={r.id}>
-                        <td style={{ fontWeight: 500, whiteSpace: 'nowrap' }}>{r.employee_name || '—'}</td>
+                        <td style={{ fontWeight: 500, whiteSpace: 'nowrap' }}><EmployeeLink id={r.employee_id}>{r.employee_name || '—'}</EmployeeLink></td>
                         <td style={{ whiteSpace: 'nowrap' }}>{r.record_date}</td>
                         <td style={{ whiteSpace: 'nowrap' }}>{formatTime(r.requested_clock_in)}</td>
                         <td style={{ whiteSpace: 'nowrap' }}>{formatTime(r.requested_clock_out)}</td>
@@ -1868,7 +1891,7 @@ export default function Attendance() {
                 <tbody>
                   {pendingOvertime.map((o) => (
                     <tr key={o.id}>
-                      <td style={{ fontWeight: 500, whiteSpace: 'nowrap' }}>{o.employee_name}</td>
+                      <td style={{ fontWeight: 500, whiteSpace: 'nowrap' }}><EmployeeLink id={o.employee_id}>{o.employee_name}</EmployeeLink></td>
                       <td style={{ whiteSpace: 'nowrap' }}>{o.request_date}</td>
                       <td style={{ whiteSpace: 'nowrap' }}>{o.hours}</td>
                       <td>{o.reason}</td>

@@ -110,7 +110,8 @@ export default function EmployeeProfile() {
     try {
       const [empRes, docsRes] = await Promise.all([
         getEmployee(id),
-        getEmployeeDocuments(id),
+        // Only HR and the employee may read documents; the profile still loads for others.
+        getEmployeeDocuments(id).catch(() => ({ data: [] })),
       ]);
       setEmployee(empRes.data);
       setEditForm({
@@ -421,6 +422,7 @@ export default function EmployeeProfile() {
           )}
         </div>
 
+        {(canManage || canManageRoles || canViewPayroll || user?.employee_id === id) && (
         <div className="section-card" style={{ gridColumn: '1 / -1', borderTop: '3px solid #059669' }}>
           <h3 style={{ marginBottom: 16 }}><User size={17} style={{ color: '#059669' }} /> Personal Information</h3>
           <dl className="info-dl-wide">
@@ -440,6 +442,7 @@ export default function EmployeeProfile() {
             <dd>{employee.emergency_contact_phone || '—'}</dd>
           </dl>
         </div>
+        )}
 
         {canViewPayroll && (
           <div className="section-card" style={{ gridColumn: '1 / -1', borderTop: '3px solid #d97706' }}>
@@ -516,9 +519,10 @@ export default function EmployeeProfile() {
           </div>
         )}
 
+        {(canManage || canManageRoles || user?.employee_id === id) && (
         <div className="section-card" style={{ gridColumn: '1 / -1', borderTop: '3px solid #64748b' }}>
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16, flexWrap: 'wrap', gap: 10 }}>
-            <h3 style={{ marginBottom: 0 }}><FileText size={17} style={{ color: '#526077' }} /> Documents</h3>
+            <h3 style={{ marginBottom: 0 }}><FileText size={17} style={{ color: '#3d4a5e' }} /> Documents</h3>
             {canManage && (
               <button className="btn btn-secondary btn-sm" onClick={() => setShowUploadDoc(true)}>
                 <Upload size={14} /> Upload Document
@@ -560,6 +564,7 @@ export default function EmployeeProfile() {
             </div>
           )}
         </div>
+        )}
       </div>
 
       {showEdit && (

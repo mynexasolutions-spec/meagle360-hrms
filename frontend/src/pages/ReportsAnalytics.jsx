@@ -1,4 +1,8 @@
 import { useState, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
+import { useAuth } from '../context/AuthContext';
+import { canViewEmployees } from '../utils/access';
+import { rowClick } from '../utils/rowClick';
 import { getAttendanceOverview, getLeaveSummary } from '../api/dashboard';
 import { getDirectory } from '../api/employees';
 import { BarChart3, TrendingUp, PieChart as PieChartIcon, Calendar } from 'lucide-react';
@@ -10,6 +14,17 @@ import {
 const COLORS = ['#2563eb', '#059669', '#d97706', '#7c3aed', '#dc2626'];
 
 export default function ReportsAnalytics() {
+  const { user } = useAuth();
+  const navigate = useNavigate();
+  const canOpenDay = !!user?.permissions?.['attendance:approve'];
+  const canOpenHistory = !!user?.permissions?.['leave:approve'];
+  const canOpenDirectory = canViewEmployees(user);
+  const openDay = (status) => (canOpenDay
+    ? (bar) => bar?.payload?.date && navigate(`/attendance?tab=daily-overview&status=${status}&date=${bar.payload.date}`)
+    : undefined);
+  const openDepartment = canOpenDirectory
+    ? (slice) => slice?.name && navigate(`/employees?department=${encodeURIComponent(slice.name)}`)
+    : undefined;
   const [attendanceTrend, setAttendanceTrend] = useState([]);
   const [leaveSummary, setLeaveSummary] = useState([]);
   const [deptCounts, setDeptCounts] = useState([]);
@@ -51,7 +66,7 @@ export default function ReportsAnalytics() {
           </div>
           <div style={{ minWidth: 0 }}>
             <h1 style={{ fontSize: 'clamp(1.25rem, 4.5vw, 1.75rem)', fontWeight: 800, color: '#0f172a' }}>Reports &amp; Analytics</h1>
-            <p style={{ color: '#526077', fontSize: '0.875rem' }}>Company-wide workforce attendance trends, department distribution &amp; leave metrics</p>
+            <p style={{ color: '#3d4a5e', fontSize: '0.875rem' }}>Company-wide workforce attendance trends, department distribution &amp; leave metrics</p>
           </div>
         </div>
       </div>
@@ -68,23 +83,23 @@ export default function ReportsAnalytics() {
               <CartesianGrid strokeDasharray="3 3" stroke="#f1f5f9" vertical={false} />
               <XAxis
                 dataKey="date"
-                tick={{ fontSize: isMobile ? 10 : 11, fill: '#64748b' }}
+                tick={{ fontSize: isMobile ? 10 : 11, fill: '#475569' }}
                 tickFormatter={(d) => d.slice(5)}
                 interval={isMobile ? 5 : 2}
                 angle={isMobile ? -45 : 0}
                 textAnchor={isMobile ? 'end' : 'middle'}
                 height={isMobile ? 40 : 30}
               />
-              <YAxis tick={{ fontSize: isMobile ? 10 : 11, fill: '#64748b' }} axisLine={false} tickLine={false} width={isMobile ? 22 : 36} allowDecimals={false} />
+              <YAxis tick={{ fontSize: isMobile ? 10 : 11, fill: '#475569' }} axisLine={false} tickLine={false} width={isMobile ? 22 : 36} allowDecimals={false} />
               <Tooltip contentStyle={{ background: '#ffffff', border: '1px solid #e2e8f0', borderRadius: 12, fontSize: 12, boxShadow: '0 6px 18px rgba(0,0,0,0.06)' }} />
               <Legend wrapperStyle={{ fontSize: isMobile ? 11 : 12, paddingTop: 10 }} />
               {/* Stack the three series into one bar per day on mobile — three
                   side-by-side bars across 30 categories shrink to illegible
                   hairlines on a phone-width chart; stacking keeps each day's
                   bar at the full category width instead of splitting it 3 ways. */}
-              <Bar dataKey="present" fill="#059669" name="Present" radius={isMobile ? [0, 0, 4, 4] : [4, 4, 0, 0]} maxBarSize={isMobile ? 22 : 28} stackId={isMobile ? 'attendance' : undefined} />
-              <Bar dataKey="absent" fill="#ef4444" name="Absent" radius={isMobile ? [0, 0, 0, 0] : [4, 4, 0, 0]} maxBarSize={isMobile ? 22 : 28} stackId={isMobile ? 'attendance' : undefined} />
-              <Bar dataKey="on_leave" fill="#2563eb" name="On Leave" radius={[4, 4, 0, 0]} maxBarSize={isMobile ? 22 : 28} stackId={isMobile ? 'attendance' : undefined} />
+              <Bar cursor={canOpenDay ? 'pointer' : undefined} onClick={openDay('present')} dataKey="present" fill="#059669" name="Present" radius={isMobile ? [0, 0, 4, 4] : [4, 4, 0, 0]} maxBarSize={isMobile ? 22 : 28} stackId={isMobile ? 'attendance' : undefined} />
+              <Bar cursor={canOpenDay ? 'pointer' : undefined} onClick={openDay('absent')} dataKey="absent" fill="#ef4444" name="Absent" radius={isMobile ? [0, 0, 0, 0] : [4, 4, 0, 0]} maxBarSize={isMobile ? 22 : 28} stackId={isMobile ? 'attendance' : undefined} />
+              <Bar cursor={canOpenDay ? 'pointer' : undefined} onClick={openDay('on-leave')} dataKey="on_leave" fill="#2563eb" name="On Leave" radius={[4, 4, 0, 0]} maxBarSize={isMobile ? 22 : 28} stackId={isMobile ? 'attendance' : undefined} />
             </BarChart>
           </ResponsiveContainer>
         </div>
@@ -99,7 +114,7 @@ export default function ReportsAnalytics() {
           ) : (
             <ResponsiveContainer width="100%" height={260}>
               <PieChart>
-                <Pie data={deptCounts} dataKey="count" nameKey="name" innerRadius={55} outerRadius={90} paddingAngle={3}>
+                <Pie cursor={canOpenDirectory ? 'pointer' : undefined} onClick={openDepartment} data={deptCounts} dataKey="count" nameKey="name" innerRadius={55} outerRadius={90} paddingAngle={3}>
                   {deptCounts.map((_, i) => <Cell key={i} fill={COLORS[i % COLORS.length]} />)}
                 </Pie>
                 <Legend wrapperStyle={{ fontSize: 12 }} />
@@ -129,7 +144,12 @@ export default function ReportsAnalytics() {
               </thead>
               <tbody>
                 {leaveSummary.map((l) => (
-                  <tr key={l.leave_type}>
+                  <tr
+                    key={l.leave_type}
+                    {...rowClick(canOpenHistory
+                      ? () => navigate(`/leave?tab=history&status=approved&month=all&type=${encodeURIComponent(l.leave_type)}`)
+                      : null)}
+                  >
                     <td style={{ fontWeight: 700, color: '#0f172a', whiteSpace: 'nowrap' }}>{l.leave_type}</td>
                     <td style={{ fontWeight: 600, color: '#2563eb', whiteSpace: 'nowrap' }}>{l.days} Days</td>
                     <td style={{ whiteSpace: 'nowrap' }}>

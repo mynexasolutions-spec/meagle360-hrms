@@ -1018,7 +1018,7 @@ export default function ApplicantsPage() {
               </span>
             )}
           </div>
-          <p className="text-sm text-gray-500 mt-1">
+          <p className="text-sm text-slate-700 mt-1 font-medium">
             {!isAdmin
               ? 'Showing applications assigned to you. Review resumes, shortlist, and manage your hiring pipeline.'
               : 'Review candidate applications, view resumes in-app, shortlist, and manage hiring pipeline.'}
@@ -1029,7 +1029,7 @@ export default function ApplicantsPage() {
           {/* Org Admin: View As Recruiter Dropdown with per-recruiter pending counts */}
           {isAdmin && (
             <div className="flex items-center gap-1.5">
-              <label className="text-xs font-semibold text-gray-500 whitespace-nowrap">View as:</label>
+              <label className="text-xs font-semibold text-slate-700 whitespace-nowrap">View as:</label>
               <select
                 value={viewAsRecruiterId}
                 onChange={(e) => {
@@ -1060,7 +1060,7 @@ export default function ApplicantsPage() {
               className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold transition-all ${
                 viewMode === 'table'
                   ? 'bg-blue-600 text-white shadow-xs'
-                  : 'text-gray-600 hover:text-gray-900'
+                  : 'text-slate-700 hover:text-gray-900'
               }`}
             >
               <List size={14} />
@@ -1072,7 +1072,7 @@ export default function ApplicantsPage() {
               className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold transition-all ${
                 viewMode === 'kanban'
                   ? 'bg-blue-600 text-white shadow-xs'
-                  : 'text-gray-600 hover:text-gray-900'
+                  : 'text-slate-700 hover:text-gray-900'
               }`}
             >
               <LayoutGrid size={14} />
@@ -1147,13 +1147,13 @@ export default function ApplicantsPage() {
             className={`px-4 py-2 rounded-xl text-xs font-semibold transition-all shrink-0 flex items-center gap-2 ${
               activeStageId === 'ALL'
                 ? 'bg-blue-600 text-white shadow-sm'
-                : 'bg-white text-gray-600 hover:text-gray-900 border border-gray-200 hover:border-gray-300'
+                : 'bg-white text-slate-700 hover:text-gray-900 border border-gray-200 hover:border-gray-300'
             }`}
           >
             <span>All Applicants</span>
             <span
-              className={`px-1.5 py-0.5 rounded-full text-[10px] ${
-                activeStageId === 'ALL' ? 'bg-blue-700 text-white' : 'bg-gray-100 text-gray-600'
+              className={`px-1.5 py-0.5 rounded-full text-[0.8125rem] ${
+                activeStageId === 'ALL' ? 'bg-blue-700 text-white' : 'bg-gray-100 text-slate-700'
               }`}
             >
               {totalCount}
@@ -1170,13 +1170,13 @@ export default function ApplicantsPage() {
                 className={`px-4 py-2 rounded-xl text-xs font-semibold transition-all shrink-0 flex items-center gap-2 ${
                   isSelected
                     ? 'bg-blue-600 text-white shadow-sm'
-                    : 'bg-white text-gray-600 hover:text-gray-900 border border-gray-200 hover:border-gray-300'
+                    : 'bg-white text-slate-700 hover:text-gray-900 border border-gray-200 hover:border-gray-300'
                 }`}
               >
                 <span>{stage.name}</span>
                 <span
-                  className={`px-1.5 py-0.5 rounded-full text-[10px] ${
-                    isSelected ? 'bg-blue-700 text-white' : 'bg-gray-100 text-gray-600'
+                  className={`px-1.5 py-0.5 rounded-full text-[0.8125rem] ${
+                    isSelected ? 'bg-blue-700 text-white' : 'bg-gray-100 text-slate-700'
                   }`}
                 >
                   {stage.applicants_count || 0}
@@ -1210,7 +1210,7 @@ export default function ApplicantsPage() {
             {/* Search Bar */}
             <form onSubmit={handleSearchSubmit} className="flex items-center gap-2 flex-1 min-w-[220px]">
               <div className="relative flex-1">
-                <Search size={15} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
+                <Search size={15} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-700" />
                 <input
                   type="text"
                   placeholder="Search by candidate name, email, or role..."
@@ -1237,7 +1237,7 @@ export default function ApplicantsPage() {
               <Filter size={14} />
               <span>Filters</span>
               {activeFiltersCount > 0 && (
-                <span className="px-1.5 py-0.2 rounded-full bg-blue-600 text-white text-[10px] font-bold">
+                <span className="px-1.5 py-0.2 rounded-full bg-blue-600 text-white text-[0.8125rem] font-bold">
                   {activeFiltersCount}
                 </span>
               )}
@@ -1263,8 +1263,8 @@ export default function ApplicantsPage() {
               >
                 <span>Unassigned</span>
                 <span
-                  className={`px-1.5 py-0.2 rounded-full text-[10px] font-bold ${
-                    unassignedOnly ? 'bg-amber-600 text-white' : 'bg-gray-100 text-gray-600'
+                  className={`px-1.5 py-0.2 rounded-full text-[0.8125rem] font-bold ${
+                    unassignedOnly ? 'bg-amber-600 text-white' : 'bg-gray-100 text-slate-700'
                   }`}
                 >
                   {unassignedCount}
@@ -1344,7 +1344,7 @@ export default function ApplicantsPage() {
         {showFiltersPanel && (
           <div className="pt-3 border-t border-gray-100 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-6 gap-2.5 items-end">
             <div>
-              <label className="block text-[10px] font-bold uppercase tracking-wider text-gray-500 mb-1">
+              <label className="block text-[0.8125rem] font-bold uppercase tracking-wider text-slate-700 mb-1">
                 From Date
               </label>
               <input
@@ -1356,7 +1356,7 @@ export default function ApplicantsPage() {
             </div>
 
             <div>
-              <label className="block text-[10px] font-bold uppercase tracking-wider text-gray-500 mb-1">
+              <label className="block text-[0.8125rem] font-bold uppercase tracking-wider text-slate-700 mb-1">
                 To Date
               </label>
               <input
@@ -1368,7 +1368,7 @@ export default function ApplicantsPage() {
             </div>
 
             <div>
-              <label className="block text-[10px] font-bold uppercase tracking-wider text-gray-500 mb-1">
+              <label className="block text-[0.8125rem] font-bold uppercase tracking-wider text-slate-700 mb-1">
                 Stage
               </label>
               <select
@@ -1386,7 +1386,7 @@ export default function ApplicantsPage() {
             </div>
 
             <div>
-              <label className="block text-[10px] font-bold uppercase tracking-wider text-gray-500 mb-1">
+              <label className="block text-[0.8125rem] font-bold uppercase tracking-wider text-slate-700 mb-1">
                 Source
               </label>
               <select
@@ -1405,7 +1405,7 @@ export default function ApplicantsPage() {
 
             {isAdmin && (
               <div>
-                <label className="block text-[10px] font-bold uppercase tracking-wider text-gray-500 mb-1">
+                <label className="block text-[0.8125rem] font-bold uppercase tracking-wider text-slate-700 mb-1">
                   Assigned To
                 </label>
                 <select
@@ -1455,7 +1455,7 @@ export default function ApplicantsPage() {
                 <button
                   type="button"
                   onClick={clearAllFilters}
-                  className="text-[11px] font-semibold text-red-600 hover:text-red-700 whitespace-nowrap"
+                  className="text-[0.8125rem] font-semibold text-red-600 hover:text-red-700 whitespace-nowrap"
                 >
                   Clear
                 </button>
@@ -1485,7 +1485,7 @@ export default function ApplicantsPage() {
           onOpenResume={handleOpenResumeDirect}
         />
       ) : loading ? (
-        <div className="py-24 text-center text-gray-500">
+        <div className="py-24 text-center text-slate-700">
           <div className="inline-block w-8 h-8 border-4 border-blue-600 border-t-transparent rounded-full animate-spin mb-3"></div>
           <p className="text-sm font-medium">Loading applicants...</p>
         </div>
@@ -1495,7 +1495,7 @@ export default function ApplicantsPage() {
             <Users size={32} />
           </div>
           <h3 className="text-lg font-semibold text-gray-900">No applicants found</h3>
-          <p className="text-sm text-gray-500 max-w-md mx-auto mt-1">
+          <p className="text-sm text-slate-700 max-w-md mx-auto mt-1 font-medium">
             {search || activeStageId !== 'ALL' || selectedJobId !== 'ALL'
               ? 'Try adjusting your search criteria or stage tab.'
               : 'New applications submitted through your public careers portal will appear here.'}
@@ -1505,7 +1505,7 @@ export default function ApplicantsPage() {
         <div className="bg-white rounded-2xl border border-gray-200 shadow-sm overflow-hidden">
           <div className="overflow-x-auto">
             <table className="w-full text-left text-xs">
-              <thead className="bg-gray-50 border-b border-gray-200 text-gray-600 font-semibold uppercase tracking-wider text-[11px]">
+              <thead className="bg-gray-50 border-b border-gray-200 text-slate-700 font-semibold uppercase tracking-wider text-[0.8125rem]">
                 <tr>
                   <th className="py-3 px-4 w-10">
                     <input
@@ -1563,14 +1563,14 @@ export default function ApplicantsPage() {
                               </span>
                               {app.other_applications_count > 0 && (
                                 <span
-                                  className="inline-flex items-center px-1.5 py-0.2 rounded-full text-[10px] font-bold bg-indigo-50 text-indigo-700 border border-indigo-200"
+                                  className="inline-flex items-center px-1.5 py-0.2 rounded-full text-[0.8125rem] font-bold bg-indigo-50 text-indigo-700 border border-indigo-200"
                                   title={`This candidate has ${app.other_applications_count} other application(s)`}
                                 >
                                   +{app.other_applications_count} more
                                 </span>
                               )}
                             </div>
-                            <span className="text-[11px] text-gray-500 block">
+                            <span className="text-[0.8125rem] text-slate-700 block font-medium">
                               {app.candidate_email}
                             </span>
                           </div>
@@ -1580,7 +1580,7 @@ export default function ApplicantsPage() {
                       {/* Job Role */}
                       <td className="py-3.5 px-4">
                         <span className="font-medium text-gray-900 block">{app.job_title}</span>
-                        <span className="text-[11px] text-gray-500 block">
+                        <span className="text-[0.8125rem] text-slate-700 block font-medium">
                           {app.department_name || 'General'}
                         </span>
                       </td>
@@ -1590,7 +1590,7 @@ export default function ApplicantsPage() {
                         <select
                           value={app.assigned_to || ''}
                           onChange={(e) => handleQuickAssign(app, e.target.value || null)}
-                          className="text-[11px] font-medium bg-gray-50 border border-gray-200 rounded-lg px-2 py-1 focus:outline-none focus:ring-2 focus:ring-blue-500 max-w-[140px]"
+                          className="text-[0.8125rem] font-medium bg-gray-50 border border-gray-200 rounded-lg px-2 py-1 focus:outline-none focus:ring-2 focus:ring-blue-500 max-w-[140px]"
                         >
                           <option value="">Unassigned</option>
                           {recruiters.map((rec) => (
@@ -1604,7 +1604,7 @@ export default function ApplicantsPage() {
                       {/* Stage Badge */}
                       <td className="py-3.5 px-4">
                         <span
-                          className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-[11px] font-semibold ${
+                          className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-[0.8125rem] font-semibold ${
                             app.terminal_type === 'hired'
                               ? 'bg-emerald-50 text-emerald-700 border border-emerald-200'
                               : app.terminal_type === 'rejected'
@@ -1621,7 +1621,7 @@ export default function ApplicantsPage() {
                           {app.stage_name}
                         </span>
                         {app.rejection_reason && (
-                          <span className="block text-[10px] text-red-500 mt-0.5 truncate max-w-[140px]">
+                          <span className="block text-[0.8125rem] text-red-500 mt-0.5 truncate max-w-[140px]">
                             {app.rejection_reason}
                           </span>
                         )}
@@ -1629,8 +1629,8 @@ export default function ApplicantsPage() {
 
                       {/* Time in Stage (as required by PDF: "Show X days in stage on rows") */}
                       <td className="py-3.5 px-4">
-                        <span className="inline-flex items-center gap-1 font-medium text-gray-600">
-                          <Clock size={13} className="text-gray-400" />
+                        <span className="inline-flex items-center gap-1 font-medium text-slate-700">
+                          <Clock size={13} className="text-slate-700" />
                           {app.days_in_stage === 0 ? 'Today' : `${app.days_in_stage} days`}
                         </span>
                       </td>
@@ -1642,7 +1642,7 @@ export default function ApplicantsPage() {
                             <FileText size={14} /> PDF
                           </span>
                         ) : (
-                          <span className="text-gray-400">No file</span>
+                          <span className="text-slate-700">No file</span>
                         )}
                       </td>
 
@@ -1692,7 +1692,7 @@ export default function ApplicantsPage() {
                   <h2 className="text-lg font-bold text-gray-900 leading-tight">
                     {detail?.candidate?.full_name || 'Candidate Application'}
                   </h2>
-                  <p className="text-xs text-gray-500">
+                  <p className="text-xs text-slate-700 font-medium">
                     Applying for <strong className="text-gray-700">{detail?.job?.title}</strong> • Stage:{' '}
                     <span className="font-semibold text-blue-600">{detail?.stage?.name}</span>
                   </p>
@@ -1702,7 +1702,7 @@ export default function ApplicantsPage() {
               <button
                 type="button"
                 onClick={closeDetail}
-                className="p-2 text-gray-400 hover:text-gray-600 rounded-full hover:bg-gray-100 transition-colors"
+                className="p-2 text-slate-700 hover:text-gray-900 rounded-full hover:bg-gray-100 transition-colors"
               >
                 <X size={20} />
               </button>
@@ -1710,9 +1710,9 @@ export default function ApplicantsPage() {
 
             {/* Modal Body */}
             {detailLoading ? (
-              <div className="flex-1 flex flex-col items-center justify-center text-gray-500 py-20">
+              <div className="flex-1 flex flex-col items-center justify-center text-slate-700 py-20">
                 <div className="inline-block w-8 h-8 border-4 border-blue-600 border-t-transparent rounded-full animate-spin mb-3"></div>
-                <p className="text-xs font-medium text-gray-500">Loading applicant details...</p>
+                <p className="text-xs font-medium text-slate-700">Loading applicant details...</p>
               </div>
             ) : detail ? (
               <div className="flex-1 overflow-y-auto p-5 sm:p-6 space-y-5 bg-slate-50/60">
@@ -1729,17 +1729,17 @@ export default function ApplicantsPage() {
                   {/* Candidate Quick Overview Card (2 cols on md+) */}
                   <div className="md:col-span-2 bg-white p-4 sm:p-5 rounded-xl border border-gray-200 shadow-sm space-y-3 text-xs">
                     <div className="flex flex-wrap items-center justify-between gap-2 pb-2 border-b border-gray-100">
-                      <span className="font-bold text-gray-600 uppercase tracking-wider text-[11px]">
+                      <span className="font-bold text-slate-700 uppercase tracking-wider text-[0.8125rem]">
                         Candidate Information
                       </span>
                       <div className="flex items-center gap-3 flex-wrap">
                         <div className="flex items-center gap-1.5">
-                          <span className="text-[11px] text-gray-500">Assigned to:</span>
+                          <span className="text-[0.8125rem] text-slate-700 font-medium">Assigned to:</span>
                           <select
                             value={detail.assigned_to || ''}
                             disabled={assigningDetail}
                             onChange={(e) => handleQuickAssign(detail, e.target.value || null)}
-                            className="text-[11px] font-semibold bg-gray-50 border border-gray-300 rounded-lg px-2 py-1 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                            className="text-[0.8125rem] font-semibold bg-gray-50 border border-gray-300 rounded-lg px-2 py-1 focus:outline-none focus:ring-2 focus:ring-blue-500"
                           >
                             <option value="">Unassigned Pool</option>
                             {recruiters.map((rec) => (
@@ -1749,33 +1749,33 @@ export default function ApplicantsPage() {
                             ))}
                           </select>
                         </div>
-                        <span className="text-gray-500 text-[11px]">
+                        <span className="text-slate-700 text-[0.8125rem] font-medium">
                           Time in current stage: <strong className="text-gray-800">{detail.days_in_stage === 0 ? 'Today' : `${detail.days_in_stage} days`}</strong>
                         </span>
                       </div>
                     </div>
 
-                    <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 text-gray-600">
+                    <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 text-slate-700">
                       <div>
-                        <span className="text-[10px] text-gray-400 block font-semibold uppercase">Email</span>
+                        <span className="text-[0.8125rem] text-slate-700 block font-semibold uppercase">Email</span>
                         <span className="font-medium text-gray-900 truncate block text-xs" title={detail.candidate.email}>
                           {detail.candidate.email}
                         </span>
                       </div>
                       <div>
-                        <span className="text-[10px] text-gray-400 block font-semibold uppercase">Phone</span>
+                        <span className="text-[0.8125rem] text-slate-700 block font-semibold uppercase">Phone</span>
                         <span className="font-medium text-gray-900 block text-xs">
                           {detail.candidate.phone || 'Not provided'}
                         </span>
                       </div>
                       <div>
-                        <span className="text-[10px] text-gray-400 block font-semibold uppercase">Location</span>
+                        <span className="text-[0.8125rem] text-slate-700 block font-semibold uppercase">Location</span>
                         <span className="font-medium text-gray-900 block text-xs">
                           {detail.candidate.current_location || 'Not provided'}
                         </span>
                       </div>
                       <div>
-                        <span className="text-[10px] text-gray-400 block font-semibold uppercase">Experience</span>
+                        <span className="text-[0.8125rem] text-slate-700 block font-semibold uppercase">Experience</span>
                         <span className="font-medium text-gray-900 block text-xs">
                           {detail.candidate.years_of_experience != null
                             ? `${detail.candidate.years_of_experience} years`
@@ -1792,19 +1792,19 @@ export default function ApplicantsPage() {
                         <FileText size={20} />
                       </div>
                       <div className="min-w-0 flex-1">
-                        <span className="text-[10px] font-bold text-blue-600 uppercase tracking-wider block">
+                        <span className="text-[0.8125rem] font-bold text-blue-600 uppercase tracking-wider block">
                           Candidate Resume
                         </span>
                         <h4 className="text-xs font-bold text-gray-900 truncate mt-0.5" title={detail.resume_file_name || 'Resume.pdf'}>
                           {detail.resume_file_name || 'Attached Resume'}
                         </h4>
-                        <span className="text-[11px] text-gray-500">Official PDF Document</span>
+                        <span className="text-[0.8125rem] text-slate-700 font-medium">Official PDF Document</span>
                       </div>
                     </div>
 
                     <div className="flex items-center gap-2 pt-1">
                       {resumeLoading ? (
-                        <div className="flex items-center gap-2 text-xs text-gray-500 py-1">
+                        <div className="flex items-center gap-2 text-xs text-slate-700 py-1 font-medium">
                           <div className="w-4 h-4 border-2 border-blue-600 border-t-transparent rounded-full animate-spin"></div>
                           <span className="text-xs">Preparing document...</span>
                         </div>
@@ -1822,7 +1822,7 @@ export default function ApplicantsPage() {
                           <a
                             href={resumeBlobUrl}
                             download={detail.resume_file_name || 'resume.pdf'}
-                            className="btn btn-secondary text-xs p-2 inline-flex items-center justify-center text-gray-600 hover:text-gray-900"
+                            className="btn btn-secondary text-xs p-2 inline-flex items-center justify-center text-slate-700 hover:text-gray-900 font-medium"
                             title="Download PDF"
                           >
                             <Download size={15} />
@@ -1840,7 +1840,7 @@ export default function ApplicantsPage() {
                           <span>Retry Loading</span>
                         </button>
                       ) : (
-                        <span className="text-xs text-gray-400 italic">No resume attached</span>
+                        <span className="text-xs text-slate-700 italic font-medium">No resume attached</span>
                       )}
                     </div>
                   </div>
@@ -1848,7 +1848,7 @@ export default function ApplicantsPage() {
 
                     {/* Stage Transition Action Bar */}
                     <div className="bg-white p-4 rounded-xl border border-gray-200 shadow-sm space-y-3">
-                      <h4 className="text-xs font-bold uppercase tracking-wider text-gray-500">
+                      <h4 className="text-xs font-bold uppercase tracking-wider text-slate-700">
                         Pipeline Actions
                       </h4>
 
@@ -1857,7 +1857,7 @@ export default function ApplicantsPage() {
                           <span className="font-bold text-red-800 block">Candidate Rejected</span>
                           <p className="text-red-700">Reason: {detail.rejection_reason}</p>
                           {detail.rejection_note && (
-                            <p className="text-red-600 text-[11px] italic">Note: {detail.rejection_note}</p>
+                            <p className="text-red-600 text-[0.8125rem] italic">Note: {detail.rejection_note}</p>
                           )}
                         </div>
                       ) : (
@@ -1975,7 +1975,7 @@ export default function ApplicantsPage() {
                                   </span>
                                   <a
                                     href="/employees"
-                                    className="text-emerald-700 underline hover:text-emerald-900 font-medium inline-flex items-center gap-1 text-[11px] ml-1"
+                                    className="text-emerald-700 underline hover:text-emerald-900 font-medium inline-flex items-center gap-1 text-[0.8125rem] ml-1"
                                   >
                                     <span>Employee Directory</span>
                                     <ExternalLink size={12} />
@@ -2036,7 +2036,7 @@ export default function ApplicantsPage() {
                             className={`py-2 px-3.5 text-xs font-semibold border-b-2 transition-colors ${
                               detailTab === t.id
                                 ? 'border-blue-600 text-blue-600 bg-white -mb-px rounded-t-lg'
-                                : 'border-transparent text-gray-500 hover:text-gray-800'
+                                : 'border-transparent text-slate-700 hover:text-gray-800'
                             }`}
                           >
                             {t.label}
@@ -2052,7 +2052,7 @@ export default function ApplicantsPage() {
                         {detail.cover_note && (
                           <div className="bg-white p-4 rounded-xl border border-gray-200 space-y-1">
                             <span className="font-bold text-gray-900 block">Cover Note</span>
-                            <p className="text-gray-600 whitespace-pre-line leading-relaxed">
+                            <p className="text-slate-700 whitespace-pre-line leading-relaxed">
                               {detail.cover_note}
                             </p>
                           </div>
@@ -2081,7 +2081,7 @@ export default function ApplicantsPage() {
                               <span className="font-bold text-gray-900">
                                 Other Applications ({detail.other_applications.length})
                               </span>
-                              <span className="text-[11px] text-gray-400">
+                              <span className="text-[0.8125rem] text-slate-700 font-medium">
                                 Same candidate across other openings
                               </span>
                             </div>
@@ -2095,7 +2095,7 @@ export default function ApplicantsPage() {
                                     <div className="font-semibold text-gray-900 truncate">
                                       {other.job_title}
                                     </div>
-                                    <div className="text-[11px] text-gray-500 flex items-center gap-2 mt-0.5 flex-wrap">
+                                    <div className="text-[0.8125rem] text-slate-700 flex items-center gap-2 mt-0.5 flex-wrap font-medium">
                                       <span>Stage: <strong className="text-blue-700">{other.stage_name}</strong></span>
                                       <span>•</span>
                                       <span>
@@ -2109,7 +2109,7 @@ export default function ApplicantsPage() {
                                   <button
                                     type="button"
                                     onClick={() => openApplicationDetail(other.id)}
-                                    className="btn btn-secondary text-[11px] py-1 px-2.5 inline-flex items-center gap-1 shrink-0"
+                                    className="btn btn-secondary text-[0.8125rem] py-1 px-2.5 inline-flex items-center gap-1 shrink-0"
                                   >
                                     <span>Open</span>
                                     <ExternalLink size={11} />
@@ -2132,7 +2132,7 @@ export default function ApplicantsPage() {
                                 <span className="font-bold text-gray-900 block text-sm">
                                   {detail.offers[0].designation}
                                 </span>
-                                <span className="text-[11px] text-gray-400">
+                                <span className="text-[0.8125rem] text-slate-700 font-medium">
                                   Version {detail.offers[0].version_number} • Created{' '}
                                   {new Date(detail.offers[0].created_at).toLocaleDateString()}
                                 </span>
@@ -2152,7 +2152,7 @@ export default function ApplicantsPage() {
 
                             <div className="grid grid-cols-2 gap-3 text-xs">
                               <div>
-                                <span className="text-gray-400 font-semibold block uppercase text-[10px]">
+                                <span className="text-slate-700 font-semibold block uppercase text-[0.8125rem]">
                                   Annual CTC
                                 </span>
                                 <span className="font-bold text-purple-700 text-sm">
@@ -2160,7 +2160,7 @@ export default function ApplicantsPage() {
                                 </span>
                               </div>
                               <div>
-                                <span className="text-gray-400 font-semibold block uppercase text-[10px]">
+                                <span className="text-slate-700 font-semibold block uppercase text-[0.8125rem]">
                                   Joining Date
                                 </span>
                                 <span className="font-semibold text-gray-900">
@@ -2168,7 +2168,7 @@ export default function ApplicantsPage() {
                                 </span>
                               </div>
                               <div>
-                                <span className="text-gray-400 font-semibold block uppercase text-[10px]">
+                                <span className="text-slate-700 font-semibold block uppercase text-[0.8125rem]">
                                   Probation
                                 </span>
                                 <span className="text-gray-800">
@@ -2176,7 +2176,7 @@ export default function ApplicantsPage() {
                                 </span>
                               </div>
                               <div>
-                                <span className="text-gray-400 font-semibold block uppercase text-[10px]">
+                                <span className="text-slate-700 font-semibold block uppercase text-[0.8125rem]">
                                   Validity
                                 </span>
                                 <span className="text-gray-800">
@@ -2186,7 +2186,7 @@ export default function ApplicantsPage() {
                             </div>
 
                             {detail.offers[0].notes && (
-                              <div className="p-2.5 bg-gray-50 rounded-lg text-gray-600 text-[11px]">
+                              <div className="p-2.5 bg-gray-50 rounded-lg text-slate-700 text-[0.8125rem] font-medium">
                                 <strong>Stipulations:</strong> {detail.offers[0].notes}
                               </div>
                             )}
@@ -2237,7 +2237,7 @@ export default function ApplicantsPage() {
                             <FileCheck size={36} className="mx-auto text-purple-400" />
                             <div className="space-y-1">
                               <h5 className="font-bold text-gray-800">No Offer Letter Generated Yet</h5>
-                              <p className="text-xs text-gray-500 max-w-xs mx-auto">
+                              <p className="text-xs text-slate-700 max-w-xs mx-auto font-medium">
                                 Generate an official offer letter with compensation, role, joining timeline, and print-ready templates.
                               </p>
                             </div>
@@ -2286,7 +2286,7 @@ export default function ApplicantsPage() {
                       <div className="space-y-5">
                         {detail.stage_history && detail.stage_history.length > 0 && (
                           <div className="bg-slate-50 p-3.5 rounded-xl border border-gray-200 space-y-2">
-                            <h5 className="text-[11px] font-bold uppercase tracking-wider text-gray-500">
+                            <h5 className="text-[0.8125rem] font-bold uppercase tracking-wider text-slate-700">
                               Stage History
                             </h5>
                             <div className="space-y-1.5">
@@ -2296,19 +2296,19 @@ export default function ApplicantsPage() {
                                   className="flex flex-wrap items-center justify-between gap-2 bg-white px-3 py-2 rounded-lg border border-gray-100 text-xs"
                                 >
                                   <div className="flex items-center gap-1.5 flex-wrap">
-                                    <span className="font-semibold text-gray-600">
+                                    <span className="font-semibold text-slate-700">
                                       {sh.from_stage || 'New'}
                                     </span>
-                                    <ArrowRight size={12} className="text-gray-400" />
+                                    <ArrowRight size={12} className="text-slate-700" />
                                     <span className="font-bold text-blue-700">
                                       {sh.to_stage || 'Unknown'}
                                     </span>
-                                    <span className="text-gray-400">by {sh.changed_by_name}</span>
+                                    <span className="text-slate-700">by {sh.changed_by_name}</span>
                                     {sh.reason && (
-                                      <span className="text-gray-500 italic">({sh.reason})</span>
+                                      <span className="text-slate-700 italic">({sh.reason})</span>
                                     )}
                                   </div>
-                                  <span className="text-[11px] text-gray-400">
+                                  <span className="text-[0.8125rem] text-slate-700 font-medium">
                                     {sh.changed_at ? new Date(sh.changed_at).toLocaleString() : ''}
                                   </span>
                                 </div>
@@ -2319,7 +2319,7 @@ export default function ApplicantsPage() {
 
                         {detail.assignment_history && detail.assignment_history.length > 0 && (
                           <div className="bg-indigo-50/40 p-3.5 rounded-xl border border-indigo-200/70 space-y-2">
-                            <h5 className="text-[11px] font-bold uppercase tracking-wider text-indigo-700">
+                            <h5 className="text-[0.8125rem] font-bold uppercase tracking-wider text-indigo-700">
                               Assignment History
                             </h5>
                             <div className="space-y-1.5">
@@ -2329,19 +2329,19 @@ export default function ApplicantsPage() {
                                   className="flex flex-wrap items-center justify-between gap-2 bg-white px-3 py-2 rounded-lg border border-indigo-100 text-xs"
                                 >
                                   <div className="flex items-center gap-1.5 flex-wrap">
-                                    <span className="font-semibold text-gray-600">
+                                    <span className="font-semibold text-slate-700">
                                       {ah.from_assignee_name}
                                     </span>
-                                    <ArrowRight size={12} className="text-gray-400" />
+                                    <ArrowRight size={12} className="text-slate-700" />
                                     <span className="font-bold text-indigo-700">
                                       {ah.to_assignee_name}
                                     </span>
-                                    <span className="px-1.5 py-0.2 rounded bg-slate-100 text-slate-600 text-[10px] font-semibold uppercase">
+                                    <span className="px-1.5 py-0.2 rounded bg-slate-100 text-slate-600 text-[0.8125rem] font-semibold uppercase">
                                       {ah.mode?.replace(/_/g, ' ')}
                                     </span>
-                                    <span className="text-gray-400">by {ah.assigned_by_name}</span>
+                                    <span className="text-slate-700">by {ah.assigned_by_name}</span>
                                   </div>
-                                  <span className="text-[11px] text-gray-400">
+                                  <span className="text-[0.8125rem] text-slate-700 font-medium">
                                     {ah.assigned_at ? new Date(ah.assigned_at).toLocaleString() : ''}
                                   </span>
                                 </div>
@@ -2355,7 +2355,7 @@ export default function ApplicantsPage() {
                             <div key={act.id} className="relative text-xs">
                               <div className="absolute -left-[27px] top-0.5 w-3.5 h-3.5 rounded-full bg-blue-600 ring-4 ring-white"></div>
                               <div className="bg-white p-3 rounded-xl border border-gray-200 shadow-sm space-y-1">
-                                <div className="flex items-center justify-between text-[11px] text-gray-400">
+                                <div className="flex items-center justify-between text-[0.8125rem] text-slate-700 font-medium">
                                   <span className="font-semibold text-gray-800">
                                     {act.actor_name}
                                   </span>
@@ -2374,7 +2374,7 @@ export default function ApplicantsPage() {
                                   {act.event_type === 'note_added' && 'Added a private note'}
                                 </p>
                                 {act.metadata?.note && (
-                                  <p className="text-gray-500 text-[11px] italic bg-gray-50 p-2 rounded">
+                                  <p className="text-slate-700 text-[0.8125rem] italic bg-gray-50 p-2 rounded font-medium">
                                     "{act.metadata.note}"
                                   </p>
                                 )}
@@ -2405,7 +2405,7 @@ export default function ApplicantsPage() {
           }}
         >
           <form onSubmit={handleConfirmReject} className="space-y-4">
-            <p className="text-xs text-gray-500">
+            <p className="text-xs text-slate-700 font-medium">
               Please specify the primary reason for rejecting{' '}
               <strong>{pendingRejectCard?.candidate_name || detail?.candidate?.full_name}</strong>.
               This reason will be recorded in the stage history and activity log.

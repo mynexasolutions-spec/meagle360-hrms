@@ -165,7 +165,7 @@ export default function OfferLetterModal({ onClose, onSuccess }) {
             padding: '10px 14px',
             borderRadius: 8,
             background: '#fef2f2',
-            color: '#dc2626',
+            color: '#b91c1c',
             fontSize: '0.85rem',
             border: '1px solid #fecaca',
             marginBottom: 14,
@@ -428,7 +428,7 @@ export default function OfferLetterModal({ onClose, onSuccess }) {
                   <div style={{ width: 190, height: 62, display: 'flex', alignItems: 'flex-end' }}>
                     <div style={{ width: '100%', borderBottom: '2px solid #94a3b8', marginBottom: 5 }}></div>
                   </div>
-                  <div style={{ fontWeight: 700, color: '#526077', fontSize: '0.82rem', textTransform: 'uppercase', letterSpacing: '0.5px' }}>Signature</div>
+                  <div style={{ fontWeight: 700, color: '#3d4a5e', fontSize: '0.82rem', textTransform: 'uppercase', letterSpacing: '0.5px' }}>Signature</div>
                   <div className="offer-sign-name" style={{ marginTop: 2 }}>{form.candidate_name || 'erwin'}</div>
                   <div style={{ color: '#475569', fontSize: '0.88rem' }}>Candidate</div>
                 </div>
