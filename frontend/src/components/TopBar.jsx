@@ -105,7 +105,7 @@ export default function TopBar({ onToggleSidebar }) {
               background: 'var(--accent-rose)',
               color: 'white',
               borderRadius: 'var(--radius-full)',
-              fontSize: '0.625rem',
+              fontSize: '0.75rem',
               fontWeight: 700,
               minWidth: 16,
               height: 16,
@@ -151,7 +151,7 @@ export default function TopBar({ onToggleSidebar }) {
             <div style={{ fontSize: '0.8125rem', fontWeight: 600, color: 'var(--text-primary)' }}>
               {company?.name || 'Company'}
             </div>
-            <div style={{ fontSize: '0.6875rem', color: 'var(--text-muted)' }}>{user?.role_name}</div>
+            <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>{user?.role_name}</div>
           </div>
           <ChevronDown size={14} className="topbar-profile-text topbar-chevron" style={{ color: 'var(--text-muted)' }} />
         </button>
@@ -177,7 +177,7 @@ export default function TopBar({ onToggleSidebar }) {
                 <div className="truncate" style={{ fontSize: '0.8125rem', fontWeight: 800, color: 'var(--text-primary)' }}>
                   {user?.full_name || 'User'}
                 </div>
-                <div className="truncate" style={{ fontSize: '0.6875rem', fontWeight: 600, color: 'var(--text-muted)' }}>
+                <div className="truncate" style={{ fontSize: '0.75rem', fontWeight: 600, color: 'var(--text-muted)' }}>
                   {user?.role_name || 'Employee'}
                 </div>
               </div>

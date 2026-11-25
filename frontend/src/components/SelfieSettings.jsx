@@ -243,7 +243,7 @@ export default function SelfieSettings() {
                             style={{
                               padding: '2px 8px',
                               borderRadius: 4,
-                              fontSize: 11,
+                              fontSize: 12,
                               fontWeight: 600,
                               background: '#fef3c7',
                               color: '#b45309',

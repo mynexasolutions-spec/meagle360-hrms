@@ -78,7 +78,7 @@ export default function LocationPicker({ value, radius = 100, onChange, others =
   useEffect(() => {
     if (!map.current) return undefined;
     const layers = others.map((o) =>
-      L.circle([o.latitude ?? o.lat, o.longitude ?? o.lng], { radius: o.radius_m, color: '#94a3b8', fillOpacity: 0.08, weight: 1 })
+      L.circle([o.latitude ?? o.lat, o.longitude ?? o.lng], { radius: o.radius_m, color: '#64748b', fillOpacity: 0.08, weight: 1 })
         .bindTooltip(o.name || '').addTo(map.current));
     return () => layers.forEach((l) => l.remove());
   }, [others]);
@@ -181,7 +181,7 @@ export default function LocationPicker({ value, radius = 100, onChange, others =
       {/* Nominatim Location Search Bar */}
       <div style={{ position: 'relative', marginBottom: 8, zIndex: 1000 }} ref={searchContainerRef}>
         <div style={{ position: 'relative', display: 'flex', alignItems: 'center' }}>
-          <Search size={15} style={{ position: 'absolute', left: 10, color: '#64748b', pointerEvents: 'none' }} />
+          <Search size={15} style={{ position: 'absolute', left: 10, color: '#526077', pointerEvents: 'none' }} />
           <input
             type="text"
             className="form-control"
@@ -234,7 +234,7 @@ export default function LocationPicker({ value, radius = 100, onChange, others =
                 background: 'none',
                 border: 'none',
                 cursor: 'pointer',
-                color: '#94a3b8',
+                color: '#64748b',
                 padding: 2,
                 display: 'flex',
               }}
@@ -287,7 +287,7 @@ export default function LocationPicker({ value, radius = 100, onChange, others =
                     <div style={{ fontWeight: 600, color: '#1e293b', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
                       {primaryName}
                     </div>
-                    <div style={{ color: '#64748b', fontSize: '0.75rem', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                    <div style={{ color: '#526077', fontSize: '0.75rem', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
                       {item.display_name}
                     </div>
                   </div>
@@ -312,7 +312,7 @@ export default function LocationPicker({ value, radius = 100, onChange, others =
               boxShadow: '0 4px 12px rgba(0, 0, 0, 0.08)',
               padding: '10px 14px',
               fontSize: '0.8rem',
-              color: '#64748b',
+              color: '#526077',
               textAlign: 'center',
               zIndex: 1001,
             }}
@@ -330,7 +330,7 @@ export default function LocationPicker({ value, radius = 100, onChange, others =
         <button type="button" className="btn btn-secondary btn-sm" onClick={useMyLocation} disabled={locating}>
           <LocateFixed size={14} /> {locating ? 'Locating...' : 'Use my current location'}
         </button>
-        <span style={{ fontSize: 12, color: '#64748b' }}>
+        <span style={{ fontSize: 12, color: '#526077' }}>
           {value ? `Pinned: ${value.lat.toFixed(5)}, ${value.lng.toFixed(5)}` : 'Search above or click on the map to drop a pin'}
         </span>
         {geoError && <span style={{ fontSize: 12, color: '#dc2626' }}>{geoError}</span>}

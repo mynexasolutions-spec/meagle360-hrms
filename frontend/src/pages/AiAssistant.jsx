@@ -470,7 +470,7 @@ function ActionConfirmationCard({ card, onActionComplete }) {
           borderRadius: 12,
           background: '#f8fafc',
           border: '1px solid #cbd5e1',
-          color: '#64748b',
+          color: '#526077',
           fontSize: '0.82rem',
           fontWeight: 600,
           display: 'flex',
@@ -563,9 +563,9 @@ function ActionConfirmationCard({ card, onActionComplete }) {
             <label
               style={{
                 display: 'block',
-                fontSize: '0.68rem',
+                fontSize: '0.75rem',
                 fontWeight: 700,
-                color: '#64748b',
+                color: '#526077',
                 marginBottom: 3,
                 textTransform: 'uppercase',
               }}
@@ -605,9 +605,9 @@ function ActionConfirmationCard({ card, onActionComplete }) {
             <label
               style={{
                 display: 'block',
-                fontSize: '0.68rem',
+                fontSize: '0.75rem',
                 fontWeight: 700,
-                color: '#64748b',
+                color: '#526077',
                 marginBottom: 3,
                 textTransform: 'uppercase',
               }}
@@ -639,9 +639,9 @@ function ActionConfirmationCard({ card, onActionComplete }) {
             <label
               style={{
                 display: 'block',
-                fontSize: '0.68rem',
+                fontSize: '0.75rem',
                 fontWeight: 700,
-                color: '#64748b',
+                color: '#526077',
                 marginBottom: 3,
                 textTransform: 'uppercase',
               }}
@@ -809,7 +809,7 @@ function ActionConfirmationCard({ card, onActionComplete }) {
           }}
         >
           <div>
-            <div style={{ fontSize: '0.68rem', fontWeight: 700, color: '#64748b', textTransform: 'uppercase' }}>
+            <div style={{ fontSize: '0.75rem', fontWeight: 700, color: '#526077', textTransform: 'uppercase' }}>
               Total Gross
             </div>
             <div style={{ fontSize: '0.86rem', fontWeight: 800, color: '#0f172a', marginTop: 2 }}>
@@ -817,7 +817,7 @@ function ActionConfirmationCard({ card, onActionComplete }) {
             </div>
           </div>
           <div>
-            <div style={{ fontSize: '0.68rem', fontWeight: 700, color: '#64748b', textTransform: 'uppercase' }}>
+            <div style={{ fontSize: '0.75rem', fontWeight: 700, color: '#526077', textTransform: 'uppercase' }}>
               Total Deductions
             </div>
             <div style={{ fontSize: '0.86rem', fontWeight: 800, color: '#b91c1c', marginTop: 2 }}>
@@ -825,7 +825,7 @@ function ActionConfirmationCard({ card, onActionComplete }) {
             </div>
           </div>
           <div>
-            <div style={{ fontSize: '0.68rem', fontWeight: 700, color: '#64748b', textTransform: 'uppercase' }}>
+            <div style={{ fontSize: '0.75rem', fontWeight: 700, color: '#526077', textTransform: 'uppercase' }}>
               Total Net Payout
             </div>
             <div style={{ fontSize: '0.9rem', fontWeight: 800, color: '#15803d', marginTop: 2 }}>
@@ -948,7 +948,7 @@ function ActionConfirmationCard({ card, onActionComplete }) {
           <div style={{ fontSize: '0.88rem', fontWeight: 800, color: '#0f172a' }}>
             {card.employee_name}{' '}
             {card.department && (
-              <span style={{ fontSize: '0.76rem', fontWeight: 600, color: '#64748b' }}>
+              <span style={{ fontSize: '0.76rem', fontWeight: 600, color: '#526077' }}>
                 ({card.department})
               </span>
             )}
@@ -966,7 +966,7 @@ function ActionConfirmationCard({ card, onActionComplete }) {
 
         <span
           style={{
-            fontSize: '0.68rem',
+            fontSize: '0.75rem',
             fontWeight: 700,
             padding: '2px 8px',
             borderRadius: 999,
@@ -1446,7 +1446,7 @@ export default function AiAssistant() {
     : ['Engineering', 'Product', 'Sales', 'HR', 'Finance'];
 
   return (
-    <div style={{ maxWidth: '1240px', margin: '0 auto', height: '100%' }}>
+    <div style={{ maxWidth: 'var(--content-max)', margin: '0 auto', height: '100%' }}>
       {/* Unified Full-Height Chat Card */}
       <div
         className="glass-card"
@@ -1509,7 +1509,7 @@ export default function AiAssistant() {
                 </h1>
                 <span
                   style={{
-                    fontSize: '0.66rem',
+                    fontSize: '0.75rem',
                     fontWeight: 700,
                     padding: '2px 8px',
                     borderRadius: 999,
@@ -1526,7 +1526,7 @@ export default function AiAssistant() {
                     display: 'inline-flex',
                     alignItems: 'center',
                     gap: '5px',
-                    fontSize: '0.66rem',
+                    fontSize: '0.75rem',
                     fontWeight: 700,
                     padding: '2px 8px',
                     borderRadius: 999,
@@ -1549,7 +1549,7 @@ export default function AiAssistant() {
                   Online • Voice & Chat
                 </span>
               </div>
-              <p style={{ margin: '1px 0 0 0', fontSize: '0.72rem', color: '#64748b', fontWeight: 500, whiteSpace: 'nowrap' }}>
+              <p style={{ margin: '1px 0 0 0', fontSize: '0.72rem', color: '#526077', fontWeight: 500, whiteSpace: 'nowrap' }}>
                 {isAdminOrManager
                   ? 'Live Team Attendance & Leave Approvals'
                   : 'My Leaves, Personal Attendance & Instant Leave Apply'}
@@ -1842,7 +1842,7 @@ export default function AiAssistant() {
                     style={{
                       margin: '4px auto 0',
                       fontSize: '0.82rem',
-                      color: '#64748b',
+                      color: '#526077',
                       lineHeight: 1.4,
                     }}
                   >
@@ -1975,7 +1975,7 @@ export default function AiAssistant() {
                       {isUser && msg.viaVoice && (
                         <div
                           style={{
-                            fontSize: '0.68rem',
+                            fontSize: '0.75rem',
                             opacity: 0.85,
                             marginBottom: 4,
                             display: 'flex',
@@ -2081,7 +2081,7 @@ export default function AiAssistant() {
                           )}
                           <span
                             style={{
-                              fontSize: '0.68rem',
+                              fontSize: '0.75rem',
                               color: isUser ? 'rgba(255,255,255,0.75)' : '#94a3b8',
                             }}
                           >
@@ -2115,7 +2115,7 @@ export default function AiAssistant() {
           )}
 
           {loading && (
-            <div style={{ display: 'flex', alignItems: 'center', gap: '10px', color: '#64748b', fontSize: '0.875rem' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '10px', color: '#526077', fontSize: '0.875rem' }}>
               <BotAvatar size={36} />
               <span>
                 {isAdminOrManager

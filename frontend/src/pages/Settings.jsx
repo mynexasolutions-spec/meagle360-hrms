@@ -211,7 +211,7 @@ export default function Settings() {
   ];
 
   return (
-    <div className="animate-fade-in" style={{ maxWidth: 1200, margin: '0 auto' }}>
+    <div className="animate-fade-in" style={{ maxWidth: 'var(--content-max)', margin: '0 auto' }}>
       {/* Header */}
       <div className="page-header" style={{ marginBottom: 24 }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: 14 }}>
@@ -226,7 +226,7 @@ export default function Settings() {
           </div>
           <div style={{ minWidth: 0 }}>
             <h1 style={{ fontSize: 'clamp(1.25rem, 4.5vw, 1.75rem)', fontWeight: 800, color: '#0f172a' }}>Settings</h1>
-            <p style={{ color: '#64748b', fontSize: '0.875rem' }}>Configure company branding, policies, holiday calendars, work sites &amp; system audit logs</p>
+            <p style={{ color: '#526077', fontSize: '0.875rem' }}>Configure company branding, policies, holiday calendars, work sites &amp; system audit logs</p>
           </div>
         </div>
       </div>
@@ -290,7 +290,7 @@ export default function Settings() {
                 <h3 style={{ display: 'flex', alignItems: 'center', gap: 8, margin: '0 0 8px 0' }}>
                   <ImageIcon size={18} style={{ color: '#2563eb' }} /> Company Logo
                 </h3>
-                <p style={{ fontSize: '0.8125rem', color: '#64748b', margin: '0 0 16px 0' }}>
+                <p style={{ fontSize: '0.8125rem', color: '#526077', margin: '0 0 16px 0' }}>
                   Uploaded logo will appear on all employee payslips, offer letters, and system headers.
                 </p>
 
@@ -312,14 +312,14 @@ export default function Settings() {
                     {company?.logo_url ? (
                       <img src={company.logo_url} alt="Logo" style={{ width: '100%', height: '100%', objectFit: 'contain' }} />
                     ) : (
-                      <Building2 size={36} style={{ color: '#94a3b8' }} />
+                      <Building2 size={36} style={{ color: '#64748b' }} />
                     )}
                   </div>
                   <div>
                     <div style={{ fontSize: '0.875rem', fontWeight: 600, color: '#0f172a' }}>
                       {company?.logo_url ? 'Active Logo' : 'No Logo Uploaded'}
                     </div>
-                    <div style={{ fontSize: '0.75rem', color: '#64748b', marginTop: 2 }}>
+                    <div style={{ fontSize: '0.75rem', color: '#526077', marginTop: 2 }}>
                       PNG, JPG or SVG (Max 5MB)
                     </div>
                   </div>
@@ -364,7 +364,7 @@ export default function Settings() {
                 <h3 style={{ display: 'flex', alignItems: 'center', gap: 8, margin: '0 0 8px 0' }}>
                   <FileSignature size={18} style={{ color: '#0056d6' }} /> Authorized Signature
                 </h3>
-                <p style={{ fontSize: '0.8125rem', color: '#64748b', margin: '0 0 16px 0' }}>
+                <p style={{ fontSize: '0.8125rem', color: '#526077', margin: '0 0 16px 0' }}>
                   Official digital signature used for salary slip approval and legal letters.
                 </p>
 
@@ -386,14 +386,14 @@ export default function Settings() {
                     {company?.signature_url ? (
                       <img src={company.signature_url} alt="Signature" style={{ width: '100%', height: '100%', objectFit: 'contain', padding: 4 }} />
                     ) : (
-                      <span style={{ fontSize: '0.75rem', color: '#94a3b8', fontStyle: 'italic' }}>No Signature</span>
+                      <span style={{ fontSize: '0.75rem', color: '#64748b', fontStyle: 'italic' }}>No Signature</span>
                     )}
                   </div>
                   <div>
                     <div style={{ fontSize: '0.875rem', fontWeight: 600, color: '#0f172a' }}>
                       {company?.signature_url ? 'Active Signature' : 'No Signature Uploaded'}
                     </div>
-                    <div style={{ fontSize: '0.75rem', color: '#64748b', marginTop: 2 }}>
+                    <div style={{ fontSize: '0.75rem', color: '#526077', marginTop: 2 }}>
                       Transparent PNG recommended (Max 5MB)
                     </div>
                   </div>

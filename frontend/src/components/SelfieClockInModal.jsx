@@ -553,7 +553,7 @@ export default function SelfieClockInModal({ isOpen, onClose, onConfirm, loading
                 <div style={{ fontSize: 24, fontWeight: 800, color: '#ef4444', letterSpacing: 1 }}>
                   {formatRemainingTime(cooldownSeconds)}
                 </div>
-                <div style={{ fontSize: 11.5, color: '#94a3b8', lineHeight: 1.4 }}>
+                <div style={{ fontSize: 12, color: '#64748b', lineHeight: 1.4 }}>
                   3 failed verification attempts. Please wait for cooldown to expire before retrying.
                 </div>
               </div>
@@ -731,7 +731,7 @@ export default function SelfieClockInModal({ isOpen, onClose, onConfirm, loading
                     color: '#fff',
                     padding: '5px 14px',
                     borderRadius: 9999,
-                    fontSize: 11.5,
+                    fontSize: 12,
                     fontWeight: 600,
                     display: 'flex',
                     alignItems: 'center',
@@ -777,7 +777,7 @@ export default function SelfieClockInModal({ isOpen, onClose, onConfirm, loading
           </div>
 
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '0 4px' }}>
-            <span style={{ fontSize: 11.5, color: cooldownSeconds > 0 || step0Failed || step1Failed ? '#ef4444' : scanStatus === 'scanning' ? '#0284c7' : cameraActive ? '#16a34a' : 'var(--text-secondary)', display: 'flex', alignItems: 'center', gap: 6 }}>
+            <span style={{ fontSize: 12, color: cooldownSeconds > 0 || step0Failed || step1Failed ? '#ef4444' : scanStatus === 'scanning' ? '#0284c7' : cameraActive ? '#16a34a' : 'var(--text-secondary)', display: 'flex', alignItems: 'center', gap: 6 }}>
               <span
                 style={{
                   width: 7,
@@ -792,7 +792,7 @@ export default function SelfieClockInModal({ isOpen, onClose, onConfirm, loading
             <button
               type="button"
               className="btn btn-ghost btn-sm"
-              style={{ padding: '2px 8px', fontSize: 11.5, display: 'flex', alignItems: 'center', gap: 4, height: 26 }}
+              style={{ padding: '2px 8px', fontSize: 12, display: 'flex', alignItems: 'center', gap: 4, height: 26 }}
               onClick={() => setVoiceEnabled(!voiceEnabled)}
               title={voiceEnabled ? 'Mute voice instructions' : 'Enable voice instructions'}
             >
@@ -811,7 +811,7 @@ export default function SelfieClockInModal({ isOpen, onClose, onConfirm, loading
                 flex: 1,
                 padding: '6px 10px',
                 borderRadius: 6,
-                fontSize: 11.5,
+                fontSize: 12,
                 fontWeight: 600,
                 textAlign: 'center',
                 background: step0Failed ? '#fef2f2' : currentStep >= 0 ? '#eff6ff' : 'var(--bg-secondary)',
@@ -826,7 +826,7 @@ export default function SelfieClockInModal({ isOpen, onClose, onConfirm, loading
                 flex: 1,
                 padding: '6px 10px',
                 borderRadius: 6,
-                fontSize: 11.5,
+                fontSize: 12,
                 fontWeight: 600,
                 textAlign: 'center',
                 background: step1Failed ? '#fef2f2' : currentStep >= 1 ? '#eff6ff' : 'var(--bg-secondary)',
@@ -841,7 +841,7 @@ export default function SelfieClockInModal({ isOpen, onClose, onConfirm, loading
                 flex: 1,
                 padding: '6px 10px',
                 borderRadius: 6,
-                fontSize: 11.5,
+                fontSize: 12,
                 fontWeight: 600,
                 textAlign: 'center',
                 background: scanStatus === 'success' ? '#ecfdf5' : currentStep === 2 ? '#eff6ff' : 'var(--bg-secondary)',
@@ -1042,7 +1042,7 @@ export default function SelfieClockInModal({ isOpen, onClose, onConfirm, loading
                     <p style={{ fontSize: 12.5, color: 'var(--text-secondary)', margin: '0 0 12px', lineHeight: 1.45 }}>
                       Extracting 128-dimensional facial embedding and matching against approved profile in memory.
                     </p>
-                    <div style={{ display: 'flex', flexDirection: 'column', gap: 4, fontSize: 11.5, color: 'var(--text-secondary)' }}>
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: 4, fontSize: 12, color: 'var(--text-secondary)' }}>
                       <div style={{ display: 'flex', justifyContent: 'space-between' }}>
                         <span>MediaPipe FaceMesh</span>
                         <span style={{ color: '#16a34a', fontWeight: 600 }}>Motion Verified ✓</span>
@@ -1093,7 +1093,7 @@ export default function SelfieClockInModal({ isOpen, onClose, onConfirm, loading
           </div>
 
           {/* Privacy Security Note */}
-          <div style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 11.5, color: 'var(--text-secondary)' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 12, color: 'var(--text-secondary)' }}>
             <Shield size={14} style={{ color: '#10b981', flexShrink: 0 }} />
             <span>Zero Storage: Live selfies are processed in memory and never saved.</span>
           </div>

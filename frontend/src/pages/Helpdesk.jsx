@@ -1110,7 +1110,7 @@ export default function Helpdesk() {
                                 display: 'flex',
                                 alignItems: 'center',
                                 justifyContent: 'center',
-                                fontSize: '0.65rem',
+                                fontSize: '0.75rem',
                                 fontWeight: 700,
                               }}
                             >
@@ -1128,7 +1128,7 @@ export default function Helpdesk() {
                             {roleBadge && (
                               <span
                                 style={{
-                                  fontSize: '0.68rem',
+                                  fontSize: '0.75rem',
                                   fontWeight: 700,
                                   textTransform: 'uppercase',
                                   padding: '1px 6px',

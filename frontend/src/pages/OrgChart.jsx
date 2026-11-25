@@ -48,16 +48,16 @@ function OrgTreeNode({ node, depth = 0 }) {
         </div>
         <span
           style={{
-            fontSize: '0.625rem', fontWeight: 700, padding: '1px 7px', borderRadius: 6,
+            fontSize: '0.75rem', fontWeight: 700, padding: '1px 7px', borderRadius: 6,
             background: colorScheme.badgeBg, color: colorScheme.badgeColor, marginTop: 1,
           }}
         >
           {colorScheme.label}
         </span>
         {node.department_name && (
-          <div style={{ fontSize: '0.6875rem', color: '#64748b', marginTop: 2 }}>{node.department_name}</div>
+          <div style={{ fontSize: '0.75rem', color: '#526077', marginTop: 2 }}>{node.department_name}</div>
         )}
-        <div style={{ fontSize: '0.625rem', color: '#94a3b8', marginTop: 1 }}>{node.employee_code}</div>
+        <div style={{ fontSize: '0.75rem', color: '#64748b', marginTop: 1 }}>{node.employee_code}</div>
 
         {hasChildren && (
           <div className="org-card-toggle">
@@ -144,13 +144,13 @@ function OrgNode({ node, depth = 0 }) {
               {colorScheme.label}
             </span>
           </div>
-          <div className="org-node-info-row" style={{ fontSize: '0.8125rem', color: '#64748b', marginTop: 3, display: 'flex', gap: 16 }}>
+          <div className="org-node-info-row" style={{ fontSize: '0.8125rem', color: '#526077', marginTop: 3, display: 'flex', gap: 16 }}>
             <span>Code: <strong style={{ color: '#334155' }}>{node.employee_code}</strong></span>
             {node.department_name && (
               <span>Dept: <strong style={{ color: '#2563eb' }}>{node.department_name}</strong></span>
             )}
             {node.work_email && (
-              <span style={{ color: '#64748b' }}>{node.work_email}</span>
+              <span style={{ color: '#526077' }}>{node.work_email}</span>
             )}
           </div>
         </div>
@@ -223,7 +223,7 @@ export default function OrgChart({ embedded = false }) {
             </div>
             <div>
               <h1 style={{ fontSize: '1.5rem', fontWeight: 800, color: '#0f172a', margin: 0 }}>Organization Chart</h1>
-              <p style={{ color: '#64748b', fontSize: '0.875rem', margin: '2px 0 0 0' }}>Visual hierarchy of your organization's reporting structure</p>
+              <p style={{ color: '#526077', fontSize: '0.875rem', margin: '2px 0 0 0' }}>Visual hierarchy of your organization's reporting structure</p>
             </div>
           </div>
 

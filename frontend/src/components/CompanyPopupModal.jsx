@@ -188,7 +188,7 @@ export default function CompanyPopupModal({
               <span style={{ fontSize: '0.85rem', fontWeight: 800, color: '#0f172a', letterSpacing: '-0.01em', lineHeight: 1.1 }}>
                 HRMS Portal
               </span>
-              <span style={{ fontSize: '0.65rem', fontWeight: 700, color: '#2563eb', letterSpacing: '0.04em', textTransform: 'uppercase' }}>
+              <span style={{ fontSize: '0.75rem', fontWeight: 700, color: '#2563eb', letterSpacing: '0.04em', textTransform: 'uppercase' }}>
                 Meagle360
               </span>
             </div>
@@ -202,7 +202,7 @@ export default function CompanyPopupModal({
               width: 28,
               height: 28,
               borderRadius: '8px',
-              color: '#64748b',
+              color: '#526077',
               display: 'flex',
               alignItems: 'center',
               justifyContent: 'center',

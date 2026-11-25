@@ -756,7 +756,7 @@ export default function PerformanceManagement() {
                   position: 'absolute',
                   right: 11,
                   pointerEvents: 'none',
-                  color: '#64748b',
+                  color: '#526077',
                 }}
               />
             </div>
@@ -890,7 +890,7 @@ export default function PerformanceManagement() {
                     {stage.label}
                   </span>
                   {idx < arr.length - 1 && (
-                    <ChevronRight size={13} style={{ color: '#cbd5e1', marginLeft: 4, flexShrink: 0 }} />
+                    <ChevronRight size={13} style={{ color: '#7c8aa0', marginLeft: 4, flexShrink: 0 }} />
                   )}
                 </div>
               );
@@ -1002,7 +1002,7 @@ export default function PerformanceManagement() {
             </span>
           </div>
           <div>
-            <div style={{ fontSize: '0.8rem', color: '#64748b', fontWeight: 600 }}>
+            <div style={{ fontSize: '0.8rem', color: '#526077', fontWeight: 600 }}>
               Pending Reviews to Fill
             </div>
             <div style={{ fontSize: '1.75rem', fontWeight: 800, color: '#0f172a', lineHeight: 1.2, marginTop: 2 }}>
@@ -1010,7 +1010,7 @@ export default function PerformanceManagement() {
             </div>
           </div>
           <div>
-            <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.75rem', color: '#64748b', marginBottom: 5 }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.75rem', color: '#526077', marginBottom: 5 }}>
               <span>{submittedTasksCount} of {myTasks.length} submitted</span>
               <span style={{ fontWeight: 700 }}>{completionPercentage}%</span>
             </div>
@@ -1085,7 +1085,7 @@ export default function PerformanceManagement() {
             </span>
           </div>
           <div>
-            <div style={{ fontSize: '0.8rem', color: '#64748b', fontWeight: 600 }}>
+            <div style={{ fontSize: '0.8rem', color: '#526077', fontWeight: 600 }}>
               My Goals Weight
             </div>
             <div style={{ fontSize: '1.75rem', fontWeight: 800, color: '#0f172a', lineHeight: 1.2, marginTop: 2 }}>
@@ -1093,7 +1093,7 @@ export default function PerformanceManagement() {
             </div>
           </div>
           <div>
-            <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.75rem', color: '#64748b', marginBottom: 5 }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.75rem', color: '#526077', marginBottom: 5 }}>
               <span>{myGoals.length} goal(s) enrolled</span>
               <span style={{ fontWeight: 700 }}>Target: 100%</span>
             </div>
@@ -1170,14 +1170,14 @@ export default function PerformanceManagement() {
             )}
           </div>
           <div>
-            <div style={{ fontSize: '0.8rem', color: '#64748b', fontWeight: 600 }}>
+            <div style={{ fontSize: '0.8rem', color: '#526077', fontWeight: 600 }}>
               My Latest Score
             </div>
             <div style={{ fontSize: '1.75rem', fontWeight: 800, color: '#0f172a', lineHeight: 1.2, marginTop: 2 }}>
               {myResult?.effective_score ? `${myResult.effective_score} / 5` : '—'}
             </div>
           </div>
-          <div style={{ fontSize: '0.76rem', color: '#64748b', display: 'flex', alignItems: 'center', gap: 5 }}>
+          <div style={{ fontSize: '0.76rem', color: '#526077', display: 'flex', alignItems: 'center', gap: 5 }}>
             <Sparkles size={13} style={{ color: '#f59e0b' }} />
             <span>{myResult?.effective_score ? 'Final aggregated 360° score' : 'Visible once cycle is released'}</span>
           </div>
@@ -1240,14 +1240,14 @@ export default function PerformanceManagement() {
             </span>
           </div>
           <div>
-            <div style={{ fontSize: '0.8rem', color: '#64748b', fontWeight: 600 }}>
+            <div style={{ fontSize: '0.8rem', color: '#526077', fontWeight: 600 }}>
               Past Cycles Completed
             </div>
             <div style={{ fontSize: '1.75rem', fontWeight: 800, color: '#0f172a', lineHeight: 1.2, marginTop: 2 }}>
               {myHistory.length}
             </div>
           </div>
-          <div style={{ fontSize: '0.76rem', color: '#64748b' }}>
+          <div style={{ fontSize: '0.76rem', color: '#526077' }}>
             Historical appraisal records saved
           </div>
         </div>
@@ -1395,7 +1395,7 @@ export default function PerformanceManagement() {
                   {myTasks.length} Assigned
                 </span>
               </div>
-              <p style={{ margin: '5px 0 0 0', fontSize: '0.84rem', color: '#64748b', lineHeight: 1.5 }}>
+              <p style={{ margin: '5px 0 0 0', fontSize: '0.84rem', color: '#526077', lineHeight: 1.5 }}>
                 Peer ratings are strictly <strong>100% anonymous</strong> — individual ratings are never disclosed to the employee or manager.
               </p>
             </div>
@@ -1412,7 +1412,7 @@ export default function PerformanceManagement() {
                 borderRadius: 10,
               }}
             >
-              <div style={{ fontSize: '0.8rem', color: '#64748b' }}>
+              <div style={{ fontSize: '0.8rem', color: '#526077' }}>
                 Completed: <strong style={{ color: '#0f172a' }}>{submittedTasksCount} / {myTasks.length}</strong>
               </div>
               <div style={{ width: 80, height: 6, background: '#e2e8f0', borderRadius: 999, overflow: 'hidden' }}>
@@ -1482,7 +1482,7 @@ export default function PerformanceManagement() {
                   left: 10,
                   top: '50%',
                   transform: 'translateY(-50%)',
-                  color: '#94a3b8',
+                  color: '#64748b',
                 }}
               />
               <input
@@ -1508,13 +1508,13 @@ export default function PerformanceManagement() {
               style={{
                 padding: '40px 20px',
                 textAlign: 'center',
-                color: '#64748b',
+                color: '#526077',
                 background: '#f8fafc',
                 borderRadius: 12,
                 border: '1px dashed #cbd5e1',
               }}
             >
-              <Info size={32} style={{ color: '#94a3b8', marginBottom: 8 }} />
+              <Info size={32} style={{ color: '#64748b', marginBottom: 8 }} />
               <div style={{ fontWeight: 600, color: '#0f172a' }}>No Open Rating Tasks Right Now</div>
               <p style={{ margin: '4px 0 0 0', fontSize: '0.85rem' }}>
                 Tasks appear automatically when a cycle enters the Rating stage.
@@ -1525,7 +1525,7 @@ export default function PerformanceManagement() {
               style={{
                 padding: '30px 20px',
                 textAlign: 'center',
-                color: '#64748b',
+                color: '#526077',
                 background: '#f8fafc',
                 borderRadius: 12,
                 border: '1px dashed #cbd5e1',
@@ -1606,7 +1606,7 @@ export default function PerformanceManagement() {
                               <div style={{ fontWeight: 700, fontSize: '0.88rem', color: '#0f172a' }}>
                                 {t.ratee_name}
                               </div>
-                              <div style={{ fontSize: '0.74rem', color: '#64748b' }}>
+                              <div style={{ fontSize: '0.74rem', color: '#526077' }}>
                                 {isSelf ? 'Yourself' : isManagerType ? 'Direct Report' : 'Department Peer'}
                               </div>
                             </div>
@@ -1674,7 +1674,7 @@ export default function PerformanceManagement() {
                         {/* Col 3: Cycle */}
                         <td style={{ padding: '12px 14px', fontSize: '0.82rem', color: '#475569' }}>
                           <span style={{ display: 'inline-flex', alignItems: 'center', gap: 6 }}>
-                            <Calendar size={13} style={{ color: '#94a3b8' }} />
+                            <Calendar size={13} style={{ color: '#64748b' }} />
                             {t.cycle_name}
                           </span>
                         </td>
@@ -1743,7 +1743,7 @@ export default function PerformanceManagement() {
                                 display: 'inline-flex',
                                 alignItems: 'center',
                                 gap: 4,
-                                color: '#64748b',
+                                color: '#526077',
                                 fontSize: '0.8rem',
                                 fontWeight: 600,
                                 padding: '4px 10px',
@@ -1801,7 +1801,7 @@ export default function PerformanceManagement() {
                     {totalGoalWeight === 100 ? '✓ 100% Balanced' : `Total Weight: ${totalGoalWeight}% / 100%`}
                   </span>
                 </div>
-                <p style={{ margin: '5px 0 0 0', fontSize: '0.84rem', color: '#64748b' }}>
+                <p style={{ margin: '5px 0 0 0', fontSize: '0.84rem', color: '#526077' }}>
                   Cycle: <strong>{selectedCycle?.name || 'No Cycle Selected'}</strong>. Weights must sum to 100% before submitting for manager approval.
                 </p>
               </div>
@@ -1845,13 +1845,13 @@ export default function PerformanceManagement() {
                 style={{
                   padding: '36px 20px',
                   textAlign: 'center',
-                  color: '#64748b',
+                  color: '#526077',
                   background: '#f8fafc',
                   borderRadius: 12,
                   border: '1px dashed #cbd5e1',
                 }}
               >
-                <Target size={32} style={{ color: '#94a3b8', marginBottom: 8 }} />
+                <Target size={32} style={{ color: '#64748b', marginBottom: 8 }} />
                 <div style={{ fontWeight: 600, color: '#0f172a' }}>No Goals Added for this Cycle</div>
                 <p style={{ margin: '4px 0 0 0', fontSize: '0.85rem' }}>
                   Define your key deliverables and targets to establish performance expectations.
@@ -1914,7 +1914,7 @@ export default function PerformanceManagement() {
                               {g.title}
                             </div>
                             {g.description && (
-                              <div style={{ fontSize: '0.78rem', color: '#64748b', marginTop: 3 }}>
+                              <div style={{ fontSize: '0.78rem', color: '#526077', marginTop: 3 }}>
                                 {g.description}
                               </div>
                             )}
@@ -2040,7 +2040,7 @@ export default function PerformanceManagement() {
               <h3 style={{ margin: 0, fontSize: '1.1rem', fontWeight: 800, color: '#0f172a' }}>
                 Cycle Result & Competency Breakdown
               </h3>
-              <p style={{ margin: '4px 0 0 0', fontSize: '0.84rem', color: '#64748b' }}>
+              <p style={{ margin: '4px 0 0 0', fontSize: '0.84rem', color: '#526077' }}>
                 Comprehensive performance breakdown combining Goals, Self rating, Manager review, and Anonymous Peer feedback.
               </p>
             </div>
@@ -2050,13 +2050,13 @@ export default function PerformanceManagement() {
                 style={{
                   padding: '30px 20px',
                   textAlign: 'center',
-                  color: '#64748b',
+                  color: '#526077',
                   background: '#f8fafc',
                   borderRadius: 12,
                   border: '1px dashed #cbd5e1',
                 }}
               >
-                <Info size={28} style={{ color: '#94a3b8', marginBottom: 8 }} />
+                <Info size={28} style={{ color: '#64748b', marginBottom: 8 }} />
                 <div style={{ fontWeight: 600, color: '#0f172a' }}>Appraisal Results Pending Release</div>
                 <p style={{ margin: '4px 0 0 0', fontSize: '0.85rem' }}>
                   Results for this cycle will become available once HR / Admin finalizes and releases ratings.
@@ -2089,7 +2089,7 @@ export default function PerformanceManagement() {
                       Overall 360° Score
                     </div>
                     <div style={{ fontSize: '2rem', fontWeight: 900, color: '#0f172a', lineHeight: 1.1 }}>
-                      {myResult.effective_score ?? '—'} <span style={{ fontSize: '1rem', color: '#64748b' }}>/ 5.0</span>
+                      {myResult.effective_score ?? '—'} <span style={{ fontSize: '1rem', color: '#526077' }}>/ 5.0</span>
                     </div>
                     {myResult.final_rating_label && (
                       <span
@@ -2121,13 +2121,13 @@ export default function PerformanceManagement() {
                       border: '1px solid #e2e8f0',
                     }}
                   >
-                    <div style={{ fontSize: '0.78rem', color: '#64748b', fontWeight: 600 }}>
+                    <div style={{ fontSize: '0.78rem', color: '#526077', fontWeight: 600 }}>
                       Goals Achievement Score
                     </div>
                     <div style={{ fontSize: '1.6rem', fontWeight: 800, color: '#0f172a', margin: '4px 0' }}>
-                      {myResult.goals_score ?? '—'} <span style={{ fontSize: '0.9rem', color: '#64748b' }}>/ 5</span>
+                      {myResult.goals_score ?? '—'} <span style={{ fontSize: '0.9rem', color: '#526077' }}>/ 5</span>
                     </div>
-                    <div style={{ fontSize: '0.75rem', color: '#64748b' }}>
+                    <div style={{ fontSize: '0.75rem', color: '#526077' }}>
                       Calculated from enrolled goals & progress
                     </div>
                   </div>
@@ -2141,13 +2141,13 @@ export default function PerformanceManagement() {
                       border: '1px solid #e2e8f0',
                     }}
                   >
-                    <div style={{ fontSize: '0.78rem', color: '#64748b', fontWeight: 600 }}>
+                    <div style={{ fontSize: '0.78rem', color: '#526077', fontWeight: 600 }}>
                       Blended Competency Score
                     </div>
                     <div style={{ fontSize: '1.6rem', fontWeight: 800, color: '#0f172a', margin: '4px 0' }}>
-                      {myResult.competency_score ?? '—'} <span style={{ fontSize: '0.9rem', color: '#64748b' }}>/ 5</span>
+                      {myResult.competency_score ?? '—'} <span style={{ fontSize: '0.9rem', color: '#526077' }}>/ 5</span>
                     </div>
-                    <div style={{ fontSize: '0.75rem', color: '#64748b' }}>
+                    <div style={{ fontSize: '0.75rem', color: '#526077' }}>
                       Weighted Self + Manager + Peer ratings
                     </div>
                   </div>
@@ -2164,7 +2164,7 @@ export default function PerformanceManagement() {
                       justifyContent: 'space-between',
                     }}
                   >
-                    <div style={{ fontSize: '0.78rem', color: '#64748b', fontWeight: 600 }}>
+                    <div style={{ fontSize: '0.78rem', color: '#526077', fontWeight: 600 }}>
                       Self / Manager / Peer Averages
                     </div>
                     <div style={{ fontSize: '1.15rem', fontWeight: 800, color: '#0f172a' }}>
@@ -2172,7 +2172,7 @@ export default function PerformanceManagement() {
                       <span style={{ color: '#047857' }}>{myResult.manager_avg ?? '—'}</span> (Mgr) /{' '}
                       <span style={{ color: '#0369a1' }}>{myResult.peer_avg ?? '—'}</span> (Peers)
                     </div>
-                    <div style={{ fontSize: '0.74rem', color: '#64748b', display: 'flex', alignItems: 'center', gap: 4 }}>
+                    <div style={{ fontSize: '0.74rem', color: '#526077', display: 'flex', alignItems: 'center', gap: 4 }}>
                       <Shield size={12} style={{ color: '#0284c7' }} />
                       <span>{myResult.peer_response_count} anonymous peer response(s)</span>
                     </div>
@@ -2293,7 +2293,7 @@ export default function PerformanceManagement() {
               Historical Performance Across Cycles
             </h3>
             {myHistory.length === 0 ? (
-              <p style={{ color: '#64748b', fontSize: '0.88rem', margin: 0 }}>
+              <p style={{ color: '#526077', fontSize: '0.88rem', margin: 0 }}>
                 No past finalized cycles recorded yet.
               </p>
             ) : (
@@ -2313,7 +2313,7 @@ export default function PerformanceManagement() {
                     {myHistory.map((h) => (
                       <tr key={h.cycle_id} style={{ borderBottom: '1px solid #f1f5f9' }}>
                         <td style={{ padding: '12px 16px', fontWeight: 700, color: '#0f172a' }}>{h.cycle_name}</td>
-                        <td style={{ padding: '12px 14px', fontSize: '0.82rem', color: '#64748b' }}>
+                        <td style={{ padding: '12px 14px', fontSize: '0.82rem', color: '#526077' }}>
                           {h.start_date} → {h.end_date}
                         </td>
                         <td style={{ padding: '12px 14px', fontWeight: 600 }}>{h.goals_score ?? '—'}</td>
@@ -2366,7 +2366,7 @@ export default function PerformanceManagement() {
                   {teamParticipants.length} Direct Reports
                 </span>
               </div>
-              <p style={{ margin: '4px 0 0 0', fontSize: '0.84rem', color: '#64748b' }}>
+              <p style={{ margin: '4px 0 0 0', fontSize: '0.84rem', color: '#526077' }}>
                 Select a team member to review and approve their performance goals for this cycle.
               </p>
             </div>
@@ -2376,13 +2376,13 @@ export default function PerformanceManagement() {
                 style={{
                   padding: '30px 20px',
                   textAlign: 'center',
-                  color: '#64748b',
+                  color: '#526077',
                   background: '#f8fafc',
                   borderRadius: 12,
                   border: '1px dashed #cbd5e1',
                 }}
               >
-                <Users size={28} style={{ color: '#94a3b8', marginBottom: 6 }} />
+                <Users size={28} style={{ color: '#64748b', marginBottom: 6 }} />
                 <div style={{ fontWeight: 600 }}>No Team Members Enrolled in this Cycle</div>
               </div>
             ) : (
@@ -2439,7 +2439,7 @@ export default function PerformanceManagement() {
                         >
                           {p.employee_name || 'Employee'}
                         </div>
-                        <div style={{ fontSize: '0.72rem', color: '#64748b' }}>
+                        <div style={{ fontSize: '0.72rem', color: '#526077' }}>
                           {p.status || 'Enrolled'}
                         </div>
                       </div>
@@ -2474,7 +2474,7 @@ export default function PerformanceManagement() {
                     <h4 style={{ margin: 0, fontSize: '0.98rem', fontWeight: 800, color: '#0f172a' }}>
                       Objectives for {selectedTeamMember.employee_name}
                     </h4>
-                    <span style={{ fontSize: '0.78rem', color: '#64748b' }}>
+                    <span style={{ fontSize: '0.78rem', color: '#526077' }}>
                       {teamMemberGoals.length} objective(s) submitted
                     </span>
                   </div>
@@ -2502,7 +2502,7 @@ export default function PerformanceManagement() {
                 </div>
 
                 {teamMemberGoals.length === 0 ? (
-                  <p style={{ margin: 0, fontSize: '0.85rem', color: '#64748b' }}>
+                  <p style={{ margin: 0, fontSize: '0.85rem', color: '#526077' }}>
                     No goals created for this employee in this cycle yet.
                   </p>
                 ) : (
@@ -2559,7 +2559,7 @@ export default function PerformanceManagement() {
                 <h3 style={{ margin: 0, fontSize: '1.1rem', fontWeight: 800, color: '#0f172a' }}>
                   Team Results (Review Window & Score Calibration)
                 </h3>
-                <p style={{ margin: '4px 0 0 0', fontSize: '0.84rem', color: '#64748b' }}>
+                <p style={{ margin: '4px 0 0 0', fontSize: '0.84rem', color: '#526077' }}>
                   Inspect aggregated scores for your direct reports. During the Review stage, managers can adjust ratings with a mandatory audit reason.
                 </p>
               </div>
@@ -2700,7 +2700,7 @@ export default function PerformanceManagement() {
                     </span>
                   )}
                 </div>
-                <p style={{ margin: '5px 0 0 0', fontSize: '0.84rem', color: '#64748b' }}>
+                <p style={{ margin: '5px 0 0 0', fontSize: '0.84rem', color: '#526077' }}>
                   State flow: Draft ➔ Goal Setting ➔ 360° Rating ➔ Review ➔ Finalized ➔ Released ➔ Payroll Linkage.
                 </p>
               </div>
@@ -2780,7 +2780,7 @@ export default function PerformanceManagement() {
                   <h3 style={{ margin: 0, fontSize: '1.1rem', fontWeight: 800, color: '#0f172a' }}>
                     Company Rating Distribution & Bell Curve
                   </h3>
-                  <p style={{ margin: '3px 0 0 0', fontSize: '0.84rem', color: '#64748b' }}>
+                  <p style={{ margin: '3px 0 0 0', fontSize: '0.84rem', color: '#526077' }}>
                     Frequency distribution of final employee ratings across the organization.
                   </p>
                 </div>
@@ -2797,7 +2797,7 @@ export default function PerformanceManagement() {
                     Company Average Score
                   </div>
                   <div style={{ fontSize: '1.4rem', fontWeight: 900, color: '#1d4ed8', lineHeight: 1.1 }}>
-                    {companyResults.average_score ?? '—'} <span style={{ fontSize: '0.8rem', color: '#64748b' }}>/ 5.0</span>
+                    {companyResults.average_score ?? '—'} <span style={{ fontSize: '0.8rem', color: '#526077' }}>/ 5.0</span>
                   </div>
                 </div>
               </div>
@@ -2870,13 +2870,13 @@ export default function PerformanceManagement() {
               <h3 style={{ margin: 0, fontSize: '1.1rem', fontWeight: 800, color: '#0f172a' }}>
                 Review Completion Progress
               </h3>
-              <p style={{ margin: '4px 0 0 0', fontSize: '0.84rem', color: '#64748b' }}>
+              <p style={{ margin: '4px 0 0 0', fontSize: '0.84rem', color: '#526077' }}>
                 Monitors evaluation submission across Self, Manager, and Anonymous Department Peers (individual peer identities remain concealed).
               </p>
             </div>
 
             {completionList.length === 0 ? (
-              <p style={{ color: '#64748b', fontSize: '0.88rem' }}>
+              <p style={{ color: '#526077', fontSize: '0.88rem' }}>
                 Launch the cycle to view participant completion tracking.
               </p>
             ) : (
@@ -3017,7 +3017,7 @@ export default function PerformanceManagement() {
                     boxShadow: '0 1px 3px rgba(0,0,0,0.04)',
                   }}
                 >
-                  <div style={{ fontSize: '0.78rem', color: '#64748b', fontWeight: 600 }}>
+                  <div style={{ fontSize: '0.78rem', color: '#526077', fontWeight: 600 }}>
                     Total Annual CTC Impact
                   </div>
                   <div style={{ fontSize: '1.6rem', fontWeight: 800, color: '#0f172a', margin: '4px 0' }}>
@@ -3037,13 +3037,13 @@ export default function PerformanceManagement() {
                     boxShadow: '0 1px 3px rgba(0,0,0,0.04)',
                   }}
                 >
-                  <div style={{ fontSize: '0.78rem', color: '#64748b', fontWeight: 600 }}>
+                  <div style={{ fontSize: '0.78rem', color: '#526077', fontWeight: 600 }}>
                     Eligible Employees
                   </div>
                   <div style={{ fontSize: '1.6rem', fontWeight: 800, color: '#0f172a', margin: '4px 0' }}>
-                    {eligibleCount} <span style={{ fontSize: '0.95rem', color: '#64748b' }}>/ {revisions.length}</span>
+                    {eligibleCount} <span style={{ fontSize: '0.95rem', color: '#526077' }}>/ {revisions.length}</span>
                   </div>
-                  <div style={{ fontSize: '0.74rem', color: '#64748b' }}>
+                  <div style={{ fontSize: '0.74rem', color: '#526077' }}>
                     Satisfies tenure & eligibility rules
                   </div>
                 </div>
@@ -3057,13 +3057,13 @@ export default function PerformanceManagement() {
                     boxShadow: '0 1px 3px rgba(0,0,0,0.04)',
                   }}
                 >
-                  <div style={{ fontSize: '0.78rem', color: '#64748b', fontWeight: 600 }}>
+                  <div style={{ fontSize: '0.78rem', color: '#526077', fontWeight: 600 }}>
                     Average Approved Hike
                   </div>
                   <div style={{ fontSize: '1.6rem', fontWeight: 800, color: '#2563eb', margin: '4px 0' }}>
                     {avgHike}%
                   </div>
-                  <div style={{ fontSize: '0.74rem', color: '#64748b' }}>
+                  <div style={{ fontSize: '0.74rem', color: '#526077' }}>
                     Based on finalized score slabs
                   </div>
                 </div>
@@ -3077,7 +3077,7 @@ export default function PerformanceManagement() {
               <h3 style={{ margin: 0, fontSize: '1.1rem', fontWeight: 800, color: '#0f172a' }}>
                 Payroll Hike Suggestions & Salary Adjustments
               </h3>
-              <p style={{ margin: '4px 0 0 0', fontSize: '0.84rem', color: '#64748b' }}>
+              <p style={{ margin: '4px 0 0 0', fontSize: '0.84rem', color: '#526077' }}>
                 Revisions are never auto-applied. Admins can override hike percentages with a mandatory justification, then explicitly click <strong>Apply to Payroll</strong> to update employee compensation.
               </p>
             </div>
@@ -3087,13 +3087,13 @@ export default function PerformanceManagement() {
                 style={{
                   padding: '30px 20px',
                   textAlign: 'center',
-                  color: '#64748b',
+                  color: '#526077',
                   background: '#f8fafc',
                   borderRadius: 12,
                   border: '1px dashed #cbd5e1',
                 }}
               >
-                <DollarSign size={28} style={{ color: '#94a3b8', marginBottom: 6 }} />
+                <DollarSign size={28} style={{ color: '#64748b', marginBottom: 6 }} />
                 <div style={{ fontWeight: 600 }}>No Payroll Revisions Generated Yet</div>
                 <p style={{ margin: '4px 0 0 0', fontSize: '0.85rem' }}>
                   Finalize the cycle in the Lifecycle Console to compute slab-based salary hike suggestions.
@@ -3148,7 +3148,7 @@ export default function PerformanceManagement() {
                           </td>
                           <td style={{ padding: '12px 12px' }}>
                             <div style={{ fontWeight: 800, color: '#0f172a' }}>
-                              {rev.final_score ?? '—'} <span style={{ fontSize: '0.75rem', color: '#64748b' }}>/ 5</span>
+                              {rev.final_score ?? '—'} <span style={{ fontSize: '0.75rem', color: '#526077' }}>/ 5</span>
                             </div>
                             <span style={{ fontSize: '0.72rem', color: '#6d28d9', fontWeight: 600 }}>
                               {rev.final_rating_label || '—'}
@@ -3189,7 +3189,7 @@ export default function PerformanceManagement() {
                           </td>
                           <td style={{ padding: '12px 12px' }}>
                             <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-                              <span style={{ color: '#64748b', fontSize: '0.8rem' }}>
+                              <span style={{ color: '#526077', fontSize: '0.8rem' }}>
                                 {rev.suggested_hike_percent}%
                               </span>
                               <ArrowUpRight size={13} style={{ color: '#10b981' }} />
@@ -3201,7 +3201,7 @@ export default function PerformanceManagement() {
                           <td style={{ padding: '12px 12px', fontWeight: 800, color: '#0f172a' }}>
                             {formatCurrency(rev.new_basic_pay)}
                           </td>
-                          <td style={{ padding: '12px 12px', fontSize: '0.82rem', color: '#64748b' }}>
+                          <td style={{ padding: '12px 12px', fontSize: '0.82rem', color: '#526077' }}>
                             {rev.effective_date || '—'}
                           </td>
                           <td style={{ padding: '12px 12px' }}>
@@ -3307,7 +3307,7 @@ export default function PerformanceManagement() {
                       <h3 style={{ margin: 0, fontSize: '1.18rem', fontWeight: 800, color: '#0f172a' }}>
                         Org Weights & 360° Evaluation Rules
                       </h3>
-                      <p style={{ margin: '4px 0 0 0', fontSize: '0.84rem', color: '#64748b' }}>
+                      <p style={{ margin: '4px 0 0 0', fontSize: '0.84rem', color: '#526077' }}>
                         Configure the relative balance of appraisal pillars, 360° feedback distribution, and promotion guardrails.
                       </p>
                     </div>
@@ -3347,7 +3347,7 @@ export default function PerformanceManagement() {
                             Appraisal Component Weights (Must Total 100%)
                           </h4>
                         </div>
-                        <p style={{ margin: '4px 0 0 0', fontSize: '0.8rem', color: '#64748b' }}>
+                        <p style={{ margin: '4px 0 0 0', fontSize: '0.8rem', color: '#526077' }}>
                           Defines how the employee's blended score is composed across business and individual outputs.
                         </p>
                       </div>
@@ -3426,7 +3426,7 @@ export default function PerformanceManagement() {
                               <span style={{ width: 8, height: 8, borderRadius: '50%', background: item.color }} />
                               <strong style={{ fontSize: '0.85rem', color: '#0f172a' }}>{item.label}</strong>
                             </div>
-                            <span style={{ fontSize: '0.74rem', color: '#64748b' }}>{item.desc}</span>
+                            <span style={{ fontSize: '0.74rem', color: '#526077' }}>{item.desc}</span>
                           </div>
 
                           <div style={{ position: 'relative', display: 'flex', alignItems: 'center' }}>
@@ -3448,7 +3448,7 @@ export default function PerformanceManagement() {
                                 boxSizing: 'border-box',
                               }}
                             />
-                            <span style={{ position: 'absolute', right: 10, fontSize: '0.82rem', fontWeight: 700, color: '#64748b', pointerEvents: 'none' }}>
+                            <span style={{ position: 'absolute', right: 10, fontSize: '0.82rem', fontWeight: 700, color: '#526077', pointerEvents: 'none' }}>
                               %
                             </span>
                           </div>
@@ -3476,7 +3476,7 @@ export default function PerformanceManagement() {
                             Rater Weightage Split (Must Total 100%)
                           </h4>
                         </div>
-                        <p style={{ margin: '4px 0 0 0', fontSize: '0.8rem', color: '#64748b' }}>
+                        <p style={{ margin: '4px 0 0 0', fontSize: '0.8rem', color: '#526077' }}>
                           Determines the voice given to direct managers vs anonymous peers vs self reflection.
                         </p>
                       </div>
@@ -3544,7 +3544,7 @@ export default function PerformanceManagement() {
                               <span style={{ width: 8, height: 8, borderRadius: '50%', background: item.color }} />
                               <strong style={{ fontSize: '0.85rem', color: '#0f172a' }}>{item.label}</strong>
                             </div>
-                            <span style={{ fontSize: '0.74rem', color: '#64748b' }}>{item.desc}</span>
+                            <span style={{ fontSize: '0.74rem', color: '#526077' }}>{item.desc}</span>
                           </div>
 
                           <div style={{ position: 'relative', display: 'flex', alignItems: 'center' }}>
@@ -3566,7 +3566,7 @@ export default function PerformanceManagement() {
                                 boxSizing: 'border-box',
                               }}
                             />
-                            <span style={{ position: 'absolute', right: 10, fontSize: '0.82rem', fontWeight: 700, color: '#64748b', pointerEvents: 'none' }}>
+                            <span style={{ position: 'absolute', right: 10, fontSize: '0.82rem', fontWeight: 700, color: '#526077', pointerEvents: 'none' }}>
                               %
                             </span>
                           </div>
@@ -3593,7 +3593,7 @@ export default function PerformanceManagement() {
                           Governance, Thresholds & Hike Eligibility
                         </h4>
                       </div>
-                      <p style={{ margin: '4px 0 0 0', fontSize: '0.8rem', color: '#64748b' }}>
+                      <p style={{ margin: '4px 0 0 0', fontSize: '0.8rem', color: '#526077' }}>
                         Safety caps to prevent outlier bias and regulate employee salary appraisal criteria.
                       </p>
                     </div>
@@ -3643,7 +3643,7 @@ export default function PerformanceManagement() {
                             <strong style={{ display: 'block', fontSize: '0.85rem', color: '#0f172a', marginBottom: 2 }}>
                               {item.label}
                             </strong>
-                            <span style={{ fontSize: '0.74rem', color: '#64748b' }}>{item.desc}</span>
+                            <span style={{ fontSize: '0.74rem', color: '#526077' }}>{item.desc}</span>
                           </div>
 
                           <div style={{ position: 'relative', display: 'flex', alignItems: 'center' }}>
@@ -3665,7 +3665,7 @@ export default function PerformanceManagement() {
                                 boxSizing: 'border-box',
                               }}
                             />
-                            <span style={{ position: 'absolute', right: 10, fontSize: '0.78rem', fontWeight: 700, color: '#64748b', pointerEvents: 'none' }}>
+                            <span style={{ position: 'absolute', right: 10, fontSize: '0.78rem', fontWeight: 700, color: '#526077', pointerEvents: 'none' }}>
                               {item.suffix}
                             </span>
                           </div>
@@ -3711,7 +3711,7 @@ export default function PerformanceManagement() {
                 <h3 style={{ margin: 0, fontSize: '1.1rem', fontWeight: 800, color: '#0f172a' }}>
                   Competency Parameters (1–5 Rating Scale)
                 </h3>
-                <p style={{ margin: '4px 0 0 0', fontSize: '0.84rem', color: '#64748b' }}>
+                <p style={{ margin: '4px 0 0 0', fontSize: '0.84rem', color: '#526077' }}>
                   Parameters evaluated during 360° reviews. Click any parameter card to toggle between Active and Inactive.
                 </p>
               </div>
@@ -3736,7 +3736,7 @@ export default function PerformanceManagement() {
                     fontSize: '0.75rem',
                     fontWeight: 700,
                     background: '#f1f5f9',
-                    color: '#64748b',
+                    color: '#526077',
                   }}
                 >
                   {parameters.length} Total
@@ -3893,7 +3893,7 @@ export default function PerformanceManagement() {
               <h3 style={{ margin: 0, fontSize: '1.1rem', fontWeight: 800, color: '#0f172a' }}>
                 Performance Rating Slabs & Suggested Hikes
               </h3>
-              <p style={{ margin: '4px 0 0 0', fontSize: '0.84rem', color: '#64748b' }}>
+              <p style={{ margin: '4px 0 0 0', fontSize: '0.84rem', color: '#526077' }}>
                 Maps final 360° blended scores (1.0–5.0) to default salary hike recommendations.
               </p>
             </div>
@@ -3990,7 +3990,7 @@ export default function PerformanceManagement() {
                     boxSizing: 'border-box',
                   }}
                 />
-                <span style={{ position: 'absolute', right: 8, fontSize: '0.8rem', color: '#64748b', fontWeight: 700, pointerEvents: 'none' }}>
+                <span style={{ position: 'absolute', right: 8, fontSize: '0.8rem', color: '#526077', fontWeight: 700, pointerEvents: 'none' }}>
                   %
                 </span>
               </div>
@@ -4156,7 +4156,7 @@ export default function PerformanceManagement() {
                       : 'Self Evaluation'}
                   </span>
                 </div>
-                <div style={{ fontSize: '0.78rem', color: '#64748b', marginTop: 2 }}>
+                <div style={{ fontSize: '0.78rem', color: '#526077', marginTop: 2 }}>
                   Cycle: {activeTask.cycle_name}
                 </div>
               </div>
@@ -4225,7 +4225,7 @@ export default function PerformanceManagement() {
                     </div>
 
                     {p.description && (
-                      <p style={{ margin: '0 0 10px 0', fontSize: '0.78rem', color: '#64748b' }}>
+                      <p style={{ margin: '0 0 10px 0', fontSize: '0.78rem', color: '#526077' }}>
                         {p.description}
                       </p>
                     )}
@@ -4268,7 +4268,7 @@ export default function PerformanceManagement() {
                             }}
                           >
                             <span style={{ fontSize: '0.92rem' }}>{num} ★</span>
-                            <span style={{ fontSize: '0.66rem', opacity: 0.85, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', maxWidth: '100%' }}>
+                            <span style={{ fontSize: '0.75rem', opacity: 0.85, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', maxWidth: '100%' }}>
                               {SCORE_LABELS[num].label.split(' ')[0]}
                             </span>
                           </button>
@@ -4277,7 +4277,7 @@ export default function PerformanceManagement() {
                     </div>
 
                     {/* Score helper description */}
-                    <div style={{ fontSize: '0.74rem', color: '#64748b', marginTop: 8, fontStyle: 'italic' }}>
+                    <div style={{ fontSize: '0.74rem', color: '#526077', marginTop: 8, fontStyle: 'italic' }}>
                       {scoreInfo.desc}
                     </div>
 
@@ -4443,7 +4443,7 @@ export default function PerformanceManagement() {
                 </div>
 
                 {progressGoal.description && (
-                  <p style={{ margin: '6px 0 0 0', fontSize: '0.8rem', color: '#64748b', lineHeight: 1.45 }}>
+                  <p style={{ margin: '6px 0 0 0', fontSize: '0.8rem', color: '#526077', lineHeight: 1.45 }}>
                     {progressGoal.description}
                   </p>
                 )}
@@ -4451,7 +4451,7 @@ export default function PerformanceManagement() {
                 {/* Target & Current Visual Progress */}
                 <div style={{ marginTop: 12, paddingTop: 12, borderTop: '1px solid #e2e8f0' }}>
                   <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', fontSize: '0.8rem', marginBottom: 6 }}>
-                    <span style={{ color: '#64748b' }}>
+                    <span style={{ color: '#526077' }}>
                       Target: <strong style={{ color: '#0f172a' }}>{progressGoal.target_value} {progressGoal.unit || ''}</strong>
                     </span>
                     {pct != null ? (
@@ -4468,7 +4468,7 @@ export default function PerformanceManagement() {
                         {pct}% Achieved
                       </span>
                     ) : (
-                      <span style={{ color: '#94a3b8', fontSize: '0.76rem' }}>Enter progress below</span>
+                      <span style={{ color: '#64748b', fontSize: '0.76rem' }}>Enter progress below</span>
                     )}
                   </div>
 
@@ -4528,7 +4528,7 @@ export default function PerformanceManagement() {
                         right: 10,
                         fontSize: '0.8rem',
                         fontWeight: 700,
-                        color: '#64748b',
+                        color: '#526077',
                         background: '#f1f5f9',
                         padding: '4px 8px',
                         borderRadius: 6,
@@ -4543,7 +4543,7 @@ export default function PerformanceManagement() {
                 {/* Quick Selection Shortcuts */}
                 {(progressGoal.unit === '%' || targetVal === 100) && (
                   <div style={{ display: 'flex', gap: 6, marginTop: 8, alignItems: 'center', flexWrap: 'wrap' }}>
-                    <span style={{ fontSize: '0.74rem', color: '#64748b', fontWeight: 600 }}>Quick Fill:</span>
+                    <span style={{ fontSize: '0.74rem', color: '#526077', fontWeight: 600 }}>Quick Fill:</span>
                     {[25, 50, 75, 100].map((quick) => (
                       <button
                         key={quick}
@@ -4578,7 +4578,7 @@ export default function PerformanceManagement() {
                     marginBottom: 6,
                   }}
                 >
-                  Progress Notes / Deliverables <span style={{ fontSize: '0.75rem', fontWeight: 500, color: '#64748b' }}>(Optional)</span>
+                  Progress Notes / Deliverables <span style={{ fontSize: '0.75rem', fontWeight: 500, color: '#526077' }}>(Optional)</span>
                 </label>
                 <textarea
                   rows={3}

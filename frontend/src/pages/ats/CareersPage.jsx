@@ -784,7 +784,7 @@ export default function CareersPage() {
                     PDF only (Max 2MB)
                   </p>
                   {resumeFile && (
-                    <div style={{ marginTop: 8, padding: '4px 10px', background: '#dbeafe', color: '#1e40af', borderRadius: 6, display: 'inline-block', fontSize: '11px', fontWeight: 600 }}>
+                    <div style={{ marginTop: 8, padding: '4px 10px', background: '#dbeafe', color: '#1e40af', borderRadius: 6, display: 'inline-block', fontSize: '0.75rem', fontWeight: 600 }}>
                       ✓ {resumeFile.name} ({(resumeFile.size / 1024).toFixed(1)} KB)
                     </div>
                   )}
@@ -794,7 +794,7 @@ export default function CareersPage() {
               <div className="form-group">
                 <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 4 }}>
                   <label className="form-label" style={{ margin: 0 }}>Cover note (optional)</label>
-                  <span style={{ fontSize: '11px', color: '#94a3b8' }}>{coverNote.length}/500</span>
+                  <span style={{ fontSize: '0.75rem', color: '#64748b' }}>{coverNote.length}/500</span>
                 </div>
                 <textarea
                   rows={3}

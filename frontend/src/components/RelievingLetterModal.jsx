@@ -394,7 +394,7 @@ export default function RelievingLetterModal({ employee, onClose, onSuccess }) {
                 </div>
                 <div>
                   <div style={{ fontWeight: 700, color: '#0f172a', fontSize: '0.95rem' }}>{employee.full_name}</div>
-                  <div style={{ fontSize: '0.8rem', color: '#64748b' }}>
+                  <div style={{ fontSize: '0.8rem', color: '#526077' }}>
                     {employee.employee_code} • {employee.designation_name || employee.department_name || 'Team Member'}
                   </div>
                   {employee.date_of_hire && (

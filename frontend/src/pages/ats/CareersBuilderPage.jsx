@@ -803,7 +803,7 @@ export default function CareersBuilderPage() {
                                 color: primaryColor,
                                 backgroundColor: `${primaryColor}18`,
                                 padding: '3px 10px',
-                                fontSize: '10px',
+                                fontSize: '0.75rem',
                                 marginBottom: '10px',
                               }}
                             >
@@ -837,7 +837,7 @@ export default function CareersBuilderPage() {
                           <div className="careers-hero-visual">
                             <div className="careers-hero-card" style={{ height: '250px', maxWidth: '580px', borderRadius: '22px' }}>
                               <img src={heroImageUrl} alt="Workspace" className="careers-hero-card-img" />
-                              <div className="careers-hero-card-badge" style={{ top: '12px', right: '12px', padding: '4px 10px', fontSize: '10px' }}>
+                              <div className="careers-hero-card-badge" style={{ top: '12px', right: '12px', padding: '4px 10px', fontSize: '0.75rem' }}>
                                 {heroCardBadge}
                               </div>
                               <div className="careers-hero-card-content" style={{ bottom: '0', left: '0', right: '0', padding: '32px 18px 14px 18px' }}>
@@ -855,7 +855,7 @@ export default function CareersBuilderPage() {
                         <div className="careers-filters-bar" style={{ marginBottom: '16px' }}>
                           <div className="careers-filter-group" style={{ gap: '12px' }}>
                             <div className="careers-filter-col" style={{ maxWidth: '220px' }}>
-                              <label className="careers-filter-label" style={{ fontSize: '11px', marginBottom: '4px' }}>Department</label>
+                              <label className="careers-filter-label" style={{ fontSize: '0.75rem', marginBottom: '4px' }}>Department</label>
                               <div className="careers-select-wrap">
                                 <select className="careers-select" defaultValue="ALL" style={{ padding: '7px 28px 7px 10px', fontSize: '12px' }}>
                                   <option value="ALL">All Departments</option>
@@ -868,7 +868,7 @@ export default function CareersBuilderPage() {
                             </div>
 
                             <div className="careers-filter-col" style={{ maxWidth: '220px' }}>
-                              <label className="careers-filter-label" style={{ fontSize: '11px', marginBottom: '4px' }}>Location</label>
+                              <label className="careers-filter-label" style={{ fontSize: '0.75rem', marginBottom: '4px' }}>Location</label>
                               <div className="careers-select-wrap">
                                 <select className="careers-select" defaultValue="ALL" style={{ padding: '7px 28px 7px 10px', fontSize: '12px' }}>
                                   <option value="ALL">All Locations</option>
@@ -880,7 +880,7 @@ export default function CareersBuilderPage() {
                             </div>
 
                             <div className="careers-filter-col" style={{ maxWidth: '220px' }}>
-                              <label className="careers-filter-label" style={{ fontSize: '11px', marginBottom: '4px' }}>Job Type</label>
+                              <label className="careers-filter-label" style={{ fontSize: '0.75rem', marginBottom: '4px' }}>Job Type</label>
                               <div className="careers-select-wrap">
                                 <select className="careers-select" defaultValue="ALL" style={{ padding: '7px 28px 7px 10px', fontSize: '12px' }}>
                                   <option value="ALL">All Types</option>
@@ -913,24 +913,24 @@ export default function CareersBuilderPage() {
                                     </div>
                                     <div className="job-title-group">
                                       <h4 className="job-title" style={{ fontSize: '12px', lineHeight: 1.25 }}>{job.title}</h4>
-                                      <p className="job-dept" style={{ fontSize: '10px' }}>{job.department_name}</p>
+                                      <p className="job-dept" style={{ fontSize: '0.75rem' }}>{job.department_name}</p>
                                     </div>
                                   </div>
 
                                   <div className="job-meta-row" style={{ marginBottom: '8px' }}>
-                                    <div className="job-location" style={{ fontSize: '10px' }}>
+                                    <div className="job-location" style={{ fontSize: '0.75rem' }}>
                                       <MapPin size={11} color="#64748b" />
                                       <span>{job.location}</span>
                                     </div>
 
-                                    <div className="job-type-pill" style={{ padding: '2px 6px', fontSize: '9px' }}>
+                                    <div className="job-type-pill" style={{ padding: '2px 6px', fontSize: '0.75rem' }}>
                                       <span>{job.job_type}</span>
                                     </div>
                                   </div>
                                 </div>
 
                                 <div className="job-card-footer" style={{ paddingTop: '8px' }}>
-                                  <div className="job-date" style={{ fontSize: '10px' }}>
+                                  <div className="job-date" style={{ fontSize: '0.75rem' }}>
                                     <Clock size={10} color="#94a3b8" />
                                     <span>3d ago</span>
                                   </div>
@@ -938,7 +938,7 @@ export default function CareersBuilderPage() {
                                   <button
                                     type="button"
                                     className="job-apply-btn"
-                                    style={{ backgroundColor: primaryColor, padding: '4px 10px', fontSize: '10px' }}
+                                    style={{ backgroundColor: primaryColor, padding: '4px 10px', fontSize: '0.75rem' }}
                                   >
                                     Apply
                                   </button>

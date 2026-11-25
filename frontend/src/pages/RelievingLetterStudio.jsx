@@ -194,7 +194,7 @@ export default function RelievingLetterStudio() {
               gap: 5,
               fontSize: '0.78rem',
               fontWeight: 600,
-              color: '#64748b',
+              color: '#526077',
               marginBottom: 4,
               textDecoration: 'none',
               transition: 'color 0.15s ease',
@@ -207,7 +207,7 @@ export default function RelievingLetterStudio() {
           <h1 style={{ fontSize: '1.25rem', fontWeight: 800, color: '#0f172a', margin: 0, display: 'flex', alignItems: 'center', gap: 8 }}>
             <FileText size={20} style={{ color: '#2563eb' }} /> Relieving Letter Studio
           </h1>
-          <p style={{ fontSize: '0.75rem', color: '#64748b', margin: '2px 0 0 0' }}>
+          <p style={{ fontSize: '0.75rem', color: '#526077', margin: '2px 0 0 0' }}>
             Real-time split-screen editor • Instant single-page live preview
           </p>
         </div>
@@ -547,19 +547,19 @@ export default function RelievingLetterStudio() {
                             >
                               {matched.employee_code}
                             </span>
-                            <span style={{ fontSize: '0.75rem', color: '#64748b' }}>
+                            <span style={{ fontSize: '0.75rem', color: '#526077' }}>
                               • {matched.department_name || 'General'}
                             </span>
                           </div>
                         </div>
                       );
                     }
-                    return <span style={{ color: '#94a3b8', fontSize: '0.86rem' }}>-- Choose Employee to Auto-Fill --</span>;
+                    return <span style={{ color: '#64748b', fontSize: '0.86rem' }}>-- Choose Employee to Auto-Fill --</span>;
                   })()}
                   <ChevronDown
                     size={16}
                     style={{
-                      color: '#64748b',
+                      color: '#526077',
                       transform: isDropdownOpen ? 'rotate(180deg)' : 'rotate(0deg)',
                       transition: 'transform 0.2s ease',
                       flexShrink: 0,
@@ -585,7 +585,7 @@ export default function RelievingLetterStudio() {
                   >
                     {/* Search Bar */}
                     <div style={{ padding: '8px 10px', borderBottom: '1px solid #f1f5f9', background: '#f8fafc', display: 'flex', alignItems: 'center', gap: 6 }}>
-                      <Search size={14} style={{ color: '#94a3b8', flexShrink: 0 }} />
+                      <Search size={14} style={{ color: '#64748b', flexShrink: 0 }} />
                       <input
                         type="text"
                         placeholder="Search employee by name, code, dept..."
@@ -664,10 +664,10 @@ export default function RelievingLetterStudio() {
                                     {emp.full_name}
                                   </div>
                                   <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginTop: 1 }}>
-                                    <span style={{ fontSize: '0.68rem', background: '#f1f5f9', color: '#475569', padding: '0 4px', borderRadius: 3 }}>
+                                    <span style={{ fontSize: '0.75rem', background: '#f1f5f9', color: '#475569', padding: '0 4px', borderRadius: 3 }}>
                                       {emp.employee_code}
                                     </span>
-                                    <span style={{ fontSize: '0.70rem', color: '#64748b' }}>
+                                    <span style={{ fontSize: '0.70rem', color: '#526077' }}>
                                       {emp.department_name || 'General'}
                                     </span>
                                   </div>

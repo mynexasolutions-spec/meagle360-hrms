@@ -76,7 +76,7 @@ export default function PlatformLogin() {
         <span
           style={{
             display: 'inline-flex', alignItems: 'center', gap: 6, marginTop: 12,
-            fontSize: '0.6875rem', fontWeight: 700, letterSpacing: '0.04em',
+            fontSize: '0.75rem', fontWeight: 700, letterSpacing: '0.04em',
             color: '#7c3aed', background: 'var(--accent-violet-light)',
             border: '1px solid rgba(139, 92, 246, 0.25)',
             borderRadius: 'var(--radius-full)', padding: '4px 12px',

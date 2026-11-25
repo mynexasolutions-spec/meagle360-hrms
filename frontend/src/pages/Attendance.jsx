@@ -391,7 +391,7 @@ function DailyAttendanceOverview() {
               <CalendarDays size={20} style={{ color: 'var(--accent-blue)' }} />
               Daily Attendance Overview
             </h3>
-            <p style={{ color: '#64748b', fontSize: '0.875rem', margin: 0 }}>
+            <p style={{ color: '#526077', fontSize: '0.875rem', margin: 0 }}>
               Company-wide attendance status for {formatDisplayDate(targetDate)}
             </p>
           </div>
@@ -557,7 +557,7 @@ function DailyAttendanceOverview() {
 
         {/* Table Area */}
         {loading ? (
-          <div style={{ padding: '60px 20px', textAlign: 'center', color: '#64748b' }}>
+          <div style={{ padding: '60px 20px', textAlign: 'center', color: '#526077' }}>
             <div className="animate-spin" style={{ width: 28, height: 28, border: '3px solid #e2e8f0', borderTopColor: '#2563eb', borderRadius: '50%', margin: '0 auto 12px' }} />
             <p style={{ fontSize: '0.9rem', fontWeight: 500 }}>Loading attendance overview for {formatDisplayDate(targetDate)}...</p>
           </div>
@@ -1275,7 +1275,7 @@ export default function Attendance() {
   };
 
   return (
-    <div className="animate-fade-in" style={{ maxWidth: 1200, margin: '0 auto' }}>
+    <div className="animate-fade-in" style={{ maxWidth: 'var(--content-max)', margin: '0 auto' }}>
       {/* Header */}
       <div className="page-header" style={{ marginBottom: 24 }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: 14 }}>
@@ -1290,7 +1290,7 @@ export default function Attendance() {
           </div>
           <div>
             <h1 style={{ fontSize: 'clamp(1.25rem, 4.5vw, 1.75rem)', fontWeight: 800, color: '#0f172a' }}>Attendance</h1>
-            <p style={{ color: '#64748b', fontSize: '0.875rem' }}>Track your daily work hours, punctuality & regularization requests</p>
+            <p style={{ color: '#526077', fontSize: '0.875rem' }}>Track your daily work hours, punctuality & regularization requests</p>
           </div>
         </div>
         <button
@@ -1372,7 +1372,7 @@ export default function Attendance() {
                 type="button"
                 className="btn btn-secondary btn-sm"
                 style={{
-                  fontSize: 11,
+                  fontSize: 12,
                   padding: '3px 10px',
                   color: '#dc2626',
                   borderColor: '#fca5a5',
@@ -1397,7 +1397,7 @@ export default function Attendance() {
                 type="button"
                 className="btn btn-secondary btn-sm"
                 style={{
-                  fontSize: 11,
+                  fontSize: 12,
                   padding: '3px 10px',
                   color: '#dc2626',
                   borderColor: '#fca5a5',
@@ -1436,7 +1436,7 @@ export default function Attendance() {
           </div>
           <div style={{ height: 28, width: 1, backgroundColor: '#e2e8f0', flexShrink: 0 }} />
           <div style={{ display: 'flex', flexDirection: 'column', gap: 2, whiteSpace: 'nowrap' }}>
-            <span style={{ fontSize: '0.75rem', fontWeight: 500, color: '#94a3b8', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Shift Timing</span>
+            <span style={{ fontSize: '0.75rem', fontWeight: 500, color: '#64748b', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Shift Timing</span>
             <span style={{ fontSize: '0.85rem', fontWeight: 600, color: '#334155' }}>
               {shiftInfo?.start_time ? `${shiftInfo.start_time} - ${shiftInfo.end_time}` : '09:00 AM - 06:00 PM (Default)'}
             </span>
@@ -1538,7 +1538,7 @@ export default function Attendance() {
               <div className="timesheet-summary">
                 <div className="timesheet-stat" style={{ background: '#eff6ff', borderRadius: 14, padding: '8px 16px' }}>
                   <span className="stat-value" style={{ color: '#2563eb', fontWeight: 800 }}>{formatHours(timesheetData.month_total_hours)}</span>
-                  <span className="stat-label" style={{ color: '#64748b', fontWeight: 600 }}>Total Hours</span>
+                  <span className="stat-label" style={{ color: '#526077', fontWeight: 600 }}>Total Hours</span>
                 </div>
               </div>
             )}

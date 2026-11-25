@@ -36,7 +36,7 @@ export default function ReportsAnalytics() {
   }, []);
 
   return (
-    <div className="animate-fade-in" style={{ maxWidth: 1200, margin: '0 auto' }}>
+    <div className="animate-fade-in" style={{ maxWidth: 'var(--content-max)', margin: '0 auto' }}>
       {/* Header */}
       <div className="page-header" style={{ marginBottom: 24 }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: 14 }}>
@@ -51,7 +51,7 @@ export default function ReportsAnalytics() {
           </div>
           <div style={{ minWidth: 0 }}>
             <h1 style={{ fontSize: 'clamp(1.25rem, 4.5vw, 1.75rem)', fontWeight: 800, color: '#0f172a' }}>Reports &amp; Analytics</h1>
-            <p style={{ color: '#64748b', fontSize: '0.875rem' }}>Company-wide workforce attendance trends, department distribution &amp; leave metrics</p>
+            <p style={{ color: '#526077', fontSize: '0.875rem' }}>Company-wide workforce attendance trends, department distribution &amp; leave metrics</p>
           </div>
         </div>
       </div>

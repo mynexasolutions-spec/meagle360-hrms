@@ -95,7 +95,7 @@ export default function SetPassword() {
         >
           {done ? 'All set!' : 'Set your password'}
         </h1>
-        <p style={{ color: '#64748b', fontSize: '0.875rem' }}>
+        <p style={{ color: '#526077', fontSize: '0.875rem' }}>
           {done ? 'Your account is ready to use.' : 'Finish setting up your Meagle360 HRMS account'}
         </p>
       </div>
@@ -131,7 +131,7 @@ export default function SetPassword() {
           <div className="input-group" style={{ marginBottom: 20 }}>
             <label className="input-label" htmlFor="password" style={{ fontWeight: 700, fontSize: '0.8125rem', color: '#334155' }}>New Password</label>
             <div style={{ position: 'relative' }}>
-              <Lock size={18} style={{ position: 'absolute', left: 14, top: '50%', transform: 'translateY(-50%)', color: '#94a3b8' }} />
+              <Lock size={18} style={{ position: 'absolute', left: 14, top: '50%', transform: 'translateY(-50%)', color: '#64748b' }} />
               <input
                 id="password"
                 type={showPw ? 'text' : 'password'}
@@ -148,7 +148,7 @@ export default function SetPassword() {
               <button
                 type="button"
                 onClick={() => setShowPw(!showPw)}
-                style={{ position: 'absolute', right: 14, top: '50%', transform: 'translateY(-50%)', background: 'none', border: 'none', color: '#64748b', cursor: 'pointer' }}
+                style={{ position: 'absolute', right: 14, top: '50%', transform: 'translateY(-50%)', background: 'none', border: 'none', color: '#526077', cursor: 'pointer' }}
               >
                 {showPw ? <EyeOff size={18} /> : <Eye size={18} />}
               </button>
@@ -157,7 +157,7 @@ export default function SetPassword() {
           <div className="input-group">
             <label className="input-label" htmlFor="confirm" style={{ fontWeight: 700, fontSize: '0.8125rem', color: '#334155' }}>Confirm Password</label>
             <div style={{ position: 'relative' }}>
-              <Lock size={18} style={{ position: 'absolute', left: 14, top: '50%', transform: 'translateY(-50%)', color: '#94a3b8' }} />
+              <Lock size={18} style={{ position: 'absolute', left: 14, top: '50%', transform: 'translateY(-50%)', color: '#64748b' }} />
               <input
                 id="confirm"
                 type={showConfirmPw ? 'text' : 'password'}
@@ -176,7 +176,7 @@ export default function SetPassword() {
               <button
                 type="button"
                 onClick={() => setShowConfirmPw(!showConfirmPw)}
-                style={{ position: 'absolute', right: 14, top: '50%', transform: 'translateY(-50%)', background: 'none', border: 'none', color: '#64748b', cursor: 'pointer' }}
+                style={{ position: 'absolute', right: 14, top: '50%', transform: 'translateY(-50%)', background: 'none', border: 'none', color: '#526077', cursor: 'pointer' }}
               >
                 {showConfirmPw ? <EyeOff size={18} /> : <Eye size={18} />}
               </button>

@@ -101,7 +101,7 @@ export default function DashboardLayout() {
                 alignItems: 'center',
                 justifyContent: 'center',
                 cursor: 'pointer',
-                color: '#64748b',
+                color: '#526077',
                 background: '#f1f5f9',
               }}
               title="Close menu"
@@ -140,7 +140,7 @@ export default function DashboardLayout() {
                 <div className="sidebar-user-name truncate" style={{ fontWeight: 800, color: '#0f172a' }}>
                   {user?.full_name || 'User'}
                 </div>
-                <div className="sidebar-user-role truncate" style={{ fontWeight: 600, color: '#64748b' }}>
+                <div className="sidebar-user-role truncate" style={{ fontWeight: 600, color: '#526077' }}>
                   {user?.role_name || 'Employee'}
                 </div>
               </div>

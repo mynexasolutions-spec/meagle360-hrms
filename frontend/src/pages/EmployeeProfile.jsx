@@ -518,7 +518,7 @@ export default function EmployeeProfile() {
 
         <div className="section-card" style={{ gridColumn: '1 / -1', borderTop: '3px solid #64748b' }}>
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16, flexWrap: 'wrap', gap: 10 }}>
-            <h3 style={{ marginBottom: 0 }}><FileText size={17} style={{ color: '#64748b' }} /> Documents</h3>
+            <h3 style={{ marginBottom: 0 }}><FileText size={17} style={{ color: '#526077' }} /> Documents</h3>
             {canManage && (
               <button className="btn btn-secondary btn-sm" onClick={() => setShowUploadDoc(true)}>
                 <Upload size={14} /> Upload Document

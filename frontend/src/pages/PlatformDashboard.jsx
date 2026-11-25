@@ -442,7 +442,7 @@ export default function PlatformDashboard() {
                               maxWidth: '100%',
                             }}
                           >
-                            <Globe size={11} style={{ color: '#64748b', flexShrink: 0 }} />
+                            <Globe size={11} style={{ color: '#526077', flexShrink: 0 }} />
                             <span
                               style={{
                                 fontSize: '0.72rem',

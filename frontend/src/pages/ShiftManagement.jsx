@@ -173,7 +173,7 @@ export default function ShiftManagement() {
   };
 
   return (
-    <div className="animate-fade-in" style={{ maxWidth: 1200, margin: '0 auto' }}>
+    <div className="animate-fade-in" style={{ maxWidth: 'var(--content-max)', margin: '0 auto' }}>
       {/* Header */}
       <div className="page-header" style={{ marginBottom: 24 }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: 14 }}>
@@ -188,7 +188,7 @@ export default function ShiftManagement() {
           </div>
           <div style={{ minWidth: 0 }}>
             <h1 style={{ fontSize: 'clamp(1.25rem, 4.5vw, 1.75rem)', fontWeight: 800, color: '#0f172a' }}>Shift Management</h1>
-            <p style={{ color: '#64748b', fontSize: '0.875rem' }}>Configure shift templates and manage employee work rosters</p>
+            <p style={{ color: '#526077', fontSize: '0.875rem' }}>Configure shift templates and manage employee work rosters</p>
           </div>
         </div>
         {canManageShifts && (
@@ -277,7 +277,7 @@ export default function ShiftManagement() {
                     </div>
                     <div style={{ minWidth: 0 }}>
                       <div style={{ fontWeight: 800, fontSize: '1.05rem', color: '#0f172a' }}>{s.shift_type}</div>
-                      <span style={{ fontSize: '0.75rem', fontWeight: 600, color: '#64748b' }}>Shift Template</span>
+                      <span style={{ fontSize: '0.75rem', fontWeight: 600, color: '#526077' }}>Shift Template</span>
                     </div>
                   </div>
                   {isAdmin && (
@@ -311,11 +311,11 @@ export default function ShiftManagement() {
                   }}
                 >
                   <div>
-                    <div style={{ color: '#64748b', fontSize: '0.725rem', fontWeight: 700, textTransform: 'uppercase' }}>Start Time</div>
+                    <div style={{ color: '#526077', fontSize: '0.725rem', fontWeight: 700, textTransform: 'uppercase' }}>Start Time</div>
                     <div style={{ color: '#059669', fontWeight: 800, fontSize: '1rem', marginTop: 2 }}>{formatTime(s.start_time)}</div>
                   </div>
                   <div style={{ textAlign: 'right' }}>
-                    <div style={{ color: '#64748b', fontSize: '0.725rem', fontWeight: 700, textTransform: 'uppercase' }}>End Time</div>
+                    <div style={{ color: '#526077', fontSize: '0.725rem', fontWeight: 700, textTransform: 'uppercase' }}>End Time</div>
                     <div style={{ color: '#dc2626', fontWeight: 800, fontSize: '1rem', marginTop: 2 }}>{formatTime(s.end_time)}</div>
                   </div>
                 </div>
@@ -361,7 +361,7 @@ export default function ShiftManagement() {
                         {r.shift_type || '—'}
                       </span>
                     </td>
-                    <td style={{ color: '#64748b', whiteSpace: 'nowrap' }}>{r.effective_from ? new Date(r.effective_from).toLocaleDateString() : '—'}</td>
+                    <td style={{ color: '#526077', whiteSpace: 'nowrap' }}>{r.effective_from ? new Date(r.effective_from).toLocaleDateString() : '—'}</td>
                     {canManageShifts && (
                       <td style={{ textAlign: 'left', whiteSpace: 'nowrap' }}>
                         <div style={{ display: 'inline-flex', gap: 6, alignItems: 'center' }}>

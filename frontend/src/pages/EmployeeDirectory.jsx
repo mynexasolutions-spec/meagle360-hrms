@@ -169,7 +169,7 @@ export default function EmployeeDirectory() {
             <h1 style={{ fontSize: '1.5rem', fontWeight: 800, color: '#0f172a', margin: 0 }}>
               {activeTab === 'organization' ? 'Organization Structure' : 'Employee Directory'}
             </h1>
-            <p style={{ color: '#64748b', fontSize: '0.875rem', margin: '2px 0 0 0' }}>
+            <p style={{ color: '#526077', fontSize: '0.875rem', margin: '2px 0 0 0' }}>
               {activeTab === 'organization'
                 ? "Visual hierarchy of your organization's reporting structure"
                 : `${employees.length} employees in your organization`}
@@ -270,7 +270,7 @@ export default function EmployeeDirectory() {
                 size={18}
                 style={{
                   position: 'absolute', left: 14, top: '50%',
-                  transform: 'translateY(-50%)', color: '#94a3b8',
+                  transform: 'translateY(-50%)', color: '#64748b',
                 }}
               />
               <input
@@ -402,7 +402,7 @@ export default function EmployeeDirectory() {
               )}
 
               <h3 style={{ margin: '0 0 4px 0', fontSize: '1.05rem', fontWeight: 800, color: '#0f172a' }}>{emp.full_name}</h3>
-              <div style={{ fontSize: '0.78125rem', color: '#64748b', marginBottom: 12 }}>{emp.work_email || emp.email || '—'}</div>
+              <div style={{ fontSize: '0.78125rem', color: '#526077', marginBottom: 12 }}>{emp.work_email || emp.email || '—'}</div>
 
               {/* Department Tag */}
               {emp.department_name && (
@@ -411,7 +411,7 @@ export default function EmployeeDirectory() {
                 </span>
               )}
 
-              <div style={{ width: '100%', borderTop: '1px solid #f1f5f9', paddingTop: 14, display: 'flex', justifyContent: 'space-between', fontSize: '0.78125rem', color: '#64748b' }}>
+              <div style={{ width: '100%', borderTop: '1px solid #f1f5f9', paddingTop: 14, display: 'flex', justifyContent: 'space-between', fontSize: '0.78125rem', color: '#526077' }}>
                 <span>Code: <strong style={{ color: '#334155' }}>{emp.employee_code}</strong></span>
                 <span>Site: <strong style={{ color: '#334155' }}>{emp.site_name || 'Main Office'}</strong></span>
               </div>
@@ -434,13 +434,13 @@ export default function EmployeeDirectory() {
           <table className="data-table" style={{ width: '100%', borderCollapse: 'collapse' }}>
             <thead>
               <tr style={{ background: '#f8fafc', borderBottom: '1px solid #e2e8f0' }}>
-                <th style={{ padding: '16px 20px', textAlign: 'left', fontSize: '0.75rem', fontWeight: 700, color: '#64748b', textTransform: 'uppercase', whiteSpace: 'nowrap' }}>Employee</th>
-                <th style={{ padding: '16px 20px', textAlign: 'left', fontSize: '0.75rem', fontWeight: 700, color: '#64748b', textTransform: 'uppercase', whiteSpace: 'nowrap' }}>Code</th>
-                <th style={{ padding: '16px 20px', textAlign: 'left', fontSize: '0.75rem', fontWeight: 700, color: '#64748b', textTransform: 'uppercase', whiteSpace: 'nowrap' }}>Department</th>
-                <th style={{ padding: '16px 20px', textAlign: 'left', fontSize: '0.75rem', fontWeight: 700, color: '#64748b', textTransform: 'uppercase', whiteSpace: 'nowrap' }}>Location / Site</th>
-                <th style={{ padding: '16px 20px', textAlign: 'left', fontSize: '0.75rem', fontWeight: 700, color: '#64748b', textTransform: 'uppercase', whiteSpace: 'nowrap' }}>Role</th>
-                <th style={{ padding: '16px 20px', textAlign: 'left', fontSize: '0.75rem', fontWeight: 700, color: '#64748b', textTransform: 'uppercase', whiteSpace: 'nowrap' }}>Account Status</th>
-                <th style={{ padding: '16px 20px', textAlign: 'right', fontSize: '0.75rem', fontWeight: 700, color: '#64748b', textTransform: 'uppercase', whiteSpace: 'nowrap' }}>Actions</th>
+                <th style={{ padding: '16px 20px', textAlign: 'left', fontSize: '0.75rem', fontWeight: 700, color: '#526077', textTransform: 'uppercase', whiteSpace: 'nowrap' }}>Employee</th>
+                <th style={{ padding: '16px 20px', textAlign: 'left', fontSize: '0.75rem', fontWeight: 700, color: '#526077', textTransform: 'uppercase', whiteSpace: 'nowrap' }}>Code</th>
+                <th style={{ padding: '16px 20px', textAlign: 'left', fontSize: '0.75rem', fontWeight: 700, color: '#526077', textTransform: 'uppercase', whiteSpace: 'nowrap' }}>Department</th>
+                <th style={{ padding: '16px 20px', textAlign: 'left', fontSize: '0.75rem', fontWeight: 700, color: '#526077', textTransform: 'uppercase', whiteSpace: 'nowrap' }}>Location / Site</th>
+                <th style={{ padding: '16px 20px', textAlign: 'left', fontSize: '0.75rem', fontWeight: 700, color: '#526077', textTransform: 'uppercase', whiteSpace: 'nowrap' }}>Role</th>
+                <th style={{ padding: '16px 20px', textAlign: 'left', fontSize: '0.75rem', fontWeight: 700, color: '#526077', textTransform: 'uppercase', whiteSpace: 'nowrap' }}>Account Status</th>
+                <th style={{ padding: '16px 20px', textAlign: 'right', fontSize: '0.75rem', fontWeight: 700, color: '#526077', textTransform: 'uppercase', whiteSpace: 'nowrap' }}>Actions</th>
               </tr>
             </thead>
             <tbody>
@@ -478,7 +478,7 @@ export default function EmployeeDirectory() {
                       )}
                       <div>
                         <div style={{ fontWeight: 700, fontSize: '0.925rem', color: '#0f172a' }}>{emp.full_name}</div>
-                        <div style={{ fontSize: '0.78125rem', color: '#64748b' }}>{emp.work_email || emp.email || '—'}</div>
+                        <div style={{ fontSize: '0.78125rem', color: '#526077' }}>{emp.work_email || emp.email || '—'}</div>
                       </div>
                     </Link>
                   </td>
@@ -489,7 +489,7 @@ export default function EmployeeDirectory() {
                         {emp.department_name}
                       </span>
                     ) : (
-                      <span style={{ color: '#94a3b8' }}>—</span>
+                      <span style={{ color: '#64748b' }}>—</span>
                     )}
                   </td>
                   <td style={{ padding: '14px 20px', color: '#475569', fontSize: '0.85rem', whiteSpace: 'nowrap' }}>{emp.site_name || 'Main Office'}</td>
@@ -528,7 +528,7 @@ export default function EmployeeDirectory() {
                         <Award size={14} style={{ color: '#059669' }} /> Relieving Letter
                       </button>
                     ) : (
-                      <span style={{ color: '#94a3b8', fontSize: '0.85rem' }}>—</span>
+                      <span style={{ color: '#64748b', fontSize: '0.85rem' }}>—</span>
                     )}
                   </td>
                 </tr>

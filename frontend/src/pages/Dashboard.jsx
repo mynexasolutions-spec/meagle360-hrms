@@ -372,7 +372,7 @@ export default function Dashboard() {
   };
 
   return (
-    <div className="animate-fade-in" style={{ maxWidth: 1400, margin: '0 auto', width: '100%', minWidth: 0, boxSizing: 'border-box', paddingBottom: 16 }}>
+    <div className="animate-fade-in" style={{ maxWidth: 'var(--content-max-wide)', margin: '0 auto', width: '100%', minWidth: 0, boxSizing: 'border-box', paddingBottom: 16 }}>
       
       {/* 1. Header with integrated Clock In / Status */}
       <div className="page-header dashboard-greeting-header" style={{ marginBottom: 20, display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: 14 }}>
@@ -529,10 +529,10 @@ export default function Dashboard() {
                     </linearGradient>
                   </defs>
                   <CartesianGrid strokeDasharray="3 3" stroke="#f1f5f9" vertical={false} />
-                  <XAxis dataKey="date" tick={{ fontSize: 10, fill: '#475569', fontWeight: 500 }} tickFormatter={(d) => d.slice(5)} />
-                  <YAxis tick={{ fontSize: 10, fill: '#475569', fontWeight: 500 }} axisLine={false} tickLine={false} width={28} />
+                  <XAxis dataKey="date" tick={{ fontSize: 12, fill: '#475569', fontWeight: 500 }} tickFormatter={(d) => d.slice(5)} />
+                  <YAxis tick={{ fontSize: 12, fill: '#475569', fontWeight: 500 }} axisLine={false} tickLine={false} width={28} />
                   <Tooltip contentStyle={{ background: '#ffffff', border: '1px solid #e2e8f0', borderRadius: 12, fontSize: 12, boxShadow: '0 4px 14px rgba(0,0,0,0.06)' }} />
-                  <Legend wrapperStyle={{ fontSize: 11, paddingTop: 6 }} />
+                  <Legend wrapperStyle={{ fontSize: 12, paddingTop: 6 }} />
                   <Area type="monotone" dataKey="present" stroke="#059669" strokeWidth={2.5} fillOpacity={1} fill="url(#presentGrad)" name="Present" />
                   <Area type="monotone" dataKey="absent" stroke="#ef4444" strokeWidth={2.5} fillOpacity={1} fill="url(#absentGrad)" name="Absent" />
                   <Area type="monotone" dataKey="on_leave" stroke="#2563eb" strokeWidth={2.5} fillOpacity={1} fill="url(#leaveGrad)" name="On Leave" />
@@ -628,7 +628,7 @@ export default function Dashboard() {
                         </ResponsiveContainer>
                         <div style={{ position: 'absolute', inset: 0, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', pointerEvents: 'none' }}>
                           <div className="leave-donut-center-num" style={{ lineHeight: 1 }}>{totalLeaveDays}</div>
-                          <div style={{ fontSize: '0.66rem', color: '#64748b', fontWeight: 700, marginTop: 4, letterSpacing: '0.01em' }}>Total Days</div>
+                          <div style={{ fontSize: '0.75rem', color: '#526077', fontWeight: 700, marginTop: 4, letterSpacing: '0.01em' }}>Total Days</div>
                         </div>
                       </div>
 
@@ -636,7 +636,7 @@ export default function Dashboard() {
                       <div className="leave-summary-distribution-box" style={{ flex: 1, minWidth: 0, display: 'flex', flexDirection: 'column', gap: 6 }}>
                         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline' }}>
                           <span style={{ fontSize: '0.74rem', fontWeight: 700, color: '#475569' }}>Distribution</span>
-                          <span style={{ fontSize: '0.6875rem', fontWeight: 700, color: '#059669', background: '#ecfdf5', padding: '1px 6px', borderRadius: 5 }}>
+                          <span style={{ fontSize: '0.75rem', fontWeight: 700, color: '#059669', background: '#ecfdf5', padding: '1px 6px', borderRadius: 5 }}>
                             {leaveSummary.length} Types
                           </span>
                         </div>
@@ -655,7 +655,7 @@ export default function Dashboard() {
                             />
                           ))}
                         </div>
-                        <div style={{ fontSize: '0.71rem', color: '#64748b', marginTop: 1, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                        <div style={{ fontSize: '0.71rem', color: '#526077', marginTop: 1, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
                           Top: <strong style={{ color: '#0f172a' }}>{formatLeaveTypeName(leaveSummary[0]?.leave_type).replace(' Leave', '')} ({leaveSummary[0]?.percentage}%)</strong>
                         </div>
                       </div>
@@ -701,11 +701,11 @@ export default function Dashboard() {
                             {/* Line 2: Big Bold Days Count + Percentage Badge */}
                             <div style={{ display: 'flex', alignItems: 'baseline', justifyContent: 'space-between', marginTop: 4, width: '100%' }}>
                               <span className="leave-summary-tile-count">
-                                {l.days} <span style={{ fontSize: '0.65rem', color: '#64748b', fontWeight: 600 }}>days</span>
+                                {l.days} <span style={{ fontSize: '0.75rem', color: '#526077', fontWeight: 600 }}>days</span>
                               </span>
                               <span
                                 style={{
-                                  fontSize: '0.65rem',
+                                  fontSize: '0.75rem',
                                   fontWeight: 700,
                                   color: color,
                                   background: '#ffffff',
@@ -840,10 +840,10 @@ export default function Dashboard() {
                             <div style={{ fontWeight: 700, fontSize: '0.86rem', color: '#0f172a', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
                               {a.title}
                             </div>
-                            <div style={{ color: '#64748b', fontSize: '0.76rem', marginTop: 3, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                            <div style={{ color: '#526077', fontSize: '0.76rem', marginTop: 3, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
                               {a.body}
                             </div>
-                            <div style={{ color: '#94a3b8', fontSize: '0.6875rem', marginTop: 5 }}>
+                            <div style={{ color: '#7a889c', fontSize: '0.75rem', marginTop: 5 }}>
                               {new Date(a.created_at).toLocaleDateString(undefined, { day: '2-digit', month: '2-digit', year: 'numeric' })}
                             </div>
                           </div>
@@ -867,7 +867,7 @@ export default function Dashboard() {
                   gap: 6,
                 }}
               >
-                <span style={{ fontSize: '0.71rem', color: '#94a3b8' }}>Latest updates</span>
+                <span style={{ fontSize: '0.71rem', color: '#64748b' }}>Latest updates</span>
                 <button
                   onClick={() => setShowAllAnnouncements(true)}
                   style={{
@@ -998,7 +998,7 @@ export default function Dashboard() {
                                     width: 30, height: 30, borderRadius: '50%', flexShrink: 0,
                                     display: 'flex', alignItems: 'center', justifyContent: 'center',
                                     background: e.photo_url ? `center/cover no-repeat url(${e.photo_url})` : '#fffbeb',
-                                    color: '#d97706', fontSize: '0.6875rem', fontWeight: 700, border: '1px solid #fde68a',
+                                    color: '#d97706', fontSize: '0.75rem', fontWeight: 700, border: '1px solid #fde68a',
                                   }}
                                 >
                                   {!e.photo_url && initials(e.full_name)}
@@ -1168,7 +1168,7 @@ export default function Dashboard() {
                           </div>
                           <span
                             style={{
-                              fontSize: '0.675rem',
+                              fontSize: '0.75rem',
                               fontWeight: 700,
                               color: '#1e293b',
                               background: '#ffffff',
@@ -1187,7 +1187,7 @@ export default function Dashboard() {
 
                         {/* Progress Bar & Allocation Info */}
                         <div>
-                          <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.675rem', color: '#64748b', marginBottom: 4 }}>
+                          <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.75rem', color: '#526077', marginBottom: 4 }}>
                             <span>Allocated</span>
                             <span style={{ fontWeight: 600, color: total ? '#334155' : '#64748b' }}>
                               {total ? `${Math.round(pct)}% remaining` : 'Unlimited'}
@@ -1341,7 +1341,7 @@ export default function Dashboard() {
                               boxShadow: '0 1px 3px rgba(0,0,0,0.03)',
                             }}
                           >
-                            <span style={{ fontSize: '0.62rem', fontWeight: 800, color: '#ef4444', lineHeight: 1 }}>{monthName}</span>
+                            <span style={{ fontSize: '0.75rem', fontWeight: 800, color: '#ef4444', lineHeight: 1 }}>{monthName}</span>
                             <span style={{ fontSize: '0.94rem', fontWeight: 900, color: '#0f172a', lineHeight: 1.1 }}>{dayNum}</span>
                           </div>
                           <div>
@@ -1426,7 +1426,7 @@ function AnnouncementDetailModal({ announcement, onClose }) {
           </div>
           <div>
             <h3 style={{ margin: 0, fontSize: '1.05rem', fontWeight: 800, color: '#0f172a' }}>{announcement.title}</h3>
-            <div style={{ fontSize: '0.75rem', color: '#64748b', marginTop: 2 }}>
+            <div style={{ fontSize: '0.75rem', color: '#526077', marginTop: 2 }}>
               Posted on {new Date(announcement.created_at).toLocaleDateString(undefined, { weekday: 'short', day: '2-digit', month: 'short', year: 'numeric' })}
             </div>
           </div>
@@ -1502,11 +1502,11 @@ function AllAnnouncementsModal({ announcements, onClose, onNewAnnouncement, isAd
                 <div style={{ flex: 1, minWidth: 0 }}>
                   <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 8 }}>
                     <div style={{ fontWeight: 700, fontSize: '0.875rem', color: '#0f172a' }}>{a.title}</div>
-                    <span style={{ fontSize: '0.70rem', color: '#94a3b8', flexShrink: 0 }}>
+                    <span style={{ fontSize: '0.70rem', color: '#64748b', flexShrink: 0 }}>
                       {new Date(a.created_at).toLocaleDateString(undefined, { day: '2-digit', month: 'short', year: 'numeric' })}
                     </span>
                   </div>
-                  <div style={{ color: '#64748b', fontSize: '0.775rem', marginTop: 3, lineHeight: 1.4 }}>
+                  <div style={{ color: '#526077', fontSize: '0.775rem', marginTop: 3, lineHeight: 1.4 }}>
                     {a.body}
                   </div>
                 </div>

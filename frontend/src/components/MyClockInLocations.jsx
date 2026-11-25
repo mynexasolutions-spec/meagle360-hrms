@@ -51,7 +51,7 @@ export default function MyClockInLocations() {
       </button>
       {open && (
         <Modal title="My clock-in locations" onClose={() => setOpen(false)} maxWidth="600px">
-          <p style={{ fontSize: 13, color: '#64748b', marginTop: 0, marginBottom: 12 }}>
+          <p style={{ fontSize: 13, color: '#526077', marginTop: 0, marginBottom: 12 }}>
             Working remotely? Request your location (e.g. home). Once your admin approves it,
             you can clock in within its radius.
           </p>
@@ -63,7 +63,7 @@ export default function MyClockInLocations() {
                     <span>
                       <b>{l.name}</b> · {l.radius_m} m ·{' '}
                       <span style={{ color: STATUS_COLOR[l.status], textTransform: 'capitalize', fontWeight: 600 }}>{l.status}</span>
-                      {l.review_note && <span style={{ color: '#64748b' }}> — {l.review_note}</span>}
+                      {l.review_note && <span style={{ color: '#526077' }}> — {l.review_note}</span>}
                     </span>
                     {(l.status === 'pending' || l.status === 'approved') && (
                       <button className="btn-icon btn-ghost" title="Remove" onClick={() => remove(l.id)} style={{ padding: 2 }}>

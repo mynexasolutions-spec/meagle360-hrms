@@ -112,7 +112,7 @@ export default function PassportUploadModal({ isOpen, onClose, onUploaded, curre
                 border: '1px solid var(--border-color)',
               }}
             >
-              <label style={{ display: 'flex', gap: 8, cursor: 'pointer', fontSize: 11.5, color: 'var(--text-primary)', lineHeight: 1.35 }}>
+              <label style={{ display: 'flex', gap: 8, cursor: 'pointer', fontSize: 12, color: 'var(--text-primary)', lineHeight: 1.35 }}>
                 <input
                   type="checkbox"
                   checked={consent}

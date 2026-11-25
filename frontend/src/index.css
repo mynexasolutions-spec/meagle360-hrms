@@ -26,7 +26,7 @@
 
   --text-primary: #0f172a;
   --text-secondary: #334155;
-  --text-muted: #64748b;
+  --text-muted: #526077;
   --text-inverse: #ffffff;
 
   --border-color: #e5e7eb;
@@ -67,7 +67,7 @@
 }
 
 html {
-  font-size: 16px;
+  font-size: clamp(14px, 0.45vw + 8.5px, 20px);
   scroll-behavior: smooth;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
@@ -604,7 +604,7 @@ input[type="password"]::-ms-clear {
 }
 
 .stat-card-trend {
-  font-size: 0.6875rem;
+  font-size: 0.75rem;
 }
 
 @media (max-width: 640px) {
@@ -636,7 +636,7 @@ input[type="password"]::-ms-clear {
   }
 
   .stat-card-trend {
-    font-size: 0.625rem;
+    font-size: 0.75rem;
     white-space: nowrap;
     overflow: hidden;
     text-overflow: ellipsis;
@@ -1066,7 +1066,7 @@ input[type="password"]::-ms-clear {
   display: inline-flex;
   align-items: center;
   gap: 3px;
-  font-size: 0.625rem;
+  font-size: 0.75rem;
   font-weight: 700;
   padding: 2px 7px;
   border-radius: var(--radius-full);
@@ -1141,7 +1141,7 @@ input[type="password"]::-ms-clear {
 
   .info-dl dt,
   .info-dl-wide dt {
-    font-size: 0.6875rem;
+    font-size: 0.75rem;
     text-transform: uppercase;
     letter-spacing: 0.04em;
     margin-top: 10px;
@@ -1342,7 +1342,7 @@ input[type="password"]::-ms-clear {
 }
 
 .timesheet-stat .stat-label {
-  font-size: 0.6875rem;
+  font-size: 0.75rem;
   font-weight: 500;
   color: var(--text-muted);
   text-transform: uppercase;
@@ -1399,7 +1399,7 @@ input[type="password"]::-ms-clear {
 
 .session-pill .pill-source {
   color: var(--text-muted);
-  font-size: 0.6875rem;
+  font-size: 0.75rem;
   text-transform: capitalize;
 }
 
@@ -1595,7 +1595,7 @@ input[type="password"]::-ms-clear {
 
 .sidebar-group-header .group-chevron {
   transition: transform 0.2s cubic-bezier(0.4, 0, 0.2, 1);
-  color: #64748b;
+  color: #526077;
 }
 
 .sidebar-group-header.open .group-chevron {
@@ -1654,13 +1654,13 @@ input[type="password"]::-ms-clear {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  font-size: 10.5px;
+  font-size: 0.75rem;
   font-weight: 600;
   line-height: 1;
   padding: 2.5px 7px;
   border-radius: 9999px;
   background: #f1f0f7;
-  color: #64748b;
+  color: #526077;
   border: 1px solid #e2e4ea;
   letter-spacing: 0.01em;
   margin-left: auto;
@@ -1686,7 +1686,7 @@ input[type="password"]::-ms-clear {
 }
 
 .sidebar-link-subtitle {
-  font-size: 0.675rem;
+  font-size: 0.75rem;
   font-weight: 600;
   color: #6366f1;
   letter-spacing: 0.01em;
@@ -1702,7 +1702,7 @@ input[type="password"]::-ms-clear {
 }
 
 .sidebar-brand-sub {
-  font-size: 0.6875rem;
+  font-size: 0.75rem;
 }
 
 .sidebar-user-name {
@@ -1710,7 +1710,7 @@ input[type="password"]::-ms-clear {
 }
 
 .sidebar-user-role {
-  font-size: 0.6875rem;
+  font-size: 0.75rem;
 }
 
 /* ── Widescreen & Large Monitor Enhancements (>= 1440px) ────── */
@@ -2310,7 +2310,7 @@ input[type="password"]::-ms-clear {
 }
 
 .payslip-emp-colon {
-  color: #64748b;
+  color: #526077;
   text-align: center;
 }
 
@@ -2422,7 +2422,7 @@ input[type="password"]::-ms-clear {
 }
 
 .payslip-att-label {
-  font-size: 0.64rem;
+  font-size: 0.75rem;
   font-weight: 800;
   color: #0052cc;
   text-transform: uppercase;
@@ -2532,8 +2532,8 @@ input[type="password"]::-ms-clear {
 }
 
 .payslip-notice-sub {
-  font-size: 0.68rem;
-  color: #64748b;
+  font-size: 0.75rem;
+  color: #526077;
   margin-left: 22px;
 }
 
@@ -2568,7 +2568,7 @@ input[type="password"]::-ms-clear {
 }
 
 .payslip-sig-role {
-  font-size: 0.68rem;
+  font-size: 0.75rem;
   font-weight: 800;
   color: #0f172a;
   text-transform: uppercase;
@@ -2576,8 +2576,8 @@ input[type="password"]::-ms-clear {
 }
 
 .payslip-sig-dept {
-  font-size: 0.66rem;
-  color: #64748b;
+  font-size: 0.75rem;
+  color: #526077;
   font-weight: 600;
 }
 
@@ -2589,7 +2589,7 @@ input[type="password"]::-ms-clear {
   justify-content: space-between;
   align-items: center;
   padding: 12px 28px;
-  font-size: 0.68rem;
+  font-size: 0.75rem;
   border-top: 2px solid #0041a3;
   gap: 16px;
   box-sizing: border-box;
@@ -2632,7 +2632,7 @@ input[type="password"]::-ms-clear {
 }
 
 .payslip-footer-thanks .thanks-sub {
-  font-size: 0.64rem;
+  font-size: 0.75rem;
   opacity: 0.92;
   margin-top: 1px;
   max-width: 240px;
@@ -2920,7 +2920,7 @@ input[type="password"]::-ms-clear {
   }
 
   .payslip-emp-colon {
-    color: #64748b !important;
+    color: #526077 !important;
   }
 
   .payslip-emp-val {
@@ -3111,8 +3111,8 @@ input[type="password"]::-ms-clear {
   }
 
   .payslip-notice-sub {
-    font-size: 0.70rem !important;
-    color: #64748b !important;
+    font-size: 0.75rem !important;
+    color: #526077 !important;
     margin-left: 22px !important;
   }
 
@@ -3153,7 +3153,7 @@ input[type="password"]::-ms-clear {
 
   .payslip-sig-dept {
     font-size: 0.72rem !important;
-    color: #64748b !important;
+    color: #526077 !important;
     font-weight: 600 !important;
   }
 
@@ -3429,7 +3429,7 @@ input[type="password"]::-ms-clear {
   }
 
   .dashboard-card-sub {
-    font-size: 0.70rem !important;
+    font-size: 0.75rem !important;
   }
 
   .dashboard-main-grid {
@@ -3490,7 +3490,7 @@ input[type="password"]::-ms-clear {
   }
 
   .leave-summary-tile-title {
-    font-size: 0.625rem !important;
+    font-size: 0.75rem !important;
   }
 
   .leave-summary-tile-count {
@@ -3562,7 +3562,7 @@ input[type="password"]::-ms-clear {
     flex: 1 !important;
     height: 100% !important;
     text-decoration: none !important;
-    color: #64748b !important;
+    color: #526077 !important;
     transition: all 0.15s ease !important;
     padding: 6px 0 !important;
     border-radius: 12px !important;
@@ -3580,7 +3580,7 @@ input[type="password"]::-ms-clear {
   }
 
   .bottom-nav-label {
-    font-size: 0.65rem !important;
+    font-size: 0.75rem !important;
     font-weight: 600 !important;
     letter-spacing: -0.01em !important;
     transition: all 0.15s ease !important;
@@ -4908,4 +4908,24 @@ input[type="password"]::-ms-clear {
 
 .scrollbar-thin::-webkit-scrollbar-thumb:hover {
   background: #94a3b8;
+}
+
+/* ── Wide-screen layout ───────────────────────────────── */
+:root {
+  --content-max: 1200px;
+  --content-max-wide: 1400px;
+}
+
+@media (min-width: 1600px) {
+  :root {
+    --content-max: 1480px;
+    --content-max-wide: 1760px;
+  }
+  .app-content {
+    padding: 28px 40px;
+  }
+  .dashboard-stats-grid,
+  .dashboard-main-grid {
+    gap: 24px !important;
+  }
 }

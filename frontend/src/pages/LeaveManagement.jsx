@@ -185,7 +185,7 @@ export default function LeaveManagement() {
   };
 
   return (
-    <div className="animate-fade-in" style={{ maxWidth: 1200, margin: '0 auto' }}>
+    <div className="animate-fade-in" style={{ maxWidth: 'var(--content-max)', margin: '0 auto' }}>
       {/* Page Header */}
       <div className="page-header" style={{ marginBottom: 24 }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: 14 }}>
@@ -200,7 +200,7 @@ export default function LeaveManagement() {
           </div>
           <div>
             <h1 style={{ fontSize: 'clamp(1.25rem, 4.5vw, 1.75rem)', fontWeight: 800, color: '#0f172a' }}>Leave Management</h1>
-            <p style={{ color: '#64748b', fontSize: '0.875rem' }}>
+            <p style={{ color: '#526077', fontSize: '0.875rem' }}>
               {isAdmin ? 'Review and manage employee leave approvals' : 'Track leave balances, apply for time off & monitor requests'}
             </p>
           </div>
@@ -279,7 +279,7 @@ export default function LeaveManagement() {
                       <span style={{ fontSize: '0.925rem', fontWeight: 700, color: '#0f172a' }}>
                         {b.leave_type_name || 'Leave'}
                       </span>
-                      <span style={{ fontSize: '0.8125rem', fontWeight: 600, color: '#64748b' }}>
+                      <span style={{ fontSize: '0.8125rem', fontWeight: 600, color: '#526077' }}>
                         {usedInt} / {totalInt} Used
                       </span>
                     </div>
@@ -303,7 +303,7 @@ export default function LeaveManagement() {
               })}
 
               {balances.length === 0 && (
-                <div style={{ color: '#94a3b8', fontSize: '0.875rem', textAlign: 'center', padding: '16px 0' }}>
+                <div style={{ color: '#64748b', fontSize: '0.875rem', textAlign: 'center', padding: '16px 0' }}>
                   No leave balances configured yet
                 </div>
               )}
@@ -554,7 +554,7 @@ export default function LeaveManagement() {
                 .filter((r) => r.status === 'approved')
                 .reduce((sum, r) => sum + Math.max(1, Math.round((new Date(r.end_date) - new Date(r.start_date)) / 86400000) + 1), 0);
               return (
-                <div style={{ fontSize: '0.8125rem', color: '#64748b' }}>
+                <div style={{ fontSize: '0.8125rem', color: '#526077' }}>
                   <strong style={{ color: '#0f172a', fontSize: '1rem' }}>{totalDays}</strong> approved leave day{totalDays === 1 ? '' : 's'} matching these filters
                 </div>
               );
@@ -584,7 +584,7 @@ export default function LeaveManagement() {
                     <td style={{ whiteSpace: 'nowrap' }}>{r.end_date}</td>
                     <td style={{ whiteSpace: 'nowrap' }}>{Math.max(1, Math.round((new Date(r.end_date) - new Date(r.start_date)) / 86400000) + 1)}</td>
                     <td style={{ whiteSpace: 'nowrap' }}><span className={`badge badge-${r.status}`}>{r.status}</span></td>
-                    <td style={{ whiteSpace: 'nowrap', color: '#64748b' }}>{new Date(r.created_at).toLocaleDateString()}</td>
+                    <td style={{ whiteSpace: 'nowrap', color: '#526077' }}>{new Date(r.created_at).toLocaleDateString()}</td>
                     <td style={{ whiteSpace: 'nowrap' }}>
                       <div className="leave-row-actions" style={{ display: 'flex', gap: 6 }}>
                         <button
@@ -1020,7 +1020,7 @@ function RecordLeaveModal({ employees, leaveTypes, onClose, onSuccess }) {
             {error}
           </div>
         )}
-        <p style={{ fontSize: '0.8125rem', color: '#64748b', marginTop: 0, marginBottom: 14, lineHeight: 1.45 }}>
+        <p style={{ fontSize: '0.8125rem', color: '#526077', marginTop: 0, marginBottom: 14, lineHeight: 1.45 }}>
           Directly enter past (retroactive) or upcoming leave for an employee. Approved entries immediately deduct from their leave balance.
         </p>
 
@@ -1163,7 +1163,7 @@ function EditLeaveRequestModal({ request, leaveTypes, onClose, onSuccess }) {
             {error}
           </div>
         )}
-        <p style={{ fontSize: '0.8125rem', color: '#64748b', marginTop: 0, marginBottom: 14, lineHeight: 1.45 }}>
+        <p style={{ fontSize: '0.8125rem', color: '#526077', marginTop: 0, marginBottom: 14, lineHeight: 1.45 }}>
           Update dates, leave type, or status. The employee&apos;s leave balance will be automatically recalculated and adjusted.
         </p>
 

@@ -53,7 +53,7 @@ export default function PlatformLayout() {
           </div>
           <div style={{ minWidth: 0 }}>
             <div className="truncate" style={{ fontSize: '0.9375rem', fontWeight: 800, color: '#f8fafc', letterSpacing: '-0.01em' }}>Nexa Solutions</div>
-            <div style={{ fontSize: '0.6875rem', color: '#94a3b8', fontWeight: 500, letterSpacing: '0.02em' }}>PLATFORM CONSOLE</div>
+            <div style={{ fontSize: '0.75rem', color: '#64748b', fontWeight: 500, letterSpacing: '0.02em' }}>PLATFORM CONSOLE</div>
           </div>
         </div>
 
@@ -71,12 +71,12 @@ export default function PlatformLayout() {
             </div>
             <div className="platform-admin-text" style={{ lineHeight: 1.3, minWidth: 0 }}>
               <div className="truncate" style={{ fontSize: '0.8125rem', fontWeight: 600, color: '#f1f5f9', maxWidth: 180 }}>{admin?.full_name}</div>
-              <div className="truncate" style={{ fontSize: '0.6875rem', color: '#94a3b8', maxWidth: 180 }}>{admin?.email}</div>
+              <div className="truncate" style={{ fontSize: '0.75rem', color: '#64748b', maxWidth: 180 }}>{admin?.email}</div>
             </div>
             <span
               className="platform-admin-badge"
               style={{
-                fontSize: '0.625rem', fontWeight: 700, letterSpacing: '0.04em',
+                fontSize: '0.75rem', fontWeight: 700, letterSpacing: '0.04em',
                 color: '#c4b5fd', background: 'rgba(139, 92, 246, 0.15)',
                 border: '1px solid rgba(139, 92, 246, 0.3)',
                 borderRadius: 'var(--radius-full)', padding: '3px 9px', marginLeft: 4,
@@ -93,7 +93,7 @@ export default function PlatformLayout() {
               display: 'flex', alignItems: 'center', justifyContent: 'center',
               width: 34, height: 34, borderRadius: 'var(--radius-md)',
               background: 'rgba(148, 163, 184, 0.1)', border: '1px solid rgba(148, 163, 184, 0.2)',
-              color: '#cbd5e1', cursor: 'pointer', transition: 'all 150ms ease',
+              color: '#7c8aa0', cursor: 'pointer', transition: 'all 150ms ease',
             }}
             onMouseEnter={(e) => { e.currentTarget.style.background = 'rgba(239, 68, 68, 0.15)'; e.currentTarget.style.color = '#fca5a5'; e.currentTarget.style.borderColor = 'rgba(239, 68, 68, 0.3)'; }}
             onMouseLeave={(e) => { e.currentTarget.style.background = 'rgba(148, 163, 184, 0.1)'; e.currentTarget.style.color = '#cbd5e1'; e.currentTarget.style.borderColor = 'rgba(148, 163, 184, 0.2)'; }}

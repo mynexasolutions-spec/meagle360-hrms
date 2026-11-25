@@ -149,7 +149,7 @@ export default function ActionTracker() {
     switch (priority) {
       case 'urgent': return { bg: '#fee2e2', color: '#dc2626', label: 'Urgent' };
       case 'high': return { bg: '#fef3c7', color: '#d97706', label: 'High' };
-      case 'low': return { bg: '#f1f5f9', color: '#64748b', label: 'Low' };
+      case 'low': return { bg: '#f1f5f9', color: '#526077', label: 'Low' };
       default: return { bg: '#e0f2fe', color: '#0284c7', label: 'Medium' };
     }
   };
@@ -158,13 +158,13 @@ export default function ActionTracker() {
     switch (status) {
       case 'completed': return { bg: '#dcfce7', color: '#15803d', label: 'Completed' };
       case 'in_progress': return { bg: '#e0e7ff', color: '#4338ca', label: 'In Progress' };
-      case 'cancelled': return { bg: '#f1f5f9', color: '#94a3b8', label: 'Cancelled' };
+      case 'cancelled': return { bg: '#f1f5f9', color: '#64748b', label: 'Cancelled' };
       default: return { bg: '#fef3c7', color: '#b45309', label: 'To Do' };
     }
   };
 
   return (
-    <div className="animate-fade-in" style={{ maxWidth: 1200, margin: '0 auto' }}>
+    <div className="animate-fade-in" style={{ maxWidth: 'var(--content-max)', margin: '0 auto' }}>
       {/* Header */}
       <div className="page-header" style={{ marginBottom: 24 }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: 14 }}>
@@ -179,7 +179,7 @@ export default function ActionTracker() {
           </div>
           <div style={{ minWidth: 0 }}>
             <h1 style={{ fontSize: 'clamp(1.25rem, 4.5vw, 1.75rem)', fontWeight: 800, color: '#0f172a' }}>Action Tracker</h1>
-            <p style={{ color: '#64748b', fontSize: '0.875rem' }}>Assign deliverables, track progress &amp; meet team deadlines</p>
+            <p style={{ color: '#526077', fontSize: '0.875rem' }}>Assign deliverables, track progress &amp; meet team deadlines</p>
           </div>
         </div>
         {canCreateTask && (
@@ -280,7 +280,7 @@ export default function ActionTracker() {
                 <h3 style={{ margin: '0 0 6px 0', fontSize: '1.1rem', fontWeight: 700, color: '#0f172a' }}>{t.title}</h3>
                 {t.description && <p style={{ margin: '0 0 12px 0', fontSize: '0.875rem', color: '#475569', lineHeight: 1.5 }}>{t.description}</p>}
 
-                <div style={{ display: 'flex', gap: 20, flexWrap: 'wrap', fontSize: '0.8125rem', color: '#64748b' }}>
+                <div style={{ display: 'flex', gap: 20, flexWrap: 'wrap', fontSize: '0.8125rem', color: '#526077' }}>
                   <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
                     <User size={15} style={{ color: '#2563eb' }} />
                     <span>Assignee: <strong style={{ color: '#334155' }}>{t.assigned_to_name || 'Unassigned'}</strong></span>
@@ -337,7 +337,7 @@ export default function ActionTracker() {
                     style={{
                       border: 'none',
                       background: 'transparent',
-                      color: '#94a3b8',
+                      color: '#64748b',
                       padding: 4,
                       cursor: 'pointer',
                     }}
@@ -352,8 +352,8 @@ export default function ActionTracker() {
         })}
 
         {filteredTasks.length === 0 && !loading && (
-          <div style={{ background: '#ffffff', borderRadius: 16, border: '1px solid #e2e8f0', padding: 48, textAlign: 'center', color: '#64748b' }}>
-            <CheckSquare size={48} style={{ color: '#cbd5e1', marginBottom: 12 }} />
+          <div style={{ background: '#ffffff', borderRadius: 16, border: '1px solid #e2e8f0', padding: 48, textAlign: 'center', color: '#526077' }}>
+            <CheckSquare size={48} style={{ color: '#7c8aa0', marginBottom: 12 }} />
             <h3 style={{ margin: 0, fontSize: '1.1rem', color: '#0f172a', fontWeight: 700 }}>No Action Tasks Found</h3>
             <p style={{ margin: '4px 0 0 0', fontSize: '0.875rem' }}>Assigned tasks and action items will appear here.</p>
           </div>

@@ -126,7 +126,7 @@ export default function GeofenceSettings() {
           </div>
 
           <h4 style={{ margin: '24px 0 8px' }}>Pending location requests ({requests.length})</h4>
-          {requests.length === 0 ? <p style={{ color: '#64748b', fontSize: 13 }}>No pending requests.</p> : (
+          {requests.length === 0 ? <p style={{ color: '#526077', fontSize: 13 }}>No pending requests.</p> : (
             <div style={{ overflowX: 'auto' }}>
               <table className="data-table">
                 <thead><tr><th>Employee</th><th>Location</th><th>Requested</th><th>Radius (m)</th><th /></tr></thead>
@@ -164,7 +164,7 @@ export default function GeofenceSettings() {
           )}
 
           <h4 style={{ margin: '24px 0 8px' }}>Flagged clock-ins ({flagged.length})</h4>
-          {flagged.length === 0 ? <p style={{ color: '#64748b', fontSize: 13 }}>Nothing to review.</p> : (
+          {flagged.length === 0 ? <p style={{ color: '#526077', fontSize: 13 }}>Nothing to review.</p> : (
             <div style={{ overflowX: 'auto' }}>
               <table className="data-table">
                 <thead><tr><th>Employee</th><th>Clock-in</th><th>Reason</th><th>Location</th><th /></tr></thead>
@@ -244,7 +244,7 @@ export default function GeofenceSettings() {
                     <label className="input-label" style={{ fontWeight: 700, fontSize: '0.82rem', margin: 0 }}>
                       Fence Radius
                     </label>
-                    <span style={{ fontSize: '0.74rem', color: '#64748b' }}>
+                    <span style={{ fontSize: '0.74rem', color: '#526077' }}>
                       {cfg.min_radius_m}m – {cfg.max_radius_m}m
                     </span>
                   </div>
@@ -267,14 +267,14 @@ export default function GeofenceSettings() {
                         boxSizing: 'border-box',
                       }}
                     />
-                    <span style={{ position: 'absolute', right: 12, fontSize: '0.8rem', color: '#64748b', fontWeight: 700, pointerEvents: 'none' }}>
+                    <span style={{ position: 'absolute', right: 12, fontSize: '0.8rem', color: '#526077', fontWeight: 700, pointerEvents: 'none' }}>
                       m
                     </span>
                   </div>
 
                   {/* Preset chips */}
                   <div style={{ display: 'flex', gap: 6, marginTop: 6, alignItems: 'center', flexWrap: 'wrap' }}>
-                    <span style={{ fontSize: '0.72rem', color: '#64748b', fontWeight: 600 }}>Quick:</span>
+                    <span style={{ fontSize: '0.72rem', color: '#526077', fontWeight: 600 }}>Quick:</span>
                     {[50, 100, 200, 500].map((r) => (
                       <button
                         key={r}

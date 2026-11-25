@@ -201,7 +201,7 @@ export default function OfferLetterStudio() {
               gap: 5,
               fontSize: '0.78rem',
               fontWeight: 600,
-              color: '#64748b',
+              color: '#526077',
               marginBottom: 4,
               textDecoration: 'none',
               transition: 'color 0.15s ease',
@@ -219,7 +219,7 @@ export default function OfferLetterStudio() {
               </span>
             )}
           </h1>
-          <p style={{ fontSize: '0.75rem', color: '#64748b', margin: '2px 0 0 0' }}>
+          <p style={{ fontSize: '0.75rem', color: '#526077', margin: '2px 0 0 0' }}>
             Real-time split-screen editor • Instant single-page live preview
           </p>
         </div>
@@ -315,7 +315,7 @@ export default function OfferLetterStudio() {
                   borderRadius: 4,
                   cursor: 'pointer',
                   padding: '2px 6px',
-                  fontSize: '0.68rem',
+                  fontSize: '0.75rem',
                   fontWeight: 700,
                   color: '#2563eb',
                   display: 'flex',
@@ -551,7 +551,7 @@ export default function OfferLetterStudio() {
                       <div style={{ width: 170, height: 48, display: 'flex', alignItems: 'flex-end' }}>
                         <div style={{ width: '100%', borderBottom: '2px solid #94a3b8', marginBottom: 4 }}></div>
                       </div>
-                      <div style={{ fontWeight: 700, color: '#64748b', fontSize: '0.74rem', textTransform: 'uppercase', letterSpacing: '0.5px', marginTop: 4 }}>SIGNATURE</div>
+                      <div style={{ fontWeight: 700, color: '#526077', fontSize: '0.74rem', textTransform: 'uppercase', letterSpacing: '0.5px', marginTop: 4 }}>SIGNATURE</div>
                       <div className="offer-sign-name" style={{ marginTop: 1 }}>{form.candidate_name || 'gigilia'}</div>
                       <div style={{ color: '#475569', fontSize: '0.85rem' }}>Candidate</div>
                     </div>
