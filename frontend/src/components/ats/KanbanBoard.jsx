@@ -346,6 +346,7 @@ function KanbanColumn({
   onLoadMore,
   onOpenDetail,
   onOpenResume,
+  wide = false,
 }) {
   const accent = getStageAccent(stage, index);
   const { setNodeRef, isOver } = useDroppable({
@@ -402,9 +403,14 @@ function KanbanColumn({
       </div>
 
       {/* Scrollable Card Stack */}
-      <div className="flex-1 overflow-y-auto p-2 space-y-2 scrollbar-thin">
+      <div
+        className={`flex-1 overflow-y-auto p-2 scrollbar-thin ${
+          wide ? 'grid gap-2.5 content-start justify-start' : 'space-y-2'
+        }`}
+        style={wide ? { gridTemplateColumns: 'repeat(auto-fill, minmax(250px, 300px))' } : undefined}
+      >
         {items.length === 0 ? (
-          <div className="h-44 rounded-xl border-2 border-dashed border-gray-200/90 bg-white/50 flex flex-col items-center justify-center text-gray-400 px-4 text-center">
+          <div className="col-span-full h-44 rounded-xl border-2 border-dashed border-gray-200/90 bg-white/50 flex flex-col items-center justify-center text-gray-400 px-4 text-center">
             <Inbox size={26} className="mb-2 text-gray-300" />
             <span className="text-xs font-medium text-gray-400">
               {isBlockedTarget ? 'Org Admin only' : 'Drag candidate card here'}
@@ -425,7 +431,7 @@ function KanbanColumn({
             ))}
 
             {hasMore && (
-              <div ref={sentinelRef} className="py-2 text-center">
+              <div ref={sentinelRef} className="py-2 text-center col-span-full">
                 {loadingMore ? (
                   <span className="inline-flex items-center gap-1.5 text-[11px] text-gray-500">
                     <Loader2 size={13} className="animate-spin" /> Loading more...
@@ -621,6 +627,7 @@ export default function KanbanBoard({
                     showJobBadge={showJobBadge}
                     recruiters={recruiters}
                     isBlockedTarget={blocked}
+                    wide={stages.length === 1}
                     onQuickAssign={onQuickAssign}
                     onLoadMore={onLoadMoreColumn}
                     onOpenDetail={onOpenDetail}
