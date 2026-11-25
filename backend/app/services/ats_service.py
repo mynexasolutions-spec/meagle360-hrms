@@ -2506,7 +2506,7 @@ class AtsService:
                     "employee_code": emp.employee_code,
                     "email": user_acc.email if user_acc else None,
                     "department_name": emp.department.name if emp.department else None,
-                    "designation_name": emp.designation.name if emp.designation else None,
+                    "designation_name": emp.designation.title if emp.designation else None,
                     "photo_url": emp.photo_url,
                     "role_names": role_names,
                     "primary_role": user_acc.role.name if (user_acc and user_acc.role) else "Employee",

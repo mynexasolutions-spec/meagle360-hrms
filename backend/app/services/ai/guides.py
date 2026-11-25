@@ -115,7 +115,7 @@ GUIDES: tuple[Guide, ...] = (
         path="/employees",
         button="Open Employee Directory",
         aliases=("edit employee", "update employee details", "deactivate employee", "employee bank details update",
-                 "employee pan uan update", "reactivate employee", "change department employee"),
+                 "employee pan uan update", "reactivate employee"),
         steps=(
             "Open Employee Directory and open the employee's profile.",
             "Click Edit, change the details (personal, PAN, UAN, bank, tax regime) and click Save.",
@@ -123,6 +123,28 @@ GUIDES: tuple[Guide, ...] = (
         ),
         notes=("To give extra permissions, use Manage Additional Roles on the profile (needs settings access).",),
         permissions=("employees:write",),
+    ),
+    Guide(
+        id="promote-employee",
+        title="Promote, demote or transfer an employee",
+        path="/employees",
+        button="Open Employee Directory",
+        aliases=("promote employee", "demote employee", "transfer employee", "change department employee",
+                 "change manager employee", "employee promotion", "employee promote karna"),
+        steps=(
+            "First time: open Employee Directory > Organization, click Designations and give each title a level.",
+            "Open the employee's profile and click Change Job.",
+            "Choose Promote, Demote or Transfer.",
+            "Fill the new designation, department or manager and the Effective Date, then click Save.",
+        ),
+        notes=(
+            "To move several people by dragging cards: Employee Directory > Organization > Edit Organization, "
+            "then Review and Publish.",
+            "A future Effective Date schedules the change.",
+            "Login roles and permissions do not change; use Manage Additional Roles for those.",
+        ),
+        permissions=("settings:write",),
+        soft=True,
     ),
     Guide(
         id="apply-leave",
@@ -524,13 +546,35 @@ GUIDES: tuple[Guide, ...] = (
         id="documents",
         title="Upload your documents",
         path="/documents",
-        button="Open Documents",
+        button="Open My Documents",
         aliases=("upload document", "my documents", "pan card upload", "aadhaar upload"),
         steps=(
-            "Open My Space > Documents and click Upload Document.",
-            "Enter the document type or name and paste the file link (for example a Google Drive link).",
-            "Click Save Document.",
+            "Open My Space > My Documents.",
+            "Under Required documents, click Upload next to each Pending document and choose the file.",
+            "HR checks it: Verified means done. If it is Rejected, read the reason and click Replace.",
         ),
+        notes=("PDF, JPG or PNG, up to 5 MB.",
+               "For anything else, use Upload Document under Other documents. You can delete what you uploaded there; "
+               "only HR can delete what HR added."),
+        soft=True,
+    ),
+    Guide(
+        id="required-documents",
+        title="Set mandatory documents and verify uploads",
+        path="/employee-documents",
+        button="Open Employee Documents",
+        aliases=("mandatory documents", "required documents", "verify document", "reject document",
+                 "employee documents", "document pending employee"),
+        steps=(
+            "Open Team & HR Ops > Employee Documents.",
+            "In Required documents, click Add document, set the name and Mandatory, and tick departments or "
+            "employment types (nothing ticked means everyone).",
+            "In Employees, see who is Pending, Uploaded, Verified or Rejected.",
+            "Click Review or Open next to an employee, View the file, then click Verify or Reject with a reason.",
+        ),
+        notes=("HR can also click Upload there for an employee who has no login.",
+               "Only users with settings access can change the required list."),
+        permissions=("employees:write", "settings:write"),
         soft=True,
     ),
 )

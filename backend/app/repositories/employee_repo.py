@@ -35,20 +35,11 @@ class EmployeeRepository(BaseRepository[Employee]):
             .first()
         )
 
-    def get_top_level_employees(self) -> list[Employee]:
-        """Employees with no manager (top of org chart)."""
+    def get_for_org_chart(self) -> list[Employee]:
         return (
             self._scoped_query()
-            .filter(Employee.manager_id.is_(None))
-            .options(joinedload(Employee.department))
-            .all()
-        )
-
-    def get_direct_reports(self, manager_id: UUID) -> list[Employee]:
-        return (
-            self._scoped_query()
-            .filter(Employee.manager_id == manager_id)
-            .options(joinedload(Employee.department))
+            .options(joinedload(Employee.department), joinedload(Employee.designation))
+            .order_by(Employee.full_name)
             .all()
         )
 

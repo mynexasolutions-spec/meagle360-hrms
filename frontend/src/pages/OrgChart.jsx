@@ -1,19 +1,30 @@
 import { useState, useEffect } from 'react';
 import { getOrgChart } from '../api/employees';
+import { roleFor } from '../components/job/orgDraft';
 import { Building2, ChevronDown, ChevronRight, Users, Network, List, ZoomIn, ZoomOut, RotateCcw } from 'lucide-react';
 
 const NODE_COLORS = [
-  { border: '#2563eb', bg: '#eff6ff', badgeBg: '#dbeafe', badgeColor: '#1e40af', label: 'Executive Leadership' },
-  { border: '#059669', bg: '#ecfdf5', badgeBg: '#d1fae5', badgeColor: '#065f46', label: 'Department Manager' },
-  { border: '#7c3aed', bg: '#f5f3ff', badgeBg: '#ede9fe', badgeColor: '#5b21b6', label: 'Team Lead' },
-  { border: '#d97706', bg: '#fffbeb', badgeBg: '#fef3c7', badgeColor: '#92400e', label: 'Team Member' },
+  { border: '#2563eb', bg: '#eff6ff', badgeBg: '#dbeafe', badgeColor: '#1e40af', label: 'Leadership', role: 'leadership' },
+  { border: '#059669', bg: '#ecfdf5', badgeBg: '#d1fae5', badgeColor: '#065f46', label: 'Manager', role: 'manager' },
+  { border: '#7c3aed', bg: '#f5f3ff', badgeBg: '#ede9fe', badgeColor: '#5b21b6', label: 'Team Lead', role: 'lead' },
+  { border: '#d97706', bg: '#fffbeb', badgeBg: '#fef3c7', badgeColor: '#92400e', label: 'Member', role: 'member' },
 ];
+
+function schemeFor(node, depth) {
+  const reports = node.direct_reports || [];
+  const role = roleFor({
+    hasTeam: reports.length > 0,
+    leadsLeads: reports.some((r) => r.direct_reports?.length > 0),
+    hasManager: depth > 0,
+  });
+  return NODE_COLORS.find((c) => c.role === role);
+}
 
 /* ── Tree diagram view (boxes + connector lines) ─────────────── */
 function OrgTreeNode({ node, depth = 0 }) {
   const [expanded, setExpanded] = useState(depth < 2);
   const hasChildren = node.direct_reports && node.direct_reports.length > 0;
-  const colorScheme = NODE_COLORS[Math.min(depth, NODE_COLORS.length - 1)];
+  const colorScheme = schemeFor(node, depth);
   const initials = (node.full_name || '').split(' ').map((n) => n[0]).join('').toUpperCase();
 
   return (
@@ -54,6 +65,14 @@ function OrgTreeNode({ node, depth = 0 }) {
         >
           {colorScheme.label}
         </span>
+        {node.designation_name && (
+          <div style={{ fontSize: '0.75rem', fontWeight: 600, color: '#334155', marginTop: 2 }}>{node.designation_name}</div>
+        )}
+        {node.open_positions?.length > 0 && (
+          <div style={{ fontSize: '0.75rem', fontWeight: 700, color: '#b45309', marginTop: 2 }} title={node.open_positions.join(', ')}>
+            {node.open_positions.length} open position{node.open_positions.length === 1 ? '' : 's'}
+          </div>
+        )}
         {node.department_name && (
           <div style={{ fontSize: '0.75rem', color: '#3d4a5e', marginTop: 2 }}>{node.department_name}</div>
         )}
@@ -83,7 +102,7 @@ function OrgTreeNode({ node, depth = 0 }) {
 function OrgNode({ node, depth = 0 }) {
   const [expanded, setExpanded] = useState(depth < 2);
   const hasChildren = node.direct_reports && node.direct_reports.length > 0;
-  const colorScheme = NODE_COLORS[Math.min(depth, NODE_COLORS.length - 1)];
+  const colorScheme = schemeFor(node, depth);
 
   return (
     <div style={{ position: 'relative', marginTop: depth > 0 ? 12 : 0 }}>

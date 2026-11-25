@@ -107,6 +107,8 @@ class EmployeeProfileResponse(BaseModel):
     company_id: UUID
     department_id: UUID | None
     department_name: str | None = None
+    designation_id: UUID | None = None
+    designation_name: str | None = None
     manager_id: UUID | None
     manager_name: str | None = None
     site_id: UUID | None = None
@@ -173,24 +175,6 @@ class OrgChartNode(BaseModel):
     employee_code: str
     department_name: str | None = None
     direct_reports: list["OrgChartNode"] = []
-
-    class Config:
-        from_attributes = True
-
-
-class EmployeeDocumentCreate(BaseModel):
-    doc_type: str
-    file_url: str
-    e_signed: bool = False
-
-
-class EmployeeDocumentResponse(BaseModel):
-    id: UUID
-    employee_id: UUID
-    doc_type: str
-    file_url: str
-    e_signed: bool
-    created_at: datetime
 
     class Config:
         from_attributes = True

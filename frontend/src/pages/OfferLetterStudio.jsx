@@ -112,7 +112,7 @@ export default function OfferLetterStudio() {
         let matched = null;
         if (candidateState.designation_name) {
           matched = desigs.find(
-            (d) => d.name.toLowerCase() === candidateState.designation_name.toLowerCase()
+            (d) => d.title.toLowerCase() === candidateState.designation_name.toLowerCase()
           );
         }
         setForm((prev) => ({

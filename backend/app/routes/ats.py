@@ -2,7 +2,6 @@
 ATS Routes — Job Openings CRUD and Public Careers Endpoints.
 """
 
-import os
 from datetime import date
 from uuid import UUID
 from fastapi import (
@@ -16,7 +15,7 @@ from fastapi import (
     UploadFile,
     status,
 )
-from fastapi.responses import FileResponse, Response
+from fastapi.responses import Response
 from sqlalchemy.orm import Session
 
 from app.database import get_db
@@ -310,17 +309,6 @@ def get_departments_and_designations(
         "roles": [{"id": str(r.id), "name": r.name} for r in roles],
         "sites": [{"id": str(s.id), "name": s.name} for s in sites],
     }
-
-
-@router.get("/applications/resume-file")
-def get_local_resume_file(path: str):
-    """Fallback route to serve local development resumes securely."""
-    clean_path = path.lstrip("/")
-    if not clean_path.startswith("uploads/resumes/"):
-        raise HTTPException(status_code=403, detail="Forbidden")
-    if not os.path.exists(clean_path):
-        raise HTTPException(status_code=404, detail="File not found")
-    return FileResponse(clean_path, media_type="application/pdf")
 
 
 # ── Phase 2: Applicants Pipeline & Application Detail ─────────

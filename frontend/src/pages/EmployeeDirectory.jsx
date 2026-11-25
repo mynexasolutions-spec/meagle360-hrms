@@ -1,11 +1,13 @@
 import { useState, useEffect, useMemo } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { getDirectory, inviteEmployee, getDepartments, getRoles, getSites } from '../api/employees';
-import { Users, Search, Plus, Copy, Check, LayoutGrid, List, Mail, UserCheck, UserX, FileText, Award, Building2 } from 'lucide-react';
+import { Users, Search, Plus, Copy, Check, LayoutGrid, List, Mail, UserCheck, UserX, FileText, Award, Building2, Layers, Move } from 'lucide-react';
 import Modal from '../components/Modal';
 import StatCard from '../components/StatCard';
 import useUrlFilters from '../utils/useUrlFilters';
 import { rowClick } from '../utils/rowClick';
+import DesignationsModal from '../components/job/DesignationsModal';
+import OrgEditor from '../components/job/OrgEditor';
 import OrgChart from './OrgChart';
 import { useAuth } from '../context/AuthContext';
 
@@ -43,9 +45,13 @@ const EMPTY_FORM = {
 export default function EmployeeDirectory() {
   const navigate = useNavigate();
   const { user } = useAuth();
+  const isAdmin = !!user?.permissions?.['settings:write'];
+  const [editingOrg, setEditingOrg] = useState(false);
+  const [showDesignations, setShowDesignations] = useState(false);
   const canInvite = !!user?.permissions?.['employees:write'];
   const [filters, setFilters] = useUrlFilters({ tab: 'directory', q: '', status: '', department: '' });
   const activeTab = filters.tab === 'organization' ? 'organization' : 'directory';
+  const isEditingOrg = isAdmin && editingOrg && activeTab === 'organization';
   const [employees, setEmployees] = useState([]);
   const [departments, setDepartments] = useState([]);
   const [sites, setSites] = useState([]);
@@ -163,6 +169,9 @@ export default function EmployeeDirectory() {
 
   return (
     <div className="animate-fade-in">
+      {/* The editor needs the whole screen, so the header and tabs step aside. */}
+      {!isEditingOrg && (
+        <>
       {/* 1. Header with dynamic title and action buttons */}
       <div className="page-header" style={{ marginBottom: 18 }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: 14 }}>
@@ -264,10 +273,27 @@ export default function EmployeeDirectory() {
           <span>Organization</span>
         </button>
       </div>
+        </>
+      )}
 
       {/* 3. Conditional Tab Content */}
       {activeTab === 'organization' ? (
-        <OrgChart embedded={true} />
+        <>
+          {isAdmin && !editingOrg && (
+            <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap', marginBottom: 16 }}>
+              <button className="btn btn-primary" onClick={() => setEditingOrg(true)}>
+                <Move size={16} /> Edit Organization
+              </button>
+              <button className="btn btn-secondary" onClick={() => setShowDesignations(true)}>
+                <Layers size={16} /> Designations
+              </button>
+            </div>
+          )}
+          {isEditingOrg
+            ? <OrgEditor onClose={() => { setEditingOrg(false); loadEmployees(); }} />
+            : <OrgChart embedded={true} />}
+          {showDesignations && <DesignationsModal onClose={() => setShowDesignations(false)} />}
+        </>
       ) : (
         <>
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: 16, marginBottom: 24 }}>

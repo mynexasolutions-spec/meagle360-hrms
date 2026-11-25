@@ -25,8 +25,6 @@ from app.schemas.employee import (
     EmployeeCreate,
     EmployeeUpdate,
     EmployeeResponse,
-    EmployeeDocumentCreate,
-    EmployeeDocumentResponse,
     EmployeeInviteRequest,
     EmployeeInviteResponse,
     EmployeeProfileResponse,
@@ -252,48 +250,6 @@ def delete_employee(
     svc = EmployeeService(db, company_id)
     if not svc.delete_employee(employee_id, current_user.employee_id):
         raise HTTPException(status_code=404, detail="Employee not found")
-
-
-@router.get("/{employee_id}/documents", response_model=list[EmployeeDocumentResponse])
-def list_documents(
-    employee_id: UUID,
-    db: Session = Depends(get_db),
-    company_id: UUID = Depends(get_company_id),
-    current_user: UserAccount = Depends(get_current_user),
-):
-    perms = current_user.merged_permissions
-    is_self = current_user.employee_id == employee_id
-    if not (is_self or perms.get("employees:write") or perms.get("settings:write")):
-        raise HTTPException(status_code=403, detail="Insufficient permissions")
-
-    svc = EmployeeService(db, company_id)
-    emp = svc.get_employee(employee_id)
-    if not emp:
-        raise HTTPException(status_code=404, detail="Employee not found")
-    return emp.documents
-
-
-@router.post("/{employee_id}/documents", response_model=EmployeeDocumentResponse, status_code=201)
-def add_document(
-    employee_id: UUID,
-    data: EmployeeDocumentCreate,
-    db: Session = Depends(get_db),
-    company_id: UUID = Depends(get_company_id),
-    current_user: UserAccount = Depends(get_current_user),
-):
-    """Upload a document to an employee's file. An employee can upload to
-    their own file (self-service, e.g. from the Documents page); uploading to
-    someone else's file (e.g. Admin attaching an offer letter) requires
-    employees:write."""
-    is_self = current_user.employee_id == employee_id
-    if not is_self and not current_user.merged_permissions.get("employees:write"):
-        raise HTTPException(status_code=403, detail="Insufficient permissions")
-
-    svc = EmployeeService(db, company_id)
-    emp = svc.get_employee(employee_id)
-    if not emp:
-        raise HTTPException(status_code=404, detail="Employee not found")
-    return svc.add_document(employee_id, data.model_dump())
 
 
 # ── Offer Letter ─────────────────────────────────────────────

@@ -155,8 +155,9 @@ def generate_signed_resume_url(file_path: str, expiry_seconds: int = 300) -> str
     private_key, public_key, url_endpoint = _get_imagekit_credentials()
     clean_path = file_path.lstrip("/")
 
+    # Local files have no link; they are only read through the resume-blob route.
     if file_path.startswith("/uploads/") or file_path.startswith("uploads/"):
-        return f"/api/ats/applications/resume-file?path={file_path}"
+        return ""
 
     if not private_key:
         return f"{url_endpoint}/{clean_path}"

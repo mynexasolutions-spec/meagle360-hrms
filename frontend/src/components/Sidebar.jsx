@@ -26,7 +26,10 @@ import {
   CalendarHeart,
   Megaphone,
   ScrollText,
+  FolderCheck,
 } from 'lucide-react';
+import { getPendingDocumentCount } from '../api/documents';
+import { DOCUMENTS_CHANGED } from './documents/shared';
 import { useAuth } from '../context/AuthContext';
 import Modal from './Modal';
 import { getPendingPolicyCount } from '../api/policies';
@@ -95,7 +98,7 @@ const NAV_GROUPS = [
       { path: '/leave', label: 'Leave', icon: CalendarDays },
       { path: '/my-payslips', label: 'My Payslips', icon: Wallet, hideIfAdmin: true, hideIfPermission: 'settings:write' },
       { path: '/expenses', label: 'Expenses', icon: Receipt },
-      { path: '/documents', label: 'Documents', icon: FileText, hideIfAdmin: true, hideIfPermission: 'settings:write' },
+      { path: '/documents', label: 'My Documents', icon: FileText, pendingBadge: 'documents' },
       { path: '/performance', label: 'Performance', icon: Award, audience: 'employee', permission: 'employees:read' },
       { path: '/helpdesk', label: 'Helpdesk', icon: LifeBuoy },
     ],
@@ -107,6 +110,7 @@ const NAV_GROUPS = [
     icon: Briefcase,
     items: [
       { path: '/employees', label: 'Employee Directory', icon: Users, audience: 'staff' },
+      { path: '/employee-documents', label: 'Employee Documents', icon: FolderCheck, permission: ['employees:write', 'settings:write'] },
       { path: '/shifts', label: 'Shifts', icon: GitBranch, permission: ['shifts:read', 'attendance:approve', 'settings:write'] },
       { path: '/payroll', label: 'Payroll', icon: Wallet, permission: ['payroll:read', 'settings:write'] },
       {
@@ -125,7 +129,7 @@ const NAV_GROUPS = [
     label: 'Company',
     icon: Building2,
     items: [
-      { path: '/policies', label: 'Company Policies', icon: ScrollText, pendingBadge: true },
+      { path: '/policies', label: 'Company Policies', icon: ScrollText, pendingBadge: 'policies' },
       { path: '/holidays', label: 'Holidays', icon: CalendarHeart },
       { path: '/announcements', label: 'Announcements', icon: Megaphone },
     ],
@@ -190,16 +194,21 @@ export default function Sidebar({ sidebarOpen, permissions, roleName }) {
   const { isPlanExpired } = useAuth();
   const location = useLocation();
   const [showAiModal, setShowAiModal] = useState(false);
-  const [pendingPolicies, setPendingPolicies] = useState(0);
+  const [pending, setPending] = useState({ policies: 0, documents: 0 });
 
   useEffect(() => {
     if (isPlanExpired) return undefined;
-    const refresh = () => getPendingPolicyCount()
-      .then((r) => setPendingPolicies(r.data.count))
-      .catch(() => {}); // the badge is optional
-    refresh();
-    window.addEventListener(POLICIES_CHANGED, refresh);
-    return () => window.removeEventListener(POLICIES_CHANGED, refresh);
+    const watch = (key, event, fetchCount) => {
+      const refresh = () => fetchCount()
+        .then((r) => setPending((p) => ({ ...p, [key]: r.data.count })))
+        .catch(() => {}); // the badge is optional
+      refresh();
+      window.addEventListener(event, refresh);
+      return () => window.removeEventListener(event, refresh);
+    };
+    const stopPolicies = watch('policies', POLICIES_CHANGED, getPendingPolicyCount);
+    const stopDocuments = watch('documents', DOCUMENTS_CHANGED, getPendingDocumentCount);
+    return () => { stopPolicies(); stopDocuments(); };
   }, [isPlanExpired]);
 
   // Default state (Hybrid approach):
@@ -278,8 +287,8 @@ export default function Sidebar({ sidebarOpen, permissions, roleName }) {
               )}
             </div>
             {item.badge && <span className="sidebar-badge-soon">{item.badge}</span>}
-            {item.pendingBadge && pendingPolicies > 0 && (
-              <span className="sidebar-badge-soon" title={`${pendingPolicies} to agree to`}>{pendingPolicies}</span>
+            {pending[item.pendingBadge] > 0 && (
+              <span className="sidebar-badge-soon" title={`${pending[item.pendingBadge]} pending`}>{pending[item.pendingBadge]}</span>
             )}
           </div>
         )}

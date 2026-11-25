@@ -11,7 +11,7 @@ from fastapi.testclient import TestClient
 
 from app.database import get_db
 from app.dependencies import get_company_id, get_current_user
-from app.routes import dashboard, employee
+from app.routes import dashboard, employee, employee_document
 from app.services.team_service import TeamService
 
 EMP = uuid.uuid4()
@@ -31,6 +31,7 @@ RECORD = dict(
 def _client(perms, own_id=None):
     app = FastAPI()
     app.include_router(employee.router)
+    app.include_router(employee_document.router)
     app.include_router(dashboard.router)
     user = SimpleNamespace(employee_id=own_id or uuid.uuid4(), merged_permissions={p: True for p in perms})
     app.dependency_overrides = {

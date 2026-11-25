@@ -16,6 +16,8 @@ from app.models.platform_admin import PlatformAdmin
 from app.models.shift import Shift
 from app.models.employee_shift import EmployeeShift
 from app.models.employee_document import EmployeeDocument
+from app.models.employee_job_change import EmployeeJobChange
+from app.models.org_planning import ScheduledJobChange, VacantPosition
 from app.models.attendance_record import AttendanceRecord
 from app.models.holiday_calendar import HolidayCalendar
 from app.models.leave_type import LeaveType
@@ -47,6 +49,7 @@ from app.models.notification import Notification
 from app.models.ai_chat_usage import AIChatUsage
 from app.models.geofence import OfficeLocation, EmployeeLocationRequest
 from app.models.face_profile import EmployeeFaceProfile
+from app.models.required_document import RequiredDocument, RequiredDocumentFile
 from app.models.policy import CompanyPolicy, CompanyPolicyAck, CompanyPolicyFile, CompanyPolicyVersion
 
 __all__ = [
@@ -54,6 +57,9 @@ __all__ = [
     "Company",
     "Department",
     "Designation",
+    "EmployeeJobChange",
+    "ScheduledJobChange",
+    "VacantPosition",
     "Employee",
     "Role",
     "UserAccount",
@@ -61,6 +67,8 @@ __all__ = [
     "Shift",
     "EmployeeShift",
     "EmployeeDocument",
+    "RequiredDocument",
+    "RequiredDocumentFile",
     "AttendanceRecord",
     "HolidayCalendar",
     "LeaveType",

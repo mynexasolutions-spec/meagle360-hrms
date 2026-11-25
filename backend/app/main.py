@@ -6,19 +6,33 @@ Registers all routers and configures CORS for frontend access.
 
 import logging
 
+import threading
+from contextlib import asynccontextmanager
+
 from fastapi import FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 
 from app.config import get_settings
 from app.services.auth_service import _get_jwt_secret
-from app.routes import auth, company, department, designation, employee, attendance, leave, shift, platform, dashboard, announcement, overtime, audit, role, expense, site, payroll, action_tracker, helpdesk, ai, pms, pms_results, pms_monthly, geofence, face, ats, policy
+from app.services.scheduled_job_change_service import start_background
+from app.routes import auth, company, department, designation, employee, attendance, leave, shift, platform, dashboard, announcement, overtime, audit, role, expense, site, payroll, action_tracker, helpdesk, ai, pms, pms_results, pms_monthly, geofence, face, ats, policy, required_document, employee_document, job_change, organization
 from app.middleware.plan_expiry import PlanExpiryMiddleware
 
 settings = get_settings()
 _get_jwt_secret()
 
+
+@asynccontextmanager
+async def lifespan(_: FastAPI):
+    stop = threading.Event()
+    start_background(stop)
+    yield
+    stop.set()
+
+
 app = FastAPI(
+    lifespan=lifespan,
     title=settings.APP_NAME,
     description="Phase 1 — Core HRMS: Employee Records, Attendance, Leave, Shifts",
     version="1.0.0",
@@ -68,6 +82,8 @@ app.include_router(department.router)
 app.include_router(designation.router)
 app.include_router(site.router)
 app.include_router(employee.router)
+app.include_router(job_change.router)
+app.include_router(organization.router)
 app.include_router(role.router)
 app.include_router(attendance.router)
 app.include_router(geofence.router)
@@ -77,6 +93,8 @@ app.include_router(shift.router)
 app.include_router(dashboard.router)
 app.include_router(announcement.router)
 app.include_router(policy.router)
+app.include_router(required_document.router)
+app.include_router(employee_document.router)
 app.include_router(overtime.router)
 app.include_router(expense.router)
 app.include_router(payroll.router)

@@ -40,6 +40,7 @@ const OfferLetterStudio = lazy(() => import('./pages/OfferLetterStudio'));
 const RelievingLetterStudio = lazy(() => import('./pages/RelievingLetterStudio'));
 const Subscriptions = lazy(() => import('./pages/Subscriptions'));
 const Helpdesk = lazy(() => import('./pages/Helpdesk'));
+const EmployeeDocuments = lazy(() => import('./pages/EmployeeDocuments'));
 const AiAssistant = lazy(() => import('./pages/AiAssistant'));
 const PerformanceManagement = lazy(() => import('./pages/PerformanceManagement'));
 const JobOpeningsPage = lazy(() => import('./pages/ats/JobOpeningsPage'));
@@ -176,6 +177,14 @@ function AppRoutes() {
           />
           <Route path="org-chart" element={<Navigate to="/employees?tab=organization" replace />} />
           <Route path="documents" element={<Documents />} />
+          <Route
+            path="employee-documents"
+            element={
+              <RequirePermission permission={['employees:write', 'settings:write']}>
+                <EmployeeDocuments />
+              </RequirePermission>
+            }
+          />
           <Route path="profile" element={<MyProfile />} />
           <Route path="my-payslips" element={<MyPayslips />} />
           <Route path="action-tracker" element={<ActionTracker />} />

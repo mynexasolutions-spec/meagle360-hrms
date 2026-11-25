@@ -943,8 +943,8 @@ function EditHolidayModal({ holiday, onClose, onSuccess }) {
 function useEmployeeOptions() {
   const [employees, setEmployees] = useState([]);
   useEffect(() => {
-    getEmployees(0, 100)
-      .then((res) => setEmployees(Array.isArray(res.data) ? res.data : res.data?.items || []))
+    getEmployees(0, 1000)
+      .then((res) => setEmployees(res.data.filter((e) => e.employment_status === 'active')))
       .catch(() => setEmployees([]));
   }, []);
   return employees;
@@ -976,6 +976,9 @@ function DepartmentFormModal({ title, submitLabel, initial, onSubmit, onClose })
           <label className="input-label">Department Head</label>
           <select className="input-field" value={form.head_id} onChange={(e) => setForm({ ...form, head_id: e.target.value })}>
             <option value="">Not assigned</option>
+            {initial?.head_id && !employees.some((emp) => emp.id === initial.head_id) && (
+              <option value={initial.head_id}>{initial.head_name}</option>
+            )}
             {employees.map((emp) => (
               <option key={emp.id} value={emp.id}>{emp.full_name}</option>
             ))}

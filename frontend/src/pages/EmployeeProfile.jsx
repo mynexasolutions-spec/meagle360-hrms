@@ -4,8 +4,6 @@ import {
   getEmployee,
   updateEmployee,
   resendInvite,
-  getEmployeeDocuments,
-  addEmployeeDocument,
   getDepartments,
   getSites,
   getRoles,
@@ -13,10 +11,15 @@ import {
 } from '../api/employees';
 import { getGratuityStatus, getFnfForEmployee, initiateFnf, processFnf } from '../api/payroll';
 import {
-  ArrowLeft, Copy, Pencil, UserX, UserCheck, Mail, FileText, Upload, Shield, LogOut, Award,
-  Briefcase, KeyRound, User, Wallet, ExternalLink,
+  ArrowLeft, Copy, Pencil, UserX, UserCheck, Mail, FileText, Shield, LogOut, Award,
+  Briefcase, KeyRound, User, Wallet, TrendingUp,
 } from 'lucide-react';
 import Modal from '../components/Modal';
+import DocumentChecklist from '../components/documents/DocumentChecklist';
+import OtherDocuments from '../components/documents/OtherDocuments';
+import CareerTimeline from '../components/job/CareerTimeline';
+import JobChangeModal from '../components/job/JobChangeModal';
+import './EmployeeDocuments.css';
 import RelievingLetterModal from '../components/RelievingLetterModal';
 import { useAuth } from '../context/AuthContext';
 import { usePopup } from '../context/PopupContext';
@@ -39,7 +42,6 @@ const ACCOUNT_STATUS_COLOR = {
 
 const EMPTY_EDIT_FORM = {
   full_name: '',
-  department_id: '',
   site_id: '',
   photo_url: '',
   personal_email: '',
@@ -74,16 +76,15 @@ export default function EmployeeProfile() {
   const canApprovePayroll = !!user?.permissions?.['payroll:approve'];
 
   const [employee, setEmployee] = useState(null);
-  const [documents, setDocuments] = useState([]);
   const [departments, setDepartments] = useState([]);
   const [sites, setSites] = useState([]);
   const [allRoles, setAllRoles] = useState([]);
   const [gratuity, setGratuity] = useState(null);
   const [fnf, setFnf] = useState(null);
   const [showEdit, setShowEdit] = useState(false);
+  const [showJobChange, setShowJobChange] = useState(false);
+  const [jobRefresh, setJobRefresh] = useState(0);
   const [editForm, setEditForm] = useState(EMPTY_EDIT_FORM);
-  const [showUploadDoc, setShowUploadDoc] = useState(false);
-  const [docForm, setDocForm] = useState({ doc_type: '', file_url: '' });
   const [showRoles, setShowRoles] = useState(false);
   const [selectedRoleIds, setSelectedRoleIds] = useState([]);
   const [showFnf, setShowFnf] = useState(false);
@@ -108,15 +109,10 @@ export default function EmployeeProfile() {
   const load = async () => {
     setLoading(true);
     try {
-      const [empRes, docsRes] = await Promise.all([
-        getEmployee(id),
-        // Only HR and the employee may read documents; the profile still loads for others.
-        getEmployeeDocuments(id).catch(() => ({ data: [] })),
-      ]);
+      const empRes = await getEmployee(id);
       setEmployee(empRes.data);
       setEditForm({
         full_name: empRes.data.full_name,
-        department_id: empRes.data.department_id || '',
         site_id: empRes.data.site_id || '',
         photo_url: empRes.data.photo_url || '',
         personal_email: empRes.data.personal_email || '',
@@ -138,7 +134,6 @@ export default function EmployeeProfile() {
         epf_applicable: empRes.data.epf_applicable === null || empRes.data.epf_applicable === undefined ? '' : String(empRes.data.epf_applicable),
         esi_applicable: empRes.data.esi_applicable === null || empRes.data.esi_applicable === undefined ? '' : String(empRes.data.esi_applicable),
       });
-      setDocuments(docsRes.data);
       setSelectedRoleIds(empRes.data.additional_role_ids || []);
     } catch (e) {
       console.error(e);
@@ -167,7 +162,6 @@ export default function EmployeeProfile() {
     try {
       await updateEmployee(id, {
         full_name: editForm.full_name,
-        department_id: editForm.department_id || null,
         site_id: editForm.site_id || null,
         photo_url: editForm.photo_url || null,
         personal_email: editForm.personal_email || null,
@@ -262,22 +256,6 @@ export default function EmployeeProfile() {
     }
   };
 
-  const handleUploadDoc = async (e) => {
-    e.preventDefault();
-    try {
-      await addEmployeeDocument(id, docForm);
-      setShowUploadDoc(false);
-      setDocForm({ doc_type: '', file_url: '' });
-      load();
-    } catch (err) {
-      showAlert({
-        title: 'Upload Failed',
-        message: err.response?.data?.detail || 'Failed to upload document',
-        type: 'error',
-      });
-    }
-  };
-
   if (loading) return <div className="animate-fade-in">Loading...</div>;
   if (!employee) return <div className="animate-fade-in">Employee not found.</div>;
 
@@ -327,6 +305,11 @@ export default function EmployeeProfile() {
               {employee.site_name && <><span>·</span><span>{employee.site_name}</span></>}
             </div>
           </div>
+          {canManageRoles && employee.employment_status === 'active' && (
+            <button className="btn btn-primary" onClick={() => setShowJobChange(true)}>
+              <TrendingUp size={16} /> Change Job
+            </button>
+          )}
           {canManage && (
             <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap' }}>
               <button
@@ -368,6 +351,8 @@ export default function EmployeeProfile() {
           <dl className="info-dl">
             <dt>Status</dt>
             <dd><span className={`badge badge-${employee.employment_status}`}>{employee.employment_status}</span></dd>
+            <dt>Designation</dt>
+            <dd>{employee.designation_name || '—'}</dd>
             <dt>Department</dt>
             <dd>{employee.department_name || '—'}</dd>
             <dt>Site</dt>
@@ -421,6 +406,10 @@ export default function EmployeeProfile() {
             </div>
           )}
         </div>
+
+        {(canManage || canManageRoles || user?.employee_id === id) && (
+          <CareerTimeline employeeId={id} hireDate={employee.date_of_hire} refreshKey={jobRefresh} />
+        )}
 
         {(canManage || canManageRoles || canViewPayroll || user?.employee_id === id) && (
         <div className="section-card" style={{ gridColumn: '1 / -1', borderTop: '3px solid #059669' }}>
@@ -523,49 +512,27 @@ export default function EmployeeProfile() {
         <div className="section-card" style={{ gridColumn: '1 / -1', borderTop: '3px solid #64748b' }}>
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16, flexWrap: 'wrap', gap: 10 }}>
             <h3 style={{ marginBottom: 0 }}><FileText size={17} style={{ color: '#3d4a5e' }} /> Documents</h3>
-            {canManage && (
-              <button className="btn btn-secondary btn-sm" onClick={() => setShowUploadDoc(true)}>
-                <Upload size={14} /> Upload Document
-              </button>
-            )}
           </div>
-          {documents.length === 0 ? (
-            <div className="empty-state">
-              <FileText size={40} />
-              <p>No documents on file</p>
-            </div>
-          ) : (
-            <div style={{ overflowX: 'auto' }}>
-              <table className="data-table">
-                <thead>
-                  <tr>
-                    <th style={{ whiteSpace: 'nowrap' }}>Type</th>
-                    <th style={{ whiteSpace: 'nowrap' }}>File</th>
-                    <th style={{ whiteSpace: 'nowrap' }}>e-Signed</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {documents.map((doc) => (
-                    <tr key={doc.id}>
-                      <td style={{ whiteSpace: 'nowrap', fontWeight: 600 }}>{doc.doc_type}</td>
-                      <td style={{ whiteSpace: 'nowrap' }}>
-                        <a href={doc.file_url} target="_blank" rel="noreferrer" style={{ display: 'inline-flex', alignItems: 'center', gap: 4, maxWidth: 320 }}>
-                          <span className="truncate" style={{ maxWidth: 280 }}>{doc.file_url}</span>
-                          <ExternalLink size={12} style={{ flexShrink: 0 }} />
-                        </a>
-                      </td>
-                      <td style={{ whiteSpace: 'nowrap' }}>
-                        <span className={`badge ${doc.e_signed ? 'badge-active' : 'badge-inactive'}`}>{doc.e_signed ? 'Yes' : 'No'}</span>
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
-          )}
+          <div className="doc-head"><h2>Required documents</h2></div>
+          <DocumentChecklist employeeId={id} isHr={canManage || canManageRoles} />
+          <div style={{ marginTop: 24 }}><OtherDocuments employeeId={id} /></div>
         </div>
         )}
       </div>
+
+      {showJobChange && (
+        <JobChangeModal
+          employee={employee}
+          departments={departments}
+          canReviseSalary={canManagePayroll}
+          onClose={() => setShowJobChange(false)}
+          onSaved={() => {
+            setShowJobChange(false);
+            setJobRefresh((n) => n + 1);
+            load();
+          }}
+        />
+      )}
 
       {showEdit && (
         <Modal title="Edit Employee" onClose={() => setShowEdit(false)}>
@@ -587,19 +554,6 @@ export default function EmployeeProfile() {
                 value={editForm.photo_url}
                 onChange={(e) => setEditForm({ ...editForm, photo_url: e.target.value })}
               />
-            </div>
-            <div className="input-group">
-              <label className="input-label">Department</label>
-              <select
-                className="input-field"
-                value={editForm.department_id}
-                onChange={(e) => setEditForm({ ...editForm, department_id: e.target.value })}
-              >
-                <option value="">No department</option>
-                {departments.map((d) => (
-                  <option key={d.id} value={d.id}>{d.name}</option>
-                ))}
-              </select>
             </div>
             <div className="input-group">
               <label className="input-label">Site</label>
@@ -782,37 +736,6 @@ export default function EmployeeProfile() {
             <button type="button" className="btn btn-secondary" onClick={() => setShowRoles(false)}>Cancel</button>
             <button type="button" className="btn btn-primary" onClick={handleSaveRoles}>Save</button>
           </div>
-        </Modal>
-      )}
-
-      {showUploadDoc && (
-        <Modal title={`Upload Document — ${employee.full_name}`} onClose={() => setShowUploadDoc(false)}>
-          <form onSubmit={handleUploadDoc}>
-            <div className="input-group">
-              <label className="input-label">Document Type</label>
-              <input
-                className="input-field"
-                placeholder="e.g. Offer Letter, PAN Card"
-                value={docForm.doc_type}
-                onChange={(e) => setDocForm({ ...docForm, doc_type: e.target.value })}
-                required
-              />
-            </div>
-            <div className="input-group">
-              <label className="input-label">File URL</label>
-              <input
-                className="input-field"
-                placeholder="https://..."
-                value={docForm.file_url}
-                onChange={(e) => setDocForm({ ...docForm, file_url: e.target.value })}
-                required
-              />
-            </div>
-            <div style={{ display: 'flex', gap: 10, justifyContent: 'flex-end', marginTop: 20 }}>
-              <button type="button" className="btn btn-secondary" onClick={() => setShowUploadDoc(false)}>Cancel</button>
-              <button type="submit" className="btn btn-primary">Upload</button>
-            </div>
-          </form>
         </Modal>
       )}
 

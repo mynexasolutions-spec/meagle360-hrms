@@ -103,7 +103,12 @@ class Employee(Base, TimestampMixin):
     manager = relationship("Employee", remote_side="Employee.id", back_populates="direct_reports")
     direct_reports = relationship("Employee", back_populates="manager")
     user_account = relationship("UserAccount", back_populates="employee", uselist=False)
-    documents = relationship("EmployeeDocument", back_populates="employee", cascade="all, delete-orphan")
+    documents = relationship(
+        "EmployeeDocument",
+        back_populates="employee",
+        cascade="all, delete-orphan",
+        foreign_keys="EmployeeDocument.employee_id",
+    )
     attendance_records = relationship(
         "AttendanceRecord",
         back_populates="employee",

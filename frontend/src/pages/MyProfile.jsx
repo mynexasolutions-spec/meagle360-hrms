@@ -3,6 +3,7 @@ import { useAuth } from '../context/AuthContext';
 import { usePopup } from '../context/PopupContext';
 import { getEmployee } from '../api/employees';
 import { getFaceConfig, deleteMyFaceProfile } from '../api/face';
+import CareerTimeline from '../components/job/CareerTimeline';
 import PassportUploadModal from '../components/PassportUploadModal';
 import {
   User, Mail, Briefcase, Calendar, Shield, MapPin, Building2, Phone, BadgeCheck,
@@ -55,6 +56,7 @@ export default function MyProfile() {
     { icon: Mail, label: 'Work Email Address', value: user?.email, color: '#2563eb', bg: '#eff6ff' },
     { icon: Briefcase, label: 'Employee Code', value: employee?.employee_code, color: '#059669', bg: '#ecfdf5' },
     { icon: Shield, label: 'Assigned Role', value: user?.role_name || 'Employee', color: '#7c3aed', bg: '#f5f3ff' },
+    { icon: Briefcase, label: 'Designation', value: employee?.designation_name, color: '#7c3aed', bg: '#f5f3ff' },
     { icon: Building2, label: 'Department', value: employee?.department_name || 'General Management', color: '#d97706', bg: '#fffbeb' },
     { icon: MapPin, label: 'Office Location / Site', value: employee?.site_name || 'Main Corporate HQ', color: '#dc2626', bg: '#fee2e2' },
     { icon: Calendar, label: 'Date of Hire', value: employee?.date_of_hire, color: '#0284c7', bg: '#e0f2fe' },
@@ -242,6 +244,12 @@ export default function MyProfile() {
           ))}
         </div>
       </div>
+
+      {employee && (
+        <div style={{ marginTop: 24 }}>
+          <CareerTimeline employeeId={employee.id} hireDate={employee.date_of_hire} />
+        </div>
+      )}
 
       {showPassportModal && (
         <PassportUploadModal

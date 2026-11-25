@@ -15,6 +15,7 @@ from app.dependencies import get_current_platform_admin
 from app.models.platform_admin import PlatformAdmin
 from app.models.company import Company
 from app.models.user_account import UserAccount
+from app.services import document_storage
 from app.services.subdomain_service import slugify, RESERVED_SUBDOMAINS
 from app.schemas.platform import (
     PlatformTokenResponse,
@@ -198,6 +199,7 @@ def delete_company(
 
     db.execute(sa.text("DELETE FROM company WHERE id = :id"), {"id": str(company_id)})
     db.commit()
+    document_storage.remove_folder(company_id)
 
 
 @router.patch("/companies/{company_id}/status", response_model=PlatformCompanyResponse)

@@ -47,13 +47,17 @@ export const updateSite = (id, data) => client.put(`/sites/${id}`, data);
 
 export const deleteSite = (id) => client.delete(`/sites/${id}`);
 
-export const getEmployeeDocuments = (employeeId) =>
-  client.get(`/employees/${employeeId}/documents`);
-
-export const addEmployeeDocument = (employeeId, data) =>
-  client.post(`/employees/${employeeId}/documents`, data);
-
 export const getDesignations = () => client.get('/designations/');
+
+export const createDesignation = (data) => client.post('/designations/', data);
+
+export const updateDesignation = (id, data) => client.put(`/designations/${id}`, data);
+
+export const deleteDesignation = (id) => client.delete(`/designations/${id}`);
+
+export const getJobChanges = (id) => client.get(`/employees/${id}/job-changes`);
+
+export const createJobChange = (id, data) => client.post(`/employees/${id}/job-changes`, data);
 
 export const createOfferLetter = (data) => client.post('/employees/offer-letters', data);
 
@@ -64,3 +68,18 @@ export const createRelievingLetter = (data) => client.post('/employees/relieving
 
 export const downloadRelievingLetterPdf = (relievingId) =>
   client.get(`/employees/relieving-letters/${relievingId}/pdf`, { responseType: 'blob' });
+
+export const getOrganization = () => client.get('/organization');
+
+export const publishOrganization = (moves) => client.post('/organization/publish', { moves });
+
+export const getScheduledJobChanges = (id) => client.get(`/employees/${id}/job-changes/scheduled`);
+
+export const cancelScheduledJobChange = (id, changeId) =>
+  client.delete(`/employees/${id}/job-changes/scheduled/${changeId}`);
+
+export const createVacancy = (data) => client.post('/organization/vacancies', data);
+
+export const updateVacancy = (id, data) => client.put(`/organization/vacancies/${id}`, data);
+
+export const deleteVacancy = (id) => client.delete(`/organization/vacancies/${id}`);

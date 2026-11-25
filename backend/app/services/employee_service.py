@@ -5,10 +5,11 @@ from uuid import UUID
 from sqlalchemy.orm import Session
 
 from app.models.employee import Employee
-from app.models.employee_document import EmployeeDocument
+from app.models.org_planning import VacantPosition
 from app.models.role import Role
 from app.models.user_account import UserAccount
 from app.repositories.employee_repo import EmployeeRepository
+from app.services import document_storage
 from app.services.audit_service import log_action
 from app.services.auth_service import hash_password, create_invite_token
 from app.services.email_service import try_send_invite_email
@@ -58,6 +59,8 @@ class EmployeeService:
             "company_id": e.company_id,
             "department_id": e.department_id,
             "department_name": e.department.name if e.department else None,
+            "designation_id": e.designation_id,
+            "designation_name": e.designation.title if e.designation else None,
             "manager_id": e.manager_id,
             "manager_name": e.manager.full_name if e.manager else None,
             "site_id": e.site_id,
@@ -125,18 +128,12 @@ class EmployeeService:
         return employee
 
     def update_employee(self, employee_id: UUID, data: dict, actor_employee_id: UUID | None = None):
-        if "manager_id" in data and data["manager_id"] is not None:
-            new_mgr_id = data["manager_id"]
-            if new_mgr_id == employee_id:
-                raise ValueError("An employee cannot be their own manager.")
-            curr_id = new_mgr_id
-            seen = {employee_id}
-            while curr_id:
-                if curr_id in seen:
-                    raise ValueError("Cannot assign manager: circular reporting hierarchy detected.")
-                seen.add(curr_id)
-                mgr = self.repo.get(curr_id)
-                curr_id = mgr.manager_id if mgr else None
+        # Department and manager only change through job changes, so history stays complete.
+        current = self.repo.get_by_id(employee_id)
+        for field in ("department_id", "manager_id"):
+            value = data.pop(field, None)
+            if current and value is not None and value != getattr(current, field):
+                raise ValueError("Use Change Job on the employee's profile to change department or manager")
 
         employee = self.repo.update(employee_id, data)
         if employee:
@@ -150,37 +147,30 @@ class EmployeeService:
         if deleted:
             log_action(self.db, self.company_id, actor_employee_id, "employee.deleted", "employee", employee_id)
             self.db.commit()
+            document_storage.remove_folder(self.company_id, employee_id)
         return deleted
 
     def get_org_chart(self) -> list[dict]:
-        """Build org chart tree from top-level employees."""
-        top = self.repo.get_top_level_employees()
-        visited = set()
-        return [self._build_tree(emp, visited) for emp in top]
+        """Build org chart tree from top-level employees, without a query per person."""
+        vacancies: dict = {}
+        for manager_id, title in self.db.query(VacantPosition.manager_id, VacantPosition.title).filter(
+                VacantPosition.company_id == self.company_id):
+            vacancies.setdefault(manager_id, []).append(title)
+        reports: dict = {}
+        for e in self.repo.get_for_org_chart():
+            reports.setdefault(e.manager_id, []).append(e)
+        return [self._build_tree(e, reports, vacancies) for e in reports.get(None, [])]
 
-    def _build_tree(self, employee: Employee, visited: set | None = None) -> dict:
-        if visited is None:
-            visited = set()
-        visited.add(employee.id)
-        reports = self.repo.get_direct_reports(employee.id)
+    def _build_tree(self, e: Employee, reports: dict, vacancies: dict) -> dict:
         return {
-            "id": str(employee.id),
-            "full_name": employee.full_name,
-            "employee_code": employee.employee_code,
-            "department_name": employee.department.name if employee.department else None,
-            "direct_reports": [self._build_tree(r, visited) for r in reports if r.id not in visited],
+            "id": str(e.id),
+            "full_name": e.full_name,
+            "employee_code": e.employee_code,
+            "department_name": e.department.name if e.department else None,
+            "designation_name": e.designation.title if e.designation else None,
+            "open_positions": vacancies.get(e.id, []),
+            "direct_reports": [self._build_tree(r, reports, vacancies) for r in reports.get(e.id, [])],
         }
-
-    def add_document(self, employee_id: UUID, data: dict) -> EmployeeDocument:
-        doc = EmployeeDocument(
-            company_id=self.company_id,
-            employee_id=employee_id,
-            **data,
-        )
-        self.db.add(doc)
-        self.db.commit()
-        self.db.refresh(doc)
-        return doc
 
     def count(self) -> int:
         return self.repo.count()

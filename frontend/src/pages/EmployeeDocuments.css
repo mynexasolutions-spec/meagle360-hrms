@@ -1,0 +1,47 @@
+/* Required documents: admin page, My Documents and employee profile */
+.doc-muted { margin: 2px 0 0; color: #334155; font-size: 0.85rem; font-weight: 500; }
+.doc-reject { margin: 4px 0 0; color: #991b1b; font-size: 0.85rem; font-weight: 600; }
+.doc-error {
+  padding: 10px 14px; margin-bottom: 12px; border-radius: 10px;
+  background: #fef2f2; border: 1px solid #fecaca; color: #991b1b; font-size: 0.9rem;
+}
+.doc-empty { padding: 32px; text-align: center; color: #334155; }
+.doc-item {
+  display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 10px;
+  padding: 14px 0; border-bottom: 1px solid var(--border-color);
+}
+.doc-item:last-of-type { border-bottom: none; }
+.doc-item-text { flex: 1 1 240px; min-width: 0; overflow-wrap: anywhere; }
+.doc-name { display: flex; align-items: center; flex-wrap: wrap; gap: 8px; font-weight: 700; color: var(--text-primary); }
+.doc-actions { display: flex; flex-wrap: wrap; gap: 8px; }
+.doc-reject-form { display: flex; flex-wrap: wrap; gap: 8px; flex-basis: 100%; }
+.doc-reject-form .input-field { flex: 1 1 220px; }
+.doc-cards { display: grid; grid-template-columns: repeat(auto-fit, minmax(170px, 1fr)); gap: 14px; margin-bottom: 18px; }
+.doc-card {
+  display: grid; gap: 4px; padding: 16px 18px; text-align: left; font: inherit; cursor: pointer;
+  border: 1px solid var(--border-color); color: var(--text-primary);
+}
+.doc-card strong { font-size: 1.5rem; }
+.doc-card.active { border-color: #2563eb; box-shadow: 0 0 0 1px #2563eb; }
+.doc-filters { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 12px; margin-bottom: 16px; }
+.doc-check { display: flex; align-items: center; gap: 8px; margin-bottom: 14px; font-weight: 600; }
+.doc-checks { display: flex; flex-wrap: wrap; gap: 6px 16px; margin: 0 0 14px; padding: 0; border: none; }
+.doc-checks label { display: inline-flex; align-items: center; gap: 6px; font-size: 0.9rem; }
+.doc-checks .doc-muted { flex-basis: 100%; }
+.doc-head { display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 10px; margin-bottom: 8px; }
+.doc-head h2 { margin: 0; font-size: 1.05rem; font-weight: 800; }
+.doc-drop {
+  display: grid; justify-items: center; gap: 6px; padding: 24px 16px; border-radius: 12px; cursor: pointer;
+  border: 2px dashed #94a3b8; color: var(--text-primary); text-align: center; overflow-wrap: anywhere;
+}
+.doc-drop.dragging, .doc-drop:hover, .doc-drop:focus-within { border-color: #2563eb; background: #eff6ff; }
+/* Hidden, but still reachable with the keyboard */
+.doc-drop input { position: absolute; width: 1px; height: 1px; opacity: 0; }
+.doc-none { display: flex; flex-direction: column; align-items: center; padding: 56px 24px; text-align: center; }
+.doc-none-icon {
+  display: flex; align-items: center; justify-content: center; width: 68px; height: 68px; margin-bottom: 18px;
+  border-radius: 20px; background: #eff6ff; color: #2563eb;
+}
+.doc-none h3 { margin: 0; font-size: 1.15rem; font-weight: 800; color: var(--text-primary); }
+.doc-none p { max-width: 460px; margin: 8px 0 0; color: #334155; font-size: 0.95rem; line-height: 1.6; }
+.doc-none .btn { margin-top: 22px; }
