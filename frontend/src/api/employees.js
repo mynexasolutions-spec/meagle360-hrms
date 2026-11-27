@@ -83,3 +83,12 @@ export const createVacancy = (data) => client.post('/organization/vacancies', da
 export const updateVacancy = (id, data) => client.put(`/organization/vacancies/${id}`, data);
 
 export const deleteVacancy = (id) => client.delete(`/organization/vacancies/${id}`);
+
+// ── Offboarding (the employee is never deleted) ──
+export const getOffboarding = (id) => client.get(`/employees/${id}/offboarding`);
+
+export const startOffboarding = (id, data) => client.post(`/employees/${id}/offboarding`, data);
+
+export const exitEmployeeNow = (id) => client.post(`/employees/${id}/offboarding/exit-now`);
+
+export const cancelOffboarding = (id) => client.post(`/employees/${id}/offboarding/cancel`);

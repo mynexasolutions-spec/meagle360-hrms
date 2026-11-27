@@ -30,8 +30,8 @@ class EmployeeService:
     def list_employees(self, skip: int = 0, limit: int = 100):
         return self.repo.get_all(skip, limit)
 
-    def get_directory(self, skip: int = 0, limit: int = 100):
-        return self.repo.get_directory(skip, limit)
+    def get_directory(self, skip: int = 0, limit: int = 100, status: str = "all"):
+        return self.repo.get_directory(skip, limit, status)
 
     def to_directory_dict(self, e: Employee) -> dict:
         account = e.user_account
@@ -43,6 +43,10 @@ class EmployeeService:
             "site_name": e.site.name if e.site else None,
             "photo_url": e.photo_url,
             "employment_status": e.employment_status,
+            "offboarding_status": e.offboarding_status,
+            "last_working_date": e.last_working_date,
+            "exit_type": e.exit_type,
+            "date_of_exit": e.date_of_exit,
             "date_of_hire": e.date_of_hire,
             "account_status": _account_status(account),
             "role_names": [r.name for r in account.all_roles] if account else [],
@@ -80,6 +84,10 @@ class EmployeeService:
             "employment_type": e.employment_type,
             "date_of_exit": e.date_of_exit,
             "exit_reason": e.exit_reason,
+            "offboarding_status": e.offboarding_status,
+            "exit_type": e.exit_type,
+            "resignation_date": e.resignation_date,
+            "last_working_date": e.last_working_date,
             "pan_number": e.pan_number,
             "uan_number": e.uan_number,
             "bank_account_number": e.bank_account_number,
@@ -134,6 +142,14 @@ class EmployeeService:
             value = data.pop(field, None)
             if current and value is not None and value != getattr(current, field):
                 raise ValueError("Use Change Job on the employee's profile to change department or manager")
+
+        # Re-activating an exited employee from the profile toggle undoes the exit,
+        # so the offboarding fields don't keep saying "exited".
+        # (Set directly: repo.update skips None values.)
+        if current and data.get("employment_status") == "active" and current.offboarding_status:
+            for field in ("offboarding_status", "exit_type", "resignation_date",
+                          "last_working_date", "date_of_exit", "offboarding_started_at"):
+                setattr(current, field, None)
 
         employee = self.repo.update(employee_id, data)
         if employee:

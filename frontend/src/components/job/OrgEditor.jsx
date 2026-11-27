@@ -10,12 +10,12 @@ import { useAuth } from '../../context/AuthContext';
 import { usePopup } from '../../context/PopupContext';
 import errorText from '../../utils/errorText';
 import OrgHealth from './OrgHealth';
-import { Avatar, DepartmentColumn, TeamList, TeamPanel } from './OrgPanels';
+import { Avatar, DepartmentColumn, OrgTree } from './OrgPanels';
 import PopMenu from './PopMenu';
 import ScrollPane from './ScrollPane';
 import { ManageVacancyModal, NewVacancyModal } from './VacancyCard';
 import {
-  applyDraft, byId, canReport, cleanDraft, findIssues, findRoles, isBelow, moveManager, NO_MANAGER, teamTotal,
+  applyDraft, bySeniority, byId, canReport, cleanDraft, findIssues, findRoles, isBelow, moveManager, NO_MANAGER, teamTotal,
 } from './orgDraft';
 import './OrgEditor.css';
 
@@ -83,6 +83,99 @@ function MoveModal({ person, people, departments, headDept, onClose, onMove }) {
   );
 }
 
+// Pick who reports to `person`. Anyone above them is left out, since that would make a loop.
+function TeamModal({ person, people, deptNames, onClose, onSave }) {
+  const current = people.filter((p) => p.manager_id === person.id).map((p) => p.id);
+  const [picked, setPicked] = useState(new Set(current));
+  const [query, setQuery] = useState('');
+  const [sameDept, setSameDept] = useState(true);
+  const t = query.trim().toLowerCase();
+  const deptName = deptNames.get(person.department_id);
+  const options = people
+    .filter((p) => p.id !== person.id && !isBelow(people, person.id, p.id))
+    .filter((p) => current.includes(p.id) || picked.has(p.id) || !sameDept || p.department_id === person.department_id)
+    .filter((p) => !t || [p.full_name, p.employee_code, p.designation_name].some((v) => v?.toLowerCase().includes(t)))
+    .sort((a, b) => a.full_name.localeCompare(b.full_name));
+  const toggle = (id) => setPicked((s) => {
+    const next = new Set(s);
+    if (!next.delete(id)) next.add(id);
+    return next;
+  });
+  const added = [...picked].filter((id) => !current.includes(id)).length;
+  const removed = current.filter((id) => !picked.has(id)).length;
+  const title = current.length ? `Edit ${person.full_name}'s team` : `Make ${person.full_name} a team lead`;
+
+  return (
+    <Modal title={title} onClose={onClose} maxWidth={480}>
+      <p className="oe-hint">
+        {current.length
+          ? 'Tick who reports to them. People you untick move to their manager.'
+          : 'Choose who will report to them. They become a team lead once someone does.'}
+      </p>
+      <div className="oe-search" style={{ marginBottom: 8 }}>
+        <Search size={14} />
+        <input value={query} placeholder="Search people" aria-label="Search people" style={{ flex: 1, width: 0 }} onChange={(e) => setQuery(e.target.value)} />
+      </div>
+      {deptName && (
+        <label className="oe-check" style={{ marginBottom: 8 }}>
+          <input type="checkbox" checked={sameDept} onChange={(e) => setSameDept(e.target.checked)} /> Only {deptName}
+        </label>
+      )}
+      <div className="oe-picklist">
+        {options.map((p) => (
+          <label key={p.id} className="oe-pick">
+            <input type="checkbox" checked={picked.has(p.id)} onChange={() => toggle(p.id)} />
+            <span className="oe-text">
+              <span className="oe-name">{p.full_name}</span>
+              <span className="oe-sub">{[p.designation_name, deptNames.get(p.department_id)].filter(Boolean).join(' · ')}</span>
+            </span>
+          </label>
+        ))}
+        {!options.length && <div className="oe-hint" style={{ padding: 10, margin: 0 }}>Nobody to show.</div>}
+      </div>
+      <div style={{ display: 'flex', gap: 10, justifyContent: 'flex-end', marginTop: 12 }}>
+        <button type="button" className="btn btn-secondary" onClick={onClose}>Cancel</button>
+        <button type="button" className="btn btn-primary" disabled={!added && !removed} onClick={() => onSave(picked)}>
+          Add to draft{added || removed ? ` (${[added && `+${added}`, removed && `-${removed}`].filter(Boolean).join(' ')})` : ''}
+        </button>
+      </div>
+    </Modal>
+  );
+}
+
+// Moves the whole team of `person` to someone else, so they are left as a plain member.
+function DemoteModal({ person, people, headOf, onClose, onSave }) {
+  const team = people.filter((p) => p.manager_id === person.id);
+  const [target, setTarget] = useState(person.manager_id || '');
+  const options = people.filter((p) => p.id !== person.id && !isBelow(people, p.id, person.id))
+    .sort((a, b) => a.full_name.localeCompare(b.full_name));
+  const known = options.some((p) => p.id === target);
+
+  return (
+    <Modal title={`Demote ${person.full_name}`} onClose={onClose} maxWidth={460}>
+      <p className="oe-hint">
+        {person.full_name} leads {team.length} {team.length === 1 ? 'person' : 'people'}. Move them to someone else, and {person.full_name} becomes a member.
+      </p>
+      {headOf.length > 0 && (
+        <p className="oe-hint">
+          {person.full_name} stays head of {headOf.join(', ')}. This only changes their team; remove the head role separately if needed.
+        </p>
+      )}
+      <div className="input-group">
+        <label className="input-label" htmlFor="demote-to">New manager for {team.length === 1 ? 'this person' : 'the team'}</label>
+        <select id="demote-to" className="input-field" value={known ? target : ''} onChange={(e) => setTarget(e.target.value)}>
+          <option value="">No manager (top level)</option>
+          {options.map((p) => <option key={p.id} value={p.id}>{p.full_name}{p.id === person.manager_id ? ' (their manager)' : ''}</option>)}
+        </select>
+      </div>
+      <div style={{ display: 'flex', gap: 10, justifyContent: 'flex-end' }}>
+        <button type="button" className="btn btn-secondary" onClick={onClose}>Cancel</button>
+        <button type="button" className="btn btn-primary" onClick={() => onSave(known ? target : '')}>Add to draft</button>
+      </div>
+    </Modal>
+  );
+}
+
 export default function OrgEditor({ onClose }) {
   const { user } = useAuth();
   const { showConfirm, showToast } = usePopup();
@@ -90,19 +183,19 @@ export default function OrgEditor({ onClose }) {
   const [data, setData] = useState(null);
   const [saved, setDraft] = useState(() => readSaved(storageKey));
   const [history, setHistory] = useState([]);
-  const [view, setView] = useState('chart');
+  const [view, setView] = useState('board');
   const [withTeam, setWithTeam] = useState(true);
   const [openDepts, setOpenDepts] = useState(new Set());
-  const [teamChoice, setTeamChoice] = useState(null);
+  const [treeOpen, setTreeOpen] = useState(null); // null: the default, two levels open
   const [query, setQuery] = useState('');
   const [matchIndex, setMatchIndex] = useState(0);
   const [activeId, setActiveId] = useState(null);
   const [overId, setOverId] = useState(null);
   const scrollRef = useRef(null);
   const editorRef = useRef(null);
-  const [pane, setPane] = useState('list'); // which panel shows when there is room for one
   const loaded = !!data;
   const [moving, setMoving] = useState(null);
+  const [teamEdit, setTeamEdit] = useState(null); // { id, mode: 'edit' | 'demote' }
   const [reviewing, setReviewing] = useState(false);
   const [addingVacancy, setAddingVacancy] = useState(false);
   const [vacancy, setVacancy] = useState(null);
@@ -220,6 +313,27 @@ export default function OrgEditor({ onClose }) {
     setMoving(null);
   };
 
+  const saveTeam = (picked) => {
+    const boss = map.get(teamEdit.id);
+    const moves = {};
+    for (const p of people) {
+      const has = p.manager_id === boss.id;
+      if (picked.has(p.id) && !has) moves[p.id] = { manager_id: boss.id, department_id: p.department_id };
+      if (!picked.has(p.id) && has) moves[p.id] = { manager_id: boss.manager_id || null, department_id: p.department_id };
+    }
+    if (Object.keys(moves).length) stage(moves);
+    setTeamEdit(null);
+  };
+
+  const saveDemote = (target) => {
+    const moves = {};
+    for (const p of people) {
+      if (p.manager_id === teamEdit.id) moves[p.id] = { manager_id: target || null, department_id: p.department_id };
+    }
+    stage(moves);
+    setTeamEdit(null);
+  };
+
   const undo = () => {
     setDraft(history[history.length - 1]);
     setHistory(history.slice(0, -1));
@@ -261,45 +375,49 @@ export default function OrgEditor({ onClose }) {
   };
 
   const roles = findRoles(people);
-  // Leads in tree order. A chosen person stays listed even after their last report leaves.
-  const teams = [];
-  const addTeams = (list, depth) => {
+  const sortedRoots = roots.slice().sort(bySeniority(roles));
+  // People who lead nobody and report to nobody sit in the "No manager" zone; the other roots head the tree.
+  const loose = sortedRoots.filter((p) => roles.get(p.id) === 'member' && !data.vacancies.some((v) => v.manager_id === p.id));
+  const topLeads = sortedRoots.filter((p) => !loose.includes(p));
+  const vacanciesBy = new Map();
+  const looseVacancies = [];
+  for (const v of data.vacancies) {
+    if (map.has(v.manager_id)) vacanciesBy.set(v.manager_id, [...(vacanciesBy.get(v.manager_id) || []), v]);
+    else looseVacancies.push(v);
+  }
+
+  // Everyone who can fold open, with how deep they sit.
+  const foldable = [];
+  const walk = (list, depth) => {
     for (const p of list) {
-      if (roles.get(p.id) === 'member' && p.id !== teamChoice && !data.vacancies.some((v) => v.manager_id === p.id)) continue;
-      teams.push({ person: p, depth });
-      addTeams(reports.get(p.id) || [], depth + 1);
+      if (reports.has(p.id) || vacanciesBy.has(p.id)) foldable.push({ id: p.id, depth });
+      walk(reports.get(p.id) || [], depth + 1);
     }
   };
-  addTeams(roots, 0);
-  const loose = roots.filter((p) => roles.get(p.id) === 'member');
-  const teamId = teamChoice === NO_MANAGER || map.has(teamChoice) ? teamChoice : teams[0]?.person.id || NO_MANAGER;
-  const lead = map.get(teamId);
-  const selectTeam = (id) => {
-    setTeamChoice(id);
-    setPane('team');
-  };
+  walk(topLeads, 0);
+  const openSet = treeOpen || new Set(foldable.filter((f) => f.depth < 2).map((f) => f.id));
+  // Whoever the search found is always revealed.
+  const revealed = new Set();
+  if (term) {
+    for (let up = map.get(matchId)?.manager_id; up && !revealed.has(up); up = map.get(up)?.manager_id) revealed.add(up);
+  }
 
-  const showMatch = (list, index) => {
-    setMatchIndex(index);
-    const person = list[index];
-    if (!person) return;
-    // A person at the top shows as the head of their own team.
-    if (map.has(person.manager_id)) selectTeam(person.manager_id);
-    else selectTeam(roles.get(person.id) === 'member' ? NO_MANAGER : person.id);
-  };
+  const showMatch = (list, index) => setMatchIndex(index);
   const search = (text) => {
     setQuery(text);
-    showMatch(findPeople(text), 0);
+    setMatchIndex(0);
   };
 
   const setHead = async (departmentId, person) => {
     const department = data.departments.find((d) => d.id === departmentId);
     const removing = department.head_id === person.id;
+    const oldHead = map.get(department.head_id);
+    const replaces = !removing && oldHead ? `${oldHead.full_name} will no longer be head. ` : '';
     const ok = await showConfirm({
       title: 'Department head',
       message: removing
-        ? `Remove ${person.full_name} as head of ${department.name}? This happens right away.`
-        : `Make ${person.full_name} head of ${department.name}? This happens right away.`,
+        ? `Remove ${person.full_name} as head of ${department.name}? ${department.name} will have no head. This happens right away.`
+        : `Make ${person.full_name} head of ${department.name}? ${replaces}This happens right away.`,
       type: 'warning',
       confirmText: removing ? 'Remove head' : 'Make head',
     });
@@ -316,13 +434,6 @@ export default function OrgEditor({ onClose }) {
     }
   };
 
-  const vacanciesBy = new Map();
-  const looseVacancies = [];
-  for (const v of data.vacancies) {
-    if (map.has(v.manager_id)) vacanciesBy.set(v.manager_id, [...(vacanciesBy.get(v.manager_id) || []), v]);
-    else looseVacancies.push(v);
-  }
-
   const vacancySaved = async () => {
     setAddingVacancy(false);
     setVacancy(null);
@@ -333,8 +444,14 @@ export default function OrgEditor({ onClose }) {
     busy, setHead, openVacancy: setVacancy,
     draft, activeId, canDrop, reports, deptNames, headDept,
     openMove: setMoving,
-    matchId, teamId, selectTeam, roles,
-    showList: () => setPane('list'),
+    openTeam: (id, mode) => setTeamEdit({ id, mode }),
+    matchId, roles, people,
+    isOpen: (id) => openSet.has(id) || revealed.has(id),
+    toggleNode: (id) => setTreeOpen((() => {
+      const next = new Set(openSet);
+      if (!next.delete(id)) next.add(id);
+      return next;
+    })()),
     openDepts,
     toggleDept: (id) => setOpenDepts((s) => {
       const next = new Set(s);
@@ -378,9 +495,10 @@ export default function OrgEditor({ onClose }) {
   return (
     <div className="oe-editor" ref={editorRef}>
       <div className="oe-bar">
-        <div className="oe-tabs">
-          <button type="button" aria-pressed={view === 'chart'} onClick={() => setView('chart')}>Teams</button>
-          <button type="button" aria-pressed={view === 'board'} onClick={() => setView('board')}>Departments</button>
+        <div className="oe-tabs" role="group" aria-label="Group by">
+          <span className="oe-tabs-label">Group by</span>
+          <button type="button" aria-pressed={view === 'board'} onClick={() => setView('board')}>Department</button>
+          <button type="button" aria-pressed={view === 'chart'} onClick={() => setView('chart')}>Manager</button>
         </div>
         <div className="oe-search">
           <Search size={14} />
@@ -396,14 +514,15 @@ export default function OrgEditor({ onClose }) {
         </div>
         <OrgHealth issues={findIssues(people, data.departments)} onPerson={setMoving} />
         <span className="oe-spacer" />
-        {view === 'board' && (
-          <button
-            type="button" className="btn btn-secondary btn-sm"
-            onClick={() => setOpenDepts(openDepts.size ? new Set() : new Set(columns.map((c) => c.id)))}
-          >
-            {openDepts.size ? 'Collapse all' : 'Expand all'}
-          </button>
-        )}
+        <button
+          type="button" className="btn btn-secondary btn-sm"
+          onClick={() => {
+            if (view === 'board') setOpenDepts(openDepts.size ? new Set() : new Set(columns.map((c) => c.id)));
+            else setTreeOpen(openSet.size ? new Set() : new Set(foldable.map((f) => f.id)));
+          }}
+        >
+          {(view === 'board' ? openDepts.size : openSet.size) ? 'Collapse all' : 'Expand all'}
+        </button>
         <PopMenu className="btn btn-secondary btn-sm" label="Options" icon={<><SlidersHorizontal size={14} /> Options</>}>
           {(close) => (
             <>
@@ -415,7 +534,7 @@ export default function OrgEditor({ onClose }) {
             </>
           )}
         </PopMenu>
-        <div className="oe-commit oe-commit-top">{commit}</div>
+        {(count > 0 || history.length > 0) && <div className="oe-commit oe-commit-top">{commit}</div>}
         <button type="button" className="btn btn-secondary btn-sm" onClick={onClose}><X size={14} /> Exit</button>
       </div>
 
@@ -429,20 +548,9 @@ export default function OrgEditor({ onClose }) {
         onDragEnd={onDragEnd}
         onDragCancel={() => { setActiveId(null); setOverId(null); }}
       >
-        <div className={`oe-body show-${pane}`} ref={scrollRef}>
+        <div className="oe-body" ref={scrollRef}>
           {view === 'chart' ? (
-            <>
-              <TeamList teams={teams} looseCount={loose.length} ctx={ctx} />
-              <TeamPanel
-                key={teamId}
-                lead={lead}
-                people={lead ? reports.get(teamId) || [] : loose}
-                vacancies={lead ? vacanciesBy.get(teamId) || [] : looseVacancies}
-                total={lead ? teamTotal(people, teamId) : 0}
-                managerName={managerName(lead?.manager_id)}
-                ctx={ctx}
-              />
-            </>
+            <OrgTree roots={topLeads} loose={loose} vacanciesBy={vacanciesBy} looseVacancies={looseVacancies} ctx={ctx} />
           ) : (
             <ScrollPane className="oe-panel" innerClassName="oe-columns" label="Departments">
               {columns.map((c) => <DepartmentColumn key={c.id || 'none'} {...c} ctx={ctx} />)}
@@ -467,7 +575,7 @@ export default function OrgEditor({ onClose }) {
         )}
       </DndContext>
 
-      <div className="oe-commit oe-commit-bottom">{commit}</div>
+      {(count > 0 || history.length > 0) && <div className="oe-commit oe-commit-bottom">{commit}</div>}
 
       {moving && map.has(moving) && (
         <MoveModal
@@ -475,6 +583,12 @@ export default function OrgEditor({ onClose }) {
           onClose={() => setMoving(null)} onMove={onMove}
         />
       )}
+
+      {teamEdit && map.has(teamEdit.id) && (teamEdit.mode === 'demote' ? (
+        <DemoteModal person={map.get(teamEdit.id)} people={people} headOf={[...(headDept.get(teamEdit.id) || [])].map((d) => deptNames.get(d)).filter(Boolean)} onClose={() => setTeamEdit(null)} onSave={saveDemote} />
+      ) : (
+        <TeamModal person={map.get(teamEdit.id)} people={people} deptNames={deptNames} onClose={() => setTeamEdit(null)} onSave={saveTeam} />
+      ))}
 
       {addingVacancy && (
         <NewVacancyModal people={people} departments={data.departments} onClose={() => setAddingVacancy(false)} onSaved={vacancySaved} />

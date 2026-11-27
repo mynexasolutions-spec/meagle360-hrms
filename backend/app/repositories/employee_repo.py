@@ -12,10 +12,20 @@ class EmployeeRepository(BaseRepository[Employee]):
     def __init__(self, db: Session, company_id: UUID):
         super().__init__(Employee, db, company_id)
 
-    def get_directory(self, skip: int = 0, limit: int = 100) -> list[Employee]:
-        """Employee directory with department + account/role info eagerly loaded."""
+    def get_directory(self, skip: int = 0, limit: int = 100, status: str = "all") -> list[Employee]:
+        """Employee directory with department + account/role info eagerly loaded.
+
+        status: 'current' (active, incl. serving notice), 'notice', 'exited'
+        (inactive) or 'all'."""
+        q = self._scoped_query()
+        if status == "current":
+            q = q.filter(Employee.employment_status == "active")
+        elif status == "notice":
+            q = q.filter(Employee.employment_status == "active", Employee.offboarding_status == "notice")
+        elif status == "exited":
+            q = q.filter(Employee.employment_status != "active")
         return (
-            self._scoped_query()
+            q
             .options(
                 joinedload(Employee.department),
                 joinedload(Employee.designation),

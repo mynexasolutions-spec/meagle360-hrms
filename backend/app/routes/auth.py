@@ -61,6 +61,11 @@ def login(
             detail="Invalid email or password",
             headers={"WWW-Authenticate": "Bearer"},
         )
+    if user.employee is not None and user.employee.employment_status != "active":
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Your account has been deactivated. Please contact HR.",
+        )
     # Login is deliberately allowed even if the plan has expired — see
     # PlanExpiryMiddleware for how post-login access is then restricted.
     token = create_access_token(user.id, user.company_id, user.role_id)

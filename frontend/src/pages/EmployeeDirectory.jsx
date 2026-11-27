@@ -1,7 +1,7 @@
 import { useState, useEffect, useMemo } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { getDirectory, inviteEmployee, getDepartments, getRoles, getSites } from '../api/employees';
-import { Users, Search, Plus, Copy, Check, LayoutGrid, List, Mail, UserCheck, UserX, FileText, Award, Building2, Layers, Move } from 'lucide-react';
+import { Users, Search, Plus, Copy, Check, LayoutGrid, List, Mail, UserCheck, UserX, FileText, Award, Building2, Layers, Move, LogOut } from 'lucide-react';
 import Modal from '../components/Modal';
 import StatCard from '../components/StatCard';
 import useUrlFilters from '../utils/useUrlFilters';
@@ -10,6 +10,7 @@ import DesignationsModal from '../components/job/DesignationsModal';
 import OrgEditor from '../components/job/OrgEditor';
 import OrgChart from './OrgChart';
 import { useAuth } from '../context/AuthContext';
+import OffboardModal, { fmtDate } from '../components/OffboardModal';
 
 const ACCOUNT_STATUS_LABEL = {
   active: 'Active',
@@ -49,7 +50,10 @@ export default function EmployeeDirectory() {
   const [editingOrg, setEditingOrg] = useState(false);
   const [showDesignations, setShowDesignations] = useState(false);
   const canInvite = !!user?.permissions?.['employees:write'];
-  const [filters, setFilters] = useUrlFilters({ tab: 'directory', q: '', status: '', department: '' });
+  const [filters, setFilters] = useUrlFilters({ tab: 'directory', q: '', status: '', department: '', people: '' });
+  // people: '' = current employees (incl. serving notice), 'notice', 'exited'
+  const people = ['notice', 'exited'].includes(filters.people) ? filters.people : '';
+  const [offboardTarget, setOffboardTarget] = useState(null);
   const activeTab = filters.tab === 'organization' ? 'organization' : 'directory';
   const isEditingOrg = isAdmin && editingOrg && activeTab === 'organization';
   const [employees, setEmployees] = useState([]);
@@ -78,7 +82,7 @@ export default function EmployeeDirectory() {
 
   const handleTabChange = (tab) => {
     setSearchText('');
-    setFilters({ tab, q: '', status: '', department: '' });
+    setFilters({ tab, q: '', status: '', department: '', people: '' });
   };
 
   useEffect(() => {
@@ -100,16 +104,28 @@ export default function EmployeeDirectory() {
     }
   };
 
+  // Ex-employees are kept (history), just shown in their own tab.
+  const isExited = (e) => e.employment_status !== 'active';
+  const isNotice = (e) => !isExited(e) && e.offboarding_status === 'notice';
+  const peopleCounts = useMemo(() => ({
+    current: employees.filter((e) => !isExited(e)).length,
+    notice: employees.filter(isNotice).length,
+    exited: employees.filter(isExited).length,
+  }), [employees]); // eslint-disable-line react-hooks/exhaustive-deps
+  const inView = useMemo(() => employees.filter((e) => (
+    people === 'exited' ? isExited(e) : people === 'notice' ? isNotice(e) : !isExited(e)
+  )), [employees, people]); // eslint-disable-line react-hooks/exhaustive-deps
+
   const stats = useMemo(() => ({
-    total: employees.length,
-    active: employees.filter((e) => e.account_status === 'active').length,
-    invited: employees.filter((e) => e.account_status === 'invited').length,
-    noLogin: employees.filter((e) => e.account_status === 'no_login').length,
-  }), [employees]);
+    total: inView.length,
+    active: inView.filter((e) => e.account_status === 'active').length,
+    invited: inView.filter((e) => e.account_status === 'invited').length,
+    noLogin: inView.filter((e) => e.account_status === 'no_login').length,
+  }), [inView]);
 
-  const departmentNames = [...new Set(employees.map((e) => e.department_name || 'Unassigned'))].sort();
+  const departmentNames = [...new Set(inView.map((e) => e.department_name || 'Unassigned'))].sort();
 
-  const filtered = employees.filter(
+  const filtered = inView.filter(
     (e) =>
       (!filters.status || e.account_status === filters.status) &&
       (!filters.department || (e.department_name || 'Unassigned') === filters.department) &&
@@ -254,7 +270,7 @@ export default function EmployeeDirectory() {
           <Users size={16} style={{ color: activeTab === 'directory' ? '#2563eb' : '#94a3b8' }} />
           <span>Employee Directory</span>
           <span style={{ fontSize: '0.70rem', padding: '1px 7px', borderRadius: 99, background: activeTab === 'directory' ? '#eff6ff' : '#e2e8f0', color: activeTab === 'directory' ? '#2563eb' : '#475569', fontWeight: 700 }}>
-            {employees.length}
+            {peopleCounts.current}
           </span>
         </button>
 
@@ -296,8 +312,30 @@ export default function EmployeeDirectory() {
         </>
       ) : (
         <>
+          <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap', marginBottom: 16 }}>
+            {[
+              ['', 'Current employees', peopleCounts.current],
+              ['notice', 'Serving notice', peopleCounts.notice],
+              ['exited', 'Ex-employees', peopleCounts.exited],
+            ].map(([key, label, count]) => (
+              <button
+                key={key || 'current'}
+                type="button"
+                onClick={() => setFilters({ people: key, status: '' })}
+                style={{
+                  padding: '6px 14px', borderRadius: 99, cursor: 'pointer', fontSize: '0.8125rem', fontWeight: 600,
+                  border: `1px solid ${people === key ? '#2563eb' : '#e2e8f0'}`,
+                  background: people === key ? '#eff6ff' : '#ffffff',
+                  color: people === key ? '#1d4ed8' : '#475569',
+                }}
+              >
+                {label} <span style={{ marginLeft: 4, fontWeight: 700 }}>{count}</span>
+              </button>
+            ))}
+          </div>
+
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: 16, marginBottom: 24 }}>
-            <StatCard icon={Users} label="Total Employees" value={stats.total} {...cardFilter('')} bgColor="#eff6ff" color="#2563eb" />
+            <StatCard icon={Users} label={people === 'exited' ? 'Ex-employees' : people === 'notice' ? 'Serving Notice' : 'Total Employees'} value={stats.total} {...cardFilter('')} bgColor="#eff6ff" color="#2563eb" />
             <StatCard icon={UserCheck} label="Active Accounts" value={stats.active} {...cardFilter('active')} bgColor="#ecfdf5" color="#059669" />
             <StatCard icon={Mail} label="Invited" value={stats.invited} {...cardFilter('invited')} bgColor="#fffbeb" color="#d97706" />
             <StatCard icon={UserX} label="No Login Access" value={stats.noLogin} {...cardFilter('no_login')} bgColor="#f8fafc" color="#64748b" />
@@ -532,7 +570,19 @@ export default function EmployeeDirectory() {
                         </div>
                       )}
                       <div>
-                        <div style={{ fontWeight: 700, fontSize: '0.925rem', color: '#0f172a' }}>{emp.full_name}</div>
+                        <div style={{ fontWeight: 700, fontSize: '0.925rem', color: '#0f172a', display: 'flex', alignItems: 'center', gap: 8 }}>
+                          {emp.full_name}
+                          {isNotice(emp) && (
+                            <span style={{ fontSize: '0.7rem', fontWeight: 700, padding: '2px 8px', borderRadius: 8, background: '#fef3c7', color: '#92400e' }}>
+                              Notice · LWD {fmtDate(emp.last_working_date)}
+                            </span>
+                          )}
+                          {isExited(emp) && (
+                            <span style={{ fontSize: '0.7rem', fontWeight: 700, padding: '2px 8px', borderRadius: 8, background: '#f1f5f9', color: '#475569' }}>
+                              Exited {emp.date_of_exit ? fmtDate(emp.date_of_exit) : ''}
+                            </span>
+                          )}
+                        </div>
                         <div style={{ fontSize: '0.78125rem', color: '#3d4a5e' }}>{emp.work_email || emp.email || '—'}</div>
                       </div>
                     </Link>
@@ -577,10 +627,16 @@ export default function EmployeeDirectory() {
                           alignItems: 'center',
                           borderRadius: 8,
                         }}
-                        onClick={() => navigate(`/relieving-letter?employee_id=${emp.id}`)}
-                        title="Generate Official Relieving Letter"
+                        onClick={() => setOffboardTarget(emp)}
+                        title={isExited(emp) ? 'Exit details and relieving letter' : 'Start or manage offboarding'}
                       >
-                        <Award size={14} style={{ color: '#059669' }} /> Relieving Letter
+                        {isExited(emp) ? (
+                          <><Award size={14} style={{ color: '#059669' }} /> Exit details</>
+                        ) : isNotice(emp) ? (
+                          <><LogOut size={14} style={{ color: '#d97706' }} /> Manage exit</>
+                        ) : (
+                          <><LogOut size={14} style={{ color: '#b91c1c' }} /> Offboard</>
+                        )}
                       </button>
                     ) : (
                       <span style={{ color: '#475569', fontSize: '0.85rem' }}>—</span>
@@ -593,7 +649,13 @@ export default function EmployeeDirectory() {
           </div>
         </div>
       )}
-      {employees.length > 0 && filtered.length === 0 && (
+      {offboardTarget && (
+        <OffboardModal employee={offboardTarget} onClose={() => setOffboardTarget(null)} onChanged={loadEmployees} />
+      )}
+      {people && inView.length === 0 && (
+        <div className="empty-state"><Users size={48} /><p>{people === 'exited' ? 'No ex-employees yet' : 'Nobody is serving notice'}</p></div>
+      )}
+      {inView.length > 0 && filtered.length === 0 && (
         <div className="empty-state"><Users size={48} /><p>No employees match these filters</p></div>
       )}
       </>

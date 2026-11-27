@@ -15,6 +15,7 @@ from app.dependencies import (
 )
 from app.models.user_account import UserAccount
 from app.services.employee_service import EmployeeService
+from app.services.offboarding_service import OffboardingError, OffboardingService
 from app.services.team_service import TeamService
 from app.services import document_service
 from app.repositories.offer_letter_repo import OfferLetterRepository
@@ -29,6 +30,7 @@ from app.schemas.employee import (
     EmployeeInviteResponse,
     EmployeeProfileResponse,
     EmployeeRolesUpdate,
+    OffboardingStart,
 )
 
 router = APIRouter(prefix="/api/employees", tags=["Employees"])
@@ -78,12 +80,15 @@ def list_employees(
 def get_directory(
     skip: int = 0,
     limit: int = 100,
+    status: str = Query(default="all", pattern="^(current|notice|exited|all)$"),
     db: Session = Depends(get_db),
     company_id: UUID = Depends(get_company_id),
     _: UserAccount = Depends(require_any_permission(DIRECTORY_PERMISSIONS)),
 ):
+    """status: all (default, what other pages rely on) / current (active, incl.
+    serving notice) / notice / exited."""
     svc = EmployeeService(db, company_id)
-    employees = svc.get_directory(skip, limit)
+    employees = svc.get_directory(skip, limit, status)
     return [svc.to_directory_dict(e) for e in employees]
 
 
@@ -310,3 +315,58 @@ def download_relieving_letter_pdf(
         media_type="application/pdf",
         headers={"Content-Disposition": f"inline; filename=relieving_letter_{relieving_id}.pdf"},
     )
+
+
+# ── Offboarding (never deletes the employee) ─────────────────
+
+def _offboarding_call(fn):
+    try:
+        return fn()
+    except LookupError:
+        raise HTTPException(status_code=404, detail="Employee not found")
+    except OffboardingError as e:
+        raise HTTPException(status_code=400, detail=str(e))
+
+
+@router.get("/{employee_id}/offboarding")
+def get_offboarding(
+    employee_id: UUID,
+    db: Session = Depends(get_db), company_id: UUID = Depends(get_company_id),
+    _: UserAccount = Depends(require_permissions("employees:write")),
+):
+    """Exit details plus warnings (direct reports, pending approvals, F&F)."""
+    return _offboarding_call(lambda: OffboardingService(db, company_id).summary(employee_id))
+
+
+@router.post("/{employee_id}/offboarding")
+def start_offboarding(
+    employee_id: UUID,
+    data: OffboardingStart,
+    db: Session = Depends(get_db), company_id: UUID = Depends(get_company_id),
+    current_user: UserAccount = Depends(require_permissions("employees:write")),
+):
+    """Start (or update) an exit. Past last working day = exits at once."""
+    svc = OffboardingService(db, company_id)
+    return _offboarding_call(lambda: svc.start(employee_id, data.model_dump(), current_user.employee_id))
+
+
+@router.post("/{employee_id}/offboarding/exit-now")
+def exit_employee_now(
+    employee_id: UUID,
+    db: Session = Depends(get_db), company_id: UUID = Depends(get_company_id),
+    current_user: UserAccount = Depends(require_permissions("employees:write")),
+):
+    """End the notice period today, e.g. after the relieving letter is issued."""
+    svc = OffboardingService(db, company_id)
+    return _offboarding_call(lambda: svc.exit_now(employee_id, current_user.employee_id))
+
+
+@router.post("/{employee_id}/offboarding/cancel")
+def cancel_offboarding(
+    employee_id: UUID,
+    db: Session = Depends(get_db), company_id: UUID = Depends(get_company_id),
+    current_user: UserAccount = Depends(require_permissions("employees:write")),
+):
+    """Resignation withdrawn or exit undone: the employee is active again."""
+    svc = OffboardingService(db, company_id)
+    return _offboarding_call(lambda: svc.cancel(employee_id, current_user.employee_id))

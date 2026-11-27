@@ -3,7 +3,7 @@
 from uuid import UUID
 from datetime import date, datetime
 from decimal import Decimal
-from pydantic import BaseModel, EmailStr
+from pydantic import BaseModel, EmailStr, Field
 
 
 class EmployeeCreate(BaseModel):
@@ -128,6 +128,10 @@ class EmployeeProfileResponse(BaseModel):
     employment_type: str = "full_time"
     date_of_exit: date | None = None
     exit_reason: str | None = None
+    offboarding_status: str | None = None
+    exit_type: str | None = None
+    resignation_date: date | None = None
+    last_working_date: date | None = None
     pan_number: str | None = None
     uan_number: str | None = None
     bank_account_number: str | None = None
@@ -178,3 +182,12 @@ class OrgChartNode(BaseModel):
 
     class Config:
         from_attributes = True
+
+
+class OffboardingStart(BaseModel):
+    """Exit details. last_working_date in the past exits the employee at once;
+    otherwise they serve notice until it passes."""
+    exit_type: str = Field(pattern="^(resignation|termination|retirement|absconding|contract_end|other)$")
+    last_working_date: date
+    resignation_date: date | None = None
+    exit_reason: str | None = Field(default=None, max_length=255)

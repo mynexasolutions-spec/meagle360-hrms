@@ -1,10 +1,10 @@
 """Employee model — central entity for all HR operations."""
 
 import uuid
-from datetime import date
+from datetime import date, datetime
 from decimal import Decimal
 
-from sqlalchemy import Boolean, Date, ForeignKey, Numeric, String, Text, UniqueConstraint
+from sqlalchemy import Boolean, Date, DateTime, ForeignKey, Numeric, String, Text, UniqueConstraint
 from sqlalchemy.dialects.postgresql import UUID
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
@@ -72,6 +72,14 @@ class Employee(Base, TimestampMixin):
     )  # full_time | fixed_term | contractor | intern
     date_of_exit: Mapped[date | None] = mapped_column(Date, nullable=True)
     exit_reason: Mapped[str | None] = mapped_column(String(255), nullable=True)
+    # Offboarding. employment_status stays 'active' during the notice period
+    # (payroll etc. look for 'active'); this tracks the exit itself:
+    # NULL / 'notice' (exit scheduled) / 'exited'.
+    offboarding_status: Mapped[str | None] = mapped_column(String(20), nullable=True, index=True)
+    exit_type: Mapped[str | None] = mapped_column(String(30), nullable=True)
+    resignation_date: Mapped[date | None] = mapped_column(Date, nullable=True)
+    last_working_date: Mapped[date | None] = mapped_column(Date, nullable=True)
+    offboarding_started_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
 
     # ── Statutory / payroll identifiers ──────────────────
     pan_number: Mapped[str | None] = mapped_column(String(20), nullable=True)

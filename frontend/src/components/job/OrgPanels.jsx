@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { useDraggable, useDroppable } from '@dnd-kit/core';
-import { ArrowLeft, Crown, MoreVertical, UserRoundX, Users } from 'lucide-react';
+import { ChevronDown, ChevronRight, Crown, MoreVertical, UserRoundX } from 'lucide-react';
 import PopMenu from './PopMenu';
 import ScrollPane from './ScrollPane';
 import { VacancyCard } from './VacancyCard';
@@ -8,11 +8,14 @@ import { bySeniority, NO_MANAGER, ROLES } from './orgDraft';
 
 const SHOWN = 3; // people shown before "+N more"
 
+const ACCENTS = ['#2563eb', '#059669', '#d97706', '#7c3aed', '#db2777', '#0891b2', '#65a30d', '#dc2626'];
+const accentFor = (name) => ACCENTS[[...String(name)].reduce((n, c) => n + c.charCodeAt(0), 0) % ACCENTS.length];
+
 const plural = (n, word) => `${n} ${word}${n === 1 ? '' : 's'}`;
 
 export function RoleBadge({ role }) {
   const { label, color, bg } = ROLES[role];
-  return <span className="oe-badge" style={{ color, background: bg }}>{label}</span>;
+  return <span className={`oe-badge oe-badge-${role}`} style={{ color, background: bg }}>{label}</span>;
 }
 
 export function Avatar({ person, role }) {
@@ -22,6 +25,17 @@ export function Avatar({ person, role }) {
   }
   const initials = person.full_name.split(' ').filter(Boolean).map((w) => w[0]).slice(0, 2).join('').toUpperCase();
   return <span className="oe-avatar" style={{ background: ROLES[role].color }} aria-hidden="true">{initials}</span>;
+}
+
+// Menu items that change who leads whom. A lead is whoever has people reporting to them.
+function teamActions(person, ctx) {
+  const hasTeam = (ctx.reports.get(person.id) || []).length > 0;
+  return hasTeam
+    ? [
+      { label: 'Edit team…', run: () => ctx.openTeam(person.id, 'edit') },
+      { label: 'Demote to member…', run: () => ctx.openTeam(person.id, 'demote') },
+    ]
+    : [{ label: 'Make team lead…', run: () => ctx.openTeam(person.id, 'edit') }];
 }
 
 function dropClass(ctx, drop) {
@@ -38,9 +52,9 @@ export function PersonCard({ person, ctx, zone, droppable, locked, showDepartmen
   const drop = useDroppable({ id, disabled: !droppable });
   const role = ctx.roles.get(person.id);
   const isActive = ctx.activeId === person.id;
-  const designation = person.designation_name || 'No designation';
-  const department = ctx.deptNames.get(person.department_id) || 'No department';
-  const sub = showDepartment ? `${designation} · ${department}` : designation;
+  const designation = person.designation_name || '';
+  const department = ctx.deptNames.get(person.department_id) || '';
+  const sub = (showDepartment ? [designation, department] : [designation]).filter(Boolean).join(' · ');
   const opensTeam = showDepartment && role !== 'member';
   const classes = ['oe-card'];
   if (ctx.draft[person.id]) classes.push('changed');
@@ -66,13 +80,13 @@ export function PersonCard({ person, ctx, zone, droppable, locked, showDepartmen
             {ctx.headDept.has(person.id) && <Crown size={13} className="oe-crown" aria-label="Department head" />}
             {role !== 'member' && <RoleBadge role={role} />}
           </div>
-          <div className="oe-sub">{sub}</div>
+          {sub && <div className="oe-sub">{sub}</div>}
         </div>
       </div>
       <PopMenu className="oe-dots" label={`Actions for ${person.full_name}`} icon={<MoreVertical size={16} />}>
         {(close) => (
           <>
-            <div className="oe-menu-info"><strong>{person.full_name}</strong>{designation} · {department}</div>
+            <div className="oe-menu-info"><strong>{person.full_name}</strong>{[designation, department].filter(Boolean).join(' · ') || 'No designation'}</div>
             <button type="button" onClick={() => { close(); ctx.openMove(person.id); }}>Move to…</button>
             {opensTeam && <button type="button" onClick={() => { close(); ctx.selectTeam(person.id); }}>View team</button>}
             {actions.map((a) => (
@@ -96,111 +110,98 @@ export function PersonCard({ person, ctx, zone, droppable, locked, showDepartmen
   );
 }
 
-function TeamRow({ person, depth, ctx }) {
-  const drag = useDraggable({ id: `team:${person.id}`, data: { personId: person.id } });
-  const drop = useDroppable({ id: `team:${person.id}` });
+function TreeNode({ person, depth, ctx, vacanciesBy }) {
+  const id = `team:${person.id}`;
+  const drag = useDraggable({ id, data: { personId: person.id } });
+  const drop = useDroppable({ id });
   const role = ctx.roles.get(person.id);
-  const selected = ctx.teamId === person.id;
+  const kids = [...(ctx.reports.get(person.id) || [])].sort(bySeniority(ctx.roles));
+  const vacancies = vacanciesBy.get(person.id) || [];
+  const expandable = kids.length > 0 || vacancies.length > 0;
+  const open = expandable && ctx.isOpen(person.id, depth);
+  const isActive = ctx.activeId === person.id;
+  const sub = [person.designation_name, ctx.deptNames.get(person.department_id)].filter(Boolean).join(' · ');
+  const classes = ['oe-node'];
+  if (ctx.draft[person.id]) classes.push('changed');
+  if (ctx.matchId === person.id) classes.push('match-current');
+
   return (
-    <div
-      ref={drop.setNodeRef} data-item
-      className={`oe-team${selected ? ' selected' : ''}${ctx.draft[person.id] ? ' changed' : ''}${
-        ctx.activeId === person.id ? ' dragging' : dropClass(ctx, { id: person.id, isOver: drop.isOver })}`}
-      style={{ marginLeft: Math.min(depth, 4) * 14 }}
-    >
-      <button
-        ref={drag.setNodeRef} {...drag.listeners} type="button" className="oe-grab"
-        aria-pressed={selected} onClick={() => ctx.selectTeam(person.id)}
+    <div className="oe-branch">
+      <div
+        ref={drop.setNodeRef} data-item
+        className={`${classes.join(' ')}${isActive ? ' dragging' : dropClass(ctx, { id: person.id, isOver: drop.isOver })}`}
       >
-        <Avatar person={person} role={role} />
-        <span className="oe-text oe-name" title={person.full_name}>{person.full_name}</span>
-        <RoleBadge role={role} />
-        <span className="oe-count" title="Direct reports">{(ctx.reports.get(person.id) || []).length}</span>
-      </button>
-    </div>
-  );
-}
-
-function NoManagerRow({ count, ctx }) {
-  const drop = useDroppable({ id: `team:${NO_MANAGER}` });
-  const selected = ctx.teamId === NO_MANAGER;
-  return (
-    <div
-      ref={drop.setNodeRef}
-      className={`oe-team oe-none${selected ? ' selected' : ''}${dropClass(ctx, { id: NO_MANAGER, isOver: drop.isOver })}`}
-    >
-      <button type="button" aria-pressed={selected} onClick={() => ctx.selectTeam(NO_MANAGER)}>
-        <UserRoundX size={18} />
-        <span className="oe-text oe-name">No manager</span>
-        <span className="oe-count">{count}</span>
-      </button>
-    </div>
-  );
-}
-
-export function TeamList({ teams, looseCount, ctx }) {
-  return (
-    <ScrollPane as="nav" className="oe-teams" label="Teams" footer={<NoManagerRow count={looseCount} ctx={ctx} />}>
-      <h4>Teams</h4>
-      {teams.map(({ person, depth }) => <TeamRow key={person.id} person={person} depth={depth} ctx={ctx} />)}
-    </ScrollPane>
-  );
-}
-
-function Group({ title, people, ctx }) {
-  if (!people.length) return null;
-  return (
-    <>
-      <h4>{title} ({people.length})</h4>
-      <div className="oe-grid">
-        {people.map((p) => (
-          <PersonCard
-            key={p.id} person={p} ctx={ctx} zone="card" droppable showDepartment
-            team={[...(ctx.reports.get(p.id) || [])].sort(bySeniority(ctx.roles))}
-          />
-        ))}
-      </div>
-    </>
-  );
-}
-
-export function TeamPanel({ lead, people, vacancies, total, managerName, ctx }) {
-  const leads = people.filter((p) => ctx.roles.get(p.id) !== 'member');
-  const members = people.filter((p) => ctx.roles.get(p.id) === 'member');
-  const role = lead && ctx.roles.get(lead.id);
-  return (
-    <ScrollPane as="section" className="oe-panel" label="Team members">
-      <header className="oe-lead">
-        <button type="button" className="oe-back" onClick={ctx.showList}><ArrowLeft size={15} /> Teams</button>
-        {lead ? (
-          <>
-            <Avatar person={lead} role={role} />
-            <div className="oe-text">
-              <div className="oe-title">{lead.full_name}&apos;s team <RoleBadge role={role} /></div>
-              <div className="oe-sub">
-                {[lead.designation_name || 'No designation', ctx.deptNames.get(lead.department_id) || 'No department',
-                  lead.manager_id ? `Reports to ${managerName}` : 'No manager'].join(' · ')}
-              </div>
-            </div>
-            <div className="oe-size"><Users size={14} /> {plural(people.length, 'direct report')} · {total} in total</div>
-            <button type="button" className="btn btn-secondary btn-sm" onClick={() => ctx.openMove(lead.id)}>Move lead</button>
-          </>
-        ) : (
+        {expandable ? (
+          <button
+            type="button" className="oe-chevron" aria-expanded={open}
+            aria-label={`${open ? 'Collapse' : 'Expand'} ${person.full_name}'s team`}
+            onClick={() => ctx.toggleNode(person.id, depth)}
+          >
+            {open ? <ChevronDown size={16} /> : <ChevronRight size={16} />}
+          </button>
+        ) : <span className="oe-chevron" aria-hidden="true" />}
+        <div ref={drag.setNodeRef} {...drag.listeners} className="oe-person oe-grab" title={sub}>
+          <Avatar person={person} role={role} />
           <div className="oe-text">
-            <div className="oe-title">No manager</div>
-            <div className="oe-sub">These people report to nobody and lead no team. Drag each one onto a team.</div>
+            <div className="oe-line">
+              <span className="oe-name">{person.full_name}</span>
+              {ctx.headDept.has(person.id) && <Crown size={13} className="oe-crown" aria-label="Department head" />}
+              {role !== 'member' && <RoleBadge role={role} />}
+            </div>
+            {sub && <div className="oe-sub">{sub}</div>}
           </div>
+        </div>
+        {kids.length > 0 && (
+          <span className="oe-count" title={plural(kids.length, 'direct report')}>
+            {kids.length}
+          </span>
         )}
-      </header>
-      <Group title="Leads in this team" people={leads} ctx={ctx} />
-      <Group title={lead ? 'Members' : 'People'} people={members} ctx={ctx} />
-      {vacancies.length > 0 && (
-        <>
-          <h4>Vacant positions ({vacancies.length})</h4>
-          <div className="oe-grid">{vacancies.map((v) => <VacancyCard key={v.id} vacancy={v} onOpen={ctx.openVacancy} />)}</div>
-        </>
+        <PopMenu className="oe-dots" label={`Actions for ${person.full_name}`} icon={<MoreVertical size={16} />}>
+          {(close) => (
+            <>
+              <div className="oe-menu-info"><strong>{person.full_name}</strong>{sub || 'No designation'}</div>
+              <button type="button" onClick={() => { close(); ctx.openMove(person.id); }}>Move to…</button>
+              {teamActions(person, ctx).map((a) => (
+                <button key={a.label} type="button" onClick={() => { close(); a.run(); }}>{a.label}</button>
+              ))}
+            </>
+          )}
+        </PopMenu>
+      </div>
+      {open && (
+        <div className="oe-children">
+          {kids.map((k) => <TreeNode key={k.id} person={k} depth={depth + 1} ctx={ctx} vacanciesBy={vacanciesBy} />)}
+          {vacancies.map((v) => <VacancyCard key={v.id} vacancy={v} onOpen={ctx.openVacancy} />)}
+        </div>
       )}
-      {!people.length && !vacancies.length && <p className="oe-hint">Nobody here.</p>}
+    </div>
+  );
+}
+
+function NoManagerZone({ people, vacancies, ctx }) {
+  const drop = useDroppable({ id: `team:${NO_MANAGER}` });
+  return (
+    <section
+      ref={drop.setNodeRef} data-item
+      className={`oe-none${dropClass(ctx, { id: NO_MANAGER, isOver: drop.isOver })}`}
+    >
+      <h4><UserRoundX size={15} /> No manager <span className="oe-count">{people.length}</span></h4>
+      {people.length > 0 || vacancies.length > 0 ? (
+        <>
+          {people.map((p) => <TreeNode key={p.id} person={p} depth={0} ctx={ctx} vacanciesBy={new Map()} />)}
+          {vacancies.map((v) => <VacancyCard key={v.id} vacancy={v} onOpen={ctx.openVacancy} />)}
+        </>
+      ) : <div className="oe-hint" style={{ margin: 0 }}>Drop here to remove someone&apos;s manager.</div>}
+    </section>
+  );
+}
+
+// The reporting tree. Everyone with a team can fold open; drop a person on anyone to change who they report to.
+export function OrgTree({ roots, loose, vacanciesBy, looseVacancies, ctx }) {
+  return (
+    <ScrollPane className="oe-panel" label="Organization by manager">
+      {roots.map((p) => <TreeNode key={p.id} person={p} depth={0} ctx={ctx} vacanciesBy={vacanciesBy} />)}
+      <NoManagerZone people={loose} vacancies={looseVacancies} ctx={ctx} />
     </ScrollPane>
   );
 }
@@ -217,16 +218,22 @@ export function DepartmentColumn({ id, name, people, vacancies, ctx }) {
   const hidden = total - shown.length - shownVacancies.length;
 
   return (
-    <div ref={drop.setNodeRef} className={`oe-column${dropClass(ctx, { id: `dept:${id}`, isOver: drop.isOver })}`}>
-      <h4><span>{name}</span><span>{people.length}</span></h4>
+    <div
+      ref={drop.setNodeRef} style={{ '--accent': accentFor(name) }}
+      className={`oe-column${total === 0 ? ' oe-column-empty' : ''}${dropClass(ctx, { id: `dept:${id}`, isOver: drop.isOver })}`}
+    >
+      <h4><span>{name}</span><span className="oe-count">{people.length}</span></h4>
       {shown.map((p) => (
         <PersonCard
           key={p.id} person={p} ctx={ctx} zone="dept" locked={isHead(p)}
-          actions={id && !ctx.draft[p.id] ? [{
-            label: isHead(p) ? 'Remove head' : 'Make head',
-            disabled: ctx.busy,
-            run: () => ctx.setHead(id, p),
-          }] : []}
+          actions={[
+            ...teamActions(p, ctx),
+            ...(id && !ctx.draft[p.id] ? [{
+              label: isHead(p) ? 'Remove department head' : 'Make department head',
+              disabled: ctx.busy,
+              run: () => ctx.setHead(id, p),
+            }] : []),
+          ]}
         />
       ))}
       {shownVacancies.map((v) => <VacancyCard key={v.id} vacancy={v} onOpen={ctx.openVacancy} />)}

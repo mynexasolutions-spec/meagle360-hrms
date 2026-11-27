@@ -1,6 +1,7 @@
 import { useState, useEffect, useRef } from 'react';
 import { useNavigate, useSearchParams, Link } from 'react-router-dom';
-import { getDirectory } from '../api/employees';
+import { getDirectory, createRelievingLetter, exitEmployeeNow } from '../api/employees';
+import { fmtDate } from '../components/OffboardModal';
 import { getMyCompany } from '../api/company';
 import { useAuth } from '../context/AuthContext';
 import logoImg from '../assets/logo.jpg';
@@ -23,6 +24,7 @@ import {
   ChevronDown,
   Search,
   Check,
+  LogOut,
 } from 'lucide-react';
 
 export default function RelievingLetterStudio() {
@@ -30,6 +32,10 @@ export default function RelievingLetterStudio() {
   const { user } = useAuth();
   const [searchParams] = useSearchParams();
   const initialEmployeeId = searchParams.get('employee_id') || '';
+  // Offboarding: after printing, the letter is saved to the employee's record
+  // and HR is offered to exit them now (or let it happen after their LWD).
+  const [issued, setIssued] = useState(null); // { employeeId, name, status, lwd }
+  const [exitState, setExitState] = useState(''); // '' | 'busy' | 'done' | error text
 
   // ── Company & Directory State ──────────────────────────────────────────────
   const [company, setCompany] = useState(null);
@@ -119,6 +125,8 @@ export default function RelievingLetterStudio() {
       candidateName: emp.full_name || prev.candidateName,
       candidateAddress: emp.address || emp.location || '185, cape town, south africa',
       joiningDate: emp.date_of_hire ? emp.date_of_hire.split('T')[0] : prev.joiningDate,
+      // Use the last working day recorded during offboarding
+      lastWorkingDate: emp.last_working_date || emp.date_of_exit || prev.lastWorkingDate,
     }));
   };
 
@@ -145,7 +153,40 @@ export default function RelievingLetterStudio() {
     }
   };
 
+  const recordLetter = async () => {
+    const emp = employees.find((e) => String(e.id) === String(selectedEmployeeId));
+    if (!emp || !formData.lastWorkingDate) return;
+    try {
+      await createRelievingLetter({
+        employee_id: emp.id,
+        last_working_date: formData.lastWorkingDate,
+        custom_paragraph: formData.exitClearanceNote || null,
+      });
+    } catch (err) {
+      console.error('Could not save relieving letter record', err);
+    }
+    setExitState('');
+    setIssued({
+      employeeId: emp.id,
+      name: emp.full_name,
+      status: emp.employment_status !== 'active' ? 'exited' : emp.offboarding_status,
+      lwd: emp.last_working_date,
+    });
+  };
+
+  const handleExitNow = async () => {
+    if (!issued) return;
+    setExitState('busy');
+    try {
+      await exitEmployeeNow(issued.employeeId);
+      setExitState('done');
+    } catch (err) {
+      setExitState(err.response?.data?.detail || 'Could not exit the employee.');
+    }
+  };
+
   const handlePrint = () => {
+    recordLetter();
     const oldTitle = document.title;
     const sanitized = (formData.candidateName || 'Employee').trim().replace(/[^a-zA-Z0-9_-]/g, '_');
     document.title = `Relieving_Letter_${sanitized}`;
@@ -233,6 +274,47 @@ export default function RelievingLetterStudio() {
           </button>
         </div>
       </div>
+
+      {issued && issued.status !== 'exited' && (
+        <div
+          className="no-print"
+          style={{
+            display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12, flexWrap: 'wrap',
+            padding: '12px 16px', borderRadius: 12, marginBottom: 18, fontSize: '0.85rem',
+            background: exitState === 'done' ? '#ecfdf5' : '#fffbeb',
+            border: `1px solid ${exitState === 'done' ? '#a7f3d0' : '#fde68a'}`,
+            color: exitState === 'done' ? '#047857' : '#92400e',
+          }}
+        >
+          {exitState === 'done' ? (
+            <span><strong>{issued.name}</strong> has been moved to Ex-employees. Their login is disabled.</span>
+          ) : issued.status === 'notice' ? (
+            <>
+              <span>
+                Relieving letter issued for <strong>{issued.name}</strong>. Their last working day is{' '}
+                <strong>{fmtDate(issued.lwd)}</strong> and they will be moved to Ex-employees automatically after it.
+                {exitState && exitState !== 'busy' && <span style={{ color: '#b91c1c' }}> {exitState}</span>}
+              </span>
+              <div style={{ display: 'flex', gap: 8 }}>
+                <button type="button" className="btn btn-secondary" disabled={exitState === 'busy'} onClick={() => setIssued(null)}>
+                  Keep until last day
+                </button>
+                <button type="button" className="btn btn-primary" disabled={exitState === 'busy'} onClick={handleExitNow}>
+                  <LogOut size={15} /> Exit now
+                </button>
+              </div>
+            </>
+          ) : (
+            <>
+              <span>
+                Relieving letter saved for <strong>{issued.name}</strong>. To remove them from the directory, start
+                offboarding from <Link to="/employees">Employee Directory → Offboard</Link>.
+              </span>
+              <button type="button" className="btn btn-secondary" onClick={() => setIssued(null)}>Dismiss</button>
+            </>
+          )}
+        </div>
+      )}
 
       {/* ── 2-Column Split Screen Studio ──────────────────────────────────── */}
       <div

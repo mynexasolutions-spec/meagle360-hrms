@@ -69,6 +69,13 @@ def get_current_user(
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail="User not found",
         )
+    # Exited / deactivated employees lose access at once, even with a live token.
+    if user.employee is not None and user.employee.employment_status != "active":
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Your account has been deactivated. Please contact HR.",
+            headers={"WWW-Authenticate": "Bearer"},
+        )
 
     # NOTE: plan-expiry enforcement is NOT done here. It is handled by
     # PlanExpiryMiddleware (app/middleware/plan_expiry.py), which allows

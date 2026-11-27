@@ -6,7 +6,7 @@ export default function OrgHealth({ issues, onPerson }) {
   const total = issues.reduce((n, i) => n + (i.people || i.departments).length, 0);
   return (
     <details className="oe-health">
-      <summary><span className="oe-summary"><AlertTriangle size={14} /> {total} to check</span></summary>
+      <summary><span className="oe-summary"><AlertTriangle size={14} /> {total} need attention</span></summary>
       <div className="oe-issues">
       {issues.map((issue) => (
         <div key={issue.label} className="oe-issue">
