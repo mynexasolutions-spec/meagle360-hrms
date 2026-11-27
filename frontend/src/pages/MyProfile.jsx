@@ -5,6 +5,7 @@ import { getEmployee } from '../api/employees';
 import { getFaceConfig, deleteMyFaceProfile } from '../api/face';
 import CareerTimeline from '../components/job/CareerTimeline';
 import PassportUploadModal from '../components/PassportUploadModal';
+import BankDetailsCard from '../components/BankDetailsCard';
 import {
   User, Mail, Briefcase, Calendar, Shield, MapPin, Building2, Phone, BadgeCheck,
   Camera, CheckCircle2, AlertCircle, Trash2,
@@ -136,7 +137,8 @@ export default function MyProfile() {
         </div>
       </div>
 
-      {/* Selfie Attendance Verification Card */}
+      {/* Selfie Attendance Verification Card — only while the company has it switched on */}
+      {faceConfig?.enabled && (
       <div className="section-card" style={{ marginBottom: 24, borderTop: '3px solid #0284c7' }}>
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: 12, marginBottom: 16 }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
@@ -203,6 +205,9 @@ export default function MyProfile() {
           </div>
         </div>
       </div>
+      )}
+
+      {user?.employee_id && <BankDetailsCard />}
 
       {/* Profile Details */}
       <div className="section-card" style={{ borderTop: '3px solid #2563eb' }}>

@@ -7,6 +7,7 @@ import { getAnnouncements, createAnnouncement } from '../api/announcements';
 import { getLeaveBalance, getPendingRequests } from '../api/leave';
 import { getHolidays, clockIn, clockOut, getEmployeeOverview, getClockStatus } from '../api/attendance';
 import { getGeofenceConfig } from '../api/geofence';
+import { getMyTeam } from '../api/employees';
 import { getCurrentPosition } from '../utils/geo';
 import { getFaceConfig } from '../api/face';
 import SelfieClockInModal from '../components/SelfieClockInModal';
@@ -146,6 +147,7 @@ export default function Dashboard() {
   const [liveStatus, setLiveStatus] = useState([]);
   const [onLeaveToday, setOnLeaveToday] = useState([]);
   const [workforceTab, setWorkforceTab] = useState('present');
+  const [myTeam, setMyTeam] = useState(null);
   const [announcementLimit, setAnnouncementLimit] = useState(50);
   const [showNewAnnouncement, setShowNewAnnouncement] = useState(false);
   const [selectedAnnouncement, setSelectedAnnouncement] = useState(null);
@@ -169,6 +171,9 @@ export default function Dashboard() {
     if (canSeeLiveStatus) {
       getLiveStatus().then((r) => setLiveStatus(r.data)).catch(() => { });
       getOnLeaveToday().then((r) => setOnLeaveToday(r.data)).catch(() => { });
+    }
+    if (!seesCompanyStats && user?.employee_id) {
+      getMyTeam().then((r) => setMyTeam(r.data)).catch(() => setMyTeam({ manager: null, peers: [], reports: [] }));
     }
     if (user?.employee_id) {
       const now = new Date();
@@ -375,6 +380,7 @@ export default function Dashboard() {
     leaveSummary: true,
     announcements: false,
     workforcePulse: false,
+    teamPulse: false,
     approvals: true,
     leaveBalance: true,
     upcomingHolidays: false,
@@ -650,7 +656,7 @@ export default function Dashboard() {
         <div className="dashboard-columns" style={seesCompanyStats ? undefined : { gridTemplateColumns: 'minmax(0, 1fr)' }}>
           
           {/* Left: Content Grid for Leave Summary & Announcements */}
-          <div className="content-grid" style={{ height: '100%', minWidth: 0, ...(seesCompanyStats ? {} : { gridTemplateColumns: 'minmax(0, 1fr)' }) }}>
+          <div className="content-grid" style={{ height: '100%', minWidth: 0 }}>
             
             {/* Left Card: Leave Summary (Rich Executive Distribution Card) */}
             {seesCompanyStats && (
@@ -894,8 +900,8 @@ export default function Dashboard() {
                   {announcements.length === 0 ? (
                     <div className="empty-state"><Megaphone /><p>No announcements posted yet</p></div>
                   ) : (
-                    <div style={{ display: 'grid', gap: 14 }}>
-                      {announcements.slice(0, 2).map((a) => (
+                    <div style={{ display: 'grid', gap: 14, maxHeight: 200, overflowY: 'auto', paddingRight: 2 }}>
+                      {announcements.slice(0, 5).map((a) => (
                         <div
                           key={a.id}
                           onClick={() => setSelectedAnnouncement(a)}
@@ -954,6 +960,15 @@ export default function Dashboard() {
                 </button>
               </div>
             </div>
+
+            {/* Employees: their own team's attendance today, next to Announcements */}
+            {!seesCompanyStats && (
+              <TeamPulseCard
+                team={myTeam}
+                expanded={mobileCards.teamPulse}
+                onToggle={() => toggleCard('teamPulse')}
+              />
+            )}
 
           </div>
 
@@ -1514,6 +1529,144 @@ function AnnouncementDetailModal({ announcement, onClose }) {
         </div>
       </div>
     </Modal>
+  );
+}
+
+const TEAM_TABS = [
+  { key: 'present', label: 'Present', color: '#059669' },
+  { key: 'on_leave', label: 'On Leave', color: '#d97706' },
+  { key: 'not_in', label: 'Not In', color: '#64748b' },
+];
+
+const TEAM_STATUS_DOT = { present: 'var(--accent-emerald)', on_leave: '#f59e0b', not_in: '#cbd5e1' };
+
+function TeamPulseCard({ team, expanded, onToggle }) {
+  const [tab, setTab] = useState('present');
+  const members = team
+    ? [
+      ...(team.manager ? [{ ...team.manager, relation: 'Manager' }] : []),
+      ...(team.peers || []).map((e) => ({ ...e, relation: 'Teammate' })),
+      ...(team.reports || []).map((e) => ({ ...e, relation: 'Reports to you' })),
+    ]
+    : [];
+  // status is null on a holiday / weekly off: nobody is expected in.
+  const dayOff = members.length > 0 && members.every((m) => m.status == null);
+  const counts = { present: 0, on_leave: 0, not_in: 0 };
+  members.forEach((m) => { if (m.status in counts) counts[m.status] += 1; });
+  const shown = members.filter((m) => m.status === tab);
+
+  const tabButtons = (small) => TEAM_TABS.map((t) => (
+    <button
+      key={t.key}
+      onClick={(e) => { e.stopPropagation(); setTab(t.key); }}
+      style={{
+        border: 'none', background: tab === t.key ? '#ffffff' : 'transparent',
+        color: tab === t.key ? t.color : '#475569',
+        padding: small ? '2px 7px' : '3px 9px', borderRadius: 6,
+        fontSize: small ? '0.70rem' : '0.75rem', fontWeight: 700, cursor: 'pointer',
+        boxShadow: tab === t.key ? '0 1px 3px rgba(0,0,0,0.06)' : 'none', whiteSpace: 'nowrap',
+      }}
+    >
+      {t.label}{team ? ` ${counts[t.key]}` : ''}
+    </button>
+  ));
+
+  const emptyText = {
+    present: 'No one from your team has clocked in yet.',
+    on_leave: 'No one from your team is on leave today.',
+    not_in: 'Everyone on your team is accounted for.',
+  };
+
+  return (
+    <div className="dashboard-card dashboard-card-sm" style={{ display: 'flex', flexDirection: 'column', justifyContent: 'space-between', height: '100%' }}>
+      <div>
+        <div
+          className="card-header-clickable"
+          onClick={onToggle}
+          style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 14, gap: 10 }}
+        >
+          <div style={{ display: 'flex', alignItems: 'center', gap: 8, minWidth: 0 }}>
+            <div style={{ width: 32, height: 32, borderRadius: 8, background: '#ecfdf5', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#059669', flexShrink: 0 }}>
+              <Users size={16} />
+            </div>
+            <div style={{ minWidth: 0 }}>
+              <h3 className="dashboard-card-title" style={{ whiteSpace: 'nowrap' }}>Team Pulse</h3>
+              <p className="dashboard-card-sub" style={{ margin: 0 }}>Your team's attendance today</p>
+            </div>
+          </div>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 6, flexShrink: 0 }}>
+            {!dayOff && members.length > 0 && (
+              <div className="card-desktop-action" style={{ display: 'flex', background: 'var(--bg-input)', padding: '2px 3px', borderRadius: 8, gap: 2 }}>
+                {tabButtons(true)}
+              </div>
+            )}
+            <span className="card-mobile-badge" style={{ fontSize: '0.70rem', fontWeight: 700, color: '#047857', background: '#ecfdf5', padding: '2px 7px', borderRadius: 6 }}>
+              {counts.present} In
+            </span>
+            <div className="card-accordion-toggle">
+              <ChevronDown size={14} style={{ transform: expanded ? 'rotate(180deg)' : 'none', transition: 'transform 0.2s' }} />
+            </div>
+          </div>
+        </div>
+
+        <div className={`card-collapsible-body ${!expanded ? 'is-collapsed' : ''}`}>
+          {!dayOff && members.length > 0 && (
+            <div className="card-mobile-badge" style={{ display: 'flex', background: 'var(--bg-input)', padding: 3, borderRadius: 10, gap: 3, marginBottom: 12 }}>
+              {tabButtons(false)}
+            </div>
+          )}
+          {!team ? (
+            <div style={{ fontSize: '0.8125rem', color: 'var(--text-muted)', padding: '12px 0', textAlign: 'center' }}>Loading…</div>
+          ) : members.length === 0 ? (
+            <div className="empty-state"><Users /><p>No teammates assigned yet</p></div>
+          ) : dayOff ? (
+            <div className="empty-state"><CalendarHeart /><p>Day off today — nobody is expected in</p></div>
+          ) : shown.length === 0 ? (
+            <div style={{ fontSize: '0.8125rem', color: 'var(--text-muted)', padding: '12px 0', textAlign: 'center' }}>
+              {emptyText[tab]}
+            </div>
+          ) : (
+            <div style={{ display: 'grid', gap: 10, maxHeight: 200, overflowY: 'auto', paddingRight: 2 }}>
+              {shown.map((m) => (
+                <div key={m.id} style={{ display: 'flex', alignItems: 'center', gap: 10, fontSize: '0.8125rem' }}>
+                  <div
+                    style={{
+                      width: 30, height: 30, borderRadius: '50%', flexShrink: 0, position: 'relative',
+                      display: 'flex', alignItems: 'center', justifyContent: 'center',
+                      background: m.photo_url ? `center/cover no-repeat url(${m.photo_url})` : '#eff6ff',
+                      color: '#2563eb', fontSize: '0.75rem', fontWeight: 700, border: '1px solid #dbeafe',
+                    }}
+                  >
+                    {!m.photo_url && initials(m.full_name)}
+                    <span style={{ position: 'absolute', right: -1, bottom: -1, width: 9, height: 9, borderRadius: '50%', background: TEAM_STATUS_DOT[m.status], border: '2px solid #fff' }} />
+                  </div>
+                  <div style={{ flex: 1, minWidth: 0 }}>
+                    <div style={{ fontWeight: 600, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                      <EmployeeLink id={m.id}>{m.full_name}</EmployeeLink>
+                    </div>
+                    <div style={{ color: 'var(--text-muted)', fontSize: '0.75rem', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                      {m.designation || m.department_name || 'Staff'}
+                    </div>
+                  </div>
+                  <span style={{ fontSize: '0.70rem', fontWeight: 600, color: '#475569', background: 'var(--bg-input)', padding: '2px 7px', borderRadius: 6, whiteSpace: 'nowrap' }}>
+                    {m.relation}
+                  </span>
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+      </div>
+
+      <div style={{ marginTop: 14, paddingTop: 10, borderTop: '1px solid #f1f5f9', display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: 6 }}>
+        <span style={{ fontSize: '0.71rem', color: '#475569' }}>
+          {members.length} {members.length === 1 ? 'person' : 'people'} in your team
+        </span>
+        <Link to="/my-team" style={{ fontSize: '0.73rem', fontWeight: 700, color: 'var(--accent-blue)', textDecoration: 'none' }}>
+          My Team
+        </Link>
+      </div>
+    </div>
   );
 }
 

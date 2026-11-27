@@ -53,7 +53,7 @@ from app.services.ats_file_service import (
 from app.services.auth_service import hash_password, create_invite_token
 from app.services.email_service import try_send_invite_email
 from app.services.audit_service import log_action
-from app.services.resume.match_service import match_payload
+from app.services.resume.match_service import match_payload, refresh_if_outdated
 from app.services.resume.skills import canonical_skill_list
 
 
@@ -268,6 +268,8 @@ class AtsService:
                 "location": j.location,
                 "job_type": j.job_type,
                 "experience_range": j.experience_range,
+                "required_skills": list(j.required_skills or []),
+                "preferred_skills": list(j.preferred_skills or []),
                 "created_at": j.created_at.isoformat() if j.created_at else None,
             }
             for j in open_jobs
@@ -296,6 +298,7 @@ class AtsService:
         cover_note: str | None,
         honeypot: str | None,
         resume_file: UploadFile,
+        declared_skills: list[dict] | None = None,
     ) -> Application:
         """
         Processes candidate application with strict validation:
@@ -433,6 +436,7 @@ class AtsService:
             cover_note=cover_note.strip() if cover_note else None,
             source="careers_page",
             parse_status="pending",
+            declared_skills=declared_skills or None,
             stage_entered_at=now_utc,
             version=1,
         )
@@ -1161,6 +1165,11 @@ class AtsService:
             raise HTTPException(status_code=404, detail="Application not found.")
 
         AtsService._assert_can_access_application(db, current_user, app, allow_assigned_interviewer=True)
+
+        # Bring a score made by an older parser/scorer up to date
+        if refresh_if_outdated(db, app):
+            db.commit()
+            db.refresh(app)
 
         cand = app.candidate
         job = app.job

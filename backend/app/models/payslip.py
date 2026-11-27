@@ -41,6 +41,12 @@ class Payslip(Base, TimestampMixin):
     lop_amount: Mapped[Decimal] = mapped_column(Numeric(12, 2), nullable=False, default=0)
     net_pay: Mapped[Decimal] = mapped_column(Numeric(12, 2), nullable=False)
     payslip_number: Mapped[str | None] = mapped_column(String(30), nullable=True)
+    # PAN and bank details the salary was paid with, copied when the run is
+    # finalized. Draft payslips show the employee's current details instead.
+    pan_number: Mapped[str | None] = mapped_column(String(20), nullable=True)
+    bank_account_number: Mapped[str | None] = mapped_column(String(40), nullable=True)
+    bank_ifsc: Mapped[str | None] = mapped_column(String(20), nullable=True)
+    bank_name: Mapped[str | None] = mapped_column(String(150), nullable=True)
 
     # ── Relationships ────────────────────────────────────
     payroll_run = relationship("PayrollRun", back_populates="payslips")

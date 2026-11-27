@@ -2,6 +2,7 @@
 ATS Routes — Job Openings CRUD and Public Careers Endpoints.
 """
 
+import json
 from datetime import date
 from uuid import UUID
 from fastapi import (
@@ -64,7 +65,7 @@ from app.schemas.ats import (
 from app.models.ats import Application
 from app.services.ats_service import AtsService
 from app.services.resume import match_service
-from app.services.resume.skills import suggest_skills
+from app.services.resume.skills import clean_declared_skills, get_taxonomy, suggest_skills
 
 router = APIRouter(prefix="/api/ats", tags=["ATS"])
 
@@ -125,6 +126,13 @@ def get_public_careers(
     return AtsService.get_public_careers(db, tenant)
 
 
+@router.get("/public/skills")
+def get_public_skill_catalog():
+    """Skill names for the application form's skill picker (same list the
+    resume parser knows). Static data, safe to cache."""
+    return {"skills": get_taxonomy().catalog()}
+
+
 @router.post("/public/apply")
 async def submit_public_application(
     background_tasks: BackgroundTasks,
@@ -136,6 +144,7 @@ async def submit_public_application(
     years_of_experience: float | None = Form(None),
     cover_note: str | None = Form(None),
     honeypot: str | None = Form(None),
+    skills: str | None = Form(None),
     resume: UploadFile = File(...),
     db: Session = Depends(get_db),
     tenant: Company = Depends(resolve_public_tenant),
@@ -156,6 +165,19 @@ async def submit_public_application(
             detail="Invalid job_id format.",
         )
 
+    # skills: JSON list of {"name", "years"} picked on the form (optional)
+    declared_skills: list[dict] = []
+    if skills and skills.strip():
+        if len(skills) > 10000:
+            raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Skills list is too long.")
+        try:
+            raw_skills = json.loads(skills)
+        except ValueError:
+            raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Invalid skills format.")
+        if not isinstance(raw_skills, list):
+            raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Invalid skills format.")
+        declared_skills = clean_declared_skills(raw_skills)
+
     application = await AtsService.process_public_application(
         db=db,
         company=tenant,
@@ -168,6 +190,7 @@ async def submit_public_application(
         cover_note=cover_note,
         honeypot=honeypot,
         resume_file=resume,
+        declared_skills=declared_skills,
     )
 
     # Parse + score after the response is sent. Uses the original upload
@@ -1090,6 +1113,9 @@ def get_application_match(
     """Parse status, match score and breakdown (polled while parsing)."""
     app = _get_application_or_404(db, company_id, application_id)
     AtsService._assert_can_access_application(db, current_user, app)
+    if match_service.refresh_if_outdated(db, app):
+        db.commit()
+        db.refresh(app)
     return match_service.match_payload(app)
 
 

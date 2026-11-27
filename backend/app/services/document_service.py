@@ -16,6 +16,7 @@ from xhtml2pdf import pisa
 
 from app.models.payslip import Payslip
 from app.repositories.base import BaseRepository
+from app.services.bank_details_service import payslip_bank_details
 
 _env = Environment(loader=FileSystemLoader("app/templates/documents"))
 
@@ -69,6 +70,7 @@ def generate_payslip_pdf(db: Session, company_id: UUID, payslip_id: UUID) -> byt
     employer_contributions = [l for l in payslip.lines if l.component_type == "employer_cost"]
     employer_total = sum((l.amount for l in employer_contributions), Decimal(0))
 
+    bank = payslip_bank_details(payslip)
     context = {
         "company": company,
         "employee": employee,
@@ -78,7 +80,9 @@ def generate_payslip_pdf(db: Session, company_id: UUID, payslip_id: UUID) -> byt
         "date_of_joining": employee.date_of_hire.strftime("%d %b %Y") if employee.date_of_hire else "-",
         "designation_title": employee.designation.title if employee.designation else None,
         "department_name": employee.department.name if employee.department else None,
-        "masked_account_number": _mask_account_number(employee.bank_account_number),
+        # Frozen with the payslip once finalized (see bank_details_service).
+        "bank": bank,
+        "masked_account_number": _mask_account_number(bank["bank_account_number"]),
         "earnings": earnings,
         "deductions": deductions,
         "employer_contributions": employer_contributions,

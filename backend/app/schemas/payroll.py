@@ -135,6 +135,11 @@ class PayslipResponse(BaseModel):
     run_month: int | None = None
     run_status: str | None = None
     payslip_number: str | None = None
+    # Frozen copy once finalized; the employee's current details on drafts.
+    pan_number: str | None = None
+    bank_name: str | None = None
+    bank_ifsc: str | None = None
+    bank_account_masked: str | None = None
 
     class Config:
         from_attributes = True

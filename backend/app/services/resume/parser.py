@@ -9,7 +9,7 @@ from datetime import date
 
 from app.services.resume.skills import get_taxonomy
 
-PARSER_VERSION = 1
+PARSER_VERSION = 2  # 2: taxonomy grew to ~340 skills with implied skills
 MAX_STORED_TEXT = 30000
 
 # ── Sections ──────────────────────────────────────────────

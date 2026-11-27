@@ -27,6 +27,9 @@ export const getPublicCareers = (tenantSubdomain) => {
   });
 };
 
+// Skill names for the application form's picker (no tenant needed)
+export const getPublicSkillCatalog = () => axios.get(`${API_BASE}/ats/public/skills`);
+
 export const submitPublicApplication = (formData, tenantSubdomain) => {
   const params = tenantSubdomain ? { tenant: tenantSubdomain } : {};
   return axios.post(`${API_BASE}/ats/public/apply`, formData, {

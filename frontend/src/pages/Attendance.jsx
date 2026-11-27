@@ -256,7 +256,7 @@ const STATUS_BY_SLUG = {
   absent: 'Absent',
 };
 
-function DailyAttendanceOverview({ onOpenRecord }) {
+function DailyAttendanceOverview({ onOpenRecord, faceEnabled = false }) {
   const todayStr = useMemo(() => getTodayISTDateString(), []);
   const [filters, setFilters] = useUrlFilters({ status: '', date: todayStr });
   const targetDate = /^\d{4}-\d{2}-\d{2}$/.test(filters.date) ? filters.date : todayStr;
@@ -305,6 +305,9 @@ function DailyAttendanceOverview({ onOpenRecord }) {
   };
 
   const employees = useMemo(() => data?.employees || [], [data?.employees]);
+  // With selfie verification off, the column only shows when this day still
+  // has statuses recorded while it was on (so old flags stay visible).
+  const showVerification = faceEnabled || employees.some((e) => e.face_status);
 
   const departments = useMemo(() => {
     return Array.from(new Set(employees.map((e) => e.department).filter(Boolean))).sort();
@@ -652,6 +655,7 @@ function DailyAttendanceOverview({ onOpenRecord }) {
                         )}
                       </div>
                     </th>
+                    {showVerification && (
                     <th
                       onClick={() => handleSort('face_status')}
                       style={{ cursor: 'pointer', userSelect: 'none', whiteSpace: 'nowrap' }}
@@ -665,6 +669,7 @@ function DailyAttendanceOverview({ onOpenRecord }) {
                         )}
                       </div>
                     </th>
+                    )}
                   </tr>
                 </thead>
                 <tbody>
@@ -708,9 +713,11 @@ function DailyAttendanceOverview({ onOpenRecord }) {
                       <td style={{ whiteSpace: 'nowrap' }}>
                         <DailyStatusBadge status={emp.status} leaveType={emp.leave_type} />
                       </td>
+                      {showVerification && (
                       <td style={{ whiteSpace: 'nowrap' }}>
                         <FaceVerificationBadge faceStatus={emp.face_status} />
                       </td>
+                      )}
                     </tr>
                   ))}
                 </tbody>
@@ -1536,6 +1543,7 @@ export default function Attendance() {
       {/* Daily Overview Tab (Admin/Manager) */}
       {tab === 'daily-overview' && canApprove && (
         <DailyAttendanceOverview
+          faceEnabled={!!faceConfig?.enabled}
           onOpenRecord={(employeeId, dateStr) => {
             const [y, m] = dateStr.split('-').map(Number);
             // Clear list filters that could hide this person from the picker.

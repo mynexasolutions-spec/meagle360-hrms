@@ -49,6 +49,7 @@ from app.repositories.payroll_repo import (
 from app.repositories.attendance_repo import AttendanceRepository
 from app.repositories.leave_repo import LeaveRequestRepository
 from app.services.audit_service import log_action
+from app.services.bank_details_service import snapshot_payslip
 
 
 class PayrollService:
@@ -607,6 +608,10 @@ class PayrollService:
         # link reimbursed expense claims to their payslip, and decrement
         # loan balances (closing a loan once it hits zero).
         for payslip in self.payslip_repo.get_by_run(run_id):
+            # Keep the PAN / bank account this salary was paid into, so a
+            # later change does not rewrite this payslip.
+            snapshot_payslip(payslip, payslip.employee)
+
             claims = self._get_reimbursable_expenses(payslip.employee_id)
             for claim in claims:
                 claim.paid_via_payslip_id = payslip.id

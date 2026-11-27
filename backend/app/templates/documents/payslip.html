@@ -357,7 +357,7 @@
           <td class="info-val">{{ employee.employee_code }}</td>
           <td class="info-lbl">PAN</td>
           <td class="info-sep">:</td>
-          <td class="info-val">{{ employee.pan_number or "-" }}</td>
+          <td class="info-val">{{ bank.pan_number or "-" }}</td>
         </tr>
         <tr>
           <td class="info-lbl">Designation</td>
@@ -365,7 +365,7 @@
           <td class="info-val">{{ designation_title or "-" }}</td>
           <td class="info-lbl">Bank Name</td>
           <td class="info-sep">:</td>
-          <td class="info-val">{{ employee.bank_name or "-" }}</td>
+          <td class="info-val">{{ bank.bank_name or "-" }}</td>
         </tr>
         <tr>
           <td class="info-lbl">Department</td>

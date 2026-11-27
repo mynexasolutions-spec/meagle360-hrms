@@ -10,6 +10,13 @@ out and the remaining weights are scaled back up to 100%, so a job without
 skills is not punished. If the job has no skills set at all, required
 skills are suggested from its description/requirements via the taxonomy.
 
+Skill credit per job skill:
+  1.0  found in the resume, directly or implied by a skill in the resume
+       ("Python" via "Django"; the breakdown records the "via" skill)
+  0.5  not in the resume, but the candidate picked it on the application
+       form (self-declared, unverified)
+  0    neither
+
 Education is parsed and shown but not scored: job openings have no
 education requirement field yet.
 
@@ -22,7 +29,8 @@ from collections import Counter
 
 from app.services.resume.skills import get_taxonomy, suggest_skills, text_mentions
 
-SCORE_VERSION = 1
+SCORE_VERSION = 2
+DECLARED_CREDIT = 0.5
 WEIGHTS = {"skills": 0.55, "experience": 0.25, "text_similarity": 0.20}
 
 # Raw cosine between a resume and a JD rarely goes above ~0.4 even for a
@@ -70,32 +78,75 @@ def job_text(job) -> str:
     return "\n".join(p for p in parts if p)
 
 
-def _skill_match(job_skills: list[str], resume_skills: set[str], resume_text: str) -> tuple[list[str], list[str]]:
+def _skill_match(job_skills: list[str], resume_has: dict[str, str | None], resume_text: str,
+                 declared_has: dict[str, str | None]) -> dict:
+    """Sort a job's skills into matched / declared-only / missing.
+
+    resume_has and declared_has are Taxonomy.expand() results:
+    skill -> None (stated) or the skill that implies it."""
     tax = get_taxonomy()
-    matched, missing, seen = [], [], set()
+    matched, declared, missing, implied, seen = [], [], [], {}, set()
+    declared_lower = {d.lower() for d in declared_has}
     for raw in job_skills:
         name = tax.canonical(raw)
         if not name or name.lower() in seen:
             continue
         seen.add(name.lower())
-        found = name in resume_skills if tax.is_known(name) else text_mentions(resume_text, name)
-        (matched if found else missing).append(name)
-    return matched, missing
+        if tax.is_known(name):
+            in_resume = name in resume_has
+            if in_resume and resume_has[name]:
+                implied[name] = resume_has[name]
+        else:
+            in_resume = text_mentions(resume_text, name)
+        if in_resume:
+            matched.append(name)
+        elif name in declared_has or name.lower() in declared_lower:
+            declared.append(name)
+        else:
+            missing.append(name)
+    return {"matched": matched, "declared": declared, "missing": missing, "implied": implied}
+
+
+def _ratio(m: dict) -> float | None:
+    total = len(m["matched"]) + len(m["declared"]) + len(m["missing"])
+    if not total:
+        return None
+    return (len(m["matched"]) + DECLARED_CREDIT * len(m["declared"])) / total
+
+
+def _declared_report(declared: list[dict], resume_has: dict, resume_text: str) -> list[dict]:
+    """The candidate's own skill list, each marked as seen in the resume or not."""
+    tax = get_taxonomy()
+    out = []
+    for d in declared:
+        name = d.get("name")
+        if not name:
+            continue
+        seen = name in resume_has if tax.is_known(name) else text_mentions(resume_text, name)
+        out.append({"name": name, "years": d.get("years"), "in_resume": bool(seen)})
+    return out
 
 
 def score_application(job, parsed: dict, overrides: dict | None = None,
-                      form_years: float | None = None) -> dict:
+                      form_years: float | None = None,
+                      declared_skills: list[dict] | None = None) -> dict:
     """Return {"score": float, "breakdown": {...}} for one application.
 
     `parsed` is the parser output; recruiter `overrides` win over it.
     `form_years` is the years of experience the candidate typed on the
-    application form, used when the resume has no readable dates."""
+    application form, used when the resume has no readable dates.
+    `declared_skills` is the candidate's own skill list from the form:
+    [{"name": canonical, "years": float | None}]."""
     overrides = overrides or {}
     resume_text = parsed.get("text") or ""
     if overrides.get("skills") is not None:
         resume_skills = set(overrides["skills"])
     else:
         resume_skills = set(parsed.get("skills") or [])
+    tax = get_taxonomy()
+    resume_has = tax.expand(resume_skills)
+    declared_skills = [d for d in (declared_skills or []) if d.get("name")]
+    declared_has = tax.expand(d["name"] for d in declared_skills)
     components: dict[str, dict] = {}
 
     # ── Skills ──
@@ -106,10 +157,9 @@ def score_application(job, parsed: dict, overrides: dict | None = None,
         required = suggest_skills(job_text(job), limit=15)
         skills_source = "job_description"
     if required or preferred:
-        m_req, x_req = _skill_match(required, resume_skills, resume_text)
-        m_pref, x_pref = _skill_match(preferred, resume_skills, resume_text)
-        req_ratio = len(m_req) / len(m_req + x_req) if (m_req or x_req) else None
-        pref_ratio = len(m_pref) / len(m_pref + x_pref) if (m_pref or x_pref) else None
+        req = _skill_match(required, resume_has, resume_text, declared_has)
+        pref = _skill_match(preferred, resume_has, resume_text, declared_has)
+        req_ratio, pref_ratio = _ratio(req), _ratio(pref)
         if req_ratio is not None and pref_ratio is not None:
             value = 0.8 * req_ratio + 0.2 * pref_ratio
         else:
@@ -117,8 +167,12 @@ def score_application(job, parsed: dict, overrides: dict | None = None,
         components["skills"] = {
             "value": round(value, 4),
             "source": skills_source,
-            "matched_required": m_req, "missing_required": x_req,
-            "matched_preferred": m_pref, "missing_preferred": x_pref,
+            "matched_required": req["matched"], "missing_required": req["missing"],
+            "matched_preferred": pref["matched"], "missing_preferred": pref["missing"],
+            # job skills only the candidate claims (form), not seen in the resume
+            "declared_required": req["declared"], "declared_preferred": pref["declared"],
+            # job skill -> resume skill that implies it ("Python" -> "Django")
+            "implied": {**pref["implied"], **req["implied"]},
         }
 
     # ── Experience ──
@@ -162,6 +216,7 @@ def score_application(job, parsed: dict, overrides: dict | None = None,
         "breakdown": {
             "components": components,
             "candidate_skills": sorted(resume_skills),
+            "declared_skills": _declared_report(declared_skills, resume_has, resume_text),
             "highest_education": overrides.get("highest_education") or parsed.get("highest_education"),
             "score_version": SCORE_VERSION,
             "note": "Suggestion for sorting only. Never auto-reject based on this score.",

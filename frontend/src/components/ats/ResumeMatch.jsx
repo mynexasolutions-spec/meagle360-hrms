@@ -45,6 +45,7 @@ function Chip({ children, tone }) {
     ok: 'bg-emerald-50 text-emerald-700 border-emerald-200',
     miss: 'bg-white text-slate-700 border-dashed border-slate-300',
     soft: 'bg-gray-50 text-slate-700 border-gray-200',
+    claim: 'bg-blue-50 text-blue-800 border-blue-200',
   };
   return (
     <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-md border text-[0.75rem] font-medium ${tones[tone]}`}>
@@ -256,6 +257,10 @@ export function MatchCard({ applicationId, match, onChange, canEdit = true }) {
   const exp = comps.experience;
   const parsed = match.parsed || {};
   const hasOverrides = Object.keys(match.overrides || {}).length > 0;
+  const implied = skills?.implied || {};
+  const claimed = [...(skills?.declared_required || []), ...(skills?.declared_preferred || [])];
+  // Breakdown copy has the "seen in resume" flag; fall back to the raw form data
+  const declared = match.match_breakdown?.declared_skills || match.declared_skills || [];
 
   return (
     <Shell
@@ -292,7 +297,23 @@ export function MatchCard({ applicationId, match, onChange, canEdit = true }) {
 
           {skills && (
             <div className="space-y-2">
-              <SkillRow title="Matched skills" items={[...skills.matched_required, ...skills.matched_preferred]} tone="ok" empty="None of the job's skills found" />
+              <SkillRow
+                title="Matched skills"
+                items={[...skills.matched_required, ...skills.matched_preferred]}
+                tone="ok"
+                empty="None of the job's skills found"
+                render={(s) => (implied[s] ? (
+                  <span title={`Resume mentions ${implied[s]}, which implies ${s}`}>
+                    {s} <span className="font-normal text-emerald-600">via {implied[s]}</span>
+                  </span>
+                ) : s)}
+              />
+              {claimed.length > 0 && (
+                <div>
+                  <SkillRow title="Claimed by candidate, not found in resume" items={claimed} tone="claim" />
+                  <p className="text-[0.7rem] text-slate-600 mt-1">Counted at half weight. Confirm in the interview or with Correct.</p>
+                </div>
+              )}
               <SkillRow title="Missing skills" items={skills.missing_required} tone="miss" empty="No required skill missing" />
               {skills.missing_preferred?.length > 0 && (
                 <SkillRow title="Missing nice-to-have" items={skills.missing_preferred} tone="miss" />
@@ -302,6 +323,23 @@ export function MatchCard({ applicationId, match, onChange, canEdit = true }) {
                   This job has no required skills set, so skills were taken from its description. Add skills on the job opening for a better match.
                 </p>
               )}
+            </div>
+          )}
+
+          {declared.length > 0 && (
+            <div>
+              <span className="text-[0.75rem] font-semibold text-slate-700 block mb-1">Skills from application form</span>
+              <div className="flex flex-wrap gap-1.5">
+                {declared.map((d) => (
+                  <Chip key={d.name} tone={d.in_resume ? 'ok' : 'soft'}>
+                    <span title={d.in_resume === false ? 'Not found in the resume' : undefined}>
+                      {d.name}
+                      {d.years != null && <span className="font-normal"> · {d.years} yrs</span>}
+                      {d.in_resume === false && <span className="font-normal text-slate-500"> · not in resume</span>}
+                    </span>
+                  </Chip>
+                ))}
+              </div>
             </div>
           )}
 
@@ -345,12 +383,12 @@ function Shell({ children, right }) {
   );
 }
 
-function SkillRow({ title, items, tone, empty }) {
+function SkillRow({ title, items, tone, empty, render = (s) => s }) {
   return (
     <div>
       <span className="text-[0.75rem] font-semibold text-slate-700 block mb-1">{title}</span>
       <div className="flex flex-wrap gap-1.5">
-        {items?.length ? items.map((s) => <Chip key={s} tone={tone}>{s}</Chip>) : <span className="text-[0.75rem] text-slate-500">{empty}</span>}
+        {items?.length ? items.map((s) => <Chip key={s} tone={tone}>{render(s)}</Chip>) : <span className="text-[0.75rem] text-slate-500">{empty}</span>}
       </div>
     </div>
   );

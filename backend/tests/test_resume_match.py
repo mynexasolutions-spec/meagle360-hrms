@@ -160,7 +160,7 @@ def test_short_case_sensitive_skills():
 
 
 def test_canonical_skill_list_cleans_recruiter_input():
-    assert canonical_skill_list(["reactjs", "React", " golang ", "", "Kafka"]) == ["React", "Go", "Kafka"]
+    assert canonical_skill_list(["reactjs", "React", " golang ", "", "Zoho Creator"]) == ["React", "Go", "Zoho Creator"]
 
 
 def test_suggest_skills_from_job_text():
@@ -322,3 +322,91 @@ def test_run_parse_success_sets_done_and_scores():
     assert "React" in app.match_breakdown["components"]["skills"]["matched_required"]
     payload = match_service.match_payload(app)
     assert "text" not in payload["parsed"]
+
+
+# ── Taxonomy: implied skills + candidate-declared skills ──
+
+def test_taxonomy_aliases_unique_and_implies_valid():
+    import json
+    import re
+    from app.services.resume import skills as skills_mod
+    with open(skills_mod._PATH, encoding="utf-8") as f:
+        data = json.load(f)["skills"]
+    owner = {}
+    for canonical, info in data.items():
+        for alias in [canonical, *info.get("aliases", [])]:
+            key = re.sub(r"\s+", " ", alias.lstrip("=").strip().lower())
+            assert owner.setdefault(key, canonical) == canonical, f"{alias!r} in {owner[key]} and {canonical}"
+        for target in info.get("implies", []):
+            assert target in data, f"{canonical} implies unknown skill {target}"
+
+
+def test_expand_follows_implies_transitively():
+    got = get_taxonomy().expand(["Next.js", "Python"])
+    assert got["Next.js"] is None and got["Python"] is None
+    assert got["React"] == "Next.js"
+    assert got["JavaScript"] == "Next.js"          # Next.js -> React -> JavaScript
+    assert got["Frontend Development"] == "Next.js"
+
+
+def test_job_skill_matched_via_implied_resume_skill():
+    job = _job(required_skills=["Python", "Backend Development", "Kubernetes"], preferred_skills=[])
+    parsed = {"skills": ["Django"], "total_experience_years": 5, "text": "Built APIs with Django"}
+    comp = score_application(job, parsed)["breakdown"]["components"]["skills"]
+    assert comp["matched_required"] == ["Python", "Backend Development"]
+    assert comp["implied"] == {"Python": "Django", "Backend Development": "Django"}
+    assert comp["missing_required"] == ["Kubernetes"]
+
+
+def test_declared_only_skill_gets_half_credit():
+    job = _job(required_skills=["React", "Kubernetes"], preferred_skills=[], min_experience_years=None)
+    parsed = {"skills": ["React"], "text": "React developer"}
+    declared = [{"name": "Kubernetes", "years": 2}, {"name": "React", "years": 4}]
+    res = score_application(job, parsed, declared_skills=declared)
+    comp = res["breakdown"]["components"]["skills"]
+    assert comp["matched_required"] == ["React"]
+    assert comp["declared_required"] == ["Kubernetes"]
+    assert comp["missing_required"] == []
+    assert comp["value"] == pytest.approx((1 + 0.5) / 2)
+    report = {d["name"]: d for d in res["breakdown"]["declared_skills"]}
+    assert report["React"]["in_resume"] is True
+    assert report["Kubernetes"]["in_resume"] is False
+    assert report["Kubernetes"]["years"] == 2
+
+
+def test_resume_beats_declaration():
+    job = _job(required_skills=["React"], preferred_skills=[])
+    comp = score_application(job, PARSED, declared_skills=[{"name": "React"}])["breakdown"]["components"]["skills"]
+    assert comp["matched_required"] == ["React"] and comp["declared_required"] == []
+
+
+def test_clean_declared_skills():
+    from app.services.resume.skills import MAX_DECLARED_SKILLS, clean_declared_skills
+    got = clean_declared_skills([{"name": "reactjs", "years": "3"}, {"name": "React", "years": 9},
+                                 "golang", {"name": "", "years": 1}, {"name": "Zoho Creator", "years": 99},
+                                 {"name": "Python", "years": "abc"}, 42])
+    assert got == [{"name": "React", "years": 3.0}, {"name": "Go", "years": None},
+                   {"name": "Zoho Creator", "years": 50.0}, {"name": "Python", "years": None}]
+    assert len(clean_declared_skills([f"skill {i}" for i in range(100)])) == MAX_DECLARED_SKILLS
+
+
+def test_ambiguous_words_are_not_skills():
+    found = get_taxonomy().find("Used Java 8 lambdas, shipping features weekly, yoga asana poses and lean teams.")
+    assert "AWS" not in found and "Logistics" not in found and "Asana" not in found
+    assert "Java" in found
+
+
+def test_refresh_if_outdated_reparses_stored_text():
+    app = SimpleNamespace(id=uuid.uuid4(), company_id=uuid.uuid4(), job_id=uuid.uuid4(),
+                          parse_status="done", parsed_overrides=None, declared_skills=None,
+                          candidate=SimpleNamespace(years_of_experience=None),
+                          parsed_data={"skills": [], "text": "SKILLS\nDjango, Kubernetes"},
+                          parser_version=1, match_score=None, match_breakdown=None,
+                          scored_at=None, score_version=1)
+    db = MagicMock()
+    db.query.return_value.filter.return_value.first.return_value = _job()
+    assert match_service.refresh_if_outdated(db, app) is True
+    assert "Django" in app.parsed_data["skills"]
+    assert app.parser_version == match_service.PARSER_VERSION
+    assert app.score_version == match_service.SCORE_VERSION
+    assert match_service.refresh_if_outdated(db, app) is False

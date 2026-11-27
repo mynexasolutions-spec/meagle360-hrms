@@ -6,6 +6,11 @@ all count as "React". Matching is regex on word boundaries; aliases written
 with a leading '=' are case-sensitive (Go, R, C, Excel) so ordinary words
 like "go" do not count as a skill.
 
+A skill can list "implies": knowing Django proves Python, knowing React
+proves Frontend Development. expand() follows these links transitively, so a
+job asking for Python is matched by a resume that only says Django, and the
+recruiter sees "Python via Django".
+
 Unknown skills typed by a recruiter on a job (not in the taxonomy) still work:
 they are matched literally against the resume text."""
 
@@ -27,10 +32,12 @@ def _norm(s: str) -> str:
 class Taxonomy:
     def __init__(self, data: dict):
         self.category: dict[str, str] = {}
+        self.implies: dict[str, list[str]] = {}
         self._alias_ci: dict[str, str] = {}   # lowercased alias -> canonical
         self._alias_cs: dict[str, str] = {}   # exact alias -> canonical
         for canonical, info in data["skills"].items():
             self.category[canonical] = info.get("category", "Other")
+            self.implies[canonical] = [s for s in info.get("implies", []) if s != canonical]
             self._alias_ci[_norm(canonical)] = canonical
             for alias in info.get("aliases", []):
                 if alias.startswith("="):
@@ -64,6 +71,26 @@ class Taxonomy:
 
     def is_known(self, name: str) -> bool:
         return self.canonical(name) in self.category
+
+    def expand(self, skills) -> dict[str, str | None]:
+        """Skills plus everything they imply (transitively).
+
+        Returns skill -> None for a skill in the input, or skill -> the input
+        skill it was reached from ("Python" -> "Django")."""
+        out: dict[str, str | None] = {s: None for s in skills}
+        queue = [(s, s) for s in out]
+        while queue:
+            skill, root = queue.pop(0)
+            for implied in self.implies.get(skill, []):
+                if implied not in out:
+                    out[implied] = root
+                    queue.append((implied, root))
+        return out
+
+    def catalog(self) -> list[dict]:
+        """Every canonical skill with its category, for pickers in the UI."""
+        return [{"name": n, "category": c}
+                for n, c in sorted(self.category.items(), key=lambda kv: (kv[1], kv[0].lower()))]
 
     def find(self, text: str) -> dict[str, int]:
         """Canonical skill -> number of mentions in the text."""
@@ -112,4 +139,36 @@ def canonical_skill_list(skills: list[str] | None) -> list[str]:
         if c and c.lower() not in seen:
             seen.add(c.lower())
             out.append(c)
+    return out
+
+
+MAX_DECLARED_SKILLS = 30
+
+
+def clean_declared_skills(items) -> list[dict]:
+    """Validate the skill list a candidate sends with an application.
+
+    Accepts [{"name": str, "years": number | null}] (or bare strings).
+    Names become canonical taxonomy names; unknown names are kept as typed
+    (max 80 chars). Years are clamped to 0..50. Duplicates and blanks are
+    dropped; at most MAX_DECLARED_SKILLS are kept."""
+    tax = get_taxonomy()
+    seen, out = set(), []
+    for item in items or []:
+        if isinstance(item, str):
+            item = {"name": item}
+        if not isinstance(item, dict):
+            continue
+        name = tax.canonical(str(item.get("name") or ""))[:80].strip()
+        if not name or name.lower() in seen:
+            continue
+        years = item.get("years")
+        try:
+            years = None if years in (None, "") else round(min(50.0, max(0.0, float(years))), 1)
+        except (TypeError, ValueError):
+            years = None
+        seen.add(name.lower())
+        out.append({"name": name, "years": years})
+        if len(out) >= MAX_DECLARED_SKILLS:
+            break
     return out

@@ -18,7 +18,7 @@ from app.services.auth_service import _get_jwt_secret
 from app.services.scheduled_job_change_service import start_background
 from app.services.resume.match_service import start_sweeper as start_resume_sweeper
 from app.services.offboarding_service import start_background as start_offboarding_job
-from app.routes import auth, company, department, designation, employee, attendance, leave, shift, platform, dashboard, announcement, overtime, audit, role, expense, site, payroll, action_tracker, helpdesk, ai, pms, pms_results, pms_monthly, geofence, face, ats, policy, required_document, employee_document, job_change, organization
+from app.routes import auth, company, department, designation, employee, attendance, leave, shift, platform, dashboard, announcement, overtime, audit, role, expense, site, payroll, action_tracker, helpdesk, ai, pms, pms_results, pms_monthly, geofence, face, ats, policy, required_document, employee_document, job_change, organization, bank_details
 from app.middleware.plan_expiry import PlanExpiryMiddleware
 
 settings = get_settings()
@@ -99,6 +99,7 @@ app.include_router(announcement.router)
 app.include_router(policy.router)
 app.include_router(required_document.router)
 app.include_router(employee_document.router)
+app.include_router(bank_details.router)
 app.include_router(overtime.router)
 app.include_router(expense.router)
 app.include_router(payroll.router)

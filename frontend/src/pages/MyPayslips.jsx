@@ -83,13 +83,6 @@ function numberToWordsIndian(num) {
   return `(Rupees ${words.trim()} Only)`;
 }
 
-function maskAccountNumber(acc) {
-  if (!acc) return '—';
-  const str = String(acc).trim();
-  if (str.length <= 4) return str;
-  const last4 = str.slice(-4);
-  return `**** **** ${last4}`;
-}
 
 function formatJoinDate(d) {
   if (!d) return '15 Jan 2022';
@@ -242,9 +235,11 @@ export default function MyPayslips() {
           const designation = employee?.designation?.title || employee?.designation || employee?.role?.name || '—';
           const department = employee?.department?.name || employee?.department || '—';
           const doj = formatJoinDate(employee?.date_of_hire);
-          const pan = employee?.pan_number || '—';
-          const bankName = employee?.bank_name || (employee?.bank_ifsc ? `${employee.bank_ifsc.slice(0, 4)} Bank` : '—');
-          const bankAccount = maskAccountNumber(employee?.bank_account_number);
+          // From the payslip itself: frozen at finalize, so a later bank change
+          // does not rewrite the account an old salary was paid into.
+          const pan = p.pan_number || '—';
+          const bankName = p.bank_name || (p.bank_ifsc ? `${p.bank_ifsc.slice(0, 4)} Bank` : '—');
+          const bankAccount = p.bank_account_masked || '—';
 
           const paidDays = Math.max(0, Number(p.working_days || 0) - Number(p.lop_days || 0));
           const payslipNumber = p.payslip_number || `PS-${p.run_year}-${String(p.run_month).padStart(2, '0')}-${empCode}`;

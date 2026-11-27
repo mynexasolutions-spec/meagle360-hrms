@@ -232,6 +232,10 @@ class Application(Base, TimestampMixin):
     match_breakdown: Mapped[dict | None] = mapped_column(JSON, nullable=True)
     scored_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
     score_version: Mapped[int | None] = mapped_column(Integer, nullable=True)
+    # Skills the candidate picked on the application form:
+    # [{"name": canonical skill, "years": float | None}]. Self-declared, so
+    # the scorer gives them half credit unless the resume backs them up.
+    declared_skills: Mapped[list | None] = mapped_column(JSON, nullable=True)
 
     # ── Relationships ────────────────────────────────────
     company = relationship("Company")

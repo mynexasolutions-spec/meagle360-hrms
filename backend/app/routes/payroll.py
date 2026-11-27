@@ -16,6 +16,7 @@ from app.dependencies import get_company_id, get_current_user, require_permissio
 from app.models.user_account import UserAccount
 from app.services.payroll_service import PayrollService
 from app.services import document_service
+from app.services.bank_details_service import mask_account, payslip_bank_details
 from app.schemas.payroll import (
     SalaryComponentCreate, SalaryComponentUpdate, SalaryComponentResponse,
     SalaryStructureCreate, SalaryStructureUpdate, SalaryStructureResponse,
@@ -76,7 +77,10 @@ def _fnf_to_response(f) -> FnfSettlementResponse:
 
 def _payslip_to_response(p) -> PayslipResponse:
     run = getattr(p, "payroll_run", None)
+    bank = payslip_bank_details(p)
     return PayslipResponse(
+        pan_number=bank["pan_number"], bank_name=bank["bank_name"], bank_ifsc=bank["bank_ifsc"],
+        bank_account_masked=mask_account(bank["bank_account_number"]),
         id=p.id, payroll_run_id=p.payroll_run_id, employee_id=p.employee_id,
         employee_name=p.employee.full_name if getattr(p, "employee", None) else None,
         employee_code=p.employee.employee_code if getattr(p, "employee", None) else None,

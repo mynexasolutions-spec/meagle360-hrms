@@ -27,6 +27,7 @@ import {
   ArrowUpRight,
 } from 'lucide-react';
 import { getPublicCareers, submitPublicApplication } from '../../api/ats';
+import SkillPicker from '../../components/ats/SkillPicker';
 import './CareersPage.css';
 
 // Format date nicely for job cards
@@ -91,6 +92,7 @@ export default function CareersPage() {
   const [currentLocation, setCurrentLocation] = useState('');
   const [experience, setExperience] = useState('1-3 years');
   const [coverNote, setCoverNote] = useState('');
+  const [skills, setSkills] = useState([]);
   const [resumeFile, setResumeFile] = useState(null);
   const [submitting, setSubmitting] = useState(false);
   const [submitError, setSubmitError] = useState('');
@@ -116,6 +118,11 @@ export default function CareersPage() {
     };
     fetchCareers();
   }, []);
+
+  // Each application starts with an empty skill list
+  useEffect(() => {
+    setSkills([]);
+  }, [applyJob?.id]);
 
   // Lock body scroll whenever modal is open to completely prevent double scroll collision
   useEffect(() => {
@@ -211,6 +218,7 @@ export default function CareersPage() {
       formData.append('current_location', currentLocation);
       formData.append('cover_note', coverNote);
       formData.append('resume', resumeFile);
+      if (skills.length) formData.append('skills', JSON.stringify(skills));
 
       let expYears = 1.0;
       if (experience.includes('Fresher')) expYears = 0.0;
@@ -232,6 +240,7 @@ export default function CareersPage() {
       setPhone('');
       setCurrentLocation('');
       setCoverNote('');
+      setSkills([]);
 
       setShowToast(true);
       setTimeout(() => setShowToast(false), 6000);
@@ -758,6 +767,18 @@ export default function CareersPage() {
                   <option value="5-8 years">5-8 years</option>
                   <option value="8+ years">8+ years</option>
                 </select>
+              </div>
+
+              <div className="form-group">
+                <label className="form-label">Key skills (optional)</label>
+                <p className="skill-picker-hint" style={{ marginTop: -2, marginBottom: 8 }}>
+                  Add the skills you are strongest in, with years of experience if you like. We check them against your resume.
+                </p>
+                <SkillPicker
+                  value={skills}
+                  onChange={setSkills}
+                  suggested={[...(applyJob.required_skills || []), ...(applyJob.preferred_skills || [])]}
+                />
               </div>
 
               {/* Dotted Drag & Drop Resume Box */}

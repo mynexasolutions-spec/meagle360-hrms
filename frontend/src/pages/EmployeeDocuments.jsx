@@ -5,6 +5,7 @@ import Modal from '../components/Modal';
 import PageTitle from '../components/PageTitle';
 import DocumentChecklist from '../components/documents/DocumentChecklist';
 import ManageRequired from '../components/documents/ManageRequired';
+import BankDetailRequests from '../components/documents/BankDetailRequests';
 import { EMPLOYMENT_TYPES, NoRequiredDocuments, StatusBadge } from '../components/documents/shared';
 import { errorText } from '../components/policies/shared';
 import { getDocumentOverview } from '../api/documents';
@@ -140,23 +141,22 @@ export default function EmployeeDocuments() {
   const canManage = !!user?.permissions?.['settings:write'];
   const [filters, setFilters] = useUrlFilters({ tab: 'status' });
   const [adding, setAdding] = useState(false); // opens the Add form on the other tab
-  const tab = canManage && filters.tab === 'required' ? 'required' : 'status';
+  const tabs = [['status', 'Employees'], ...(canManage ? [['required', 'Required documents']] : []), ['bank', 'Bank & PAN changes']];
+  const tab = tabs.some(([id]) => id === filters.tab) ? filters.tab : 'status';
 
   return (
     <div className="animate-fade-in company-page">
       <PageTitle icon={FolderCheck} title="Employee Documents" subtitle="Documents your employees must submit, and who has submitted them" />
-      {canManage && (
-        <div className="tabs">
-          {[['status', 'Employees'], ['required', 'Required documents']].map(([id, label]) => (
-            <button key={id} type="button" className={`tab${tab === id ? ' active' : ''}`} onClick={() => { setAdding(false); setFilters({ tab: id }); }}>
-              {label}
-            </button>
-          ))}
-        </div>
-      )}
-      {tab === 'required'
-        ? <ManageRequired startAdding={adding} />
-        : <Overview canManage={canManage} onAdd={() => { setAdding(true); setFilters({ tab: 'required' }); }} />}
+      <div className="tabs">
+        {tabs.map(([id, label]) => (
+          <button key={id} type="button" className={`tab${tab === id ? ' active' : ''}`} onClick={() => { setAdding(false); setFilters({ tab: id, bank_status: null }); }}>
+            {label}
+          </button>
+        ))}
+      </div>
+      {tab === 'required' && <ManageRequired startAdding={adding} />}
+      {tab === 'bank' && <BankDetailRequests />}
+      {tab === 'status' && <Overview canManage={canManage} onAdd={() => { setAdding(true); setFilters({ tab: 'required' }); }} />}
     </div>
   );
 }

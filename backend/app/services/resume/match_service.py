@@ -10,6 +10,11 @@ Parsing is expensive and done once per resume; scoring is cheap and is
 redone whenever the job's requirements or the recruiter's corrections
 change. Every query is scoped by company_id.
 
+Results made by an older parser or scorer (e.g. before the taxonomy grew)
+are brought up to date lazily by refresh_if_outdated() when a recruiter
+opens the application. The stored resume text is re-parsed, so the PDF is
+not downloaded again.
+
 A failure only sets parse_status = 'failed' with a short reason; it never
 touches the rest of the application."""
 
@@ -55,7 +60,8 @@ def apply_score(db: Session, app: Application) -> None:
     cand = app.candidate
     form_years = (float(cand.years_of_experience)
                   if cand is not None and cand.years_of_experience is not None else None)
-    result = score_application(job, app.parsed_data, app.parsed_overrides, form_years)
+    result = score_application(job, app.parsed_data, app.parsed_overrides, form_years,
+                               declared_skills=getattr(app, "declared_skills", None))
     app.match_score = result["score"]
     app.match_breakdown = result["breakdown"]
     app.scored_at = _now()
@@ -78,6 +84,24 @@ def rescore_job(company_id: UUID, job_id: UUID) -> None:
         logger.exception("Rescoring applications of job %s failed", job_id)
     finally:
         db.close()
+
+
+def refresh_if_outdated(db: Session, app: Application) -> bool:
+    """Re-parse (from the stored text) and/or rescore an application whose
+    results came from an older parser or scorer. Returns True if it changed
+    anything; the caller commits."""
+    if app.parse_status != "done" or not app.parsed_data:
+        return False
+    changed = False
+    text = app.parsed_data.get("text")
+    if (app.parser_version or 0) < PARSER_VERSION and text:
+        app.parsed_data = parse_resume_text(text)
+        app.parser_version = PARSER_VERSION
+        changed = True
+    if changed or (app.score_version or 0) < SCORE_VERSION:
+        apply_score(db, app)
+        changed = True
+    return changed
 
 
 # ── Parsing ───────────────────────────────────────────────
@@ -203,4 +227,5 @@ def match_payload(app: Application) -> dict:
         "match_breakdown": app.match_breakdown,
         "parsed": parsed or None,
         "overrides": app.parsed_overrides or {},
+        "declared_skills": getattr(app, "declared_skills", None) or [],
     }

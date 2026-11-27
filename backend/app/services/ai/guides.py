@@ -323,6 +323,21 @@ GUIDES: tuple[Guide, ...] = (
         notes=("A payslip appears only after HR finalizes that month's payroll.",),
     ),
     Guide(
+        id="update-bank-details",
+        title="Add or change your PAN or bank account",
+        path="/profile",
+        button="Open My Profile",
+        aliases=("bank details", "bank account", "update bank", "change account number", "pan card",
+                 "add pan", "ifsc", "salary account", "bank account kaise badle"),
+        steps=(
+            "Open My Space > My Profile and find Bank & Tax Details.",
+            "Click Add details or Request change.",
+            "Enter your PAN, or your account number twice with the IFSC; the bank name fills in from the IFSC.",
+            "Attach a cancelled cheque, passbook page or PAN card, then click Send to HR.",
+        ),
+        notes=("HR approves every change before payroll uses it. Payslips already issued keep the old account.",),
+    ),
+    Guide(
         id="submit-expense",
         title="Submit an expense claim",
         path="/expenses",
