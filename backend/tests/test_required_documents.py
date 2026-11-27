@@ -169,7 +169,7 @@ def test_access(env):
     assert env.hr.post(f"{URL}/required", json={"name": "X"}).status_code == 403
 
 
-@pytest.mark.parametrize("content", [b"", b"<html>", b"MZ123", b"%PDF-" + b"0" * (5 * 1024 * 1024)],
+@pytest.mark.parametrize("content", [b"", b"<html>", b"MZ123", b"%PDF-" + b"0" * (2 * 1024 * 1024)],
                          ids=["empty", "html", "exe", "too-big"])
 def test_bad_files(env, content):
     res = send(env.worker, env.ids["worker"], make(env), ("a.pdf", content, "application/pdf"))

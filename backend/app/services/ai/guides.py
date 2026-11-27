@@ -332,6 +332,7 @@ GUIDES: tuple[Guide, ...] = (
         steps=(
             "Open My Space > Expenses and click Submit Expense.",
             "Enter the category, amount, Expense Date and description.",
+            "Optionally attach the bill under Receipt (PDF, JPG or PNG, up to 2 MB).",
             "Click Submit. Track the status under My Claims.",
         ),
         permissions=("expenses:write",),
@@ -553,7 +554,7 @@ GUIDES: tuple[Guide, ...] = (
             "Under Required documents, click Upload next to each Pending document and choose the file.",
             "HR checks it: Verified means done. If it is Rejected, read the reason and click Replace.",
         ),
-        notes=("PDF, JPG or PNG, up to 5 MB.",
+        notes=("PDF, JPG or PNG, up to 2 MB.",
                "For anything else, use Upload Document under Other documents. You can delete what you uploaded there; "
                "only HR can delete what HR added."),
         soft=True,

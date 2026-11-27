@@ -1,6 +1,6 @@
 import { FolderPlus, Plus } from 'lucide-react';
 
-export const MAX_BYTES = 5 * 1024 * 1024;
+export const MAX_BYTES = 2 * 1024 * 1024;
 
 // The sidebar listens for this to refresh its pending badge.
 export const DOCUMENTS_CHANGED = 'documents-changed';

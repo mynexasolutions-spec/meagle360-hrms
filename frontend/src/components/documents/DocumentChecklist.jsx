@@ -57,7 +57,7 @@ export default function DocumentChecklist({ employeeId, isHr = false, onChange }
     e.target.value = '';
     if (!file) return;
     if (file.size > MAX_BYTES) {
-      setError('The file is larger than 5 MB.');
+      setError('The file is larger than 2 MB.');
       return;
     }
     run(() => uploadDocument(employeeId, uploadFor.current, file), 'Could not upload the file.');
@@ -145,7 +145,7 @@ export default function DocumentChecklist({ employeeId, isHr = false, onChange }
           </div>
         );
       })}
-      {items?.some((i) => i.required) && <p className="doc-muted" style={{ marginTop: 12 }}>PDF, JPG or PNG, up to 5 MB.</p>}
+      {items?.some((i) => i.required) && <p className="doc-muted" style={{ marginTop: 12 }}>PDF, JPG or PNG, up to 2 MB.</p>}
     </div>
   );
 }

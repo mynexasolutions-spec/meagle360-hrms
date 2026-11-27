@@ -37,7 +37,13 @@ class ExpenseClaim(Base, TimestampMixin):
     amount: Mapped[Decimal] = mapped_column(Numeric(12, 2), nullable=False)
     expense_date: Mapped[date_type] = mapped_column(Date, nullable=False)
     description: Mapped[str | None] = mapped_column(Text, nullable=True)
+    # Link saved before uploads existed; new claims leave it empty.
     receipt_url: Mapped[str | None] = mapped_column(String(500), nullable=True)
+    # Private ImageKit file; see document_storage.
+    receipt_filename: Mapped[str | None] = mapped_column(String(200), nullable=True)
+    receipt_content_type: Mapped[str | None] = mapped_column(String(50), nullable=True)
+    receipt_storage_id: Mapped[str | None] = mapped_column(String(100), nullable=True)
+    receipt_storage_path: Mapped[str | None] = mapped_column(String(500), nullable=True)
     status: Mapped[str] = mapped_column(
         String(20), nullable=False, default="pending"
     )  # pending, approved, rejected, reimbursed

@@ -51,15 +51,19 @@ def folder(company_id, employee_id=None) -> str:
     return f"{path}/{uuid.UUID(str(employee_id))}" if employee_id else path
 
 
-def save(company_id, employee_id, content: bytes, content_type: str) -> tuple[str, str]:
-    """Store a private file. Returns (file id, path)."""
+def save(company_id, employee_id, content: bytes, content_type: str, subfolder: str | None = None) -> tuple[str, str]:
+    """Store a private file. Returns (file id, path).
+
+    `subfolder` sits inside the employee's folder (e.g. "receipts"), so
+    remove_folder still cleans it up with the employee or company."""
     private_key, _ = _credentials()
     # The employee's own file name stays in our database.
     name = f"{uuid.uuid4().hex}.{EXTENSIONS[content_type]}"
-    path = f"{folder(company_id, employee_id)}/{name}"
+    target = folder(company_id, employee_id) + (f"/{subfolder}" if subfolder else "")
+    path = f"{target}/{name}"
     res = _request(
         "POST", UPLOAD_URL, auth=(private_key, ""),
-        data={"fileName": name, "folder": folder(company_id, employee_id),
+        data={"fileName": name, "folder": target,
               "isPrivateFile": "true", "useUniqueFileName": "false", "responseFields": "isPrivateFile"},
         files={"file": (name, content, content_type)},
     ).json()

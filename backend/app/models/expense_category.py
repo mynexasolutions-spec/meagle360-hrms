@@ -2,7 +2,7 @@
 
 import uuid
 
-from sqlalchemy import ForeignKey, String
+from sqlalchemy import Boolean, ForeignKey, String, true
 from sqlalchemy.dialects.postgresql import UUID
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
@@ -22,6 +22,8 @@ class ExpenseCategory(Base, TimestampMixin):
         index=True,
     )
     name: Mapped[str] = mapped_column(String(100), nullable=False)
+    # Switched off instead of deleted, so old claims keep their category.
+    is_active: Mapped[bool] = mapped_column(Boolean, nullable=False, default=True, server_default=true())
 
     # ── Relationships ────────────────────────────────────
     company = relationship("Company", back_populates="expense_categories")

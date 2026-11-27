@@ -18,7 +18,7 @@ function UploadModal({ employeeId, onClose, onDone }) {
   const choose = (picked) => {
     if (!picked) return;
     const tooBig = picked.size > MAX_BYTES;
-    setError(tooBig ? 'The file is larger than 5 MB.' : '');
+    setError(tooBig ? 'The file is larger than 2 MB.' : '');
     setFile(tooBig ? null : picked);
   };
 
@@ -54,7 +54,7 @@ function UploadModal({ employeeId, onClose, onDone }) {
         >
           <Upload size={20} />
           <strong>{file ? file.name : 'Choose a file or drop it here'}</strong>
-          <span className="doc-muted">PDF, JPG or PNG, up to 5 MB.</span>
+          <span className="doc-muted">PDF, JPG or PNG, up to 2 MB.</span>
           <input
             type="file" accept=".pdf,.jpg,.jpeg,.png"
             onChange={(e) => { choose(e.target.files[0]); e.target.value = ''; }}

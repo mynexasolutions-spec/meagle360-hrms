@@ -13,7 +13,7 @@ from app.models.required_document import RequiredDocument, RequiredDocumentFile
 from app.services import document_storage
 from app.services.audit_service import log_action
 
-MAX_FILE_BYTES = 5 * 1024 * 1024
+MAX_FILE_BYTES = 2 * 1024 * 1024
 
 
 class DocumentConflict(Exception):
@@ -25,7 +25,7 @@ def detect_type(content: bytes) -> str:
     if not content:
         raise ValueError("The file is empty.")
     if len(content) > MAX_FILE_BYTES:
-        raise ValueError("The file is larger than 5 MB.")
+        raise ValueError("The file is larger than 2 MB.")
     if content.startswith(b"%PDF-"):
         return "application/pdf"
     if content.startswith(b"\xff\xd8\xff"):

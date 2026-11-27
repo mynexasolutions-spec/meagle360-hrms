@@ -3,21 +3,27 @@ import { useAuth } from '../context/AuthContext';
 import { usePopup } from '../context/PopupContext';
 import {
   getExpenseCategories, submitExpenseClaim, getMyExpenseClaims,
-  getPendingExpenseClaims, getAllExpenseClaims, approveRejectExpense, reimburseExpense,
+  getPendingExpenseClaims, getAllExpenseClaims, approveRejectExpense, reimburseExpense, getExpenseReceipt,
 } from '../api/expenses';
-import { Receipt, Plus, Check, X, Clock, Wallet, CheckSquare } from 'lucide-react';
+import { Receipt, Plus, Check, X, Clock, Wallet, CheckSquare, Paperclip, Tags } from 'lucide-react';
 import Modal from '../components/Modal';
 import StatCard from '../components/StatCard';
+import ExpenseCategoriesModal from '../components/ExpenseCategoriesModal';
+import { openBlob, MAX_BYTES as MAX_RECEIPT_BYTES } from '../components/documents/shared';
 import useUrlFilters from '../utils/useUrlFilters';
 import EmployeeLink from '../components/EmployeeLink';
 
-const EMPTY_FORM = { category_id: '', amount: '', expense_date: '', description: '', receipt_url: '' };
+const EMPTY_FORM = { category_id: '', amount: '', expense_date: '', description: '', receipt: null };
+const RECEIPT_TYPES = ['application/pdf', 'image/jpeg', 'image/png'];
 
 export default function ExpenseManagement() {
   const { user } = useAuth();
   const { showAlert, showToast } = usePopup();
   const canSubmit = !!user?.permissions?.['expenses:write'];
   const canApprove = !!user?.permissions?.['expenses:approve'];
+  const canManageCategories = !!user?.permissions?.['settings:write'];
+  const [showCategories, setShowCategories] = useState(false);
+  const [submitting, setSubmitting] = useState(false);
   const [filters, setFilters] = useUrlFilters({ tab: 'my-claims', status: '' });
   const allowedTabs = ['my-claims', ...(canApprove ? ['approvals', 'ledger'] : [])];
   const tab = allowedTabs.includes(filters.tab) ? filters.tab : 'my-claims';
@@ -58,24 +64,62 @@ export default function ExpenseManagement() {
     }
   };
 
+  const handleReceiptChange = (e) => {
+    const file = e.target.files?.[0] || null;
+    if (file && !RECEIPT_TYPES.includes(file.type)) {
+      showAlert({ title: 'Unsupported file', message: 'Only PDF, JPG and PNG receipts are accepted.', type: 'error' });
+      e.target.value = '';
+      return;
+    }
+    if (file && file.size > MAX_RECEIPT_BYTES) {
+      showAlert({ title: 'File too large', message: 'The receipt must be 2 MB or smaller.', type: 'error' });
+      e.target.value = '';
+      return;
+    }
+    setForm({ ...form, receipt: file });
+  };
+
   const handleSubmit = async (e) => {
     e.preventDefault();
+    setSubmitting(true);
     try {
-      await submitExpenseClaim({
-        ...form,
-        category_id: form.category_id || null,
-        amount: Number(form.amount),
-      });
+      await submitExpenseClaim(form);
       setShowSubmit(false);
       setForm(EMPTY_FORM);
       loadData();
     } catch (err) {
+      const detail = err.response?.data?.detail;
       showAlert({
         title: 'Submission Failed',
-        message: err.response?.data?.detail || 'Failed to submit expense claim',
+        message: typeof detail === 'string' ? detail : 'Failed to submit expense claim',
         type: 'error',
       });
+    } finally {
+      setSubmitting(false);
     }
+  };
+
+  const viewReceipt = async (claim) => {
+    try {
+      await openBlob(() => getExpenseReceipt(claim.id));
+    } catch (err) {
+      showAlert({ title: 'Could not open receipt', message: 'Please try again.', type: 'error' });
+    }
+  };
+
+  // Uploaded file, or a link from before uploads existed.
+  const receiptCell = (c) => {
+    if (c.has_receipt) {
+      return (
+        <button type="button" className="btn btn-secondary btn-sm" onClick={() => viewReceipt(c)} title={c.receipt_filename || 'Receipt'}>
+          <Paperclip size={14} /> View
+        </button>
+      );
+    }
+    if (/^https?:\/\//i.test(c.receipt_url || '')) {
+      return <a href={c.receipt_url} target="_blank" rel="noopener noreferrer" className="btn btn-secondary btn-sm"><Paperclip size={14} /> Link</a>;
+    }
+    return <span style={{ color: 'var(--text-secondary)' }}>—</span>;
   };
 
   const handleApproval = async (id, status) => {
@@ -126,6 +170,12 @@ export default function ExpenseManagement() {
             <p style={{ color: '#3d4a5e', fontSize: '0.875rem' }}>Submit claims, track approvals &amp; manage company reimbursements</p>
           </div>
         </div>
+        <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap' }}>
+        {canManageCategories && (
+          <button className="btn btn-secondary" onClick={() => setShowCategories(true)}>
+            <Tags size={16} /> Categories
+          </button>
+        )}
         {canSubmit && (
           <button
             onClick={() => setShowSubmit(true)}
@@ -152,6 +202,7 @@ export default function ExpenseManagement() {
             <Plus size={18} /> Submit Expense
           </button>
         )}
+        </div>
       </div>
 
       {/* KPI Stats Cards */}
@@ -267,6 +318,7 @@ export default function ExpenseManagement() {
                   <th style={{ whiteSpace: 'nowrap' }}>Amount</th>
                   <th style={{ whiteSpace: 'nowrap' }}>Date</th>
                   <th style={{ whiteSpace: 'nowrap' }}>Description</th>
+                  <th style={{ whiteSpace: 'nowrap' }}>Receipt</th>
                   <th style={{ whiteSpace: 'nowrap' }}>Status</th>
                 </tr>
               </thead>
@@ -277,6 +329,7 @@ export default function ExpenseManagement() {
                     <td style={{ whiteSpace: 'nowrap', fontWeight: 600 }}>₹{Number(c.amount).toFixed(2)}</td>
                     <td style={{ whiteSpace: 'nowrap' }}>{c.expense_date}</td>
                     <td style={{ color: 'var(--text-secondary)' }}>{c.description || '—'}</td>
+                    <td style={{ whiteSpace: 'nowrap' }}>{receiptCell(c)}</td>
                     <td style={{ whiteSpace: 'nowrap' }}><span className={`badge badge-${c.status}`}>{c.status}</span></td>
                   </tr>
                 ))}
@@ -304,6 +357,8 @@ export default function ExpenseManagement() {
                   <th style={{ whiteSpace: 'nowrap' }}>Category</th>
                   <th style={{ whiteSpace: 'nowrap' }}>Amount</th>
                   <th style={{ whiteSpace: 'nowrap' }}>Date</th>
+                  <th style={{ whiteSpace: 'nowrap' }}>Description</th>
+                  <th style={{ whiteSpace: 'nowrap' }}>Receipt</th>
                   <th style={{ whiteSpace: 'nowrap' }}>Actions</th>
                 </tr>
               </thead>
@@ -314,6 +369,8 @@ export default function ExpenseManagement() {
                     <td style={{ whiteSpace: 'nowrap' }}>{c.category_name || '—'}</td>
                     <td style={{ whiteSpace: 'nowrap', fontWeight: 600 }}>₹{Number(c.amount).toFixed(2)}</td>
                     <td style={{ whiteSpace: 'nowrap' }}>{c.expense_date}</td>
+                    <td style={{ color: 'var(--text-secondary)' }}>{c.description || '—'}</td>
+                    <td style={{ whiteSpace: 'nowrap' }}>{receiptCell(c)}</td>
                     <td>
                       <div className="table-row-actions">
                         <button className="btn btn-success btn-sm" onClick={() => handleApproval(c.id, 'approved')}>
@@ -350,6 +407,7 @@ export default function ExpenseManagement() {
                   <th style={{ whiteSpace: 'nowrap' }}>Category</th>
                   <th style={{ whiteSpace: 'nowrap' }}>Amount</th>
                   <th style={{ whiteSpace: 'nowrap' }}>Date</th>
+                  <th style={{ whiteSpace: 'nowrap' }}>Receipt</th>
                   <th style={{ whiteSpace: 'nowrap' }}>Status</th>
                   <th style={{ whiteSpace: 'nowrap' }}>Actions</th>
                 </tr>
@@ -361,6 +419,7 @@ export default function ExpenseManagement() {
                     <td style={{ whiteSpace: 'nowrap' }}>{c.category_name || '—'}</td>
                     <td style={{ whiteSpace: 'nowrap', fontWeight: 600 }}>₹{Number(c.amount).toFixed(2)}</td>
                     <td style={{ whiteSpace: 'nowrap' }}>{c.expense_date}</td>
+                    <td style={{ whiteSpace: 'nowrap' }}>{receiptCell(c)}</td>
                     <td style={{ whiteSpace: 'nowrap' }}><span className={`badge badge-${c.status}`}>{c.status}</span></td>
                     <td style={{ whiteSpace: 'nowrap' }}>
                       {c.status === 'approved' && (
@@ -431,19 +490,33 @@ export default function ExpenseManagement() {
               />
             </div>
             <div className="input-group">
-              <label className="input-label">Receipt URL (optional)</label>
+              <label className="input-label" htmlFor="expense-receipt">Receipt (optional)</label>
               <input
+                id="expense-receipt"
+                type="file"
+                accept="application/pdf,image/jpeg,image/png"
                 className="input-field"
-                value={form.receipt_url}
-                onChange={(e) => setForm({ ...form, receipt_url: e.target.value })}
+                onChange={handleReceiptChange}
               />
+              <small style={{ color: 'var(--text-secondary)', fontSize: '0.78rem' }}>
+                {form.receipt ? `Selected: ${form.receipt.name}` : 'PDF, JPG or PNG, up to 2 MB'}
+              </small>
             </div>
             <div style={{ display: 'flex', gap: 10, justifyContent: 'flex-end', marginTop: 20 }}>
               <button type="button" className="btn btn-secondary" onClick={() => setShowSubmit(false)}>Cancel</button>
-              <button type="submit" className="btn btn-primary">Submit</button>
+              <button type="submit" className="btn btn-primary" disabled={submitting}>
+                {submitting ? 'Submitting…' : 'Submit'}
+              </button>
             </div>
           </form>
         </Modal>
+      )}
+
+      {showCategories && (
+        <ExpenseCategoriesModal
+          onClose={() => setShowCategories(false)}
+          onChanged={() => getExpenseCategories().then((res) => setCategories(res.data)).catch(() => {})}
+        />
       )}
     </div>
   );
