@@ -37,3 +37,6 @@ rapidfuzz==3.10.1
 opencv-python-headless==4.10.0.84
 numpy<2
 Pillow==10.4.0
+
+# -- Resume parsing (text layer only, no ML model) --
+pdfplumber==0.11.4

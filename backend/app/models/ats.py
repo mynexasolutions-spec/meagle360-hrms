@@ -96,6 +96,10 @@ class JobOpening(Base, TimestampMixin):
     # status: Draft / Open / Closed
     status: Mapped[str] = mapped_column(String(20), nullable=False, default="Draft", index=True)
     experience_range: Mapped[str | None] = mapped_column(String(50), nullable=True)
+    # Structured requirements used by the resume match scorer
+    required_skills: Mapped[list] = mapped_column(JSON, nullable=False, default=list)
+    preferred_skills: Mapped[list] = mapped_column(JSON, nullable=False, default=list)
+    min_experience_years: Mapped[Decimal | None] = mapped_column(Numeric(4, 1), nullable=True)
     created_by_id: Mapped[uuid.UUID | None] = mapped_column(
         UUID(as_uuid=True),
         ForeignKey("user_account.id", ondelete="SET NULL"),
@@ -213,6 +217,21 @@ class Application(Base, TimestampMixin):
         nullable=True,
         unique=True,
     )
+
+    # Resume parsing + match score. Parsed fields are suggestions only:
+    # recruiter edits live in parsed_overrides and survive a re-parse.
+    # The score is for sorting/highlighting, never for auto-reject.
+    # parse_status: NULL (never parsed) / pending / processing / done / failed
+    parse_status: Mapped[str | None] = mapped_column(String(20), nullable=True, index=True)
+    parse_error: Mapped[str | None] = mapped_column(String(255), nullable=True)
+    parsed_data: Mapped[dict | None] = mapped_column(JSON, nullable=True)
+    parsed_overrides: Mapped[dict | None] = mapped_column(JSON, nullable=True)
+    parsed_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
+    parser_version: Mapped[int | None] = mapped_column(Integer, nullable=True)
+    match_score: Mapped[Decimal | None] = mapped_column(Numeric(5, 2), nullable=True)
+    match_breakdown: Mapped[dict | None] = mapped_column(JSON, nullable=True)
+    scored_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
+    score_version: Mapped[int | None] = mapped_column(Integer, nullable=True)
 
     # ── Relationships ────────────────────────────────────
     company = relationship("Company")

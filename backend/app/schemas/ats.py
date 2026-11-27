@@ -24,6 +24,9 @@ class JobOpeningBase(BaseModel):
     job_type: str = Field(default="Full-time")
     status: str = Field(default="Draft")
     experience_range: str | None = None
+    required_skills: list[str] = Field(default_factory=list, max_length=60)
+    preferred_skills: list[str] = Field(default_factory=list, max_length=60)
+    min_experience_years: Decimal | None = Field(default=None, ge=0, le=60)
 
 
 class JobOpeningCreate(JobOpeningBase):
@@ -44,6 +47,9 @@ class JobOpeningUpdate(BaseModel):
     job_type: str | None = None
     status: str | None = None
     experience_range: str | None = None
+    required_skills: list[str] | None = Field(default=None, max_length=60)
+    preferred_skills: list[str] | None = Field(default=None, max_length=60)
+    min_experience_years: Decimal | None = Field(default=None, ge=0, le=60)
 
 
 class JobOpeningResponse(JobOpeningBase):
@@ -309,3 +315,17 @@ class UpdateHiringTeamRoleRequest(BaseModel):
 
 
 
+
+
+# ── Resume parsing + match score ─────────────────────────
+
+class ParsedOverridesUpdate(BaseModel):
+    """Recruiter corrections to parser suggestions. Only the given keys change."""
+    skills: list[str] | None = Field(default=None, max_length=200)
+    total_experience_years: float | None = Field(default=None, ge=0, le=60)
+    education: list[dict] | None = None
+    location: str | None = Field(default=None, max_length=255)
+
+
+class SuggestSkillsRequest(BaseModel):
+    text: str = Field(..., max_length=20000)

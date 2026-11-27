@@ -6,6 +6,7 @@ from datetime import date
 from uuid import UUID
 from fastapi import (
     APIRouter,
+    BackgroundTasks,
     Depends,
     File,
     Form,
@@ -57,8 +58,13 @@ from app.schemas.ats import (
     CareersSettingsUpdate,
     CareersSettingsResponse,
     UpdateHiringTeamRoleRequest,
+    ParsedOverridesUpdate,
+    SuggestSkillsRequest,
 )
+from app.models.ats import Application
 from app.services.ats_service import AtsService
+from app.services.resume import match_service
+from app.services.resume.skills import suggest_skills
 
 router = APIRouter(prefix="/api/ats", tags=["ATS"])
 
@@ -121,6 +127,7 @@ def get_public_careers(
 
 @router.post("/public/apply")
 async def submit_public_application(
+    background_tasks: BackgroundTasks,
     job_id: str = Form(...),
     full_name: str = Form(...),
     email: str = Form(...),
@@ -162,6 +169,13 @@ async def submit_public_application(
         honeypot=honeypot,
         resume_file=resume,
     )
+
+    # Parse + score after the response is sent. Uses the original upload
+    # bytes (not the compressed copy) so nothing is re-downloaded.
+    await resume.seek(0)
+    resume_bytes = await resume.read()
+    if resume_bytes:
+        background_tasks.add_task(match_service.run_parse, application.id, tenant.id, resume_bytes)
 
     return {
         "success": True,
@@ -210,6 +224,9 @@ def create_job_opening(
         "job_type": job.job_type,
         "status": job.status,
         "experience_range": job.experience_range,
+        "required_skills": job.required_skills or [],
+        "preferred_skills": job.preferred_skills or [],
+        "min_experience_years": job.min_experience_years,
         "created_at": job.created_at,
         "updated_at": job.updated_at,
         "applicants_count": 0,
@@ -241,6 +258,9 @@ def get_job_opening(
         "job_type": job.job_type,
         "status": job.status,
         "experience_range": job.experience_range,
+        "required_skills": job.required_skills or [],
+        "preferred_skills": job.preferred_skills or [],
+        "min_experience_years": job.min_experience_years,
         "created_at": job.created_at,
         "updated_at": job.updated_at,
         "applicants_count": len(job.applications) if job.applications else 0,
@@ -251,12 +271,16 @@ def get_job_opening(
 def update_job_opening(
     job_id: UUID,
     payload: JobOpeningUpdate,
+    background_tasks: BackgroundTasks,
     company_id: UUID = Depends(get_company_id),
     db: Session = Depends(get_db),
     _: UserAccount = Depends(require_permissions("ats:job:manage")),
 ):
-    """Update a job opening."""
+    """Update a job opening. Match scores of its applications are refreshed
+    in the background when skills, experience or job text change."""
     job = AtsService.update_job_opening(db, company_id, job_id, payload)
+    if match_service.SCORE_FIELDS & payload.model_dump(exclude_unset=True).keys():
+        background_tasks.add_task(match_service.rescore_job, company_id, job_id)
     return {
         "id": job.id,
         "company_id": job.company_id,
@@ -273,6 +297,9 @@ def update_job_opening(
         "job_type": job.job_type,
         "status": job.status,
         "experience_range": job.experience_range,
+        "required_skills": job.required_skills or [],
+        "preferred_skills": job.preferred_skills or [],
+        "min_experience_years": job.min_experience_years,
         "created_at": job.created_at,
         "updated_at": job.updated_at,
         "applicants_count": len(job.applications) if job.applications else 0,
@@ -446,6 +473,7 @@ def list_applicants(
     source: str | None = None,
     assigned_to: UUID | None = None,
     unassigned_only: bool = False,
+    sort: str | None = Query(default=None, pattern="^(match_score|recent)$"),
     company_id: UUID = Depends(get_company_id),
     current_user: UserAccount = Depends(get_current_user),
     db: Session = Depends(get_db),
@@ -468,6 +496,7 @@ def list_applicants(
         source=source,
         assigned_to=assigned_to,
         unassigned_only=unassigned_only,
+        sort=sort,
     )
 
 
@@ -1037,3 +1066,78 @@ def update_careers_settings(
     return AtsService.update_careers_settings(db, company_id, payload)
 
 
+
+
+# ── Resume parsing + match score ─────────────────────────────
+
+def _get_application_or_404(db: Session, company_id: UUID, application_id: UUID) -> Application:
+    app = (db.query(Application)
+           .filter(Application.id == application_id, Application.company_id == company_id)
+           .first())
+    if not app:
+        raise HTTPException(status_code=404, detail="Application not found.")
+    return app
+
+
+@router.get("/applications/{application_id}/match")
+def get_application_match(
+    application_id: UUID,
+    company_id: UUID = Depends(get_company_id),
+    current_user: UserAccount = Depends(get_current_user),
+    db: Session = Depends(get_db),
+    _: UserAccount = Depends(require_permissions("ats:applicants:view")),
+):
+    """Parse status, match score and breakdown (polled while parsing)."""
+    app = _get_application_or_404(db, company_id, application_id)
+    AtsService._assert_can_access_application(db, current_user, app)
+    return match_service.match_payload(app)
+
+
+@router.post("/applications/{application_id}/reparse")
+async def reparse_application_resume(
+    application_id: UUID,
+    background_tasks: BackgroundTasks,
+    company_id: UUID = Depends(get_company_id),
+    current_user: UserAccount = Depends(get_current_user),
+    db: Session = Depends(get_db),
+    _: UserAccount = Depends(require_permissions("ats:applicants:view")),
+):
+    """Re-scan the stored resume (after a failure or a parser update).
+    Recruiter corrections are kept."""
+    app = _get_application_or_404(db, company_id, application_id)
+    if app.parse_status in ("pending", "processing"):
+        return match_service.match_payload(app)
+    # get_resume_blob checks access and fetches the PDF from ImageKit
+    file_bytes, _name = await AtsService.get_resume_blob(db, company_id, application_id, current_user)
+    match_service.mark_pending(app)
+    db.commit()
+    background_tasks.add_task(match_service.run_parse, app.id, company_id, file_bytes)
+    return match_service.match_payload(app)
+
+
+@router.patch("/applications/{application_id}/parsed")
+def update_parsed_overrides(
+    application_id: UUID,
+    payload: ParsedOverridesUpdate,
+    company_id: UUID = Depends(get_company_id),
+    current_user: UserAccount = Depends(get_current_user),
+    db: Session = Depends(get_db),
+    _: UserAccount = Depends(require_permissions("ats:application:move_stage")),
+):
+    """Recruiter corrections to parsed fields. Send null for a key to go
+    back to the parser's value. The score is recomputed immediately."""
+    app = _get_application_or_404(db, company_id, application_id)
+    AtsService._assert_can_access_application(db, current_user, app)
+    match_service.save_overrides(db, app, payload.model_dump(exclude_unset=True))
+    db.commit()
+    db.refresh(app)
+    return match_service.match_payload(app)
+
+
+@router.post("/jobs/suggest-skills")
+def suggest_job_skills(
+    payload: SuggestSkillsRequest,
+    _: UserAccount = Depends(require_permissions("ats:job:manage")),
+):
+    """Skills found in a job description, for the job form's skill chips."""
+    return {"skills": suggest_skills(payload.text)}

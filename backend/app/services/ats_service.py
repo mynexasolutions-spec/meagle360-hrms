@@ -53,6 +53,8 @@ from app.services.ats_file_service import (
 from app.services.auth_service import hash_password, create_invite_token
 from app.services.email_service import try_send_invite_email
 from app.services.audit_service import log_action
+from app.services.resume.match_service import match_payload
+from app.services.resume.skills import canonical_skill_list
 
 
 class AtsService:
@@ -100,6 +102,9 @@ class AtsService:
                 "job_type": job.job_type,
                 "status": job.status,
                 "experience_range": job.experience_range,
+                "required_skills": job.required_skills or [],
+                "preferred_skills": job.preferred_skills or [],
+                "min_experience_years": job.min_experience_years,
                 "created_at": job.created_at,
                 "updated_at": job.updated_at,
                 "applicants_count": app_count,
@@ -157,6 +162,9 @@ class AtsService:
             job_type=data.job_type,
             status=data.status or "Open",
             experience_range=data.experience_range,
+            required_skills=canonical_skill_list(data.required_skills),
+            preferred_skills=canonical_skill_list(data.preferred_skills),
+            min_experience_years=data.min_experience_years,
             created_by_id=user_id,
         )
         db.add(job)
@@ -183,6 +191,10 @@ class AtsService:
             desig = db.query(Designation).filter(Designation.id == update_data["designation_id"]).first()
             if desig:
                 update_data["designation_name"] = desig.title
+
+        for key in ("required_skills", "preferred_skills"):
+            if key in update_data:
+                update_data[key] = canonical_skill_list(update_data[key])
 
         for key, val in update_data.items():
             setattr(job, key, val)
@@ -420,6 +432,7 @@ class AtsService:
             resume_file_name=upload_res.get("file_name"),
             cover_note=cover_note.strip() if cover_note else None,
             source="careers_page",
+            parse_status="pending",
             stage_entered_at=now_utc,
             version=1,
         )
@@ -685,6 +698,8 @@ class AtsService:
             "assigned_to": str(app.assigned_to) if app.assigned_to else None,
             "assignee": assignee_info,
             "other_applications_count": other_applications_count,
+            "parse_status": app.parse_status,
+            "match_score": float(app.match_score) if app.match_score is not None else None,
             "version": app.version or 1,
             "stage_entered_at": app.stage_entered_at.isoformat() if app.stage_entered_at else None,
             "created_at": app.created_at,
@@ -1071,6 +1086,7 @@ class AtsService:
         source: str | None = None,
         assigned_to: UUID | None = None,
         unassigned_only: bool = False,
+        sort: str | None = None,
     ) -> list[dict]:
         """Query applicants with candidate, job, stage info and days in stage."""
         eff_assigned_to, eff_unassigned_only, force_empty = AtsService._resolve_visibility_scope(
@@ -1085,8 +1101,11 @@ class AtsService:
             .join(JobOpening, Application.job_id == JobOpening.id)
             .join(Stage, Application.stage_id == Stage.id)
             .filter(Application.company_id == company_id)
-            .order_by(Application.updated_at.desc())
         )
+        if sort == "match_score":
+            query = query.order_by(Application.match_score.desc().nullslast(), Application.updated_at.desc())
+        else:
+            query = query.order_by(Application.updated_at.desc())
 
         if stage_id:
             query = query.filter(Application.stage_id == stage_id)
@@ -1380,6 +1399,7 @@ class AtsService:
             "other_applications": other_applications_data,
             "notes": notes_data,
             "offers": offers_data,
+            "match": match_payload(app),
         }
 
     @staticmethod

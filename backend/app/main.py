@@ -16,6 +16,7 @@ from fastapi.responses import JSONResponse
 from app.config import get_settings
 from app.services.auth_service import _get_jwt_secret
 from app.services.scheduled_job_change_service import start_background
+from app.services.resume.match_service import start_sweeper as start_resume_sweeper
 from app.routes import auth, company, department, designation, employee, attendance, leave, shift, platform, dashboard, announcement, overtime, audit, role, expense, site, payroll, action_tracker, helpdesk, ai, pms, pms_results, pms_monthly, geofence, face, ats, policy, required_document, employee_document, job_change, organization
 from app.middleware.plan_expiry import PlanExpiryMiddleware
 
@@ -27,6 +28,7 @@ _get_jwt_secret()
 async def lifespan(_: FastAPI):
     stop = threading.Event()
     start_background(stop)
+    start_resume_sweeper(stop)
     yield
     stop.set()
 

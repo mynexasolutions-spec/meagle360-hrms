@@ -60,6 +60,15 @@ export const getResumeBlob = (id) =>
     responseType: 'blob',
   });
 
+// ── Resume parsing + match score ──
+export const getApplicationMatch = (id) => client.get(`/ats/applications/${id}/match`);
+
+export const reparseApplicationResume = (id) => client.post(`/ats/applications/${id}/reparse`);
+
+export const updateParsedOverrides = (id, data) => client.patch(`/ats/applications/${id}/parsed`, data);
+
+export const suggestJobSkills = (text) => client.post('/ats/jobs/suggest-skills', { text });
+
 export const changeApplicationStage = (id, data) =>
   client.post(`/ats/applications/${id}/change-stage`, data);
 

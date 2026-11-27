@@ -27,10 +27,12 @@ import {
   updateJobOpening,
   deleteJobOpening,
   getAtsDropdowns,
+  suggestJobSkills,
 } from '../../api/ats';
 import { useAuth } from '../../context/AuthContext';
 import Modal from '../../components/Modal';
 import CareersCustomizerModal from '../../components/ats/CareersCustomizerModal';
+import SkillsInput from '../../components/ats/SkillsInput';
 
 export default function JobOpeningsPage() {
   const { user } = useAuth();
@@ -49,6 +51,7 @@ export default function JobOpeningsPage() {
   const [saving, setSaving] = useState(false);
   const [activeModalTab, setActiveModalTab] = useState('basic');
   const [errorMsg, setErrorMsg] = useState('');
+  const [suggesting, setSuggesting] = useState(false);
 
   const [formData, setFormData] = useState({
     title: '',
@@ -64,6 +67,9 @@ export default function JobOpeningsPage() {
     description: '',
     responsibilities: '',
     requirements: '',
+    required_skills: [],
+    preferred_skills: [],
+    min_experience_years: '',
   });
 
   const loadJobs = async () => {
@@ -120,6 +126,9 @@ export default function JobOpeningsPage() {
       description: 'We are looking for a passionate professional to join our high-performing team and build modern software products.',
       responsibilities: '• Collaborate with cross-functional team members\n• Build robust and scalable features\n• Participate in code reviews and architecture design',
       requirements: '• Relevant experience in the required domain\n• Strong communication and problem solving skills\n• Passion for writing clean, maintainable code',
+      required_skills: [],
+      preferred_skills: [],
+      min_experience_years: 2,
     });
     setActiveModalTab('basic');
     setShowModal(true);
@@ -142,6 +151,9 @@ export default function JobOpeningsPage() {
       description: job.description || '',
       responsibilities: job.responsibilities || '',
       requirements: job.requirements || '',
+      required_skills: job.required_skills || [],
+      preferred_skills: job.preferred_skills || [],
+      min_experience_years: job.min_experience_years ?? '',
     });
     setActiveModalTab('basic');
     setShowModal(true);
@@ -169,6 +181,10 @@ export default function JobOpeningsPage() {
         designation_name: selectedDesig ? selectedDesig.title : formData.designation_name,
         department_id: formData.department_id || null,
         designation_id: formData.designation_id || null,
+        min_experience_years:
+          formData.min_experience_years === '' || formData.min_experience_years == null
+            ? null
+            : Number(formData.min_experience_years),
       };
 
       if (editingJob) {
@@ -184,6 +200,25 @@ export default function JobOpeningsPage() {
       setErrorMsg(err.response?.data?.detail || 'Failed to save job opening.');
     } finally {
       setSaving(false);
+    }
+  };
+
+  // Fill required skills from the job text (taxonomy match on the server)
+  const handleSuggestSkills = async () => {
+    const text = [formData.title, formData.description, formData.responsibilities, formData.requirements]
+      .filter(Boolean)
+      .join('\n');
+    if (!text.trim()) return;
+    try {
+      setSuggesting(true);
+      const res = await suggestJobSkills(text);
+      const have = new Set([...formData.required_skills, ...formData.preferred_skills].map((s) => s.toLowerCase()));
+      const fresh = (res.data?.skills || []).filter((s) => !have.has(s.toLowerCase()));
+      setFormData((f) => ({ ...f, required_skills: [...f.required_skills, ...fresh] }));
+    } catch (err) {
+      console.error('Failed to suggest skills', err);
+    } finally {
+      setSuggesting(false);
     }
   };
 
@@ -628,6 +663,53 @@ export default function JobOpeningsPage() {
                     onChange={(e) => setFormData({ ...formData, requirements: e.target.value })}
                     className="w-full px-3 py-2.5 text-xs font-mono border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 leading-relaxed"
                   />
+                </div>
+
+                <div className="p-4 border border-gray-200 rounded-lg space-y-3 bg-gray-50/50">
+                  <div className="flex items-center justify-between gap-2">
+                    <div>
+                      <span className="block text-xs font-semibold text-gray-700">Resume matching criteria</span>
+                      <span className="text-[0.8125rem] text-gray-600">
+                        Used only to score and sort resumes. Not shown to candidates, never auto-rejects.
+                      </span>
+                    </div>
+                    <button
+                      type="button"
+                      onClick={handleSuggestSkills}
+                      disabled={suggesting}
+                      className="btn btn-secondary text-xs py-1.5 px-2.5 inline-flex items-center gap-1 shrink-0"
+                    >
+                      <Sparkles size={13} />
+                      {suggesting ? 'Finding…' : 'Suggest from description'}
+                    </button>
+                  </div>
+                  <div>
+                    <label className="block text-xs font-semibold text-gray-700 mb-1">Required skills</label>
+                    <SkillsInput
+                      value={formData.required_skills}
+                      onChange={(v) => setFormData((f) => ({ ...f, required_skills: v }))}
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-xs font-semibold text-gray-700 mb-1">Nice-to-have skills</label>
+                    <SkillsInput
+                      value={formData.preferred_skills}
+                      onChange={(v) => setFormData((f) => ({ ...f, preferred_skills: v }))}
+                      placeholder="Optional"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-xs font-semibold text-gray-700 mb-1">Minimum experience (years)</label>
+                    <input
+                      type="number"
+                      min="0"
+                      max="60"
+                      step="0.5"
+                      value={formData.min_experience_years}
+                      onChange={(e) => setFormData({ ...formData, min_experience_years: e.target.value })}
+                      className="w-32 px-3 py-2 text-sm border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    />
+                  </div>
                 </div>
 
                 <div className="p-3 bg-blue-50/70 border border-blue-100 rounded-lg text-xs text-blue-800 flex items-start gap-2.5">

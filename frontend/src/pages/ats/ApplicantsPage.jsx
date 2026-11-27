@@ -32,6 +32,7 @@ import {
   RotateCcw,
   Shuffle,
   Settings,
+  ArrowUpDown,
 } from 'lucide-react';
 import {
   getAtsStages,
@@ -62,6 +63,7 @@ import MoveToInterviewModal from '../../components/ats/MoveToInterviewModal';
 import MentionNotesSection from '../../components/ats/MentionNotesSection';
 import BulkReassignModal from '../../components/ats/BulkReassignModal';
 import DistributionModal from '../../components/ats/DistributionModal';
+import { MatchBadge, MatchCard } from '../../components/ats/ResumeMatch';
 
 const DEFAULT_REJECTION_REASONS = [
   'Qualifications did not match job requirements',
@@ -185,6 +187,18 @@ export default function ApplicantsPage() {
 
   // Table state
   const [applicants, setApplicants] = useState([]);
+  // Match-score sort for the table: null = default order, 'desc' | 'asc'
+  const [matchSort, setMatchSort] = useState(null);
+  const sortedApplicants = useMemo(() => {
+    if (!matchSort) return applicants;
+    const dir = matchSort === 'desc' ? -1 : 1;
+    // Unscored applications always go last, whatever the direction
+    return [...applicants].sort((a, b) => {
+      if (a.match_score == null) return b.match_score == null ? 0 : 1;
+      if (b.match_score == null) return -1;
+      return dir * (a.match_score - b.match_score);
+    });
+  }, [applicants, matchSort]);
   const [loading, setLoading] = useState(true);
 
   // Kanban state
@@ -1524,11 +1538,23 @@ export default function ApplicantsPage() {
                   <th className="py-3.5 px-4">Stage</th>
                   <th className="py-3.5 px-4">Time in Stage</th>
                   <th className="py-3.5 px-4">Resume</th>
+                  <th className="py-3.5 px-4">
+                    <button
+                      type="button"
+                      onClick={() => setMatchSort((s) => (s === 'desc' ? 'asc' : s === 'asc' ? null : 'desc'))}
+                      className="inline-flex items-center gap-1 uppercase tracking-wider font-semibold hover:text-blue-600"
+                      title="Sort by resume match score (suggestion only)"
+                    >
+                      Match
+                      <ArrowUpDown size={12} className={matchSort ? 'text-blue-600' : ''} />
+                      {matchSort && <span className="normal-case text-[0.7rem]">{matchSort === 'desc' ? 'high first' : 'low first'}</span>}
+                    </button>
+                  </th>
                   <th className="py-3.5 px-4 text-right">Action</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-gray-100 text-gray-700">
-                {applicants.map((app) => {
+                {sortedApplicants.map((app) => {
                   const isSelected = selectedAppIds.includes(app.id);
                   return (
                     <tr
@@ -1646,6 +1672,16 @@ export default function ApplicantsPage() {
                         )}
                       </td>
 
+                      {/* Resume match score */}
+                      <td className="py-3.5 px-4">
+                        {['pending', 'processing'].includes(app.parse_status) ||
+                        (app.parse_status === 'done' && app.match_score != null) ? (
+                          <MatchBadge match={app} compact />
+                        ) : (
+                          <span className="text-slate-500" title={app.parse_status === 'failed' ? 'Resume could not be analyzed' : 'Not analyzed'}>–</span>
+                        )}
+                      </td>
+
                       {/* Action */}
                       <td className="py-3.5 px-4 text-right">
                         <button
@@ -1689,8 +1725,9 @@ export default function ApplicantsPage() {
                   {detail?.candidate?.full_name ? detail.candidate.full_name[0].toUpperCase() : 'C'}
                 </div>
                 <div>
-                  <h2 className="text-lg font-bold text-gray-900 leading-tight">
+                  <h2 className="text-lg font-bold text-gray-900 leading-tight flex items-center gap-2 flex-wrap">
                     {detail?.candidate?.full_name || 'Candidate Application'}
+                    <MatchBadge match={detail?.match} />
                   </h2>
                   <p className="text-xs text-slate-700 font-medium">
                     Applying for <strong className="text-gray-700">{detail?.job?.title}</strong> • Stage:{' '}
@@ -1845,6 +1882,23 @@ export default function ApplicantsPage() {
                     </div>
                   </div>
                 </div>
+
+                {/* Resume match: matched / missing skills, experience gap (suggestion only) */}
+                {(detail.resume_file_id || detail.resume_path) && (
+                  <MatchCard
+                    applicationId={detail.id}
+                    match={detail.match}
+                    canEdit={!detail.stage?.is_terminal}
+                    onChange={(m) => {
+                      setDetail((d) => (d && d.id === detail.id ? { ...d, match: m } : d));
+                      setApplicants((list) =>
+                        list.map((a) =>
+                          a.id === detail.id ? { ...a, parse_status: m.parse_status, match_score: m.match_score } : a
+                        )
+                      );
+                    }}
+                  />
+                )}
 
                     {/* Stage Transition Action Bar */}
                     <div className="bg-white p-4 rounded-xl border border-gray-200 shadow-sm space-y-3">

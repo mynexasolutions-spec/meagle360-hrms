@@ -23,6 +23,8 @@ import {
   Loader2,
   Briefcase,
   UserPlus,
+  Copy,
+  Check,
 } from 'lucide-react';
 
 // Column accent theme derived dynamically from stage metadata / order (never hardcoded column names)
@@ -103,6 +105,17 @@ function KanbanCardContent({
   isOverlay = false,
 }) {
   const [assignMenuOpen, setAssignMenuOpen] = useState(false);
+  const [emailCopied, setEmailCopied] = useState(false);
+  const handleCopyEmail = async (e) => {
+    e.stopPropagation();
+    try {
+      await navigator.clipboard.writeText(app.candidate_email);
+      setEmailCopied(true);
+      setTimeout(() => setEmailCopied(false), 1500);
+    } catch {
+      /* clipboard unavailable */
+    }
+  };
   const initial = (app.candidate_name || 'C').trim()[0]?.toUpperCase() || 'C';
   const avatarBg = getAvatarColor(app.candidate_name || app.candidate_email || '');
 
@@ -123,11 +136,8 @@ function KanbanCardContent({
             {initial}
           </div>
           <div className="min-w-0">
-            <div className="text-sm font-bold text-gray-900 truncate leading-tight">
+            <div className="text-sm font-bold text-gray-900 truncate leading-tight" title={app.candidate_name}>
               {app.candidate_name}
-            </div>
-            <div className="text-[0.8125rem] text-slate-700 truncate mt-0.5 font-medium" title={app.candidate_email}>
-              {app.candidate_email}
             </div>
           </div>
         </div>
@@ -227,6 +237,31 @@ function KanbanCardContent({
           </div>
         )}
       </div>
+
+      {/* Email: full-width row so it gets the whole card width; tooltip + copy */}
+      {app.candidate_email && (
+        <div
+          className="mt-1.5 flex items-center gap-1 min-w-0"
+          onPointerDown={(e) => e.stopPropagation()}
+        >
+          <span
+            className="flex-1 min-w-0 text-[0.8125rem] text-slate-700 truncate font-medium"
+            title={app.candidate_email}
+          >
+            {app.candidate_email}
+          </span>
+          {!isOverlay && (
+            <button
+              type="button"
+              onClick={handleCopyEmail}
+              className="shrink-0 w-5 h-5 rounded flex items-center justify-center text-slate-500 hover:text-blue-600 hover:bg-blue-50 transition-colors"
+              title={emailCopied ? 'Copied!' : 'Copy email'}
+            >
+              {emailCopied ? <Check size={13} className="text-emerald-600" /> : <Copy size={13} />}
+            </button>
+          )}
+        </div>
+      )}
 
       {/* Job Title, Department & Other Applications Badge */}
       <div className="mt-2 space-y-0.5">
