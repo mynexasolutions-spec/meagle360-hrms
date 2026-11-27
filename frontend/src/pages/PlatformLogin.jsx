@@ -101,7 +101,7 @@ export default function PlatformLogin() {
         </div>
       )}
 
-      <form onSubmit={handleSubmit}>
+      <form onSubmit={handleSubmit} autoComplete="off">
         <div className="input-group">
           <label className="input-label" htmlFor="email">Email</label>
           <div style={{ position: 'relative' }}>
@@ -114,7 +114,8 @@ export default function PlatformLogin() {
               type="email"
               className="input-field"
               style={{ paddingLeft: 36 }}
-              placeholder="contact@nexa-solutions.in"
+              placeholder="Enter your email"
+              autoComplete="off"
               value={email}
               onChange={(e) => setEmail(e.target.value)}
               required
@@ -135,6 +136,7 @@ export default function PlatformLogin() {
               className="input-field"
               style={{ paddingLeft: 36, paddingRight: 40 }}
               placeholder="••••••••"
+              autoComplete="new-password"
               value={password}
               onChange={(e) => setPassword(e.target.value)}
               required
