@@ -16,6 +16,13 @@ export default function DashboardLayout() {
   const location = useLocation();
   const [sidebarOpen, setSidebarOpen] = useState(true);
   const [mobileOpen, setMobileOpen] = useState(false);
+  const [isPhone, setIsPhone] = useState(() => window.matchMedia('(max-width: 768px)').matches);
+  useEffect(() => {
+    const mq = window.matchMedia('(max-width: 768px)');
+    const onChange = (e) => setIsPhone(e.matches);
+    mq.addEventListener('change', onChange);
+    return () => mq.removeEventListener('change', onChange);
+  }, []);
 
   // Close mobile sidebar on route change
   useEffect(() => {
@@ -29,7 +36,7 @@ export default function DashboardLayout() {
   const showLabels = sidebarOpen || mobileOpen;
 
   return (
-    <div style={{ display: 'flex', minHeight: '100vh', width: '100%', maxWidth: '100vw', overflowX: 'hidden' }}>
+    <div style={{ display: 'flex', minHeight: '100vh', width: '100%', maxWidth: '100vw', overflowX: 'clip' }}>
       {/* Mobile Backdrop */}
       <div
         className={`sidebar-backdrop ${mobileOpen ? 'visible' : ''}`}
@@ -184,11 +191,11 @@ export default function DashboardLayout() {
 
       {/* Main Content Area */}
       <div className={`app-main ${!sidebarOpen ? 'sidebar-collapsed' : ''}`}>
-        {location.pathname !== '/ai-assistant' && <TopBar onToggleSidebar={handleToggleSidebar} />}
+        {(location.pathname !== '/ai-assistant' || isPhone) && <TopBar onToggleSidebar={handleToggleSidebar} />}
         <main
-          className="app-content"
+          className={`app-content${location.pathname === '/ai-assistant' ? ' ai-route' : ''}`}
           style={
-            location.pathname === '/ai-assistant'
+            location.pathname === '/ai-assistant' && !isPhone
               ? {
                   padding: '14px 20px',
                   height: '100vh',

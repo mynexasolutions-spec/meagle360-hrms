@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { GitBranch, Plus, Clock, Users, Pencil, Trash2 } from 'lucide-react';
+import { GitBranch, Plus, Clock, Users, Pencil, Trash2, CalendarDays, Search } from 'lucide-react';
 import client from '../api/client';
 import Modal from '../components/Modal';
 import EmployeeLink from '../components/EmployeeLink';
@@ -20,7 +20,11 @@ export default function ShiftManagement() {
   const [filters, setFilters] = useUrlFilters({ tab: 'shifts', shift: '' });
   const tab = filters.tab === 'roster' ? 'roster' : 'shifts';
   const setTab = (next) => setFilters({ tab: next, shift: '' });
-  const visibleRoster = filters.shift ? roster.filter((r) => r.shift_id === filters.shift) : roster;
+  const [rosterQuery, setRosterQuery] = useState('');
+  const rq = rosterQuery.trim().toLowerCase();
+  const visibleRoster = roster
+    .filter((r) => !filters.shift || r.shift_id === filters.shift)
+    .filter((r) => !rq || (r.employee_name || '').toLowerCase().includes(rq));
   const [showAdd, setShowAdd] = useState(false);
   const [form, setForm] = useState({ shift_type: '', start_time: '', end_time: '' });
   const [editingShift, setEditingShift] = useState(null);
@@ -198,7 +202,7 @@ export default function ShiftManagement() {
           </div>
         </div>
         {canManageShifts && (
-          <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap' }}>
+          <div className="sh-header-actions" style={{ display: 'flex', gap: 10, flexWrap: 'wrap' }}>
             <button
               className="btn btn-secondary"
               onClick={() => setShowAssign(true)}
@@ -213,14 +217,14 @@ export default function ShiftManagement() {
               }}
               style={{ background: 'linear-gradient(135deg, #2563eb, #1d4ed8)' }}
             >
-              <Plus size={18} /> New Shift Template
+              <Plus size={18} /> <span className="sh-long">New Shift Template</span><span className="sh-short">New Template</span>
             </button>
           </div>
         )}
       </div>
 
       {/* Modern Pill Tabs */}
-      <div className="pill-tabs" style={{ marginBottom: 24 }}>
+      <div className="pill-tabs sh-tabs" style={{ marginBottom: 24 }}>
         <button
           onClick={() => setTab('shifts')}
           style={{
@@ -235,7 +239,7 @@ export default function ShiftManagement() {
             boxShadow: tab === 'shifts' ? '0 4px 12px rgba(15, 23, 42, 0.15)' : 'none',
           }}
         >
-          Shift Templates ({shifts.length})
+          <span className="sh-long">Shift Templates</span><span className="sh-short">Templates</span> ({shifts.length})
         </button>
         <button
           onClick={() => setTab('roster')}
@@ -251,7 +255,7 @@ export default function ShiftManagement() {
             boxShadow: tab === 'roster' ? '0 4px 12px rgba(15, 23, 42, 0.15)' : 'none',
           }}
         >
-          Employee Roster ({roster.length})
+          <span className="sh-long">Employee Roster</span><span className="sh-short">Roster</span> ({roster.length})
         </button>
       </div>
 
@@ -348,8 +352,16 @@ export default function ShiftManagement() {
 
       {tab === 'roster' && (
         <div className="section-card" style={{ borderTop: '3px solid #2563eb' }}>
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: 10, marginBottom: 12 }}>
+          <div className="sh-roster-head" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: 10, marginBottom: 12 }}>
             <h3 style={{ marginBottom: 0 }}><Users size={18} style={{ color: 'var(--accent-blue)' }} /> Employee Roster</h3>
+            <div className="sh-roster-tools">
+              <div className="sh-search">
+                <Search size={15} />
+                <input
+                  className="input-field" placeholder="Search employee" aria-label="Search employee"
+                  value={rosterQuery} onChange={(e) => setRosterQuery(e.target.value)}
+                />
+              </div>
             <select
               className="input-field" aria-label="Filter by shift" style={{ maxWidth: 220 }}
               value={filters.shift} onChange={(e) => setFilters({ shift: e.target.value })}
@@ -357,8 +369,42 @@ export default function ShiftManagement() {
               <option value="">All Shifts</option>
               {shifts.map((s) => <option key={s.id} value={s.id}>{s.shift_type}</option>)}
             </select>
+            </div>
           </div>
-          <div style={{ overflowX: 'auto' }}>
+          <div className="sh-cards">
+            {visibleRoster.map((r) => {
+              const tpl = shifts.find((x) => x.id === r.shift_id);
+              const initials = (r.employee_name || '?').split(' ').map((n) => n[0]).join('').slice(0, 2).toUpperCase();
+              return (
+                <div className="sh-card" key={r.id}>
+                  <div className="sh-card-top">
+                    <div className="sh-card-who">
+                      <div className="sh-avatar">{initials}</div>
+                      <div style={{ minWidth: 0 }}>
+                        <div className="sh-card-name"><EmployeeLink id={r.employee_id}>{r.employee_name || '—'}</EmployeeLink></div>
+                        <span className="sh-badge">{r.shift_type || '—'}</span>
+                      </div>
+                    </div>
+                    {canManageShifts && (
+                      <div className="sh-card-icons">
+                        <button type="button" className="sh-icon-btn" onClick={() => handleOpenEditRoster(r)} title="Edit Shift Assignment" aria-label="Edit shift assignment">
+                          <Pencil size={16} style={{ color: '#2563eb' }} />
+                        </button>
+                        <button type="button" className="sh-icon-btn sh-icon-danger" onClick={() => handleDeleteRoster(r)} title="Remove Shift Assignment" aria-label="Remove shift assignment">
+                          <Trash2 size={16} style={{ color: '#e11d48' }} />
+                        </button>
+                      </div>
+                    )}
+                  </div>
+                  <div className="sh-card-meta">
+                    {tpl && <span><Clock size={13} /> {formatTime(tpl.start_time)} – {formatTime(tpl.end_time)}</span>}
+                    <span><CalendarDays size={13} /> From {r.effective_from ? new Date(r.effective_from).toLocaleDateString() : '—'}</span>
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+          <div className="sh-table-view" style={{ overflowX: 'auto' }}>
             <table className="data-table" style={{ width: '100%' }}>
               <thead>
                 <tr>
@@ -421,13 +467,19 @@ export default function ShiftManagement() {
             <div className="empty-state">
               <Users size={48} />
               <p>No roster assignments found</p>
+              {canManageShifts && (
+                <button type="button" className="btn btn-primary btn-sm" onClick={() => setShowAssign(true)}>Assign Shift</button>
+              )}
             </div>
+          )}
+          {roster.length > 0 && visibleRoster.length === 0 && (
+            <div className="empty-state"><p>No one matches these filters</p></div>
           )}
         </div>
       )}
 
       {showAdd && (
-        <Modal title="New Shift" onClose={() => setShowAdd(false)}>
+        <Modal sheet title="New Shift" onClose={() => setShowAdd(false)}>
           <form onSubmit={handleCreate}>
             <div className="input-group">
               <label className="input-label">Shift Type</label>
@@ -468,7 +520,7 @@ export default function ShiftManagement() {
       )}
 
       {editingShift && (
-        <Modal title="Edit Shift" onClose={() => setEditingShift(null)}>
+        <Modal sheet title="Edit Shift" onClose={() => setEditingShift(null)}>
           <form onSubmit={handleUpdate}>
             <div className="input-group">
               <label className="input-label">Shift Type</label>
@@ -509,7 +561,7 @@ export default function ShiftManagement() {
       )}
 
       {showAssign && (
-        <Modal title="Assign Shift to Employee" onClose={() => setShowAssign(false)}>
+        <Modal sheet title="Assign Shift to Employee" onClose={() => setShowAssign(false)}>
           <form onSubmit={handleAssignSubmit}>
             <div className="input-group">
               <label className="input-label">Select Employee</label>
@@ -558,7 +610,7 @@ export default function ShiftManagement() {
       )}
 
       {editingRoster && (
-        <Modal title={`Edit Shift Assignment — ${editingRoster.employee_name || 'Employee'}`} onClose={() => setEditingRoster(null)}>
+        <Modal sheet title={`Edit Shift Assignment — ${editingRoster.employee_name || 'Employee'}`} onClose={() => setEditingRoster(null)}>
           <form onSubmit={handleUpdateRoster}>
             <div className="input-group">
               <label className="input-label">Select Shift</label>

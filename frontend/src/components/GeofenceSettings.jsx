@@ -101,9 +101,29 @@ export default function GeofenceSettings() {
 
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', margin: '20px 0 8px' }}>
             <h4 style={{ margin: 0 }}>Office locations</h4>
-            <button className="btn btn-primary btn-sm" onClick={openAdd}>+ Add office</button>
+            <button className="btn btn-primary btn-sm set-add-btn" onClick={openAdd}>+ Add office</button>
           </div>
-          <div style={{ overflowX: 'auto' }}>
+                    <div className="pay-cards">
+            {cfg.offices.map((o) => (
+              <div className="pay-card pay-card-row" key={o.id}>
+                <div style={{ minWidth: 0 }}>
+                  <div className="pay-card-title" style={{ fontWeight: 700 }}><MapPin size={14} /> {o.name}</div>
+                  <div className="pay-card-range">{o.latitude.toFixed(5)}, {o.longitude.toFixed(5)}</div>
+                  <div className="pay-card-range">Radius {o.radius_m} m</div>
+                </div>
+                <div className="set-actions">
+                  <button type="button" className="pay-icon-btn" onClick={() => openEdit(o)} aria-label={`Edit ${o.name}`}>
+                    <Pencil size={16} style={{ color: '#2563eb' }} />
+                  </button>
+                  <button type="button" className="pay-icon-btn pay-icon-danger" disabled={saving} aria-label={`Remove ${o.name}`}
+                    onClick={() => window.confirm(`Remove ${o.name}?`) && act(() => deleteOffice(o.id), 'Office removed')}>
+                    <Trash2 size={16} style={{ color: '#e11d48' }} />
+                  </button>
+                </div>
+              </div>
+            ))}
+          </div>
+<div className="pay-table-view" style={{ overflowX: 'auto' }}>
             <table className="data-table">
               <thead><tr><th>Name</th><th>Coordinates</th><th>Radius</th><th /></tr></thead>
               <tbody>
@@ -127,7 +147,38 @@ export default function GeofenceSettings() {
 
           <h4 style={{ margin: '24px 0 8px' }}>Pending location requests ({requests.length})</h4>
           {requests.length === 0 ? <p style={{ color: '#3d4a5e', fontSize: 13 }}>No pending requests.</p> : (
-            <div style={{ overflowX: 'auto' }}>
+            <div>
+            <div className="pay-cards">
+              {requests.map((r) => (
+                <div className="pay-card" key={r.id}>
+                  <div className="pay-card-top">
+                    <strong className="pay-card-title">{r.employee_name}</strong>
+                    <span className="pay-card-date">{fmtDate(r.created_at)}</span>
+                  </div>
+                  <div style={{ fontSize: '0.875rem' }}>{r.name}</div>
+                  <a href={`https://www.openstreetmap.org/?mlat=${r.latitude}&mlon=${r.longitude}#map=17/${r.latitude}/${r.longitude}`}
+                    target="_blank" rel="noreferrer" style={{ fontSize: 13 }}>View on map</a>
+                  <div>
+                    <label className="input-label">Radius (m)</label>
+                    <input type="number" className="input-field"
+                      min={cfg.min_radius_m} max={cfg.max_radius_m}
+                      value={radii[r.id] ?? r.radius_m}
+                      onChange={(e) => setRadii({ ...radii, [r.id]: e.target.value })} />
+                  </div>
+                  <div className="pay-card-actions">
+                    <button type="button" className="btn btn-primary pay-card-wide" disabled={saving}
+                      onClick={() => act(() => reviewLocationRequest(r.id, { approve: true, radius_m: Number(radii[r.id] ?? r.radius_m) }), 'Location approved')}>
+                      <Check size={14} /> Approve
+                    </button>
+                    <button type="button" className="btn btn-secondary pay-card-wide" disabled={saving}
+                      onClick={() => act(() => reviewLocationRequest(r.id, { approve: false }), 'Location rejected')}>
+                      <X size={14} /> Reject
+                    </button>
+                  </div>
+                </div>
+              ))}
+            </div>
+<div className="pay-table-view" style={{ overflowX: 'auto' }}>
               <table className="data-table">
                 <thead><tr><th>Employee</th><th>Location</th><th>Requested</th><th>Radius (m)</th><th /></tr></thead>
                 <tbody>
@@ -161,11 +212,42 @@ export default function GeofenceSettings() {
                 </tbody>
               </table>
             </div>
+            </div>
           )}
 
           <h4 style={{ margin: '24px 0 8px' }}>Flagged clock-ins ({flagged.length})</h4>
           {flagged.length === 0 ? <p style={{ color: '#3d4a5e', fontSize: 13 }}>Nothing to review.</p> : (
-            <div style={{ overflowX: 'auto' }}>
+            <div>
+            <div className="pay-cards">
+              {flagged.map((f) => (
+                <div className="pay-card" key={f.id}>
+                  <div className="pay-card-top">
+                    <strong className="pay-card-title">{f.employee_name}</strong>
+                    <span className="pay-card-date">{fmtDate(f.clock_in)}</span>
+                  </div>
+                  <div style={{ fontSize: '0.875rem' }}>
+                    {f.geofence_status === 'outside'
+                      ? `${Math.round(f.distance_m)} m from ${f.geofence_location_name || 'nearest location'}`
+                      : 'Location unavailable / low accuracy'}
+                  </div>
+                  {f.latitude != null && (
+                    <a href={`https://www.openstreetmap.org/?mlat=${f.latitude}&mlon=${f.longitude}#map=17/${f.latitude}/${f.longitude}`}
+                      target="_blank" rel="noreferrer" style={{ fontSize: 13 }}>View on map</a>
+                  )}
+                  <div className="pay-card-actions">
+                    <button type="button" className="btn btn-primary pay-card-wide" disabled={saving}
+                      onClick={() => act(() => reviewFlaggedAttendance(f.id, { approve: true }), 'Clock-in approved')}>
+                      <Check size={14} /> Approve
+                    </button>
+                    <button type="button" className="btn btn-secondary pay-card-wide" disabled={saving}
+                      onClick={() => act(() => reviewFlaggedAttendance(f.id, { approve: false }), 'Clock-in rejected')}>
+                      <X size={14} /> Reject
+                    </button>
+                  </div>
+                </div>
+              ))}
+            </div>
+<div className="pay-table-view" style={{ overflowX: 'auto' }}>
               <table className="data-table">
                 <thead><tr><th>Employee</th><th>Clock-in</th><th>Reason</th><th>Location</th><th /></tr></thead>
                 <tbody>
@@ -199,12 +281,14 @@ export default function GeofenceSettings() {
                 </tbody>
               </table>
             </div>
+            </div>
           )}
         </>
       )}
 
       {form && (
         <Modal
+          sheet
           title={form.enabling ? 'Enable geofencing — set your office' : form.id ? 'Edit office' : 'Add office'}
           onClose={() => setForm(null)}
           maxWidth="min(960px, 94vw)"
@@ -213,6 +297,7 @@ export default function GeofenceSettings() {
         >
           <form onSubmit={submitForm}>
             <div
+              className="geo-grid"
               style={{
                 display: 'grid',
                 gridTemplateColumns: 'minmax(300px, 340px) 1fr',
@@ -221,7 +306,7 @@ export default function GeofenceSettings() {
               }}
             >
               {/* Left Column: Office Details & Controls */}
-              <div style={{ display: 'flex', flexDirection: 'column', gap: 'clamp(8px, 1.6vh, 14px)' }}>
+              <div className="geo-left" style={{ display: 'flex', flexDirection: 'column', gap: 'clamp(8px, 1.6vh, 14px)' }}>
                 {/* Office Name */}
                 <div>
                   <label className="input-label" style={{ fontWeight: 700, fontSize: '0.82rem', marginBottom: 4 }}>
@@ -339,7 +424,7 @@ export default function GeofenceSettings() {
                 </div>
 
                 {/* Form Buttons */}
-                <div style={{ display: 'flex', gap: 8, marginTop: 4 }}>
+                <div className="geo-actions" style={{ display: 'flex', gap: 8, marginTop: 4 }}>
                   <button
                     type="button"
                     className="btn btn-secondary"
@@ -360,7 +445,7 @@ export default function GeofenceSettings() {
               </div>
 
               {/* Right Column: Location Picker Map */}
-              <div>
+              <div className="geo-map">
                 <label className="input-label" style={{ fontWeight: 700, fontSize: '0.82rem', marginBottom: 4 }}>
                   Office Map Location (Search or drop pin)
                 </label>

@@ -139,7 +139,16 @@ const PREVIEW_JOBS = [
 export default function CareersBuilderPage() {
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
-  const [viewportMode, setViewportMode] = useState('desktop'); // 'desktop' | 'mobile'
+  const [viewportPref, setViewportMode] = useState('desktop'); // 'desktop' | 'mobile' (desktop screens only)
+  const [isPhone, setIsPhone] = useState(() => window.matchMedia('(max-width: 900px)').matches);
+  const [phonePane, setPhonePane] = useState('edit'); // 'edit' | 'preview' (phones only)
+  const viewportMode = isPhone ? 'mobile' : viewportPref;
+  useEffect(() => {
+    const mq = window.matchMedia('(max-width: 900px)');
+    const onChange = (e) => setIsPhone(e.matches);
+    mq.addEventListener('change', onChange);
+    return () => mq.removeEventListener('change', onChange);
+  }, []);
   const [activeTab, setActiveTab] = useState('brand'); // 'brand' | 'hero' | 'media' | 'theme'
   const [errorMessage, setErrorMessage] = useState('');
   const [successMessage, setSuccessMessage] = useState('');
@@ -292,18 +301,18 @@ export default function CareersBuilderPage() {
   return (
     <div className="min-h-screen bg-[#f8fafc] text-slate-800 flex flex-col font-sans select-none">
       {/* ── Top Header Navigation Bar (Clean Glass) ────────────── */}
-      <header className="h-16 bg-white border-b border-slate-200 px-6 flex items-center justify-between sticky top-0 z-30 shadow-xs">
+      <header className="cb-header h-16 bg-white border-b border-slate-200 px-6 flex items-center justify-between sticky top-0 z-30 shadow-xs">
         {/* Left: Back & Title */}
-        <div className="flex items-center gap-3">
+        <div className="cb-left flex items-center gap-3">
           <Link
             to="/ats/jobs"
             className="inline-flex items-center gap-2 px-3.5 py-2 rounded-xl border border-slate-200 bg-white hover:bg-slate-50 hover:border-slate-300 text-slate-700 font-semibold text-xs transition-all shadow-xs group"
           >
             <ArrowLeft size={15} className="group-hover:-translate-x-0.5 transition-transform text-slate-600" />
-            <span>Back to Job Openings</span>
+            <span className="cb-back-label">Back to Job Openings</span>
           </Link>
 
-          <div className="h-5 w-[1px] bg-slate-200" />
+          <div className="cb-divider h-5 w-[1px] bg-slate-200" />
 
           <div>
             <div className="flex items-center gap-2">
@@ -313,14 +322,14 @@ export default function CareersBuilderPage() {
                 Live Sync
               </span>
             </div>
-            <p className="text-[0.8125rem] text-slate-600">
+            <p className="cb-subtitle text-[0.8125rem] text-slate-600">
               Customize branding, copy, hero photography & live theme
             </p>
           </div>
         </div>
 
         {/* Center: Device Switcher (Apple Style Segmented) */}
-        <div className="flex items-center bg-slate-100 p-1 rounded-xl border border-slate-200">
+        <div className="cb-switcher flex items-center bg-slate-100 p-1 rounded-xl border border-slate-200">
           <button
             type="button"
             onClick={() => setViewportMode('desktop')}
@@ -348,7 +357,7 @@ export default function CareersBuilderPage() {
         </div>
 
         {/* Right: Actions */}
-        <div className="flex items-center gap-2">
+        <div className="cb-actions flex items-center gap-2">
           <button
             type="button"
             onClick={handleResetDefaults}
@@ -403,12 +412,21 @@ export default function CareersBuilderPage() {
         </div>
       )}
 
+      <div className="cb-phone-tabs" role="tablist">
+        <button type="button" role="tab" aria-selected={phonePane === 'edit'} className={phonePane === 'edit' ? 'active' : ''} onClick={() => setPhonePane('edit')}>
+          <Palette size={15} /> Edit
+        </button>
+        <button type="button" role="tab" aria-selected={phonePane === 'preview'} className={phonePane === 'preview' ? 'active' : ''} onClick={() => setPhonePane('preview')}>
+          <Eye size={15} /> Preview
+        </button>
+      </div>
+
       {/* ── Main Workspace: 2-Column Split View ────────────────── */}
-      <div className="flex-1 flex overflow-hidden">
+      <div className="cb-workspace flex-1 flex overflow-hidden">
         {/* ── Left Editor Sidebar (Spacious 460px Clean Light) ── */}
-        <aside className="w-[460px] bg-white border-r border-slate-200 flex flex-col shrink-0 overflow-y-auto">
+        <aside className={`cb-aside w-[460px] bg-white border-r border-slate-200 flex flex-col shrink-0 overflow-y-auto${phonePane === 'preview' ? ' cb-pane-hidden' : ''}`}>
           {/* Sub-Tabs Navigation */}
-          <div className="flex border-b border-slate-200 px-5 pt-3 gap-1 shrink-0 bg-slate-50/60">
+          <div className="cb-subtabs flex border-b border-slate-200 px-5 pt-3 gap-1 shrink-0 bg-slate-50/60">
             {[
               { id: 'brand', label: 'Branding', icon: Building2 },
               { id: 'hero', label: 'Hero Copy', icon: Sparkles },
@@ -422,7 +440,7 @@ export default function CareersBuilderPage() {
                   key={tab.id}
                   type="button"
                   onClick={() => setActiveTab(tab.id)}
-                  className={`flex items-center gap-1.5 px-3.5 py-2.5 text-xs font-bold border-b-2 transition-all ${
+                  className={`cb-subtab flex items-center gap-1.5 px-3.5 py-2.5 text-xs font-bold border-b-2 transition-all ${
                     isActive
                       ? 'border-blue-600 text-blue-600 bg-white rounded-t-lg shadow-2xs'
                       : 'border-transparent text-slate-600 hover:text-slate-800 hover:bg-slate-100/60 rounded-t-lg'
@@ -554,7 +572,7 @@ export default function CareersBuilderPage() {
                   />
                 </div>
 
-                <div className="grid grid-cols-2 gap-3.5">
+                <div className="cb-stack grid grid-cols-2 gap-3.5">
                   <div>
                     <label className="block text-slate-800 font-bold mb-1.5">Title Prefix</label>
                     <input
@@ -640,7 +658,7 @@ export default function CareersBuilderPage() {
                   </div>
                 </div>
 
-                <div className="grid grid-cols-2 gap-3.5 pt-3 border-t border-slate-200">
+                <div className="cb-stack grid grid-cols-2 gap-3.5 pt-3 border-t border-slate-200">
                   <div>
                     <label className="block text-slate-800 font-bold mb-1.5">Floating Badge</label>
                     <input
@@ -722,7 +740,7 @@ export default function CareersBuilderPage() {
         </aside>
 
         {/* ── Right Main Area: LIVE PREVIEW VIEWPORT (DESKTOP OR IPHONE) ─ */}
-        <main className="flex-1 bg-[#f1f5f9]/70 p-6 sm:p-8 overflow-y-auto flex flex-col items-center justify-start min-h-[calc(100vh-64px)]">
+        <main className={`cb-main flex-1 bg-[#f1f5f9]/70 p-6 sm:p-8 overflow-y-auto flex flex-col items-center justify-start min-h-[calc(100vh-64px)]${phonePane === 'edit' ? ' cb-pane-hidden' : ''}`}>
           {viewportMode === 'desktop' ? (
             /* ── DESKTOP VIEW: SILVER STUDIO DISPLAY ──────────────── */
             <>
@@ -1116,6 +1134,25 @@ export default function CareersBuilderPage() {
             </>
           )}
         </main>
+      </div>
+
+      <div className="cb-phone-bar">
+        <button type="button" onClick={handleResetDefaults} className="cb-bar-icon" aria-label="Reset to defaults" title="Reset">
+          <RotateCcw size={18} />
+        </button>
+        <a href="/careers" target="_blank" rel="noreferrer" className="cb-bar-icon" aria-label="View live site" title="View live site">
+          <ExternalLink size={18} />
+        </a>
+        <button
+          type="button"
+          onClick={handleSave}
+          disabled={saving}
+          style={{ backgroundColor: primaryColor }}
+          className="cb-bar-save"
+        >
+          {saving ? <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" /> : <Save size={16} />}
+          <span>{saving ? 'Publishing...' : 'Save & Publish'}</span>
+        </button>
       </div>
     </div>
   );

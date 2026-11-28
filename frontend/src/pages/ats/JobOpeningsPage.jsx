@@ -20,6 +20,7 @@ import {
   ListChecks,
   ArrowRight,
   ArrowLeft,
+  MoreHorizontal,
 } from 'lucide-react';
 import {
   getJobOpenings,
@@ -43,6 +44,7 @@ export default function JobOpeningsPage() {
   const [statusFilter, setStatusFilter] = useState('ALL');
   const [dropdowns, setDropdowns] = useState({ departments: [], designations: [] });
   const [copiedLink, setCopiedLink] = useState(false);
+  const [moreOpen, setMoreOpen] = useState(false);
   const [showCustomizer, setShowCustomizer] = useState(false);
 
   // Modal state
@@ -255,7 +257,8 @@ export default function JobOpeningsPage() {
           </p>
         </div>
 
-        <div className="flex items-center gap-3">
+        {/* Desktop / tablet: every action in one row */}
+        <div className="hidden sm:flex items-center gap-3">
           <button
             type="button"
             onClick={handleCopyCareersLink}
@@ -294,6 +297,64 @@ export default function JobOpeningsPage() {
             <span>Create Job</span>
           </button>
         </div>
+
+        {/* Phones: Create Job up front, the careers-page links behind "More" */}
+        <div className="sm:hidden w-full">
+          <div className="flex items-center gap-2">
+            <button
+              type="button"
+              onClick={openCreateModal}
+              className="btn btn-primary flex-1 inline-flex items-center justify-center gap-2 shadow-sm text-sm"
+              style={{ minHeight: 46 }}
+            >
+              <Plus size={18} />
+              <span>Create Job</span>
+            </button>
+            <button
+              type="button"
+              onClick={() => setMoreOpen((o) => !o)}
+              aria-expanded={moreOpen}
+              className="btn btn-secondary inline-flex items-center justify-center gap-2 text-sm"
+              style={{ minHeight: 46 }}
+            >
+              <MoreHorizontal size={18} />
+              <span>More</span>
+            </button>
+          </div>
+          {moreOpen && (
+            <div className="mt-2 flex flex-col gap-2 bg-white border border-gray-200 rounded-xl p-2 shadow-sm">
+              <button
+                type="button"
+                onClick={() => { handleCopyCareersLink(); setMoreOpen(false); }}
+                className="btn btn-secondary w-full inline-flex items-center justify-start gap-3 text-sm"
+                style={{ minHeight: 44 }}
+              >
+                <Copy size={16} />
+                <span>Copy careers link</span>
+              </button>
+              <a
+                href="/careers?tenant=meagle360-corp"
+                target="_blank"
+                rel="noreferrer"
+                onClick={() => setMoreOpen(false)}
+                className="btn btn-secondary w-full inline-flex items-center justify-start gap-3 text-sm"
+                style={{ minHeight: 44 }}
+              >
+                <ExternalLink size={16} />
+                <span>View careers page</span>
+              </a>
+              <Link
+                to="/ats/careers-builder"
+                onClick={() => setMoreOpen(false)}
+                className="btn btn-secondary w-full inline-flex items-center justify-start gap-3 text-sm text-purple-700 border-purple-200"
+                style={{ minHeight: 44 }}
+              >
+                <Palette size={16} />
+                <span>Careers site studio</span>
+              </Link>
+            </div>
+          )}
+        </div>
       </div>
 
       {/* Filter & Search Bar */}
@@ -305,7 +366,7 @@ export default function JobOpeningsPage() {
               key={tab}
               type="button"
               onClick={() => setStatusFilter(tab)}
-              className={`px-3 py-1.5 rounded-md text-xs font-medium transition-colors ${
+              className={`flex-1 sm:flex-none text-center px-3 py-2.5 sm:py-1.5 rounded-md text-xs font-medium transition-colors ${
                 statusFilter === tab
                   ? 'bg-white text-gray-900 shadow-sm font-semibold'
                   : 'text-gray-600 hover:text-gray-900'
@@ -325,7 +386,7 @@ export default function JobOpeningsPage() {
               placeholder="Search by title..."
               value={search}
               onChange={(e) => setSearch(e.target.value)}
-              className="w-full pl-9 pr-3 py-2 text-sm border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+              className="w-full pl-9 pr-3 py-2.5 sm:py-2 text-base sm:text-sm border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
             />
           </div>
           <button type="submit" className="btn btn-secondary text-xs py-2 px-3">
@@ -437,7 +498,7 @@ export default function JobOpeningsPage() {
                   <button
                     type="button"
                     onClick={() => openEditModal(job)}
-                    className="p-1.5 text-gray-600 hover:text-blue-600 hover:bg-blue-50 rounded-lg transition-colors"
+                    className="p-2.5 sm:p-1.5 text-gray-600 hover:text-blue-600 hover:bg-blue-50 rounded-lg transition-colors"
                     title="Edit Opening"
                   >
                     <Edit2 size={15} />
@@ -445,7 +506,7 @@ export default function JobOpeningsPage() {
                   <button
                     type="button"
                     onClick={() => handleDeleteJob(job.id)}
-                    className="p-1.5 text-gray-600 hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors"
+                    className="p-2.5 sm:p-1.5 text-gray-600 hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors"
                     title="Delete Opening"
                   >
                     <Trash2 size={15} />

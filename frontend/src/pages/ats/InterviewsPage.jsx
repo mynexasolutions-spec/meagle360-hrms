@@ -1,5 +1,6 @@
 import { useState, useEffect, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
+import PhoneStepTabs from '../../components/PhoneStepTabs';
 import {
   CalendarDays,
   Clock,
@@ -278,7 +279,7 @@ export default function InterviewsPage() {
       {/* Page Header */}
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 pb-2 border-b border-gray-200">
         <div>
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-2 flex-wrap">
             <h1 className="text-2xl font-bold text-gray-900">Interview Management</h1>
             <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-semibold bg-blue-100 text-blue-800">
               ATS Coordination
@@ -289,12 +290,12 @@ export default function InterviewsPage() {
           </p>
         </div>
 
-        <div className="flex items-center gap-3">
+        <div className="iv-head-actions flex items-center gap-3 w-full sm:w-auto">
           {canManageSettings && (
             <button
               type="button"
               onClick={() => setShowSettingsModal(true)}
-              className="btn btn-secondary inline-flex items-center gap-2 text-sm"
+              className="btn btn-secondary flex-1 sm:flex-none justify-center inline-flex items-center gap-2 text-sm min-h-[44px] sm:min-h-0"
             >
               <Settings size={16} />
               <span>ATS Settings</span>
@@ -304,7 +305,7 @@ export default function InterviewsPage() {
           <button
             type="button"
             onClick={loadInterviews}
-            className="btn btn-secondary inline-flex items-center gap-2 text-sm"
+            className="btn btn-secondary flex-1 sm:flex-none justify-center inline-flex items-center gap-2 text-sm min-h-[44px] sm:min-h-0"
           >
             <RotateCcw size={15} />
             <span>Refresh</span>
@@ -313,7 +314,13 @@ export default function InterviewsPage() {
       </div>
 
       {/* Tabs */}
-      <div className="flex items-center gap-1.5 overflow-x-auto pb-2 scrollbar-thin">
+      <PhoneStepTabs
+        items={tabs.map((t) => ({ id: t.id, label: t.label }))}
+        value={activeTab}
+        onChange={setActiveTab}
+        title="Interview stage"
+      />
+      <div className="hidden md:flex items-center gap-1.5 overflow-x-auto pb-2 scrollbar-thin">
         {tabs.map((t) => (
           <button
             key={t.id}
@@ -331,13 +338,13 @@ export default function InterviewsPage() {
       </div>
 
       {/* Sub-bar below Tabs: Count on Left, History Toggle on Right */}
-      <div className="flex items-center justify-between text-xs text-gray-600 px-1 pt-0.5">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 text-xs text-gray-600 px-1 pt-0.5">
         <span>
           Showing <strong className="text-gray-800">{interviews.length}</strong> {interviews.length === 1 ? 'interview' : 'interviews'}
           {showHistory ? ' (including past completed & offered rounds)' : ' (active pipeline)'}
         </span>
 
-        <label className="inline-flex items-center gap-2 text-xs font-medium text-gray-600 cursor-pointer select-none bg-white px-3 py-1.5 rounded-xl border border-gray-200 hover:bg-gray-50 transition-colors shadow-2xs">
+        <label className="inline-flex items-center gap-2 text-xs font-medium text-gray-600 cursor-pointer select-none bg-white px-3 py-2.5 sm:py-1.5 min-h-[44px] sm:min-h-0 rounded-xl border border-gray-200 hover:bg-gray-50 transition-colors shadow-2xs">
           <input
             type="checkbox"
             checked={showHistory}
@@ -367,7 +374,7 @@ export default function InterviewsPage() {
       ) : (
         <div className="bg-white rounded-2xl border border-gray-200 shadow-sm overflow-hidden">
           <div className="overflow-x-auto">
-            <table className="w-full text-left text-xs">
+            <table className="iv-table w-full text-left text-xs">
               <thead className="bg-gray-50 border-b border-gray-200 text-gray-600 font-semibold uppercase tracking-wider text-[0.8125rem]">
                 <tr>
                   <th className="py-3.5 px-4">Candidate & Role</th>
@@ -384,17 +391,17 @@ export default function InterviewsPage() {
                     key={iv.id}
                     {...rowClick(
                       canViewApplicants && iv.application_id ? () => navigate(`/ats/applicants?app=${iv.application_id}`) : null,
-                      'hover:bg-slate-50/70 transition-colors',
+                      'iv-row hover:bg-slate-50/70 transition-colors',
                     )}
                   >
                     {/* Candidate */}
-                    <td className="py-3.5 px-4">
+                    <td className="py-3.5 px-4" data-label="Candidate">
                       <span className="font-bold text-gray-900 block">{iv.candidate_name}</span>
                       <span className="text-[0.8125rem] text-gray-600 block">{iv.job_title}</span>
                     </td>
 
                     {/* Round */}
-                    <td className="py-3.5 px-4">
+                    <td className="py-3.5 px-4" data-label="Round">
                       {(() => {
                         const cr = getCleanRound(iv);
                         return (
@@ -453,7 +460,7 @@ export default function InterviewsPage() {
                     </td>
 
                     {/* Interviewer */}
-                    <td className="py-3.5 px-4">
+                    <td className="py-3.5 px-4" data-label="Interviewer">
                       {iv.interviewer_name ? (
                         <div className="flex items-center gap-1.5 font-medium text-gray-900">
                           <UserCheck size={14} className="text-emerald-600" />
@@ -467,7 +474,7 @@ export default function InterviewsPage() {
                     </td>
 
                     {/* Slot Status */}
-                    <td className="py-3.5 px-4">
+                    <td className="py-3.5 px-4" data-label="Slot">
                       {iv.scheduled_at ? (
                         <div className="space-y-1">
                           <div>
@@ -541,7 +548,7 @@ export default function InterviewsPage() {
                     </td>
 
                     {/* Feedback Status */}
-                    <td className="py-3.5 px-4">
+                    <td className="py-3.5 px-4" data-label="Feedback">
                       {iv.feedback ? (
                         <div className="space-y-1.5">
                           <div>
@@ -581,7 +588,7 @@ export default function InterviewsPage() {
                     </td>
 
                     {/* Decision Actions */}
-                    <td className="py-3.5 px-4 text-right">
+                    <td className="py-3.5 px-4 text-right" data-label="Actions">
                       <div className="flex items-center justify-end gap-1.5">
                         {iv.status === 'Needs interviewer' && (
                           <button
@@ -650,6 +657,7 @@ export default function InterviewsPage() {
       {/* ── Assign Interviewer Modal ──────────────────────────── */}
       {assigningInterview && (
         <Modal
+          sheet
           title={`Assign Interviewer — ${assigningInterview.candidate_name}`}
           onClose={() => setAssigningInterview(null)}
         >
@@ -711,6 +719,7 @@ export default function InterviewsPage() {
       {/* ── Schedule Next Round Modal ────────────────────────── */}
       {nextRoundApp && (
         <Modal
+          sheet
           title={`Schedule Next Round — ${nextRoundApp.candidate_name}`}
           onClose={() => setNextRoundApp(null)}
         >
@@ -769,8 +778,8 @@ export default function InterviewsPage() {
 
       {/* ── ATS Settings Modal (Round Templates & Rejection Reasons) ─ */}
       {showSettingsModal && (
-        <Modal title="ATS Configuration Settings" onClose={() => setShowSettingsModal(false)}>
-          <div className="space-y-6 max-h-[75vh] overflow-y-auto px-1">
+        <Modal sheet title="ATS Configuration Settings" onClose={() => setShowSettingsModal(false)}>
+          <div className="space-y-6 sm:max-h-[75vh] sm:overflow-y-auto px-1">
             {/* Round Templates Section */}
             <div className="space-y-3">
               <div className="flex items-center justify-between">
@@ -783,18 +792,18 @@ export default function InterviewsPage() {
               </div>
 
               {/* Add Template */}
-              <form onSubmit={handleAddRoundTemplate} className="flex items-center gap-2">
+              <form onSubmit={handleAddRoundTemplate} className="flex flex-wrap sm:flex-nowrap items-center gap-2">
                 <input
                   type="text"
                   placeholder="e.g. System Design Round"
                   value={newTemplateName}
                   onChange={(e) => setNewTemplateName(e.target.value)}
-                  className="flex-1 p-2 text-xs border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  className="flex-1 min-w-[180px] p-2.5 sm:p-2 text-base sm:text-xs border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
                 />
                 <button
                   type="submit"
                   disabled={settingsLoading || !newTemplateName.trim()}
-                  className="btn btn-secondary text-xs py-2 px-3 inline-flex items-center gap-1"
+                  className="btn btn-secondary text-xs py-2 px-3 inline-flex items-center justify-center gap-1 w-full sm:w-auto min-h-[44px] sm:min-h-0"
                 >
                   <Plus size={14} /> Add Template
                 </button>
@@ -832,24 +841,24 @@ export default function InterviewsPage() {
                 </p>
               </div>
 
-              <form onSubmit={handleAddRejectionReason} className="flex items-center gap-2">
+              <form onSubmit={handleAddRejectionReason} className="flex flex-wrap sm:flex-nowrap items-center gap-2">
                 <input
                   type="text"
                   placeholder="e.g. Incompatible time zone"
                   value={newReason}
                   onChange={(e) => setNewReason(e.target.value)}
-                  className="flex-1 p-2 text-xs border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  className="flex-1 min-w-[180px] p-2.5 sm:p-2 text-base sm:text-xs border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
                 />
                 <button
                   type="submit"
                   disabled={settingsLoading || !newReason.trim()}
-                  className="btn btn-secondary text-xs py-2 px-3 inline-flex items-center gap-1"
+                  className="btn btn-secondary text-xs py-2 px-3 inline-flex items-center justify-center gap-1 w-full sm:w-auto min-h-[44px] sm:min-h-0"
                 >
                   <Plus size={14} /> Add Reason
                 </button>
               </form>
 
-              <div className="border border-gray-200 rounded-xl divide-y divide-gray-100 bg-white max-h-48 overflow-y-auto">
+              <div className="border border-gray-200 rounded-xl divide-y divide-gray-100 bg-white sm:max-h-48 sm:overflow-y-auto">
                 {rejectionReasons.map((rr) => (
                   <div key={rr.id} className="p-2.5 text-xs text-gray-700 font-medium">
                     • {rr.reason}
@@ -863,6 +872,7 @@ export default function InterviewsPage() {
       {/* ── View Interview Feedback Modal ────────────────────── */}
       {viewingFeedbackIv && viewingFeedbackIv.feedback && (
         <Modal
+          sheet
           title="Interview Evaluation & Feedback"
           onClose={() => setViewingFeedbackIv(null)}
         >
@@ -999,6 +1009,7 @@ export default function InterviewsPage() {
       {/* ── View Location / Meeting Details Modal ───────────── */}
       {viewingLocationModal && (
         <Modal
+          sheet
           title={
             viewingLocationModal.type === 'In-Person'
               ? 'Interview Location & Room'

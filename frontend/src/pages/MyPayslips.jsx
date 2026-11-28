@@ -321,7 +321,7 @@ export default function MyPayslips() {
                 <div id={`payslip-doc-${p.id}`} className="payslip-doc-body">
                   {/* Action Toolbar */}
                   <div
-                    className="no-print"
+                    className="no-print payslip-toolbar"
                     style={{ display: 'flex', justifyContent: 'flex-end', gap: 12, marginBottom: 20 }}
                   >
                     <button
@@ -347,6 +347,90 @@ export default function MyPayslips() {
                     >
                       <Printer size={16} /> Print / Save as PDF
                     </button>
+                  </div>
+
+                  {/* Phones: a readable summary instead of the A4 page (the A4 page is still used for Print / PDF) */}
+                  <div className="payslip-mobile no-print">
+                    <div className="ps-hero">
+                      <div className="ps-hero-label">Net pay · {MONTH_NAMES[p.run_month - 1]} {p.run_year}</div>
+                      <div className="ps-hero-amount">₹{money(p.net_pay)}</div>
+                      <div className="ps-hero-words">{numberToWordsIndian(p.net_pay)}</div>
+                      <div className="ps-chips">
+                        <span>Paid <b>{paidDays}</b> days</span>
+                        <span className={Number(p.lop_days) > 0 ? 'ps-chip-warn' : ''}>LOP <b>{p.lop_days}</b></span>
+                        <span>Pay date <b>{formatPayDate(p.run_month, p.run_year)}</b></span>
+                      </div>
+                    </div>
+
+                    <details className="ps-acc" open>
+                      <summary>
+                        <span><PlusCircle size={16} /> Earnings</span>
+                        <strong className="ps-pos">₹{money(p.gross_earnings)}</strong>
+                      </summary>
+                      <div className="ps-acc-body">
+                        {earnings.map((line) => (
+                          <div key={line.id} className="ps-row"><span>{line.component_name}</span><b>{money(line.amount)}</b></div>
+                        ))}
+                        {earnings.length === 0 && (
+                          <div className="ps-row"><span>Basic Salary</span><b>{money(p.basic_pay)}</b></div>
+                        )}
+                      </div>
+                    </details>
+
+                    <details className="ps-acc">
+                      <summary>
+                        <span><MinusCircle size={16} /> Deductions</span>
+                        <strong className="ps-neg">₹{money(p.gross_deductions)}</strong>
+                      </summary>
+                      <div className="ps-acc-body">
+                        {deductions.map((line) => (
+                          <div key={line.id} className="ps-row"><span>{line.component_name}</span><b>{money(line.amount)}</b></div>
+                        ))}
+                        {!deductions.some((d) => d.component_name?.toLowerCase().includes('loss of pay') || d.component_name?.toLowerCase().includes('lop')) && Number(p.lop_amount) > 0 && (
+                          <div className="ps-row"><span>Loss of Pay ({p.lop_days} days)</span><b>{money(p.lop_amount)}</b></div>
+                        )}
+                        {deductions.length === 0 && Number(p.lop_amount) === 0 && (
+                          <div className="ps-empty">No deductions for this period</div>
+                        )}
+                      </div>
+                    </details>
+
+                    <details className="ps-acc">
+                      <summary>
+                        <span><CalendarCheck size={16} /> Attendance</span>
+                        <strong>{paidDays} / {p.working_days} days</strong>
+                      </summary>
+                      <div className="ps-acc-body">
+                        <div className="ps-row"><span>Working days</span><b>{p.working_days}</b></div>
+                        <div className="ps-row"><span>Paid days</span><b>{paidDays}</b></div>
+                        <div className="ps-row"><span>Leave / LOP days</span><b>{p.lop_days}</b></div>
+                        <div className="ps-row"><span>LOP amount</span><b>₹{money(p.lop_amount)}</b></div>
+                      </div>
+                    </details>
+
+                    <details className="ps-acc">
+                      <summary>
+                        <span><User size={16} /> Employee details</span>
+                        <strong>{empCode}</strong>
+                      </summary>
+                      <div className="ps-acc-body">
+                        <div className="ps-row"><span>Name</span><b>{empName}</b></div>
+                        <div className="ps-row"><span>Employee ID</span><b>{empCode}</b></div>
+                        <div className="ps-row"><span>Designation</span><b>{designation}</b></div>
+                        <div className="ps-row"><span>Department</span><b>{department}</b></div>
+                        <div className="ps-row"><span>Date of joining</span><b>{doj}</b></div>
+                        <div className="ps-row"><span>PAN</span><b>{pan}</b></div>
+                        <div className="ps-row"><span>Bank</span><b>{bankName}</b></div>
+                        <div className="ps-row"><span>Account</span><b>{bankAccount}</b></div>
+                        <div className="ps-row"><span>Payslip no.</span><b>{payslipNumber}</b></div>
+                      </div>
+                    </details>
+
+                    <div className="ps-m-actions">
+                      <button type="button" onClick={() => handlePrintPayslip(p)}>
+                        <Printer size={18} /> Download / Save as PDF
+                      </button>
+                    </div>
                   </div>
 
                   {/* Corporate Payslip Voucher Container */}

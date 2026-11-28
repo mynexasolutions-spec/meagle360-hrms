@@ -139,7 +139,7 @@ export default function SelfieSettings() {
                 No passport photos waiting for review.
               </div>
             ) : (
-              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(280px, 1fr))', gap: 16 }}>
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(min(280px, 100%), 1fr))', gap: 16 }}>
                 {profiles.map((p) => (
                   <div
                     key={p.id}
@@ -222,7 +222,35 @@ export default function SelfieSettings() {
                 No flagged clock-in records pending review.
               </div>
             ) : (
-              <div style={{ overflowX: 'auto', border: '1px solid var(--border-color)', borderRadius: 8 }}>
+                            <div>
+              <div className="pay-cards">
+                {flagged.map((r) => (
+                  <div className="pay-card" key={r.id}>
+                    <div className="pay-card-top">
+                      <strong className="pay-card-title">{r.employee_name || 'Employee'}</strong>
+                      <span style={{ padding: '2px 8px', borderRadius: 4, fontSize: 12, fontWeight: 600, background: '#fef3c7', color: '#b45309', textTransform: 'capitalize' }}>
+                        {r.reason ? r.reason.replace('_', ' ') : 'Flagged'}
+                      </span>
+                    </div>
+                    <div className="pay-card-range">{fmtDate(r.clock_in)}</div>
+                    <div className="pay-card-meta">
+                      <span>Match score</span>
+                      <strong>{r.face_score !== null && r.face_score !== undefined ? `${(r.face_score * 100).toFixed(1)}%` : '—'}</strong>
+                    </div>
+                    <div className="pay-card-actions">
+                      <button type="button" className="btn btn-primary pay-card-wide"
+                        onClick={() => setReviewModal({ type: 'flagged', id: r.id, approve: true, name: r.employee_name, note: '' })}>
+                        <Check size={14} /> Approve
+                      </button>
+                      <button type="button" className="btn btn-secondary pay-card-wide" style={{ color: '#dc2626' }}
+                        onClick={() => setReviewModal({ type: 'flagged', id: r.id, approve: false, name: r.employee_name, note: '' })}>
+                        <X size={14} /> Reject
+                      </button>
+                    </div>
+                  </div>
+                ))}
+              </div>
+              <div className="pay-table-view" style={{ overflowX: 'auto', border: '1px solid var(--border-color)', borderRadius: 8 }}>
                 <table className="table" style={{ width: '100%', fontSize: 13 }}>
                   <thead>
                     <tr>
@@ -293,6 +321,7 @@ export default function SelfieSettings() {
                   </tbody>
                 </table>
               </div>
+              </div>
             )}
           </div>
         </div>
@@ -301,6 +330,7 @@ export default function SelfieSettings() {
       {/* Review Modal for note & confirmation */}
       {reviewModal && (
         <Modal
+          sheet
           isOpen={true}
           onClose={() => setReviewModal(null)}
           title={`${reviewModal.approve ? 'Approve' : 'Reject'} ${
@@ -325,7 +355,7 @@ export default function SelfieSettings() {
                 />
               </div>
             )}
-            <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 10, marginTop: 8 }}>
+            <div className="pay-modal-actions" style={{ display: 'flex', justifyContent: 'flex-end', gap: 10, marginTop: 8 }}>
               <button
                 type="button"
                 className="btn btn-secondary"

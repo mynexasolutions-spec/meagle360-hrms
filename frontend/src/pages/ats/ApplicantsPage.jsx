@@ -85,7 +85,14 @@ export default function ApplicantsPage() {
   const canConvertEmployee = isAdmin || !!user?.permissions?.['ats:hire:convert'];
 
   // URL-synced state (?view, ?job, ?stage, ?date_from, ?date_to, ?source, ?assigned_to, ?unassigned, ?view_as, ?q, ?app)
-  const viewMode = searchParams.get('view') === 'table' ? 'table' : 'kanban';
+  const [isPhone, setIsPhone] = useState(() => window.matchMedia('(max-width: 767px)').matches);
+  useEffect(() => {
+    const mq = window.matchMedia('(max-width: 767px)');
+    const onChange = (e) => setIsPhone(e.matches);
+    mq.addEventListener('change', onChange);
+    return () => mq.removeEventListener('change', onChange);
+  }, []);
+  const viewMode = !isPhone && searchParams.get('view') === 'table' ? 'table' : 'kanban';
   const selectedJobId = searchParams.get('job') || 'ALL';
   const activeStageId = searchParams.get('stage') || 'ALL';
   const dateFrom = searchParams.get('date_from') || '';
@@ -1032,17 +1039,17 @@ export default function ApplicantsPage() {
               </span>
             )}
           </div>
-          <p className="text-sm text-slate-700 mt-1 font-medium">
+          <p className="hidden sm:block text-sm text-slate-700 mt-1 font-medium">
             {!isAdmin
               ? 'Showing applications assigned to you. Review resumes, shortlist, and manage your hiring pipeline.'
               : 'Review candidate applications, view resumes in-app, shortlist, and manage hiring pipeline.'}
           </p>
         </div>
 
-        <div className="flex items-center gap-2.5 flex-wrap self-start sm:self-auto">
+        <div className="ap-head-tools flex items-center gap-2.5 flex-wrap w-full sm:w-auto self-start sm:self-auto">
           {/* Org Admin: View As Recruiter Dropdown with per-recruiter pending counts */}
           {isAdmin && (
-            <div className="flex items-center gap-1.5">
+            <div className="flex items-center gap-1.5 flex-1 min-w-0 sm:flex-none">
               <label className="text-xs font-semibold text-slate-700 whitespace-nowrap">View as:</label>
               <select
                 value={viewAsRecruiterId}
@@ -1054,7 +1061,7 @@ export default function ApplicantsPage() {
                     unassigned: null,
                   });
                 }}
-                className="text-xs font-semibold bg-white border border-gray-300 rounded-xl px-3 py-1.5 focus:outline-none focus:ring-2 focus:ring-blue-500 max-w-[230px]"
+                className="text-base sm:text-xs font-semibold bg-white border border-gray-300 rounded-xl px-3 py-2.5 sm:py-1.5 focus:outline-none focus:ring-2 focus:ring-blue-500 w-full sm:w-auto max-w-[230px] min-w-0"
               >
                 <option value="">Combined Board (All)</option>
                 {recruiters.map((rec) => (
@@ -1067,7 +1074,7 @@ export default function ApplicantsPage() {
           )}
 
           {/* Segmented Table / Kanban Toggle */}
-          <div className="inline-flex items-center rounded-xl border border-gray-200 bg-white p-0.5 shadow-xs">
+          <div className="hidden md:inline-flex items-center rounded-xl border border-gray-200 bg-white p-0.5 shadow-xs">
             <button
               type="button"
               onClick={() => setViewMode('table')}
@@ -1100,10 +1107,10 @@ export default function ApplicantsPage() {
               loadStaticMeta();
               refreshActiveView();
             }}
-            className="btn btn-secondary inline-flex items-center gap-1.5 text-xs py-2 px-3 bg-white"
+            className="btn btn-secondary inline-flex items-center justify-center gap-1.5 text-xs py-2 px-3 bg-white min-w-[44px] min-h-[44px] sm:min-h-0"
           >
             <RefreshCw size={14} />
-            <span>Refresh</span>
+            <span className="hidden sm:inline">Refresh</span>
           </button>
         </div>
       </div>
@@ -1210,7 +1217,7 @@ export default function ApplicantsPage() {
               <select
                 value={selectedJobId}
                 onChange={(e) => setSelectedJobId(e.target.value)}
-                className="w-full text-xs font-medium bg-white border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                className="w-full text-base sm:text-xs font-medium bg-white border border-gray-300 rounded-lg px-3 py-2.5 sm:py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
               >
                 <option value="ALL">All Job Openings</option>
                 {jobs.map((j) => (
@@ -1230,7 +1237,7 @@ export default function ApplicantsPage() {
                   placeholder="Search by candidate name, email, or role..."
                   value={search}
                   onChange={(e) => setSearch(e.target.value)}
-                  className="w-full pl-9 pr-3 py-2 text-xs border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  className="w-full pl-9 pr-3 py-2.5 sm:py-2 text-base sm:text-xs border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
                 />
               </div>
               <button type="submit" className="btn btn-primary text-xs py-2 px-4">
@@ -1238,6 +1245,8 @@ export default function ApplicantsPage() {
               </button>
             </form>
 
+            {/* Actions: 2-up grid on phones, flows inline on bigger screens */}
+            <div className="ap-actions grid grid-cols-2 gap-2 w-full sm:contents">
             {/* Filters Toggle Button */}
             <button
               type="button"
@@ -1319,6 +1328,7 @@ export default function ApplicantsPage() {
                 </button>
               </>
             )}
+            </div>
           </div>
 
           {/* Bulk Action Bar (when rows selected in Table view) */}

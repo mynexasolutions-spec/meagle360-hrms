@@ -13,6 +13,7 @@ import {
   Square,
   Trash2,
   Building2,
+  MoreHorizontal,
   Users,
   CalendarOff,
   CalendarPlus,
@@ -35,6 +36,7 @@ import {
 } from '../api/ai';
 import { formatMessageHtml } from '../utils/aiText';
 import { useAuth } from '../context/AuthContext';
+import Modal from '../components/Modal';
 import botAvatarVideo from '../assets/meagle-bot-bust-transparent.webm';
 
 function BotAvatar({ size = 36, glow = false, isSpeaking = false }) {
@@ -998,6 +1000,15 @@ export default function AiAssistant() {
   const fromPage = useLocation().state?.fromPage;
   const [guides, setGuides] = useState([]);
   const [showAllGuides, setShowAllGuides] = useState(false);
+  const [phone, setPhone] = useState(() => window.matchMedia('(max-width: 640px)').matches);
+  const [moreOpen, setMoreOpen] = useState(false);
+  const [guidesOpen, setGuidesOpen] = useState(false);
+  useEffect(() => {
+    const mq = window.matchMedia('(max-width: 640px)');
+    const onChange = (e) => setPhone(e.matches);
+    mq.addEventListener('change', onChange);
+    return () => mq.removeEventListener('change', onChange);
+  }, []);
   const [messages, setMessages] = useState([createWelcomeMessage()]);
   const [input, setInput] = useState('');
   const [loading, setLoading] = useState(false);
@@ -1479,7 +1490,7 @@ export default function AiAssistant() {
     <div style={{ maxWidth: 'var(--content-max)', margin: '0 auto', height: '100%' }}>
       {/* Unified Full-Height Chat Card */}
       <div
-        className="glass-card"
+        className="glass-card ai-card"
         style={{
           display: 'flex',
           flexDirection: 'column',
@@ -1494,6 +1505,7 @@ export default function AiAssistant() {
       >
         {/* Sleek Glassmorphic Header */}
         <div
+          className="ai-head"
           style={{
             position: 'relative',
             padding: '10px 20px',
@@ -1521,10 +1533,10 @@ export default function AiAssistant() {
           />
 
           {/* Left Brand & Subtitle */}
-          <div style={{ display: 'flex', alignItems: 'center', gap: '10px', minWidth: 0, flexShrink: 0 }}>
+          <div className="ai-head-left" style={{ display: 'flex', alignItems: 'center', gap: '10px', minWidth: 0, flexShrink: 0 }}>
             <BotAvatar size={38} glow={true} isSpeaking={speakingMsgId !== null} />
             <div>
-              <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+              <div className="ai-title-row" style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
                 <h1
                   style={{
                     margin: 0,
@@ -1538,6 +1550,7 @@ export default function AiAssistant() {
                   Meagle360 AI
                 </h1>
                 <span
+                  className="ai-pill-role"
                   style={{
                     fontSize: '0.75rem',
                     fontWeight: 700,
@@ -1552,6 +1565,7 @@ export default function AiAssistant() {
                   {isAdminOrManager ? 'Admin & Manager Copilot' : 'Personal HR Copilot'}
                 </span>
                 <span
+                  className="ai-pill-online"
                   style={{
                     display: 'inline-flex',
                     alignItems: 'center',
@@ -1579,7 +1593,7 @@ export default function AiAssistant() {
                   Online • Voice & Chat
                 </span>
               </div>
-              <p style={{ margin: '1px 0 0 0', fontSize: '0.72rem', color: '#3d4a5e', fontWeight: 500, whiteSpace: 'nowrap' }}>
+              <p className="ai-sub" style={{ margin: '1px 0 0 0', fontSize: '0.72rem', color: '#3d4a5e', fontWeight: 500, whiteSpace: 'nowrap' }}>
                 {isAdminOrManager
                   ? 'Live Team Attendance & Leave Approvals'
                   : 'My Leaves, Personal Attendance & Instant Leave Apply'}
@@ -1589,7 +1603,7 @@ export default function AiAssistant() {
           </div>
 
           {/* Right Controls: Department Filter (Admin/Manager only) + Voice Reply + Clear Chat */}
-          <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexShrink: 0, flexWrap: 'wrap' }}>
+          <div className="ai-head-tools" style={{ display: 'flex', alignItems: 'center', gap: '8px', flexShrink: 0, flexWrap: 'wrap' }}>
             {isAdminOrManager && (
               <div
                 style={{
@@ -1652,7 +1666,7 @@ export default function AiAssistant() {
               title="Automatically speak AI replies in English"
             >
               {autoSpeak ? <Volume2 size={14} /> : <VolumeX size={14} />}
-              <span>{autoSpeak ? 'Voice Reply: ON' : 'Voice Reply: OFF'}</span>
+              <span className="ai-btn-label">{autoSpeak ? 'Voice Reply: ON' : 'Voice Reply: OFF'}</span>
             </button>
 
             <button
@@ -1675,14 +1689,55 @@ export default function AiAssistant() {
               title="Clear Chat History"
             >
               <Trash2 size={14} />
-              <span>Clear Chat</span>
+              <span className="ai-btn-label">Clear Chat</span>
             </button>
           </div>
+
+          <button type="button" className="ai-more-btn" onClick={() => setMoreOpen(true)} aria-label="More options">
+            <MoreHorizontal size={20} />
+          </button>
         </div>
+
+        {moreOpen && (
+          <Modal sheet title="Chat options" onClose={() => setMoreOpen(false)} closeOnOverlay>
+            <div className="ai-more-list">
+              <button
+                type="button"
+                onClick={() => {
+                  if (autoSpeak) stopSpeaking();
+                  setAutoSpeak((v) => !v);
+                }}
+              >
+                <span>{autoSpeak ? <Volume2 size={18} /> : <VolumeX size={18} />} Voice replies</span>
+                <b>{autoSpeak ? 'ON' : 'OFF'}</b>
+              </button>
+              {isAdminOrManager && (
+                <label>
+                  <span><Building2 size={18} /> Department</span>
+                  <select value={selectedDept} onChange={(e) => setSelectedDept(e.target.value)}>
+                    <option value="">All Departments</option>
+                    {departments.map((dept) => (
+                      <option key={dept} value={dept}>{dept}</option>
+                    ))}
+                  </select>
+                </label>
+              )}
+              <button
+                type="button"
+                className="ai-more-danger"
+                disabled={messages.length <= 1}
+                onClick={() => { handleClearChat(); setMoreOpen(false); }}
+              >
+                <span><Trash2 size={18} /> Clear chat history</span>
+              </button>
+            </div>
+          </Modal>
+        )}
 
         {/* Quick Prompt Bar */}
         {!isWelcomeOnly && (
           <div
+            className="ai-quick"
             style={{
               padding: '7px 20px',
               flexShrink: 0,
@@ -1730,6 +1785,7 @@ export default function AiAssistant() {
         {/* Messages Stream / Hero Empty State */}
         <div
           ref={streamContainerRef}
+          className="ai-stream"
           style={{
             position: 'relative',
             flex: 1,
@@ -1751,6 +1807,7 @@ export default function AiAssistant() {
           {/* Top-Right Floating Demo Quota in Hero Banner */}
           {isWelcomeOnly && quota?.is_demo && (
             <div
+              className="ai-quota"
               style={{
                 position: 'absolute',
                 top: 14,
@@ -1803,9 +1860,12 @@ export default function AiAssistant() {
               }}
             >
               <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '8px' }}>
-                <div style={{ position: 'relative', display: 'inline-flex', alignItems: 'center', justifyContent: 'center' }}>
+                <div
+                  onClick={phone ? handleToggleIntro : undefined}
+                  style={{ position: 'relative', display: 'inline-flex', alignItems: 'center', justifyContent: 'center', cursor: phone ? 'pointer' : 'default' }}
+                >
                   <BotAvatar
-                    size={76}
+                    size={phone ? 56 : 76}
                     glow={true}
                     isSpeaking={speakingMsgId !== null}
                   />
@@ -1814,6 +1874,7 @@ export default function AiAssistant() {
                 {/* Option 2: Clean, Centered Intro Chip directly below character */}
                 <button
                   type="button"
+                  className="ai-intro-chip"
                   onClick={handleToggleIntro}
                   style={{
                     display: 'inline-flex',
@@ -1867,9 +1928,10 @@ export default function AiAssistant() {
                       lineHeight: 1.25,
                     }}
                   >
-                    {timeGreeting}, {firstName}! How can Meagle360 AI help you today?
+                    {phone ? `${timeGreeting}, ${firstName}! 👋` : `${timeGreeting}, ${firstName}! How can Meagle360 AI help you today?`}
                   </h2>
                   <p
+                    className="ai-hero-desc"
                     style={{
                       margin: '4px auto 0',
                       fontSize: '0.82rem',
@@ -1887,6 +1949,7 @@ export default function AiAssistant() {
 
               {/* 4 Role-Specific Floating Capsule Pills */}
               <div
+                className="ai-hero-pills"
                 style={{
                   display: 'grid',
                   gridTemplateColumns: 'repeat(2, minmax(0, 1fr))',
@@ -1970,7 +2033,12 @@ export default function AiAssistant() {
                 })}
               </div>
 
-              {guides.length > 0 && (
+              {phone && guides.length > 0 && !guidesOpen && (
+                <button type="button" className="ai-more-help" onClick={() => setGuidesOpen(true)}>
+                  More help ▾
+                </button>
+              )}
+              {guides.length > 0 && (!phone || guidesOpen) && (
                 <div style={{ width: '100%', maxWidth: 760, marginTop: 4 }}>
                   <div style={{ fontSize: '0.75rem', fontWeight: 700, color: '#475569', marginBottom: 8 }}>
                     How-to guides
@@ -2000,6 +2068,7 @@ export default function AiAssistant() {
                 return (
                   <div
                     key={msg.id}
+                    className="ai-msg-row"
                     style={{
                       display: 'flex',
                       justifyContent: isUser ? 'flex-end' : 'flex-start',
@@ -2009,6 +2078,7 @@ export default function AiAssistant() {
                     {!isUser && <BotAvatar size={38} isSpeaking={speakingMsgId === msg.id} />}
 
                     <div
+                      className="ai-bubble"
                       style={{
                         maxWidth: '78%',
                         padding: '13px 16px',
@@ -2155,6 +2225,7 @@ export default function AiAssistant() {
 
                     {isUser && (
                       <div
+                        className="ai-user-avatar"
                         style={{
                           width: 34,
                           height: 34,
@@ -2278,6 +2349,7 @@ export default function AiAssistant() {
 
         {/* Input Bar */}
         <form
+          className="ai-input-form"
           onSubmit={(e) => {
             e.preventDefault();
             handleSendMessage();
@@ -2343,13 +2415,16 @@ export default function AiAssistant() {
             </button>
 
             <input
+              className="ai-input-field"
               type="text"
               value={input}
               onFocus={() => setIsInputFocused(true)}
               onBlur={() => setIsInputFocused(false)}
               onChange={(e) => setInput(e.target.value)}
               placeholder={
-                quota?.is_demo && quota?.limit_reached
+                phone
+                  ? (quota?.is_demo && quota?.limit_reached ? 'Daily limit reached' : 'Ask Meagle AI…')
+                  : quota?.is_demo && quota?.limit_reached
                   ? 'Daily demo limit (10 chats) reached. Resets at 12:00 AM IST.'
                   : isAdminOrManager
                   ? selectedDept
@@ -2398,8 +2473,8 @@ export default function AiAssistant() {
                 transition: 'all 0.2s ease',
               }}
             >
-              <Sparkles size={15} />
-              <span>Ask AI</span>
+              <Sparkles size={15} className="ai-send-extra" />
+              <span className="ai-send-label">Ask AI</span>
               <Send size={14} />
             </button>
           </div>

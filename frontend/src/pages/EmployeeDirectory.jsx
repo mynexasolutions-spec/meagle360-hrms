@@ -189,7 +189,7 @@ export default function EmployeeDirectory() {
       {!isEditingOrg && (
         <>
       {/* 1. Header with dynamic title and action buttons */}
-      <div className="page-header" style={{ marginBottom: 18 }}>
+      <div className="page-header dir-header" style={{ marginBottom: 18 }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: 14 }}>
           <div
             style={{
@@ -216,7 +216,7 @@ export default function EmployeeDirectory() {
           </div>
         </div>
         {activeTab === 'directory' && canInvite && (
-          <div style={{ display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap' }}>
+          <div className="dir-actions" style={{ display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap' }}>
             <button
               className="btn btn-secondary"
               onClick={() => navigate('/offer-letter')}
@@ -247,7 +247,7 @@ export default function EmployeeDirectory() {
             >
               <Award size={16} style={{ color: '#059669' }} /> Relieving Letter
             </button>
-            <button className="btn btn-primary" onClick={openInvite}>
+            <button className="btn btn-primary dir-invite" onClick={openInvite}>
               <Plus size={16} /> Invite Employee
             </button>
           </div>
@@ -255,7 +255,7 @@ export default function EmployeeDirectory() {
       </div>
 
       {/* 2. Top Segmented Navigation Tabs */}
-      <div style={{ display: 'flex', gap: 6, background: '#f1f5f9', padding: 4, borderRadius: 12, border: '1px solid #e2e8f0', width: 'fit-content', marginBottom: 22 }}>
+      <div className="dir-seg" style={{ display: 'flex', gap: 6, background: '#f1f5f9', padding: 4, borderRadius: 12, border: '1px solid #e2e8f0', width: 'fit-content', marginBottom: 22 }}>
         <button
           onClick={() => handleTabChange('directory')}
           style={{
@@ -268,7 +268,7 @@ export default function EmployeeDirectory() {
           }}
         >
           <Users size={16} style={{ color: activeTab === 'directory' ? '#2563eb' : '#94a3b8' }} />
-          <span>Employee Directory</span>
+          <span><span className="dir-tab-prefix">Employee </span>Directory</span>
           <span style={{ fontSize: '0.70rem', padding: '1px 7px', borderRadius: 99, background: activeTab === 'directory' ? '#eff6ff' : '#e2e8f0', color: activeTab === 'directory' ? '#2563eb' : '#475569', fontWeight: 700 }}>
             {peopleCounts.current}
           </span>
@@ -296,7 +296,7 @@ export default function EmployeeDirectory() {
       {activeTab === 'organization' ? (
         <>
           {isAdmin && !editingOrg && (
-            <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap', marginBottom: 16 }}>
+            <div className="dir-org-actions" style={{ display: 'flex', gap: 10, flexWrap: 'wrap', marginBottom: 16 }}>
               <button className="btn btn-primary" onClick={() => setEditingOrg(true)}>
                 <Move size={16} /> Edit Organization
               </button>
@@ -312,12 +312,12 @@ export default function EmployeeDirectory() {
         </>
       ) : (
         <>
-          <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap', marginBottom: 16 }}>
+          <div className="dir-chips" style={{ display: 'flex', gap: 6, flexWrap: 'wrap', marginBottom: 16 }}>
             {[
-              ['', 'Current employees', peopleCounts.current],
-              ['notice', 'Serving notice', peopleCounts.notice],
-              ['exited', 'Ex-employees', peopleCounts.exited],
-            ].map(([key, label, count]) => (
+              ['', 'Current employees', 'Current', peopleCounts.current],
+              ['notice', 'Serving notice', 'Notice', peopleCounts.notice],
+              ['exited', 'Ex-employees', 'Ex', peopleCounts.exited],
+            ].map(([key, label, short, count]) => (
               <button
                 key={key || 'current'}
                 type="button"
@@ -329,12 +329,12 @@ export default function EmployeeDirectory() {
                   color: people === key ? '#1d4ed8' : '#475569',
                 }}
               >
-                {label} <span style={{ marginLeft: 4, fontWeight: 700 }}>{count}</span>
+                <span className="dir-chip-full">{label}</span><span className="dir-chip-short">{short}</span> <span style={{ marginLeft: 4, fontWeight: 700 }}>{count}</span>
               </button>
             ))}
           </div>
 
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: 16, marginBottom: 24 }}>
+          <div className="dir-stats" style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: 16, marginBottom: 24 }}>
             <StatCard icon={Users} label={people === 'exited' ? 'Ex-employees' : people === 'notice' ? 'Serving Notice' : 'Total Employees'} value={stats.total} {...cardFilter('')} bgColor="#eff6ff" color="#2563eb" />
             <StatCard icon={UserCheck} label="Active Accounts" value={stats.active} {...cardFilter('active')} bgColor="#ecfdf5" color="#059669" />
             <StatCard icon={Mail} label="Invited" value={stats.invited} {...cardFilter('invited')} bgColor="#fffbeb" color="#d97706" />
@@ -342,8 +342,8 @@ export default function EmployeeDirectory() {
           </div>
 
           {/* Search & View Switcher Bar */}
-          <div style={{ marginBottom: 24, display: 'flex', justifyContent: 'space-between', gap: 16, alignItems: 'center', flexWrap: 'wrap' }}>
-            <div style={{ position: 'relative', flex: 1, maxWidth: 420 }}>
+          <div className="dir-toolbar" style={{ marginBottom: 24, display: 'flex', justifyContent: 'space-between', gap: 16, alignItems: 'center', flexWrap: 'wrap' }}>
+            <div className="dir-search" style={{ position: 'relative', flex: 1, maxWidth: 420 }}>
               <Search
                 size={18}
                 style={{
@@ -383,7 +383,7 @@ export default function EmployeeDirectory() {
             )}
 
             {/* View Mode Toggle Switcher */}
-            <div style={{ display: 'flex', background: '#f1f5f9', padding: 4, borderRadius: 12, border: '1px solid #e2e8f0' }}>
+            <div className="dir-view-toggle" style={{ display: 'flex', background: '#f1f5f9', padding: 4, borderRadius: 12, border: '1px solid #e2e8f0' }}>
           <button
             onClick={() => setViewMode('table')}
             style={{
@@ -514,6 +514,7 @@ export default function EmployeeDirectory() {
       ) : (
         /* Table Mode */
         <div
+          className="dir-table-shell"
           style={{
             background: '#ffffff',
             borderRadius: 20,
@@ -523,7 +524,58 @@ export default function EmployeeDirectory() {
             overflow: 'hidden',
           }}
         >
-          <div style={{ overflowX: 'auto' }}>
+          <div className="dir-cards">
+            {filtered.map((emp, i) => {
+              const initials = emp.full_name.split(' ').map((n) => n[0]).join('').toUpperCase();
+              const canOffboard = canInvite && !(emp.role_names || []).some((r) => r.toLowerCase() === 'admin');
+              return (
+                <div className="dir-card" key={emp.id}>
+                  <div {...rowClick(() => navigate(`/employees/${emp.id}`), 'dir-card-main')}>
+                    {emp.photo_url ? (
+                      <img src={emp.photo_url} alt={emp.full_name} className="dir-card-avatar" />
+                    ) : (
+                      <div className="dir-card-avatar" style={{ background: AVATAR_COLORS[i % AVATAR_COLORS.length] }}>{initials}</div>
+                    )}
+                    <div style={{ minWidth: 0, flex: 1 }}>
+                      <div className="dir-card-name">{emp.full_name}</div>
+                      {(emp.work_email || emp.email) && <div className="dir-card-sub">{emp.work_email || emp.email}</div>}
+                      <div className="dir-card-tags">
+                        {emp.department_name && <span className="dir-tag dir-tag-dept">{emp.department_name}</span>}
+                        <span className="dir-tag dir-tag-code">{emp.employee_code}</span>
+                        {isNotice(emp) && <span className="dir-tag" style={{ background: '#fef3c7', color: '#92400e' }}>Notice · LWD {fmtDate(emp.last_working_date)}</span>}
+                        {isExited(emp) && <span className="dir-tag" style={{ background: '#f1f5f9', color: '#475569' }}>Exited {emp.date_of_exit ? fmtDate(emp.date_of_exit) : ''}</span>}
+                      </div>
+                    </div>
+                    <span
+                      className="dir-tag"
+                      style={{
+                        alignSelf: 'flex-start',
+                        background: emp.account_status === 'active' ? '#dcfce7' : emp.account_status === 'invited' ? '#fef3c7' : '#f1f5f9',
+                        color: emp.account_status === 'active' ? '#15803d' : emp.account_status === 'invited' ? '#b45309' : '#475569',
+                      }}
+                    >
+                      {ACCOUNT_STATUS_LABEL[emp.account_status] || emp.account_status}
+                    </span>
+                  </div>
+                  <div className="dir-card-foot">
+                    <span>{(emp.role_names || []).join(', ') || 'Employee'} · {emp.site_name || 'Main Office'}</span>
+                    {canOffboard && (
+                      <button className="btn btn-secondary btn-sm" onClick={() => setOffboardTarget(emp)}>
+                        {isExited(emp) ? (
+                          <><Award size={14} style={{ color: '#059669' }} /> Exit details</>
+                        ) : isNotice(emp) ? (
+                          <><LogOut size={14} style={{ color: '#d97706' }} /> Manage exit</>
+                        ) : (
+                          <><LogOut size={14} style={{ color: '#b91c1c' }} /> Offboard</>
+                        )}
+                      </button>
+                    )}
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+          <div className="dir-table-view" style={{ overflowX: 'auto' }}>
           <table className="data-table" style={{ width: '100%', borderCollapse: 'collapse' }}>
             <thead>
               <tr style={{ background: '#f8fafc', borderBottom: '1px solid #e2e8f0' }}>
@@ -663,7 +715,7 @@ export default function EmployeeDirectory() {
 
       {/* Invite Employee Modal */}
       {showInvite && (
-        <Modal title="Invite Employee" onClose={closeInvite}>
+        <Modal sheet title="Invite Employee" onClose={closeInvite}>
           {!inviteResult ? (
             <form onSubmit={handleInvite}>
               {error && (
@@ -671,7 +723,8 @@ export default function EmployeeDirectory() {
                   {error}
                 </div>
               )}
-              <div className="input-group">
+              <div className="inv-grid">
+              <div className="input-group inv-full">
                 <label className="input-label">Full Name</label>
                 <input
                   className="input-field"
@@ -680,7 +733,7 @@ export default function EmployeeDirectory() {
                   required
                 />
               </div>
-              <div className="input-group">
+              <div className="input-group inv-full">
                 <label className="input-label">Email</label>
                 <input
                   type="email"
@@ -762,7 +815,8 @@ export default function EmployeeDirectory() {
                   required
                 />
               </div>
-              <button type="submit" className="btn btn-primary" disabled={inviting} style={{ width: '100%', justifyContent: 'center', marginTop: 8 }}>
+              </div>
+              <button type="submit" className="btn btn-primary inv-submit" disabled={inviting} style={{ width: '100%', justifyContent: 'center', marginTop: 8 }}>
                 {inviting ? 'Sending...' : 'Create & Generate Invite'}
               </button>
             </form>

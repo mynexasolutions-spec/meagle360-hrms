@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import {
   Settings as SettingsIcon, Building, Shield, Calendar, ScrollText, MapPin, Wallet, Pencil, Trash2,
-  Image as ImageIcon, FileSignature, UploadCloud, CheckCircle2, Building2, Phone, Mail, Globe, Camera
+  Image as ImageIcon, FileSignature, UploadCloud, CheckCircle2, Building2, Phone, Mail, Globe, Camera, ChevronDown, Check
 } from 'lucide-react';
 import { getHolidays, createHoliday, updateHoliday, deleteHoliday } from '../api/attendance';
 import { getDepartments, createDepartment, updateDepartment, deleteDepartment, getEmployees, getSites, createSite } from '../api/employees';
@@ -22,6 +22,7 @@ export default function Settings() {
   const navigate = useNavigate();
   const { showAlert, showConfirm, showToast } = usePopup();
   const [tab, setTab] = useState('branding');
+  const [pickerOpen, setPickerOpen] = useState(false);
   const [holidays, setHolidays] = useState([]);
   const [departments, setDepartments] = useState([]);
   const [sites, setSites] = useState([]);
@@ -255,8 +256,37 @@ export default function Settings() {
         </div>
       </div>
 
+      {/* Phones: one section picker instead of 8 tabs */}
+      <div className="pay-tab-picker">
+        <button type="button" onClick={() => setPickerOpen(true)} aria-haspopup="dialog">
+          <span>
+            <small>Section</small>
+            {tabs.find((t) => t.id === tab)?.label}
+          </span>
+          <ChevronDown size={18} />
+        </button>
+      </div>
+      {pickerOpen && (
+        <Modal sheet title="Go to section" onClose={() => setPickerOpen(false)} closeOnOverlay>
+          <div className="pay-picker-list">
+            {tabs.map((t) => (
+              <button
+                key={t.id} type="button" className={tab === t.id ? 'active' : ''}
+                onClick={() => { setTab(t.id); setPickerOpen(false); }}
+              >
+                <span style={{ display: 'inline-flex', alignItems: 'center', gap: 10 }}>
+                  <t.icon size={16} style={{ color: tab === t.id ? '#1d4ed8' : '#2563eb' }} />
+                  {t.label}
+                </span>
+                {tab === t.id && <Check size={18} />}
+              </button>
+            ))}
+          </div>
+        </Modal>
+      )}
+
       {/* Modern Pill Tabs */}
-      <div className="pill-tabs" style={{ marginBottom: 24 }}>
+      <div className="pill-tabs pay-tabs-desktop" style={{ marginBottom: 24 }}>
         {tabs.map((t) => (
           <button
             key={t.id}
@@ -307,7 +337,7 @@ export default function Settings() {
           )}
 
           {/* Top 2 Cards: Logo & Signature Uploads */}
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(320px, 1fr))', gap: 20 }}>
+          <div className="set-auto" style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(320px, 1fr))', gap: 20 }}>
             {/* Card 1: Company Logo */}
             <div className="section-card" style={{ borderTop: '3px solid #2563eb', display: 'flex', flexDirection: 'column', justifyContent: 'space-between' }}>
               <div>
@@ -352,6 +382,7 @@ export default function Settings() {
 
               <div>
                 <label
+                  className="set-upload"
                   style={{
                     display: 'inline-flex',
                     alignItems: 'center',
@@ -426,6 +457,7 @@ export default function Settings() {
 
               <div>
                 <label
+                  className="set-upload"
                   style={{
                     display: 'inline-flex',
                     alignItems: 'center',
@@ -463,7 +495,7 @@ export default function Settings() {
               Signatory &amp; Document Footer Information
             </h3>
             <form onSubmit={handleSaveBrandingDetails} style={{ display: 'grid', gap: 16 }}>
-              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: 16 }}>
+              <div className="set-auto" style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: 16 }}>
                 <div className="input-group">
                   <label className="input-label">Authorized Signatory Name / Title</label>
                   <input
@@ -484,7 +516,7 @@ export default function Settings() {
                 </div>
               </div>
 
-              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: 16 }}>
+              <div className="set-auto" style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: 16 }}>
                 <div className="input-group">
                   <label className="input-label">Official Email</label>
                   <input
@@ -526,7 +558,7 @@ export default function Settings() {
                 />
               </div>
 
-              <div style={{ display: 'flex', justifyContent: 'flex-end', marginTop: 8 }}>
+              <div className="set-save-row" style={{ display: 'flex', justifyContent: 'flex-end', marginTop: 8 }}>
                 <button
                   type="submit"
                   disabled={savingBranding}
@@ -570,11 +602,30 @@ export default function Settings() {
                 fontSize: '0.85rem',
                 cursor: 'pointer',
               }}
+              className="set-add-btn"
             >
               + Add Holiday
             </button>
           </div>
-          <div style={{ overflowX: 'auto' }}>
+                    <div className="pay-cards">
+            {holidays.map((h) => (
+              <div className="pay-card pay-card-row" key={h.id}>
+                <div style={{ minWidth: 0 }}>
+                  <div className="pay-card-title" style={{ fontWeight: 700 }}>{h.name}</div>
+                  <div className="pay-card-range">{h.holiday_date}</div>
+                </div>
+                <div className="set-actions">
+                  <button type="button" className="pay-icon-btn" onClick={() => setShowAdd({ type: 'edit-holiday', holiday: h })} aria-label={`Edit ${h.name}`}>
+                    <Pencil size={16} style={{ color: '#2563eb' }} />
+                  </button>
+                  <button type="button" className="pay-icon-btn pay-icon-danger" onClick={() => handleDeleteHoliday(h)} aria-label={`Delete ${h.name}`}>
+                    <Trash2 size={16} style={{ color: '#e11d48' }} />
+                  </button>
+                </div>
+              </div>
+            ))}
+          </div>
+<div className="pay-table-view" style={{ overflowX: 'auto' }}>
             <table className="data-table">
               <thead><tr><th style={{ whiteSpace: 'nowrap' }}>Date</th><th style={{ whiteSpace: 'nowrap' }}>Holiday</th><th style={{ whiteSpace: 'nowrap' }}>Actions</th></tr></thead>
               <tbody>
@@ -616,21 +667,62 @@ export default function Settings() {
           <div className="section-card" style={{ borderTop: '3px solid #2563eb' }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 16, flexWrap: 'wrap', gap: 12 }}>
               <h3 style={{ marginBottom: 0 }}><Building size={18} style={{ color: 'var(--accent-blue)' }} /> Departments</h3>
-              <button className="btn btn-primary btn-sm" onClick={() => setShowAdd('department')}>+ Add</button>
+              <button className="btn btn-primary btn-sm set-add-btn" onClick={() => setShowAdd('department')}>+ Add</button>
             </div>
             <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap', alignItems: 'center', marginBottom: 16 }}>
               {chip('Departments', departments.length, { bg: '#eff6ff', fg: '#1d4ed8' })}
               {chip('Employees', totalEmployees, { bg: '#ecfdf5', fg: '#047857' })}
               {chip('Without head', noHead, noHead ? { bg: '#fffbeb', fg: '#b45309' } : { bg: '#f1f5f9', fg: '#475569' })}
               <input
-                className="input-field"
+                className="input-field set-search"
                 style={{ marginLeft: 'auto', maxWidth: 260 }}
                 placeholder="Search department or head..."
                 value={deptSearch}
                 onChange={(e) => setDeptSearch(e.target.value)}
               />
             </div>
-            <div style={{ overflowX: 'auto' }}>
+                        <div className="pay-cards">
+              {visible.map((d) => (
+                <div
+                  key={d.id}
+                  {...rowClick(d.employee_count > 0 ? () => navigate(`/employees?department=${encodeURIComponent(d.name)}`) : null, 'pay-card')}
+                >
+                  <div className="pay-card-top">
+                    <strong className="pay-card-title">{d.name}</strong>
+                    <span className="pay-card-date">
+                      {d.employee_count > 0 ? `${d.employee_count} ${d.employee_count === 1 ? 'employee' : 'employees'}` : 'Empty'}
+                    </span>
+                  </div>
+                  <div>
+                    {d.head_name ? (
+                      <span style={{ display: 'inline-flex', alignItems: 'center', gap: 8, fontSize: '0.875rem' }}>
+                        <span className="avatar" style={{ width: 28, height: 28, fontSize: '0.68rem' }}>
+                          {d.head_name.split(' ').map((w) => w[0]).slice(0, 2).join('').toUpperCase()}
+                        </span>
+                        {d.head_name}
+                      </span>
+                    ) : (
+                      <button
+                        type="button"
+                        onClick={() => setShowAdd({ type: 'edit-department', department: d })}
+                        style={{ background: '#fffbeb', color: '#b45309', border: '1px dashed #f59e0b', borderRadius: 999, padding: '8px 14px', fontSize: '0.8rem', fontWeight: 600, cursor: 'pointer', minHeight: 40 }}
+                      >
+                        ⚠ No head · Assign
+                      </button>
+                    )}
+                  </div>
+                  <div className="set-actions" style={{ justifyContent: 'flex-end' }}>
+                    <button type="button" className="pay-icon-btn" onClick={() => setShowAdd({ type: 'edit-department', department: d })} aria-label={`Edit ${d.name}`}>
+                      <Pencil size={16} style={{ color: '#2563eb' }} />
+                    </button>
+                    <button type="button" className="pay-icon-btn pay-icon-danger" onClick={() => handleDeleteDepartment(d)} aria-label={`Delete ${d.name}`}>
+                      <Trash2 size={16} style={{ color: '#e11d48' }} />
+                    </button>
+                  </div>
+                </div>
+              ))}
+            </div>
+<div className="pay-table-view" style={{ overflowX: 'auto' }}>
               <table className="data-table">
                 <thead><tr><th style={{ whiteSpace: 'nowrap' }}>Name</th><th style={{ whiteSpace: 'nowrap' }}>Head</th><th style={{ whiteSpace: 'nowrap' }}>Employees</th><th style={{ whiteSpace: 'nowrap' }}>Actions</th></tr></thead>
                 <tbody>
@@ -686,9 +778,17 @@ export default function Settings() {
         <div className="section-card" style={{ borderTop: '3px solid #059669' }}>
           <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 16, flexWrap: 'wrap', gap: 12 }}>
             <h3 style={{ marginBottom: 0 }}><MapPin size={18} style={{ color: 'var(--accent-emerald)' }} /> Sites</h3>
-            <button className="btn btn-primary btn-sm" onClick={() => setShowAdd('site')}>+ Add</button>
+            <button className="btn btn-primary btn-sm set-add-btn" onClick={() => setShowAdd('site')}>+ Add</button>
           </div>
-          <div style={{ overflowX: 'auto' }}>
+                    <div className="pay-cards">
+            {sites.map((st) => (
+              <div className="pay-card" key={st.id}>
+                <strong className="pay-card-title">{st.name}</strong>
+                <div className="pay-card-range">{[st.city, st.state, st.country].filter(Boolean).join(', ') || '—'}</div>
+              </div>
+            ))}
+          </div>
+<div className="pay-table-view" style={{ overflowX: 'auto' }}>
             <table className="data-table">
               <thead><tr><th style={{ whiteSpace: 'nowrap' }}>Name</th><th style={{ whiteSpace: 'nowrap' }}>City</th><th style={{ whiteSpace: 'nowrap' }}>State</th><th style={{ whiteSpace: 'nowrap' }}>Country</th></tr></thead>
               <tbody>
@@ -722,7 +822,7 @@ export default function Settings() {
               Used by Payroll to tell a weekly off apart from an unpaid absence when calculating Loss of Pay.
             </p>
             {company && (
-              <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap' }}>
+              <div className="set-days" style={{ display: 'flex', gap: 10, flexWrap: 'wrap' }}>
                 {WEEKDAY_LABELS.map((label, i) => {
                   const isOff = (company.weekly_off_days || []).includes(i);
                   return (
@@ -732,7 +832,7 @@ export default function Settings() {
                       className={`btn ${isOff ? 'btn-primary' : 'btn-secondary'} btn-sm`}
                       onClick={() => toggleWeeklyOff(i)}
                     >
-                      {label}
+                      <span className="sh-long">{label}</span><span className="sh-short">{label.slice(0, 3)}</span>
                     </button>
                   );
                 })}
@@ -746,7 +846,7 @@ export default function Settings() {
               Maximum number of attendance regularization requests (pending + approved) an employee can submit per calendar month.
             </p>
             {company && (
-              <div style={{ display: 'flex', gap: 10, alignItems: 'center' }}>
+              <div className="set-reg" style={{ display: 'flex', gap: 10, alignItems: 'center' }}>
                 <input
                   type="number"
                   min="0"
@@ -773,7 +873,30 @@ export default function Settings() {
       {tab === 'audit-log' && (
         <div className="section-card" style={{ borderTop: '3px solid #dc2626' }}>
           <h3><ScrollText size={18} style={{ color: 'var(--accent-rose)' }} /> Audit Log</h3>
-          <div style={{ overflowX: 'auto' }}>
+                    <div className="pay-cards">
+            {auditLogs.map((log) => (
+              <div className="pay-card" key={log.id}>
+                <div className="pay-card-top">
+                  <span style={{
+                    display: 'inline-block', padding: '3px 10px', borderRadius: 999, fontSize: '0.8125rem', fontWeight: 600,
+                    ...({
+                      success: { background: '#ecfdf5', color: '#047857' },
+                      danger: { background: '#fff1f2', color: '#be123c' },
+                      neutral: { background: '#f1f5f9', color: '#475569' },
+                    }[actionTone(log.action)]),
+                  }}>{actionLabel(log.action)}</span>
+                  <span className="pay-card-date">{new Date(log.created_at).toLocaleString()}</span>
+                </div>
+                <div style={{ fontWeight: 600, fontSize: '0.9rem' }}>{log.actor_name}</div>
+                <div className="pay-card-range">
+                  {log.target_label
+                    ? <>{log.target_label} <span style={{ color: 'var(--text-muted)' }}>· {entityLabel(log.entity_type)}</span></>
+                    : entityLabel(log.entity_type)}
+                </div>
+              </div>
+            ))}
+          </div>
+<div className="pay-table-view" style={{ overflowX: 'auto' }}>
             <table className="data-table">
               <thead><tr><th style={{ whiteSpace: 'nowrap' }}>When</th><th style={{ whiteSpace: 'nowrap' }}>Actor</th><th style={{ whiteSpace: 'nowrap' }}>Action</th><th style={{ whiteSpace: 'nowrap' }}>Target</th></tr></thead>
               <tbody>
@@ -868,10 +991,10 @@ function AddHolidayModal({ onClose, onSuccess, weeklyOffDays = [5, 6] }) {
     }
   };
   return (
-    <Modal title="Add Holiday" onClose={onClose}>
+    <Modal sheet title="Add Holiday" onClose={onClose}>
       <form onSubmit={handleSubmit}>
         {error && <div style={{ marginBottom: 12, color: 'var(--accent-rose)', fontSize: '0.875rem' }}>{error}</div>}
-        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
+        <div className="set-2col" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
           <div className="input-group">
             <label className="input-label">Start Date</label>
             <input type="date" className="input-field" value={form.holiday_date} onChange={(e) => setForm({ ...form, holiday_date: e.target.value })} required />
@@ -896,7 +1019,7 @@ function AddHolidayModal({ onClose, onSuccess, weeklyOffDays = [5, 6] }) {
             {days.length === 1 ? fmt(days[0]) : `${days.length} days: ${fmt(days[0])} – ${fmt(days[days.length - 1])}`}
           </div>
         )}
-        <div style={{ display: 'flex', gap: 10, justifyContent: 'flex-end', marginTop: 20 }}>
+        <div className="pay-modal-actions" style={{ display: 'flex', gap: 10, justifyContent: 'flex-end', marginTop: 20 }}>
           <button type="button" className="btn btn-secondary" onClick={onClose}>Cancel</button>
           <button type="submit" className="btn btn-primary" disabled={saving}>{saving ? 'Adding...' : 'Add'}</button>
         </div>
@@ -920,7 +1043,7 @@ function EditHolidayModal({ holiday, onClose, onSuccess }) {
     }
   };
   return (
-    <Modal title="Edit Holiday" onClose={onClose}>
+    <Modal sheet title="Edit Holiday" onClose={onClose}>
       <form onSubmit={handleSubmit}>
         {error && <div style={{ marginBottom: 12, color: 'var(--accent-rose)', fontSize: '0.875rem' }}>{error}</div>}
         <div className="input-group">
@@ -931,7 +1054,7 @@ function EditHolidayModal({ holiday, onClose, onSuccess }) {
           <label className="input-label">Holiday Name</label>
           <input className="input-field" value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })} required />
         </div>
-        <div style={{ display: 'flex', gap: 10, justifyContent: 'flex-end', marginTop: 20 }}>
+        <div className="pay-modal-actions" style={{ display: 'flex', gap: 10, justifyContent: 'flex-end', marginTop: 20 }}>
           <button type="button" className="btn btn-secondary" onClick={onClose}>Cancel</button>
           <button type="submit" className="btn btn-primary">Save</button>
         </div>
@@ -965,7 +1088,7 @@ function DepartmentFormModal({ title, submitLabel, initial, onSubmit, onClose })
     }
   };
   return (
-    <Modal title={title} onClose={onClose}>
+    <Modal sheet title={title} onClose={onClose}>
       <form onSubmit={handleSubmit}>
         {error && <div style={{ marginBottom: 12, color: 'var(--accent-rose)', fontSize: '0.875rem' }}>{error}</div>}
         <div className="input-group">
@@ -984,7 +1107,7 @@ function DepartmentFormModal({ title, submitLabel, initial, onSubmit, onClose })
             ))}
           </select>
         </div>
-        <div style={{ display: 'flex', gap: 10, justifyContent: 'flex-end', marginTop: 20 }}>
+        <div className="pay-modal-actions" style={{ display: 'flex', gap: 10, justifyContent: 'flex-end', marginTop: 20 }}>
           <button type="button" className="btn btn-secondary" onClick={onClose}>Cancel</button>
           <button type="submit" className="btn btn-primary">{submitLabel}</button>
         </div>
@@ -1025,7 +1148,7 @@ function AddSiteModal({ onClose, onSuccess }) {
     onClose();
   };
   return (
-    <Modal title="Add Site" onClose={onClose}>
+    <Modal sheet title="Add Site" onClose={onClose}>
       <form onSubmit={handleSubmit}>
         <div className="input-group">
           <label className="input-label">Site Name</label>
@@ -1047,7 +1170,7 @@ function AddSiteModal({ onClose, onSuccess }) {
           <label className="input-label">Country</label>
           <input className="input-field" value={form.country} onChange={(e) => setForm({ ...form, country: e.target.value })} />
         </div>
-        <div style={{ display: 'flex', gap: 10, justifyContent: 'flex-end', marginTop: 20 }}>
+        <div className="pay-modal-actions" style={{ display: 'flex', gap: 10, justifyContent: 'flex-end', marginTop: 20 }}>
           <button type="button" className="btn btn-secondary" onClick={onClose}>Cancel</button>
           <button type="submit" className="btn btn-primary">Create</button>
         </div>

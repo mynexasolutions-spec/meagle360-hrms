@@ -44,7 +44,7 @@ function MoveModal({ person, people, departments, headDept, onClose, onMove }) {
   const listed = managers.some((p) => p.id === person.manager_id);
 
   return (
-    <Modal title={`Move ${person.full_name}`} onClose={onClose} maxWidth={460}>
+    <Modal sheet title={`Move ${person.full_name}`} onClose={onClose} maxWidth={460}>
       <form onSubmit={(e) => { e.preventDefault(); onMove(managerId || null, departmentId || null, withTeam); }}>
         <div className="input-group">
           <label className="input-label" htmlFor="move-manager">Manager</label>
@@ -106,7 +106,7 @@ function TeamModal({ person, people, deptNames, onClose, onSave }) {
   const title = current.length ? `Edit ${person.full_name}'s team` : `Make ${person.full_name} a team lead`;
 
   return (
-    <Modal title={title} onClose={onClose} maxWidth={480}>
+    <Modal sheet title={title} onClose={onClose} maxWidth={480}>
       <p className="oe-hint">
         {current.length
           ? 'Tick who reports to them. People you untick move to their manager.'
@@ -152,7 +152,7 @@ function DemoteModal({ person, people, headOf, onClose, onSave }) {
   const known = options.some((p) => p.id === target);
 
   return (
-    <Modal title={`Demote ${person.full_name}`} onClose={onClose} maxWidth={460}>
+    <Modal sheet title={`Demote ${person.full_name}`} onClose={onClose} maxWidth={460}>
       <p className="oe-hint">
         {person.full_name} leads {team.length} {team.length === 1 ? 'person' : 'people'}. Move them to someone else, and {person.full_name} becomes a member.
       </p>
@@ -598,7 +598,7 @@ export default function OrgEditor({ onClose }) {
       )}
 
       {reviewing && (
-        <Modal title={`Review ${count} change${count === 1 ? '' : 's'}`} onClose={() => !busy && setReviewing(false)} maxWidth={560}>
+        <Modal sheet title={`Review ${count} change${count === 1 ? '' : 's'}`} onClose={() => !busy && setReviewing(false)} maxWidth={560}>
           <ul className="oe-changes">
             {Object.entries(draft).map(([id, to]) => {
               const from = originals.get(id);

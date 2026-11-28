@@ -386,6 +386,9 @@ export default function Dashboard() {
     upcomingHolidays: false,
   });
 
+  // Mobile only: the per-type leave list under the donut is collapsed by default.
+  const [leaveBreakdownOpen, setLeaveBreakdownOpen] = useState(false);
+
   const toggleCard = (cardKey) => {
     setMobileCards((prev) => ({ ...prev, [cardKey]: !prev[cardKey] }));
   };
@@ -493,7 +496,13 @@ export default function Dashboard() {
               icon={CheckCircle}
               label="Present Today"
               value={summary?.present_today ?? '—'}
-              trend={summary?.total_employees ? `${Math.round(((summary?.present_today || 0) / (summary?.total_employees || 1)) * 100)}% attendance rate` : 'Today'}
+              trend={summary?.total_employees ? (
+                <>
+                  {Math.round(((summary?.present_today || 0) / (summary?.total_employees || 1)) * 100)}%
+                  <span className="lb-long"> attendance rate</span>
+                  <span className="lb-short"> present</span>
+                </>
+              ) : 'Today'}
               trendDirection={(summary?.present_today || 0) > 0 ? 'up' : 'down'}
               bgColor="#ecfdf5"
               color="#059669"
@@ -575,11 +584,11 @@ export default function Dashboard() {
                 </div>
                 <div style={{ minWidth: 0 }}>
                   <h3 className="dashboard-card-title">Attendance Overview (Last 7 Days)</h3>
-                  <p className="dashboard-card-sub">Daily presence, absence, and leave trends across your organization</p>
+                  <p className="dashboard-card-sub card-sub-desktop-only">Daily presence, absence, and leave trends across your organization</p>
                 </div>
               </div>
               {canSeeLiveStatus && (
-              <div className="attendance-card-header-pills">
+              <div className="attendance-card-header-pills attendance-desktop-only">
                 <span style={{ fontSize: '0.8125rem', fontWeight: 600, color: '#047857', background: '#ecfdf5', padding: '4px 12px', borderRadius: 8, border: '1px solid #a7f3d0' }}>
                   Present: {summary?.present_today ?? '—'}
                 </span>
@@ -589,7 +598,73 @@ export default function Dashboard() {
               </div>
               )}
             </div>
-            <div className="dashboard-chart-box">
+            {/* Mobile: today's split as one segmented bar (the 7-day chart is desktop-only) */}
+            {(() => {
+              const total = Number(summary?.total_employees) || 0;
+              const present = Number(summary?.present_today) || 0;
+              const onLeave = Number(summary?.on_leave_today) || 0;
+              const absent = Math.max(0, total - present - onLeave);
+              const seg = (n) => (total ? (n / total) * 100 : 0);
+              return (
+                <div className="attendance-mobile-summary">
+                  <div style={{ fontSize: '0.72rem', fontWeight: 700, color: '#475569', marginBottom: 4 }}>Today</div>
+                  <div style={{ display: 'flex', height: 6, borderRadius: 99, overflow: 'hidden', background: '#f1f5f9', gap: 2 }}>
+                    {present > 0 && <div style={{ width: `${seg(present)}%`, background: '#059669' }} />}
+                    {onLeave > 0 && <div style={{ width: `${seg(onLeave)}%`, background: '#f59e0b' }} />}
+                    {absent > 0 && <div style={{ width: `${seg(absent)}%`, background: '#f87171' }} />}
+                  </div>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: 10, gap: 8 }}>
+                    {[
+                      { label: 'Present', n: present, color: '#059669' },
+                      { label: 'On leave', n: onLeave, color: '#d97706' },
+                      { label: 'Absent', n: absent, color: '#dc2626' },
+                    ].map((s) => (
+                      <div key={s.label} style={{ flex: 1, textAlign: 'center' }}>
+                        <div style={{ fontSize: '1.05rem', fontWeight: 800, color: s.color, lineHeight: 1.1 }}>{summary ? s.n : '—'}</div>
+                        <div style={{ fontSize: '0.68rem', fontWeight: 600, color: '#475569', marginTop: 2 }}>
+                          <span style={{ display: 'inline-block', width: 6, height: 6, borderRadius: '50%', background: s.color, marginRight: 4 }} />
+                          {s.label}
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+
+                  {/* Last 7 days: one stacked mini bar per day */}
+                  {attendanceOverview.length > 0 && (() => {
+                    const days = attendanceOverview.slice(-7);
+                    const dayTotal = (d) => (Number(d.present) || 0) + (Number(d.on_leave) || 0) + (Number(d.absent) || 0);
+                    const max = Math.max(1, ...days.map(dayTotal));
+                    return (
+                      <div style={{ marginTop: 12, paddingTop: 10, borderTop: '1px solid #f1f5f9' }}>
+                        <div style={{ fontSize: '0.72rem', fontWeight: 700, color: '#475569', marginBottom: 6 }}>Last 7 days</div>
+                        <div style={{ display: 'flex', gap: 6, alignItems: 'flex-end' }}>
+                          {days.map((d) => {
+                            const p = Number(d.present) || 0;
+                            const l = Number(d.on_leave) || 0;
+                            const a = Number(d.absent) || 0;
+                            const h = (n) => `${(n / max) * 100}%`;
+                            const dt = new Date(`${d.date}T00:00:00`);
+                            return (
+                              <div key={d.date} style={{ flex: 1, minWidth: 0, textAlign: 'center' }} title={`${d.date}: ${p} present, ${l} on leave, ${a} absent`}>
+                                <div style={{ height: 40, display: 'flex', flexDirection: 'column', justifyContent: 'flex-end', gap: 1, borderRadius: 4, overflow: 'hidden', background: '#f8fafc' }}>
+                                  {a > 0 && <div style={{ height: h(a), background: '#f87171', opacity: 0.85 }} />}
+                                  {l > 0 && <div style={{ height: h(l), background: '#f59e0b' }} />}
+                                  {p > 0 && <div style={{ height: h(p), background: '#059669' }} />}
+                                </div>
+                                <div style={{ fontSize: '0.62rem', fontWeight: 600, color: '#64748b', marginTop: 3 }}>
+                                  {Number.isNaN(dt.getTime()) ? '' : dt.toLocaleDateString('en-US', { weekday: 'narrow' })}
+                                </div>
+                              </div>
+                            );
+                          })}
+                        </div>
+                      </div>
+                    );
+                  })()}
+                </div>
+              );
+            })()}
+            <div className="dashboard-chart-box attendance-desktop-only">
               <ResponsiveContainer width="100%" height="100%">
                 <AreaChart data={attendanceOverview} margin={{ top: 10, right: 8, left: -24, bottom: 0 }}>
                   <defs>
@@ -607,7 +682,7 @@ export default function Dashboard() {
                     </linearGradient>
                   </defs>
                   <CartesianGrid strokeDasharray="3 3" stroke="#f1f5f9" vertical={false} />
-                  <XAxis dataKey="date" tick={{ fontSize: 12, fill: '#475569', fontWeight: 500 }} tickFormatter={(d) => d.slice(5)} />
+                  <XAxis dataKey="date" tick={{ fontSize: 12, fill: '#475569', fontWeight: 500 }} tickFormatter={(d) => d.slice(5)} minTickGap={24} />
                   <YAxis tick={{ fontSize: 12, fill: '#475569', fontWeight: 500 }} axisLine={false} tickLine={false} width={28} />
                   <Tooltip contentStyle={{ background: '#ffffff', border: '1px solid #e2e8f0', borderRadius: 12, fontSize: 12, boxShadow: '0 4px 14px rgba(0,0,0,0.06)' }} />
                   <Legend wrapperStyle={{ fontSize: 12, paddingTop: 6 }} />
@@ -741,8 +816,19 @@ export default function Dashboard() {
                       </div>
                     </div>
 
-                    {/* Middle: 4 Rich Colored Category Tiles (Neat & Non-Overflowing) */}
-                    <div className="leave-summary-tiles" style={{ gap: 10 }}>
+                    {/* Mobile-only toggle for the breakdown list (hidden on desktop via CSS) */}
+                    <button
+                      type="button"
+                      className="leave-breakdown-toggle"
+                      onClick={() => setLeaveBreakdownOpen((v) => !v)}
+                      aria-expanded={leaveBreakdownOpen}
+                    >
+                      {leaveBreakdownOpen ? 'Hide breakdown' : 'View breakdown'}
+                      <ChevronDown size={14} style={{ transform: leaveBreakdownOpen ? 'rotate(180deg)' : 'none', transition: 'transform 0.2s' }} />
+                    </button>
+
+                    {/* Middle: Category Tiles (grid on desktop, compact rows on mobile) */}
+                    <div className={`leave-summary-tiles ${leaveBreakdownOpen ? '' : 'is-mobile-collapsed'}`} style={{ gap: 10 }}>
                       {leaveSummary.map((l, i) => {
                         const style = getLeaveTypeStyle(l.leave_type);
                         const color = DONUT_COLORS[i % DONUT_COLORS.length];
@@ -756,7 +842,7 @@ export default function Dashboard() {
                             }}
                           >
                             {/* Line 1: Icon + Full Category Title */}
-                            <div style={{ display: 'flex', alignItems: 'center', gap: 5, width: '100%', minWidth: 0 }}>
+                            <div className="leave-tile-head" style={{ display: 'flex', alignItems: 'center', gap: 5, width: '100%', minWidth: 0 }}>
                               <div
                                 style={{
                                   width: 18,
@@ -779,7 +865,7 @@ export default function Dashboard() {
                             </div>
 
                             {/* Line 2: Big Bold Days Count + Percentage Badge */}
-                            <div style={{ display: 'flex', alignItems: 'baseline', justifyContent: 'space-between', marginTop: 4, width: '100%' }}>
+                            <div className="leave-tile-meta" style={{ display: 'flex', alignItems: 'baseline', justifyContent: 'space-between', marginTop: 4, width: '100%' }}>
                               <span className="leave-summary-tile-count">
                                 {l.days} <span style={{ fontSize: '0.75rem', color: '#3d4a5e', fontWeight: 600 }}>days</span>
                               </span>
@@ -1114,7 +1200,7 @@ export default function Dashboard() {
             {/* Pending Approvals */}
             {canApprove && (
               <div className="dashboard-card dashboard-card-sm" style={{ flex: 1, display: 'flex', flexDirection: 'column', justifyContent: 'space-between' }}>
-                <div>
+                <div style={{ flex: 1, display: 'flex', flexDirection: 'column' }}>
                   <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 }}>
                     <h3 className="dashboard-card-title">My Approvals</h3>
                     <span style={{ fontSize: '0.75rem', fontWeight: 700, color: '#b45309', background: '#fffbeb', padding: '2px 8px', borderRadius: 99, border: '1px solid #fef3c7' }}>
@@ -1122,7 +1208,7 @@ export default function Dashboard() {
                     </span>
                   </div>
                   {pending.length === 0 ? (
-                    <div className="empty-state"><CalendarCheck /><p>No pending approvals</p></div>
+                    <div className="empty-state" style={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center' }}><CalendarCheck /><p>No pending approvals</p></div>
                   ) : (
                     <div style={{ display: 'grid', gap: 8 }}>
                       {pending.slice(0, 3).map((r) => (
@@ -1213,6 +1299,7 @@ export default function Dashboard() {
                       return (
                         <div
                           key={b.id}
+                          className={`leave-bal-item ${total ? '' : 'is-unlimited'}`}
                           style={{
                             display: 'flex',
                             flexDirection: 'column',
@@ -1249,6 +1336,9 @@ export default function Dashboard() {
                                 fontSize: '0.70rem',
                                 color: '#0f172a',
                                 whiteSpace: 'nowrap',
+                                overflow: 'hidden',
+                                textOverflow: 'ellipsis',
+                                minWidth: 0,
                                 letterSpacing: '-0.02em',
                               }}
                               title={displayName}
@@ -1276,14 +1366,16 @@ export default function Dashboard() {
                         </div>
 
                         {/* Progress Bar & Allocation Info */}
-                        <div>
-                          <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.75rem', color: '#3d4a5e', marginBottom: 4 }}>
-                            <span>Allocated</span>
-                            <span style={{ fontWeight: 600, color: total ? '#334155' : '#475569' }}>
-                              {total ? `${Math.round(pct)}% remaining` : 'Unlimited'}
+                        <div className="leave-bal-progress">
+                          <div className="leave-bal-info" style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.75rem', color: '#3d4a5e', marginBottom: 4 }}>
+                            <span className="leave-bal-alloc">Allocated</span>
+                            <span style={{ fontWeight: 600, color: total ? '#334155' : '#475569', whiteSpace: 'nowrap' }}>
+                              {total ? (
+                                <>{Math.round(pct)}%<span className="lb-long"> remaining</span><span className="lb-short"> left</span></>
+                              ) : 'Unlimited'}
                             </span>
                           </div>
-                          <div style={{ width: '100%', height: 4, background: '#e2e8f0', borderRadius: 99, overflow: 'hidden' }}>
+                          <div className="leave-bal-bar" style={{ width: '100%', height: 4, background: '#e2e8f0', borderRadius: 99, overflow: 'hidden' }}>
                             <div
                               style={{
                                 width: total ? `${pct}%` : '100%',
@@ -1302,6 +1394,7 @@ export default function Dashboard() {
 
               {/* Bottom Row: Carry-Forward Policy & Planning */}
               <div
+                className="leave-carry-banner"
                 style={{
                   marginTop: 14,
                   padding: '9px 14px',
@@ -1321,9 +1414,10 @@ export default function Dashboard() {
                   </div>
                   <div style={{ minWidth: 0 }}>
                     <div style={{ fontSize: '0.78rem', fontWeight: 700, color: '#15803d' }}>
-                      Carry-Forward Policy & Entitlement Planning
+                      <span className="lb-long">Carry-Forward Policy & Entitlement Planning</span>
+                      <span className="lb-short">Carry-forward: up to 5 days</span>
                     </div>
-                    <div style={{ fontSize: '0.70rem', color: '#166534', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                    <div className="leave-carry-desc" style={{ fontSize: '0.70rem', color: '#166534', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
                       Up to 5 unused Annual Leaves rollover automatically to fiscal year {today.getFullYear() + 1}.
                     </div>
                   </div>

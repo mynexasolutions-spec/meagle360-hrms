@@ -146,3 +146,29 @@ button.oe-chevron:hover { background: #e2e8f0; }
 .oe-pick:last-child { border-bottom: none; }
 .oe-pick:hover { background: #f8fafc; }
 .oe-pick .oe-text { display: flex; flex-direction: column; }
+
+/* ── Phones: bigger touch targets, inline health list, tidy bars ── */
+@media (max-width: 768px) {
+  .oe-tabs { flex: 1 1 auto; }
+  .oe-tabs button { flex: 1; min-height: 34px; }
+  .oe-search { padding: 8px 12px; }
+  .oe-search input { font-size: 16px; }
+  .oe-bar > .btn { min-height: 38px; }
+
+  /* the attention list opens inline instead of floating off the screen edge */
+  .oe-health { flex: 1 1 100%; }
+  .oe-issues { position: static; width: auto; max-height: 40vh; margin-top: 6px; box-shadow: none; }
+
+  .oe-node { min-height: 44px; }
+  .oe-chevron { width: 32px; height: 36px; }
+  .oe-dots { width: 40px; height: 40px; }
+  .oe-card { padding: 10px 4px 10px 10px; }
+  .oe-name { font-size: 0.9rem; }
+  .oe-foot button { min-height: 34px; padding: 4px 10px; }
+  .oe-expand { min-height: 40px; }
+
+  .oe-commit-bottom { position: sticky; bottom: 0; z-index: 4; padding: 8px 0 calc(8px + env(safe-area-inset-bottom)); background: var(--bg-primary, #f8fafc); border-top: 1px solid var(--border-color); }
+  .oe-commit-bottom .btn { min-height: 44px; }
+  .oe-picklist { max-height: 34vh; }
+  .oe-pick { min-height: 48px; }
+}

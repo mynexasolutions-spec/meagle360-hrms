@@ -148,13 +148,33 @@ export default function ExpenseManagement() {
     }
   };
 
+  // Mobile card equivalent of a table row.
+  const renderCard = (c, { showEmployee = false, actions = null } = {}) => (
+    <div className="expense-card" key={c.id}>
+      <div className="expense-card-top">
+        <div style={{ minWidth: 0 }}>
+          {showEmployee && <div className="expense-card-emp"><EmployeeLink id={c.employee_id}>{c.employee_name || '—'}</EmployeeLink></div>}
+          <div className="expense-card-cat">{c.category_name || 'Uncategorised'}</div>
+        </div>
+        <span className={`badge badge-${c.status}`}>{c.status}</span>
+      </div>
+      <div className="expense-card-amount">₹{Number(c.amount).toFixed(2)}</div>
+      <div className="expense-card-meta">
+        <span>{c.expense_date}</span>
+        {(c.has_receipt || /^https?:\/\//i.test(c.receipt_url || '')) && <span>{receiptCell(c)}</span>}
+      </div>
+      {c.description && <div className="expense-card-desc">{c.description}</div>}
+      {actions && <div className="expense-card-actions">{actions}</div>}
+    </div>
+  );
+
   const totalPending = myClaims.filter((c) => c.status === 'pending').reduce((s, c) => s + Number(c.amount), 0);
   const totalReimbursed = myClaims.filter((c) => c.status === 'reimbursed').reduce((s, c) => s + Number(c.amount), 0);
 
   return (
     <div className="animate-fade-in" style={{ maxWidth: 'var(--content-max)', margin: '0 auto' }}>
       {/* Header */}
-      <div className="page-header" style={{ marginBottom: 24 }}>
+      <div className="page-header expense-header" style={{ marginBottom: 24 }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: 14 }}>
           <div
             style={{
@@ -170,7 +190,7 @@ export default function ExpenseManagement() {
             <p style={{ color: '#3d4a5e', fontSize: '0.875rem' }}>Submit claims, track approvals &amp; manage company reimbursements</p>
           </div>
         </div>
-        <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap' }}>
+        <div className="expense-header-actions" style={{ display: 'flex', gap: 10, flexWrap: 'wrap' }}>
         {canManageCategories && (
           <button className="btn btn-secondary" onClick={() => setShowCategories(true)}>
             <Tags size={16} /> Categories
@@ -206,7 +226,7 @@ export default function ExpenseManagement() {
       </div>
 
       {/* KPI Stats Cards */}
-      <div className="stats-grid" style={{ marginBottom: 28 }}>
+      <div className="stats-grid expense-stats" style={{ marginBottom: 28 }}>
         <StatCard
           icon={Clock}
           label="Pending Claims (Mine)"
@@ -237,7 +257,7 @@ export default function ExpenseManagement() {
       </div>
 
       {/* Modern Pill Tabs */}
-      <div className="pill-tabs" style={{ marginBottom: 20 }}>
+      <div className="pill-tabs expense-tabs" style={{ marginBottom: 20 }}>
         <button
           onClick={() => setTab('my-claims')}
           style={{
@@ -292,7 +312,7 @@ export default function ExpenseManagement() {
         )}
         {tab !== 'approvals' && (
           <select
-            className="input-field" aria-label="Filter by status"
+            className="input-field expense-status-filter" aria-label="Filter by status"
             style={{ maxWidth: 170, marginLeft: 'auto' }}
             value={filters.status}
             onChange={(e) => setFilters({ status: e.target.value })}
@@ -310,7 +330,7 @@ export default function ExpenseManagement() {
       {tab === 'my-claims' && (
         <div className="section-card" style={{ borderTop: '3px solid #2563eb' }}>
           <h3><Receipt size={18} style={{ color: 'var(--accent-blue)' }} /> My Expense Claims</h3>
-          <div style={{ overflowX: 'auto' }}>
+          <div className="expense-table-view" style={{ overflowX: 'auto' }}>
             <table className="data-table">
               <thead>
                 <tr>
@@ -336,6 +356,9 @@ export default function ExpenseManagement() {
               </tbody>
             </table>
           </div>
+          <div className="expense-cards">
+            {myClaims.filter(matchesStatus).map((c) => renderCard(c))}
+          </div>
           {myClaims.filter(matchesStatus).length === 0 && (
             <div className="empty-state">
               <Receipt size={48} />
@@ -349,7 +372,7 @@ export default function ExpenseManagement() {
       {tab === 'approvals' && (
         <div className="section-card" style={{ borderTop: '3px solid #d97706' }}>
           <h3><Clock size={18} style={{ color: 'var(--accent-amber)' }} /> Pending Approvals</h3>
-          <div style={{ overflowX: 'auto' }}>
+          <div className="expense-table-view" style={{ overflowX: 'auto' }}>
             <table className="data-table">
               <thead>
                 <tr>
@@ -386,6 +409,14 @@ export default function ExpenseManagement() {
               </tbody>
             </table>
           </div>
+          <div className="expense-cards">
+            {pending.map((c) => renderCard(c, { showEmployee: true, actions: (
+              <>
+                <button className="btn btn-success btn-sm" onClick={() => handleApproval(c.id, 'approved')}><Check size={14} /> Approve</button>
+                <button className="btn btn-danger btn-sm" onClick={() => handleApproval(c.id, 'rejected')}><X size={14} /> Reject</button>
+              </>
+            ) }))}
+          </div>
           {pending.length === 0 && (
             <div className="empty-state">
               <Clock size={48} />
@@ -399,7 +430,7 @@ export default function ExpenseManagement() {
       {tab === 'ledger' && (
         <div className="section-card" style={{ borderTop: '3px solid #7c3aed' }}>
           <h3><Wallet size={18} style={{ color: 'var(--accent-violet)' }} /> All Claims</h3>
-          <div style={{ overflowX: 'auto' }}>
+          <div className="expense-table-view" style={{ overflowX: 'auto' }}>
             <table className="data-table">
               <thead>
                 <tr>
@@ -433,6 +464,11 @@ export default function ExpenseManagement() {
               </tbody>
             </table>
           </div>
+          <div className="expense-cards">
+            {allClaims.filter(matchesStatus).map((c) => renderCard(c, { showEmployee: true, actions: c.status === 'approved' ? (
+              <button className="btn btn-secondary btn-sm" onClick={() => handleReimburse(c.id)}><Wallet size={14} /> Mark Reimbursed</button>
+            ) : null }))}
+          </div>
           {allClaims.filter(matchesStatus).length === 0 && (
             <div className="empty-state">
               <Receipt size={48} />
@@ -444,7 +480,7 @@ export default function ExpenseManagement() {
 
       {/* Submit Modal */}
       {showSubmit && (
-        <Modal title="Submit Expense" onClose={() => setShowSubmit(false)}>
+        <Modal sheet title="Submit Expense" onClose={() => setShowSubmit(false)}>
           <form onSubmit={handleSubmit}>
             <div className="input-group">
               <label className="input-label">Category</label>

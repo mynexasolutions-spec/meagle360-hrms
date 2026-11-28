@@ -120,7 +120,7 @@ export default function OffboardModal({ employee, onClose, onChanged }) {
   const exited = status === 'exited' || info?.employment_status === 'inactive';
 
   return (
-    <Modal title={`Offboard ${employee.full_name}`} onClose={onClose} maxWidth={560}>
+    <Modal sheet title={`Offboard ${employee.full_name}`} onClose={onClose} maxWidth={560}>
       {error && <div style={{ marginBottom: 12, color: 'var(--accent-rose)', fontSize: '0.875rem' }}>{error}</div>}
       {!info ? (
         <p style={{ fontSize: '0.875rem', color: '#475569' }}>Loading…</p>

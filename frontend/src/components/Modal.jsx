@@ -1,10 +1,10 @@
 import { createPortal } from 'react-dom';
 import { X } from 'lucide-react';
 
-export default function Modal({ title, onClose, children, closeOnOverlay = false, maxWidth, maxHeight, compact = false, style = {} }) {
+export default function Modal({ title, onClose, children, closeOnOverlay = false, maxWidth, maxHeight, compact = false, sheet = false, style = {} }) {
   return createPortal(
     <div
-      className="modal-overlay"
+      className={`modal-overlay${sheet ? ' modal-sheet-overlay' : ''}`}
       onClick={(e) => {
         if (closeOnOverlay && e.target === e.currentTarget && onClose) {
           onClose();
@@ -12,7 +12,7 @@ export default function Modal({ title, onClose, children, closeOnOverlay = false
       }}
     >
       <div
-        className={`modal-content${compact ? ' modal-compact' : ''}`}
+        className={`modal-content${compact ? ' modal-compact' : ''}${sheet ? ' modal-sheet' : ''}`}
         style={{
           ...(maxWidth ? { maxWidth } : {}),
           ...(maxHeight ? { maxHeight } : {}),

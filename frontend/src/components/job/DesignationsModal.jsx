@@ -61,7 +61,7 @@ export default function DesignationsModal({ onClose }) {
   };
 
   return (
-    <Modal title="Designations" onClose={onClose} maxWidth={560}>
+    <Modal sheet title="Designations" onClose={onClose} maxWidth={560}>
       <p style={{ fontSize: '0.875rem', color: 'var(--text-muted)', marginBottom: 14 }}>
         A higher level is more senior. Promote only offers higher levels, and Demote only lower ones.
       </p>

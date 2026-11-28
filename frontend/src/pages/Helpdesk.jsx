@@ -289,6 +289,7 @@ export default function Helpdesk() {
     <div style={{ display: 'flex', flexDirection: 'column', gap: 24 }}>
       {/* ── Header ────────────────────────────────────────── */}
       <div
+        className="hd-header"
         style={{
           display: 'flex',
           flexWrap: 'wrap',
@@ -303,6 +304,7 @@ export default function Helpdesk() {
               style={{
                 width: 40,
                 height: 40,
+                flexShrink: 0,
                 borderRadius: 'var(--radius-md)',
                 background: 'linear-gradient(135deg, #3b82f6 0%, #2563eb 100%)',
                 display: 'flex',
@@ -325,16 +327,16 @@ export default function Helpdesk() {
           </div>
         </div>
 
-        <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+        <div className="hd-header-actions" style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
           <button
             type="button"
-            className="btn btn-secondary"
+            className="btn btn-secondary hd-refresh-btn"
             onClick={() => loadData(true)}
             disabled={refreshing}
             style={{ display: 'inline-flex', alignItems: 'center', gap: 8 }}
           >
             <RefreshCw size={16} className={refreshing ? 'spin' : ''} />
-            <span>Refresh</span>
+            <span className="hd-refresh-label">Refresh</span>
           </button>
 
           <button
@@ -355,7 +357,7 @@ export default function Helpdesk() {
       </div>
 
       {/* ── Stat Cards ────────────────────────────────────── */}
-      <div className="stats-grid">
+      <div className="stats-grid hd-stats">
         <StatCard
           icon={Layers}
           label="Total Tickets"
@@ -393,6 +395,7 @@ export default function Helpdesk() {
       {/* ── Navigation Tabs (Staff vs Employee) ───────────── */}
       {isStaff && (
         <div
+          className="hd-tabs"
           style={{
             display: 'flex',
             gap: 8,
@@ -459,7 +462,7 @@ export default function Helpdesk() {
 
       {/* ── Filters & Search Bar ──────────────────────────── */}
       <div
-        className="glass-card"
+        className="glass-card hd-filters"
         style={{
           padding: '16px 20px',
           display: 'flex',
@@ -468,7 +471,7 @@ export default function Helpdesk() {
           gap: 14,
         }}
       >
-        <div style={{ position: 'relative', flex: '1 1 240px', minWidth: 200 }}>
+        <div className="hd-search" style={{ position: 'relative', flex: '1 1 240px', minWidth: 200 }}>
           <Search
             size={16}
             style={{
@@ -494,7 +497,7 @@ export default function Helpdesk() {
         </div>
 
         {/* Category Filter */}
-        <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+        <div className="hd-filter-item" style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
           <Tag size={15} style={{ color: 'var(--text-muted)' }} />
           <select
             className="input-field"
@@ -512,7 +515,7 @@ export default function Helpdesk() {
         </div>
 
         {/* Status Filter */}
-        <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+        <div className="hd-filter-item" style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
           <Filter size={15} style={{ color: 'var(--text-muted)' }} />
           <select
             className="input-field"
@@ -577,7 +580,37 @@ export default function Helpdesk() {
             )}
           </div>
         ) : (
-          <div style={{ overflowX: 'auto' }}>
+          <>
+          <div className="hd-cards">
+            {filteredTickets.map((ticket) => {
+              const statusInfo = STATUS_CONFIG[ticket.status] || STATUS_CONFIG.open;
+              const replyCount = ticket.replies ? ticket.replies.length : 0;
+              return (
+                <div className="hd-card" key={ticket.id} onClick={() => setSelectedTicket(ticket)}>
+                  <div className="hd-card-top">
+                    <span className="hd-card-cat"><Tag size={12} /> {ticket.category}</span>
+                    <span
+                      className="hd-card-status"
+                      style={{ background: statusInfo.bgColor, color: statusInfo.color }}
+                    >
+                      <statusInfo.icon size={13} /> {statusInfo.label}
+                    </span>
+                  </div>
+                  <div className="hd-card-subject">{ticket.subject}</div>
+                  {ticket.description && <div className="hd-card-desc">{ticket.description}</div>}
+                  <div className="hd-card-meta">
+                    {tab === 'queue' && <span className="hd-card-emp">{ticket.employee_name || 'Employee'}</span>}
+                    <span>{formatDate(ticket.created_at)}</span>
+                    {replyCount > 0 && (
+                      <span className="hd-card-replies"><MessageSquare size={12} /> {replyCount} {replyCount === 1 ? 'reply' : 'replies'}</span>
+                    )}
+                    <ChevronRight size={16} className="hd-card-chev" />
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+          <div className="hd-table-view" style={{ overflowX: 'auto' }}>
             <table className="data-table" style={{ width: '100%', borderCollapse: 'collapse' }}>
               <thead>
                 <tr style={{ background: 'var(--bg-primary)', textAlign: 'left', borderBottom: '1px solid var(--border-color)' }}>
@@ -754,12 +787,13 @@ export default function Helpdesk() {
               </tbody>
             </table>
           </div>
+          </>
         )}
       </div>
 
       {/* ── CREATE TICKET MODAL ───────────────────────────── */}
       {showCreateModal && (
-        <Modal title="Raise Support Ticket" onClose={() => setShowCreateModal(false)}>
+        <Modal sheet title="Raise Support Ticket" onClose={() => setShowCreateModal(false)}>
           <form onSubmit={handleCreateTicket} style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
             <div>
               <label style={{ display: 'block', fontSize: '0.85rem', fontWeight: 600, marginBottom: 6 }}>
@@ -852,6 +886,7 @@ export default function Helpdesk() {
       {/* ── TICKET DETAIL & REPLY THREAD MODAL ───────────── */}
       {selectedTicket && (
         <Modal
+          sheet
           title={`Ticket: ${selectedTicket.subject}`}
           onClose={() => setSelectedTicket(null)}
           closeOnOverlay={false}
@@ -996,6 +1031,7 @@ export default function Helpdesk() {
               </div>
 
               <div
+                className="hd-thread"
                 style={{
                   maxHeight: 280,
                   overflowY: 'auto',

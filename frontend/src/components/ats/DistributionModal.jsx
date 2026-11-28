@@ -123,7 +123,7 @@ export default function DistributionModal({
   };
 
   return (
-    <Modal isOpen={true} onClose={onClose} title="Applicant Distribution & Recruiter Pool">
+    <Modal sheet isOpen={true} onClose={onClose} title="Applicant Distribution & Recruiter Pool">
       <div className="space-y-4">
         {/* Tabs */}
         <div className="flex items-center gap-2 border-b border-gray-200 pb-2">

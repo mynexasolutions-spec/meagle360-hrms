@@ -74,7 +74,47 @@ export default function BankDetailRequests() {
       {error && <div className="doc-error" role="alert">{error}</div>}
       {!rows && !error && <p className="doc-muted">Loading...</p>}
       {rows && (
-        <div className="section-card" style={{ padding: 0, overflowX: 'auto' }}>
+        <>
+        <div className="bdr-cards">
+          {rows.map((r) => (
+            <div className="bdr-card" key={r.id}>
+              <div className="bdr-card-top">
+                <div style={{ minWidth: 0 }}>
+                  <strong>{r.employee_name}</strong>
+                  <p className="doc-muted">{r.employee_code}</p>
+                </div>
+                <span className={`badge ${BADGE[r.status] || ''}`}>{r.status}</span>
+              </div>
+              <div>
+                <Change label="PAN" from={r.current?.pan_number} to={r.pan_number} />
+                <Change label="Account" from={r.current?.bank_account_masked} to={r.bank_account_number} />
+                <Change label="IFSC" from={r.current?.bank_ifsc} to={r.bank_ifsc} />
+                <Change label="Bank" from={r.current?.bank_name} to={r.bank_name} />
+                {r.review_note && <p className="doc-muted">Note: {r.review_note}</p>}
+              </div>
+              <div className="bdr-card-meta">
+                <span>Sent {dateLabel(r.created_at)}</span>
+                {r.has_proof ? (
+                  <button type="button" className="btn btn-secondary btn-sm" onClick={() => openBlob(() => getBankDetailProof(r.id)).catch(() => {})}>
+                    <Paperclip size={14} /> Proof
+                  </button>
+                ) : <span className="doc-muted">No proof</span>}
+              </div>
+              {r.status === 'pending' ? (
+                <div className="bdr-card-actions">
+                  <button type="button" className="btn btn-success btn-sm" disabled={busy === r.id} onClick={() => decide(r, 'approved')}>
+                    <Check size={14} /> Approve
+                  </button>
+                  <button type="button" className="btn btn-danger btn-sm" disabled={busy === r.id} onClick={() => decide(r, 'rejected')}>
+                    <X size={14} /> Reject
+                  </button>
+                </div>
+              ) : r.reviewed_by_name ? <span className="doc-muted">Reviewed by {r.reviewed_by_name}</span> : null}
+            </div>
+          ))}
+          {!rows.length && <p className="doc-empty">{status === 'pending' ? 'Nothing waiting for review.' : 'No requests.'}</p>}
+        </div>
+        <div className="section-card bdr-table-view" style={{ padding: 0, overflowX: 'auto' }}>
           <table className="data-table">
             <thead>
               <tr>
@@ -131,6 +171,7 @@ export default function BankDetailRequests() {
             </tbody>
           </table>
         </div>
+        </>
       )}
     </>
   );

@@ -5,6 +5,9 @@ import { fmtDate } from '../components/OffboardModal';
 import { getMyCompany } from '../api/company';
 import { useAuth } from '../context/AuthContext';
 import logoImg from '../assets/logo.jpg';
+import { Expand, X as CloseIcon } from 'lucide-react';
+import useLetterPreview from '../hooks/useLetterPreview';
+import { StudioTabs, StudioPrintBar } from '../components/LetterStudioMobile';
 import {
   FileText,
   User,
@@ -48,7 +51,12 @@ export default function RelievingLetterStudio() {
   const dropdownRef = useRef(null);
 
   // ── Zoom / Scale State ─────────────────────────────────────────────────────
-  const [zoomLevel, setZoomLevel] = useState(0.58);
+  const pv = useLetterPreview(0.58);
+  const zoomLevel = pv.zoom;
+  const [mobileTab, setMobileTab] = useState('edit');
+  const [previewFull, setPreviewFull] = useState(false);
+  const [openSecs, setOpenSecs] = useState([true, false, false, false]);
+  const toggleSec = (i) => setOpenSecs((o) => o.map((v, k) => (k === i ? !v : v)));
 
   // ── Form State (Two-Way Live Binding) ──────────────────────────────────────
   const [formData, setFormData] = useState({
@@ -210,7 +218,7 @@ export default function RelievingLetterStudio() {
       
       {/* ── Top Studio Action Bar ────────────────────────────────────────── */}
       <div
-        className="no-print"
+        className="no-print studio-topbar"
         style={{
           display: 'flex',
           justifyContent: 'space-between',
@@ -248,12 +256,12 @@ export default function RelievingLetterStudio() {
           <h1 style={{ fontSize: '1.25rem', fontWeight: 800, color: '#0f172a', margin: 0, display: 'flex', alignItems: 'center', gap: 8 }}>
             <FileText size={20} style={{ color: '#2563eb' }} /> Relieving Letter Studio
           </h1>
-          <p style={{ fontSize: '0.75rem', color: '#3d4a5e', margin: '2px 0 0 0' }}>
+          <p className="studio-subtitle" style={{ fontSize: '0.75rem', color: '#3d4a5e', margin: '2px 0 0 0' }}>
             Real-time split-screen editor • Instant single-page live preview
           </p>
         </div>
 
-        <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+        <div className="studio-header-print" style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
           <button
             type="button"
             className="btn btn-primary"
@@ -316,8 +324,11 @@ export default function RelievingLetterStudio() {
         </div>
       )}
 
+      <StudioTabs tab={mobileTab} onChange={setMobileTab} />
+
       {/* ── 2-Column Split Screen Studio ──────────────────────────────────── */}
       <div
+        className="studio-grid"
         style={{
           display: 'grid',
           gridTemplateColumns: 'minmax(0, 1.05fr) minmax(0, 0.95fr)',
@@ -328,6 +339,7 @@ export default function RelievingLetterStudio() {
         
         {/* ══ LEFT PANE: Live Real-Time A4 Document Preview ══════════════════ */}
         <div
+          className={`studio-pane-preview${mobileTab === 'edit' ? ' studio-pane-hidden' : ''}${previewFull ? ' studio-preview-full' : ''}`}
           style={{
             background: '#f8fafc',
             borderRadius: 16,
@@ -355,9 +367,9 @@ export default function RelievingLetterStudio() {
             <div style={{ display: 'flex', alignItems: 'center', gap: 6, background: '#ffffff', padding: '4px 8px', borderRadius: 8, border: '1px solid #cbd5e1' }}>
               <button
                 type="button"
-                onClick={() => setZoomLevel((prev) => Math.max(0.42, Number((prev - 0.05).toFixed(2))))}
+                onClick={pv.zoomOut}
                 style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 2, display: 'flex', alignItems: 'center', color: '#475569' }}
-                title="Zoom Out"
+                title="Zoom Out" className="studio-zoom-btn"
               >
                 <ZoomOut size={13} />
               </button>
@@ -366,17 +378,17 @@ export default function RelievingLetterStudio() {
               </span>
               <button
                 type="button"
-                onClick={() => setZoomLevel((prev) => Math.min(1.0, Number((prev + 0.05).toFixed(2))))}
+                onClick={pv.zoomIn}
                 style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 2, display: 'flex', alignItems: 'center', color: '#475569' }}
-                title="Zoom In"
+                title="Zoom In" className="studio-zoom-btn"
               >
                 <ZoomIn size={13} />
               </button>
               <div style={{ width: 1, height: 12, background: '#cbd5e1', margin: '0 2px' }} />
               <button
                 type="button"
-                onClick={() => setZoomLevel(0.58)}
-                title="Fit to Single View"
+                onClick={pv.fit}
+                title="Fit to Single View" className="studio-zoom-btn"
                 style={{
                   background: zoomLevel === 0.58 ? '#eff6ff' : 'none',
                   border: 'none',
@@ -393,29 +405,37 @@ export default function RelievingLetterStudio() {
               >
                 <Maximize2 size={12} /> Fit
               </button>
+              <button
+                type="button"
+                className="studio-expand-btn"
+                onClick={() => setPreviewFull((f) => !f)}
+                title={previewFull ? 'Close fullscreen' : 'Fullscreen'}
+              >
+                {previewFull ? <CloseIcon size={16} /> : <Expand size={15} />}
+              </button>
             </div>
           </div>
 
           {/* Scaled A4 Document Container */}
           <div className="relieving-letter-container-wrap">
             <div
-              className="relieving-preview-scale-box"
+              ref={pv.boxRef}
+              className="relieving-preview-scale-box studio-scale-box"
               style={{
                 width: '100%',
-                display: 'flex',
-                justifyContent: 'center',
-                alignItems: 'flex-start',
-                minHeight: 660,
-                height: 660,
-                overflow: 'hidden',
+                overflow: pv.isMobile ? 'auto' : 'hidden',
+                touchAction: 'pan-x pan-y',
               }}
             >
+              <div style={{ width: pv.natural.w * zoomLevel, height: pv.natural.h * zoomLevel + 8, margin: '0 auto' }}>
               <div
+                ref={pv.innerRef}
                 className="relieving-preview-transform-wrapper"
                 style={{
                   transform: `scale(${zoomLevel})`,
-                  transformOrigin: 'top center',
+                  transformOrigin: 'top left',
                   transition: 'transform 0.2s cubic-bezier(0.16, 1, 0.3, 1)',
+                  width: 794,
                 }}
               >
                 <div id="relieving-letter-voucher" className="relieving-letter-voucher">
@@ -541,12 +561,14 @@ export default function RelievingLetterStudio() {
                   </div>
                 </div>
               </div>
+              </div>
             </div>
           </div>
         </div>
 
         {/* ══ RIGHT PANE: Interactive Real-Time Input Form ═══════════════════ */}
         <div
+          className={`studio-pane-form${mobileTab === 'preview' ? ' studio-pane-hidden' : ''}`}
           style={{
             background: '#ffffff',
             borderRadius: 16,
@@ -559,12 +581,12 @@ export default function RelievingLetterStudio() {
           }}
         >
           {/* Section 1: Employee Selection & Information */}
-          <div style={{ background: '#f8fafc', padding: 16, borderRadius: 12, border: '1px solid #e2e8f0' }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: 8, fontWeight: 800, fontSize: '0.92rem', color: '#0f172a', marginBottom: 14 }}>
+          <div className={`studio-sec${openSecs[0] ? '' : ' closed'}`} style={{ background: '#f8fafc', padding: 16, borderRadius: 12, border: '1px solid #e2e8f0' }}>
+            <div className="studio-sec-head" onClick={() => toggleSec(0)} style={{ display: 'flex', alignItems: 'center', gap: 8, fontWeight: 800, fontSize: '0.92rem', color: '#0f172a', marginBottom: 14 }}>
               <User size={17} style={{ color: '#2563eb' }} />
               Employee Information
             </div>
-            <div style={{ display: 'grid', gap: 12 }}>
+            <div className="studio-fields" style={{ display: 'grid', gap: 12 }}>
               {/* Custom Searchable Employee Dropdown */}
               <div className="input-group" style={{ position: 'relative' }} ref={dropdownRef}>
                 <label className="input-label">Auto-Fill from Employee Directory</label>
@@ -764,7 +786,7 @@ export default function RelievingLetterStudio() {
                 )}
               </div>
 
-              <div style={{ display: 'grid', gridTemplateColumns: '1fr', gap: 12 }}>
+              <div className="studio-fields" style={{ display: 'grid', gridTemplateColumns: '1fr', gap: 12 }}>
                 <div className="input-group">
                   <label className="input-label">Employee Full Name *</label>
                   <input
@@ -793,13 +815,13 @@ export default function RelievingLetterStudio() {
           </div>
 
           {/* Section 2: Relieving Dates & Exit Notes */}
-          <div style={{ background: '#f8fafc', padding: 16, borderRadius: 12, border: '1px solid #e2e8f0' }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: 8, fontWeight: 800, fontSize: '0.92rem', color: '#0f172a', marginBottom: 14 }}>
+          <div className={`studio-sec${openSecs[1] ? '' : ' closed'}`} style={{ background: '#f8fafc', padding: 16, borderRadius: 12, border: '1px solid #e2e8f0' }}>
+            <div className="studio-sec-head" onClick={() => toggleSec(1)} style={{ display: 'flex', alignItems: 'center', gap: 8, fontWeight: 800, fontSize: '0.92rem', color: '#0f172a', marginBottom: 14 }}>
               <Calendar size={17} style={{ color: '#2563eb' }} />
               Relieving Dates &amp; Exit Clearance
             </div>
-            <div style={{ display: 'grid', gap: 12 }}>
-              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
+            <div className="studio-fields" style={{ display: 'grid', gap: 12 }}>
+              <div className="studio-fields" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
                 <div className="input-group">
                   <label className="input-label">Joining Date *</label>
                   <input
@@ -848,12 +870,12 @@ export default function RelievingLetterStudio() {
           </div>
 
           {/* Section 3: Authorized Signatory Details */}
-          <div style={{ background: '#f8fafc', padding: 16, borderRadius: 12, border: '1px solid #e2e8f0' }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: 8, fontWeight: 800, fontSize: '0.92rem', color: '#0f172a', marginBottom: 14 }}>
+          <div className={`studio-sec${openSecs[2] ? '' : ' closed'}`} style={{ background: '#f8fafc', padding: 16, borderRadius: 12, border: '1px solid #e2e8f0' }}>
+            <div className="studio-sec-head" onClick={() => toggleSec(2)} style={{ display: 'flex', alignItems: 'center', gap: 8, fontWeight: 800, fontSize: '0.92rem', color: '#0f172a', marginBottom: 14 }}>
               <PenTool size={17} style={{ color: '#2563eb' }} />
               Authorized Signatory Details
             </div>
-            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
+            <div className="studio-fields" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
               <div className="input-group">
                 <label className="input-label">Signatory Full Name</label>
                 <input
@@ -902,12 +924,12 @@ export default function RelievingLetterStudio() {
           </div>
 
           {/* Section 4: Corporate Header & Legal Footer */}
-          <div style={{ background: '#f8fafc', padding: 16, borderRadius: 12, border: '1px solid #e2e8f0' }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: 8, fontWeight: 800, fontSize: '0.92rem', color: '#0f172a', marginBottom: 14 }}>
+          <div className={`studio-sec${openSecs[3] ? '' : ' closed'}`} style={{ background: '#f8fafc', padding: 16, borderRadius: 12, border: '1px solid #e2e8f0' }}>
+            <div className="studio-sec-head" onClick={() => toggleSec(3)} style={{ display: 'flex', alignItems: 'center', gap: 8, fontWeight: 800, fontSize: '0.92rem', color: '#0f172a', marginBottom: 14 }}>
               <Building2 size={17} style={{ color: '#2563eb' }} />
               Corporate Identity &amp; Footer Info
             </div>
-            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
+            <div className="studio-fields" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
               <div className="input-group">
                 <label className="input-label">Company Name</label>
                 <input
@@ -942,6 +964,7 @@ export default function RelievingLetterStudio() {
           </div>
         </div>
       </div>
+      <StudioPrintBar onPrint={handlePrint} />
     </div>
   );
 }

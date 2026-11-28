@@ -40,7 +40,7 @@ export function NewVacancyModal({ people, departments, onClose, onSaved }) {
   };
 
   return (
-    <Modal title="Add vacant position" onClose={onClose} maxWidth={460}>
+    <Modal sheet title="Add vacant position" onClose={onClose} maxWidth={460}>
       <form onSubmit={save}>
         <div className="input-group">
           <label className="input-label" htmlFor="vac-title">Title</label>
@@ -103,7 +103,7 @@ export function ManageVacancyModal({ vacancy, jobs, onClose, onSaved }) {
   };
 
   return (
-    <Modal title={vacancy.title} onClose={onClose} maxWidth={460}>
+    <Modal sheet title={vacancy.title} onClose={onClose} maxWidth={460}>
       <div className="input-group">
         <label className="input-label" htmlFor="vac-job">Linked ATS job</label>
         <select id="vac-job" className="input-field" value={jobId} onChange={(e) => setJobId(e.target.value)}>

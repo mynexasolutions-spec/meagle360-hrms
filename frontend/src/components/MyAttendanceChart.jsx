@@ -27,6 +27,13 @@ function DayTooltip({ active, payload }) {
 export default function MyAttendanceChart({ employeeId }) {
   const [days, setDays] = useState(null);
   const [failed, setFailed] = useState(false);
+  const [phone, setPhone] = useState(() => window.matchMedia('(max-width: 640px)').matches);
+  useEffect(() => {
+    const mq = window.matchMedia('(max-width: 640px)');
+    const onChange = (e) => setPhone(e.matches);
+    mq.addEventListener('change', onChange);
+    return () => mq.removeEventListener('change', onChange);
+  }, []);
 
   useEffect(() => {
     if (!employeeId) return undefined;
@@ -50,7 +57,7 @@ export default function MyAttendanceChart({ employeeId }) {
 
   return (
     <div className="dashboard-card">
-      <div className="attendance-card-header">
+      <div className="attendance-card-header" style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: 10 }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: 10, minWidth: 0 }}>
           <div style={{ width: 36, height: 36, borderRadius: 10, background: '#ecfdf5', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#047857', flexShrink: 0 }}>
             <Activity size={18} />
@@ -60,7 +67,7 @@ export default function MyAttendanceChart({ employeeId }) {
             <p className="dashboard-card-sub">Hours worked each day</p>
           </div>
         </div>
-        <Link to="/attendance" style={{ fontSize: '0.8125rem', color: 'var(--accent-blue)', fontWeight: 600, textDecoration: 'none' }}>
+        <Link to="/attendance" style={{ fontSize: '0.8125rem', color: 'var(--accent-blue)', fontWeight: 600, textDecoration: 'none', whiteSpace: 'nowrap', flexShrink: 0, padding: phone ? '6px 0 6px 8px' : 0 }}>
           View all
         </Link>
       </div>
@@ -69,19 +76,25 @@ export default function MyAttendanceChart({ employeeId }) {
           <div className="empty-state"><p>{failed ? 'Could not load your attendance' : 'No employee record linked to this login'}</p></div>
         ) : days && (
           <ResponsiveContainer width="100%" height="100%">
-            <BarChart data={days} margin={{ top: 10, right: 8, left: -24, bottom: 0 }}>
+            <BarChart data={days} margin={{ top: 10, right: 4, left: phone ? -8 : -24, bottom: 0 }}>
               <CartesianGrid strokeDasharray="3 3" stroke="#f1f5f9" vertical={false} />
               <XAxis
-                dataKey="date" tick={{ fontSize: 12, fill: '#475569' }}
-                tickFormatter={(d) => new Date(`${d}T00:00:00`).toLocaleDateString(undefined, { weekday: 'short', day: 'numeric' })}
+                dataKey="date" tick={{ fontSize: phone ? 11 : 12, fill: '#475569' }}
+                interval={phone ? 0 : 'preserveEnd'}
+                tickFormatter={(d) => new Date(`${d}T00:00:00`).toLocaleDateString(undefined, phone ? { weekday: 'short' } : { weekday: 'short', day: 'numeric' })}
               />
-              <YAxis tick={{ fontSize: 12, fill: '#475569' }} axisLine={false} tickLine={false} unit="h" width={56} domain={[0, (max) => Math.max(8, Math.ceil(max))]} />
+              <YAxis tick={{ fontSize: 12, fill: '#475569' }} axisLine={false} tickLine={false} unit="h" width={phone ? 34 : 56} domain={[0, (max) => Math.max(8, Math.ceil(max))]} />
               <Tooltip content={<DayTooltip />} cursor={{ fill: '#f8fafc' }} />
               <Bar dataKey="hours" name="Hours" fill="#059669" radius={[4, 4, 0, 0]} maxBarSize={36} />
             </BarChart>
           </ResponsiveContainer>
         )}
       </div>
+      {days && days.length > 0 && days.every((d) => !Number(d.hours)) && !failed && (
+        <p style={{ margin: '8px 0 0', fontSize: '0.8125rem', color: 'var(--text-muted)', textAlign: 'center' }}>
+          No hours logged in the last 7 days.
+        </p>
+      )}
     </div>
   );
 }

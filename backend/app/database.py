@@ -22,8 +22,11 @@ if db_url.startswith("postgres://"):
 engine = create_engine(
     db_url,
     pool_pre_ping=True,
-    pool_size=10,
-    max_overflow=10,
+    # Supabase's session-mode pooler (port 5432) allows only 15 client
+    # connections in total, shared by every process using it (extra uvicorn
+    # workers, --reload leftovers, scripts, migrations). Stay well below that.
+    pool_size=5,
+    max_overflow=5,
     pool_recycle=300,
     echo=settings.DEBUG,
 )

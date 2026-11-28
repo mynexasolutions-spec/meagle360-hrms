@@ -37,7 +37,7 @@ export default function HiringTeamPage() {
   const tabCard = (tab) => ({
     ...rowClick(
       () => setActiveTab(tab),
-      `bg-white p-4 rounded-xl border shadow-sm flex items-center gap-4 transition-shadow hover:shadow-md ${
+      `hp-tile bg-white p-3 sm:p-4 rounded-xl border shadow-sm flex flex-col sm:flex-row items-start sm:items-center gap-2 sm:gap-4 transition-shadow hover:shadow-md ${
         activeTab === tab ? 'border-blue-500 ring-1 ring-blue-500' : 'border-gray-200'
       }`,
     ),
@@ -309,13 +309,13 @@ export default function HiringTeamPage() {
       {/* Page Header */}
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 pb-2 border-b border-gray-200">
         <div>
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-2 flex-wrap">
             <h1 className="text-2xl font-bold text-gray-900">Hiring Team & Roles</h1>
             <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-semibold bg-blue-100 text-blue-800">
               {stats.total_hiring_team || 0} Team Members
             </span>
           </div>
-          <p className="text-sm text-gray-600 mt-1">
+          <p className="text-sm text-gray-600 mt-1 line-clamp-2 sm:line-clamp-none">
             Assign <strong className="text-gray-700">Recruiter</strong> and <strong className="text-gray-700">Interviewer</strong> roles to company employees. Recruiters can manage job openings and schedule rounds; Interviewers conduct candidate evaluations and submit feedback.
           </p>
         </div>
@@ -324,10 +324,10 @@ export default function HiringTeamPage() {
           <button
             type="button"
             onClick={loadData}
-            className="btn btn-secondary inline-flex items-center gap-2 text-sm"
+            className="btn btn-secondary inline-flex items-center justify-center gap-2 text-sm min-w-[44px] min-h-[44px] sm:min-h-0"
             title="Refresh list"
           >
-            <RefreshCw size={15} className={loading ? 'animate-spin' : ''} /> Refresh
+            <RefreshCw size={15} className={loading ? 'animate-spin' : ''} /> <span className="hidden sm:inline">Refresh</span>
           </button>
         </div>
       </div>
@@ -358,58 +358,58 @@ export default function HiringTeamPage() {
       )}
 
       {/* KPI Metric Cards */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-2.5 sm:gap-4">
         {/* Card 1: Total Hiring Team */}
         <div {...tabCard('HIRING_TEAM')}>
-          <div className="w-12 h-12 rounded-xl bg-indigo-50 border border-indigo-100 flex items-center justify-center text-indigo-600 shrink-0">
+          <div className="hp-icon w-9 h-9 sm:w-12 sm:h-12 rounded-xl bg-indigo-50 border border-indigo-100 flex items-center justify-center text-indigo-600 shrink-0">
             <UserCheck size={24} />
           </div>
           <div className="min-w-0">
             <div className="text-2xl font-bold text-gray-900">{stats.total_hiring_team || 0}</div>
-            <div className="text-xs font-medium text-gray-600 truncate">Hiring Team Members</div>
-            <div className="text-[0.8125rem] text-indigo-600 mt-0.5 leading-tight">Recruiters + Interviewers</div>
+            <div className="text-xs font-medium text-gray-600 sm:truncate leading-tight">Hiring Team Members</div>
+            <div className="hidden sm:block text-[0.8125rem] text-indigo-600 mt-0.5 leading-tight">Recruiters + Interviewers</div>
           </div>
         </div>
 
         {/* Card 2: Recruiters */}
         <div {...tabCard('RECRUITERS')}>
-          <div className="w-12 h-12 rounded-xl bg-blue-50 border border-blue-100 flex items-center justify-center text-blue-600 shrink-0">
+          <div className="hp-icon w-9 h-9 sm:w-12 sm:h-12 rounded-xl bg-blue-50 border border-blue-100 flex items-center justify-center text-blue-600 shrink-0">
             <Briefcase size={24} />
           </div>
           <div className="min-w-0">
             <div className="text-2xl font-bold text-gray-900">{stats.total_recruiters || 0}</div>
-            <div className="text-xs font-medium text-gray-600 truncate">Recruiter Role</div>
-            <div className="text-[0.8125rem] text-blue-600 mt-0.5 leading-tight">Manage jobs & rounds</div>
+            <div className="text-xs font-medium text-gray-600 sm:truncate leading-tight">Recruiter Role</div>
+            <div className="hidden sm:block text-[0.8125rem] text-blue-600 mt-0.5 leading-tight">Manage jobs & rounds</div>
           </div>
         </div>
 
         {/* Card 3: Interviewers */}
         <div {...tabCard('INTERVIEWERS')}>
-          <div className="w-12 h-12 rounded-xl bg-emerald-50 border border-emerald-100 flex items-center justify-center text-emerald-600 shrink-0">
+          <div className="hp-icon w-9 h-9 sm:w-12 sm:h-12 rounded-xl bg-emerald-50 border border-emerald-100 flex items-center justify-center text-emerald-600 shrink-0">
             <Award size={24} />
           </div>
           <div className="min-w-0">
             <div className="text-2xl font-bold text-gray-900">{stats.total_interviewers || 0}</div>
-            <div className="text-xs font-medium text-gray-600 truncate">Interviewer Panel</div>
-            <div className="text-[0.8125rem] text-emerald-600 mt-0.5 leading-tight">Interview panel pool</div>
+            <div className="text-xs font-medium text-gray-600 sm:truncate leading-tight">Interviewer Panel</div>
+            <div className="hidden sm:block text-[0.8125rem] text-emerald-600 mt-0.5 leading-tight">Interview panel pool</div>
           </div>
         </div>
 
         {/* Card 4: Directory Pool */}
         <div {...tabCard('ALL')}>
-          <div className="w-12 h-12 rounded-xl bg-gray-50 border border-gray-200 flex items-center justify-center text-gray-600 shrink-0">
+          <div className="hp-icon w-9 h-9 sm:w-12 sm:h-12 rounded-xl bg-gray-50 border border-gray-200 flex items-center justify-center text-gray-600 shrink-0">
             <Users size={24} />
           </div>
           <div className="min-w-0">
             <div className="text-2xl font-bold text-gray-900">{stats.total_employees || 0}</div>
-            <div className="text-xs font-medium text-gray-600 truncate">Company Directory</div>
-            <div className="text-[0.8125rem] text-gray-600 mt-0.5 leading-tight">Active employees pool</div>
+            <div className="text-xs font-medium text-gray-600 sm:truncate leading-tight">Company Directory</div>
+            <div className="hidden sm:block text-[0.8125rem] text-gray-600 mt-0.5 leading-tight">Active employees pool</div>
           </div>
         </div>
       </div>
 
-      {/* Filter Tabs (Row 1: Full-Width, No Scrollbar) */}
-      <div className="flex items-center gap-2 flex-wrap">
+      {/* Filter Tabs: the tiles above do this on phones */}
+      <div className="hidden sm:flex items-center gap-2 flex-wrap">
         <button
           type="button"
           onClick={() => setActiveTab('HIRING_TEAM')}
@@ -493,23 +493,23 @@ export default function HiringTeamPage() {
 
       {/* Search & Department Filters (Row 2: Dedicated Filter Bar) */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 bg-white p-2.5 px-3.5 rounded-xl border border-gray-200 shadow-xs">
-        <div className="relative flex-1 max-w-md">
+        <div className="relative flex-1 sm:max-w-md w-full">
           <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-600" />
           <input
             type="text"
             value={search}
             onChange={(e) => setSearch(e.target.value)}
             placeholder="Search by name, email, employee code..."
-            className="w-full pl-8 pr-3 py-1.5 text-xs rounded-lg border border-gray-200 focus:outline-none focus:ring-2 focus:ring-blue-500 bg-gray-50/50"
+            className="w-full pl-8 pr-3 py-2.5 sm:py-1.5 text-base sm:text-xs rounded-lg border border-gray-200 focus:outline-none focus:ring-2 focus:ring-blue-500 bg-gray-50/50"
           />
         </div>
 
-        <div className="flex items-center gap-2 shrink-0">
+        <div className="flex items-center gap-2 sm:shrink-0 w-full sm:w-auto">
           <label className="text-xs text-gray-600 font-medium whitespace-nowrap">Department:</label>
           <select
             value={selectedDept}
             onChange={(e) => setSelectedDept(e.target.value)}
-            className="py-1.5 px-3 text-xs rounded-lg border border-gray-200 bg-white text-gray-700 focus:outline-none focus:ring-2 focus:ring-blue-500 font-medium"
+            className="flex-1 sm:flex-none min-w-0 py-2.5 sm:py-1.5 px-3 text-base sm:text-xs rounded-lg border border-gray-200 bg-white text-gray-700 focus:outline-none focus:ring-2 focus:ring-blue-500 font-medium"
           >
             <option value="ALL">All Departments</option>
             {departments.map((d) => (
@@ -522,7 +522,7 @@ export default function HiringTeamPage() {
       </div>
 
       {/* Info Callout for Admin */}
-      <div className="p-3.5 rounded-xl bg-blue-50/70 border border-blue-100 flex items-start gap-3 text-xs text-blue-900">
+      <div className="hidden sm:flex p-3.5 rounded-xl bg-blue-50/70 border border-blue-100 items-start gap-3 text-xs text-blue-900">
         <Info size={16} className="text-blue-600 shrink-0 mt-0.5" />
         <div>
           <span className="font-semibold text-blue-950">How Roles Work in ATS:</span> Employees assigned the{' '}
@@ -551,7 +551,7 @@ export default function HiringTeamPage() {
               <button
                 type="button"
                 onClick={() => setActiveTab('ALL')}
-                className="btn btn-secondary text-xs mt-3 inline-flex items-center gap-1.5"
+                className="btn btn-secondary text-xs mt-3 inline-flex items-center justify-center gap-1.5 w-full sm:w-auto min-h-[44px] sm:min-h-0"
               >
                 <Plus size={14} /> Browse All Employees to Assign Roles
               </button>
@@ -559,7 +559,7 @@ export default function HiringTeamPage() {
           </div>
         ) : (
           <div className="overflow-x-auto">
-            <table className="w-full text-left border-collapse min-w-[760px]">
+            <table className="hp-table w-full text-left border-collapse md:min-w-[760px]">
               <thead>
                 <tr className="bg-gray-50/75 border-b border-gray-200 text-[0.8125rem] font-bold text-gray-600 uppercase tracking-wider">
                   <th className="py-3 px-4">Employee</th>
@@ -583,10 +583,10 @@ export default function HiringTeamPage() {
                   return (
                     <tr
                       key={member.id}
-                      className="hover:bg-blue-50/30 transition-colors"
+                      className="hp-row hover:bg-blue-50/30 transition-colors"
                     >
                       {/* Employee Info */}
-                      <td className="py-3.5 px-4">
+                      <td className="py-3.5 px-4" data-label="Employee">
                         <div className="flex items-center gap-3">
                           {member.photo_url ? (
                             <img
@@ -616,7 +616,7 @@ export default function HiringTeamPage() {
                       </td>
 
                       {/* Department & Site */}
-                      <td className="py-3.5 px-4">
+                      <td className="py-3.5 px-4" data-label="Department">
                         <div className="font-medium text-gray-800 truncate">
                           {member.department_name || 'General Department'}
                         </div>
@@ -626,7 +626,7 @@ export default function HiringTeamPage() {
                       </td>
 
                       {/* Current Roles Badges */}
-                      <td className="py-3.5 px-4">
+                      <td className="py-3.5 px-4" data-label="Roles">
                         <div className="flex flex-wrap gap-1">
                           {member.is_admin && (
                             <span className="px-2 py-0.5 rounded-md text-[0.8125rem] font-semibold bg-indigo-50 text-indigo-700 border border-indigo-200">
@@ -652,7 +652,7 @@ export default function HiringTeamPage() {
                       </td>
 
                       {/* Recruiter Role Toggle */}
-                      <td className="py-3.5 px-4 text-center">
+                      <td className="py-3.5 px-4 text-center" data-label="Recruiter role">
                         {member.is_admin ? (
                           <span className="text-[0.8125rem] font-semibold text-gray-600" title="Admin has full recruiter privileges">
                             Full Access (Admin)
@@ -687,7 +687,7 @@ export default function HiringTeamPage() {
                       </td>
 
                       {/* Interviewer Role Toggle */}
-                      <td className="py-3.5 px-4 text-center">
+                      <td className="py-3.5 px-4 text-center" data-label="Interviewer role">
                         {member.is_admin ? (
                           <span className="text-[0.8125rem] font-semibold text-gray-600" title="Admin is eligible for any interview panel">
                             Eligible (Admin)
@@ -726,7 +726,7 @@ export default function HiringTeamPage() {
                       </td>
 
                       {/* Actions */}
-                      <td className="py-3.5 px-4 text-right">
+                      <td className="py-3.5 px-4 text-right" data-label="Actions">
                         <button
                           type="button"
                           onClick={() => handleOpenAssignModal(member)}
@@ -747,6 +747,7 @@ export default function HiringTeamPage() {
       {/* Role Assignment Modal */}
       {selectedMember && (
         <Modal
+          sheet
           isOpen={true}
           onClose={() => setSelectedMember(null)}
           title={`Manage ATS Roles — ${selectedMember.full_name}`}
@@ -785,10 +786,10 @@ export default function HiringTeamPage() {
                     type="checkbox"
                     checked={modalRecruiter}
                     onChange={(e) => setModalRecruiter(e.target.checked)}
-                    className="mt-1 h-4 w-4 text-blue-600 rounded border-gray-300 focus:ring-blue-500"
+                    className="mt-1 h-5 w-5 sm:h-4 sm:w-4 shrink-0 text-blue-600 rounded border-gray-300 focus:ring-blue-500"
                   />
                   <div>
-                    <div className="text-sm font-bold text-gray-900 flex items-center gap-2">
+                    <div className="text-sm font-bold text-gray-900 flex flex-wrap items-center gap-2">
                       <span>Recruiter</span>
                       <span className="px-1.5 py-0.2 rounded text-[0.8125rem] font-semibold bg-blue-100 text-blue-800">
                         ats:job:manage, ats:applicants:view
@@ -806,10 +807,10 @@ export default function HiringTeamPage() {
                     type="checkbox"
                     checked={modalInterviewer}
                     onChange={(e) => setModalInterviewer(e.target.checked)}
-                    className="mt-1 h-4 w-4 text-emerald-600 rounded border-gray-300 focus:ring-emerald-500"
+                    className="mt-1 h-5 w-5 sm:h-4 sm:w-4 shrink-0 text-emerald-600 rounded border-gray-300 focus:ring-emerald-500"
                   />
                   <div>
-                    <div className="text-sm font-bold text-gray-900 flex items-center gap-2">
+                    <div className="text-sm font-bold text-gray-900 flex flex-wrap items-center gap-2">
                       <span>Interviewer / Panelist</span>
                       <span className="px-1.5 py-0.2 rounded text-[0.8125rem] font-semibold bg-emerald-100 text-emerald-800">
                         ats:interview:view_own, ats:feedback:submit
@@ -823,7 +824,7 @@ export default function HiringTeamPage() {
               </div>
             )}
 
-            <div className="flex items-center justify-end gap-2 pt-3 border-t border-gray-100">
+            <div className="hp-sheet-actions flex items-center justify-end gap-2 pt-3 border-t border-gray-100">
               <button
                 type="button"
                 onClick={() => setSelectedMember(null)}

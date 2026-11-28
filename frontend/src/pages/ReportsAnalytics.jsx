@@ -5,7 +5,7 @@ import { canViewEmployees } from '../utils/access';
 import { rowClick } from '../utils/rowClick';
 import { getAttendanceOverview, getLeaveSummary } from '../api/dashboard';
 import { getDirectory } from '../api/employees';
-import { BarChart3, TrendingUp, PieChart as PieChartIcon, Calendar } from 'lucide-react';
+import { BarChart3, TrendingUp, PieChart as PieChartIcon, Calendar, ChevronRight } from 'lucide-react';
 import {
   ResponsiveContainer, BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip,
   PieChart, Pie, Cell, Legend,
@@ -133,7 +133,30 @@ export default function ReportsAnalytics() {
         {leaveSummary.length === 0 ? (
           <div className="empty-state"><p>No approved leave data this year yet</p></div>
         ) : (
-          <div style={{ overflowX: 'auto' }}>
+          <>
+          <div className="ls-list">
+            {leaveSummary.map((l, i) => {
+              const go = canOpenHistory
+                ? () => navigate(`/leave?tab=history&status=approved&month=all&type=${encodeURIComponent(l.leave_type)}`)
+                : null;
+              const color = COLORS[i % COLORS.length];
+              return (
+                <div key={l.leave_type} {...rowClick(go, 'ls-row')}>
+                  <div className="ls-row-top">
+                    <span className="ls-name">{l.leave_type}</span>
+                    <span className="ls-figures" style={{ color }}>
+                      {l.days} Days <em>· {l.percentage}%</em>
+                    </span>
+                    {go && <ChevronRight size={16} className="ls-chev" />}
+                  </div>
+                  <div className="ls-bar" role="img" aria-label={`${l.percentage}% of total leaves`}>
+                    <div style={{ width: `${Math.min(100, Number(l.percentage) || 0)}%`, background: color }} />
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+          <div className="ls-table" style={{ overflowX: 'auto' }}>
             <table className="data-table">
               <thead>
                 <tr>
@@ -162,6 +185,7 @@ export default function ReportsAnalytics() {
               </tbody>
             </table>
           </div>
+          </>
         )}
       </div>
     </div>

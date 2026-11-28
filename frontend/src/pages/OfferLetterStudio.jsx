@@ -9,6 +9,9 @@ import {
 import { getMyCompany } from '../api/company';
 import { useAuth } from '../context/AuthContext';
 import logoImg from '../assets/logo.jpg';
+import { Expand, X as CloseIcon } from 'lucide-react';
+import useLetterPreview from '../hooks/useLetterPreview';
+import { StudioTabs, StudioPrintBar } from '../components/LetterStudioMobile';
 import {
   FileText,
   User,
@@ -50,7 +53,12 @@ export default function OfferLetterStudio() {
   const [designations, setDesignations] = useState([]);
   const [sites, setSites] = useState([]);
   const [managers, setManagers] = useState([]);
-  const [previewZoom, setPreviewZoom] = useState(0.58);
+  const pv = useLetterPreview(0.58);
+  const previewZoom = pv.zoom;
+  const [mobileTab, setMobileTab] = useState('edit');
+  const [previewFull, setPreviewFull] = useState(false);
+  const [openSecs, setOpenSecs] = useState([true, false, false, false]);
+  const toggleSec = (i) => setOpenSecs((o) => o.map((v, k) => (k === i ? !v : v)));
 
   const [form, setForm] = useState({
     candidate_name:
@@ -176,7 +184,7 @@ export default function OfferLetterStudio() {
       
       {/* ── Top Studio Action Bar ────────────────────────────────────────── */}
       <div
-        className="no-print"
+        className="no-print studio-topbar"
         style={{
           display: 'flex',
           justifyContent: 'space-between',
@@ -219,12 +227,12 @@ export default function OfferLetterStudio() {
               </span>
             )}
           </h1>
-          <p style={{ fontSize: '0.75rem', color: '#3d4a5e', margin: '2px 0 0 0' }}>
+          <p className="studio-subtitle" style={{ fontSize: '0.75rem', color: '#3d4a5e', margin: '2px 0 0 0' }}>
             Real-time split-screen editor • Instant single-page live preview
           </p>
         </div>
 
-        <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+        <div className="studio-header-print" style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
           <button
             type="button"
             className="btn btn-primary"
@@ -244,8 +252,11 @@ export default function OfferLetterStudio() {
         </div>
       </div>
 
+      <StudioTabs tab={mobileTab} onChange={setMobileTab} />
+
       {/* ── 2-Column Split Screen Studio ──────────────────────────────────── */}
       <div
+        className="studio-grid"
         style={{
           display: 'grid',
           gridTemplateColumns: 'minmax(480px, 1fr) minmax(400px, 1fr)',
@@ -256,6 +267,7 @@ export default function OfferLetterStudio() {
         
         {/* ══ LEFT PANE: Complete Single-Page A4 Document Live Preview ══════ */}
         <div
+          className={`studio-pane-preview${mobileTab === 'edit' ? ' studio-pane-hidden' : ''}${previewFull ? ' studio-preview-full' : ''}`}
           style={{
             background: '#f1f5f9',
             borderRadius: 16,
@@ -289,9 +301,9 @@ export default function OfferLetterStudio() {
             <div style={{ display: 'flex', alignItems: 'center', gap: 6, background: '#ffffff', padding: '3px 8px', borderRadius: 8, border: '1px solid #cbd5e1', boxShadow: '0 1px 3px rgba(0,0,0,0.05)' }}>
               <button
                 type="button"
-                onClick={() => setPreviewZoom((z) => Math.max(0.42, Number((z - 0.05).toFixed(2))))}
+                onClick={pv.zoomOut}
                 style={{ border: 'none', background: 'transparent', cursor: 'pointer', padding: 2, display: 'flex', color: '#475569' }}
-                title="Zoom Out"
+                title="Zoom Out" className="studio-zoom-btn"
               >
                 <ZoomOut size={14} />
               </button>
@@ -300,15 +312,15 @@ export default function OfferLetterStudio() {
               </span>
               <button
                 type="button"
-                onClick={() => setPreviewZoom((z) => Math.min(1.0, Number((z + 0.05).toFixed(2))))}
+                onClick={pv.zoomIn}
                 style={{ border: 'none', background: 'transparent', cursor: 'pointer', padding: 2, display: 'flex', color: '#475569' }}
-                title="Zoom In"
+                title="Zoom In" className="studio-zoom-btn"
               >
                 <ZoomIn size={14} />
               </button>
               <button
                 type="button"
-                onClick={() => setPreviewZoom(0.58)}
+                onClick={pv.fit}
                 style={{
                   border: 'none',
                   background: '#f1f5f9',
@@ -323,29 +335,38 @@ export default function OfferLetterStudio() {
                   gap: 3,
                   marginLeft: 4,
                 }}
-                title="Fit to Page"
+                title="Fit to Page" className="studio-zoom-btn"
               >
                 <Maximize2 size={10} /> Fit
+              </button>
+              <button
+                type="button"
+                className="studio-expand-btn"
+                onClick={() => setPreviewFull((f) => !f)}
+                title={previewFull ? 'Close fullscreen' : 'Fullscreen'}
+              >
+                {previewFull ? <CloseIcon size={16} /> : <Expand size={15} />}
               </button>
             </div>
           </div>
 
           {/* Scaled A4 Single-View Canvas Box */}
           <div
-            className="offer-preview-scale-box"
+            ref={pv.boxRef}
+            className="offer-preview-scale-box studio-scale-box"
             style={{
               width: '100%',
-              height: `${Math.round(1120 * previewZoom + 8)}px`,
-              display: 'flex',
-              justifyContent: 'center',
-              overflow: 'hidden',
+              overflow: pv.isMobile ? 'auto' : 'hidden',
+              touchAction: 'pan-x pan-y',
             }}
           >
+            <div style={{ width: pv.natural.w * previewZoom, height: pv.natural.h * previewZoom + 8, margin: '0 auto' }}>
             <div
+              ref={pv.innerRef}
               className="offer-preview-transform-wrapper"
               style={{
                 transform: `scale(${previewZoom})`,
-                transformOrigin: 'top center',
+                transformOrigin: 'top left',
                 transition: 'transform 0.15s ease-out',
                 width: 794,
                 height: 1120,
@@ -575,11 +596,13 @@ export default function OfferLetterStudio() {
                 </div>
               </div>
             </div>
+            </div>
           </div>
         </div>
 
         {/* ══ RIGHT PANE: Interactive Input Form ═════════════════════════════ */}
         <div
+          className={`studio-pane-form${mobileTab === 'preview' ? ' studio-pane-hidden' : ''}`}
           style={{
             background: '#ffffff',
             borderRadius: 16,
@@ -592,12 +615,12 @@ export default function OfferLetterStudio() {
           }}
         >
           {/* Section 1: Candidate Details */}
-          <div style={{ background: '#f8fafc', padding: 15, borderRadius: 12, border: '1px solid #e2e8f0' }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: 8, fontWeight: 800, fontSize: '0.90rem', color: '#0f172a', marginBottom: 12 }}>
+          <div className={`studio-sec${openSecs[0] ? '' : ' closed'}`} style={{ background: '#f8fafc', padding: 15, borderRadius: 12, border: '1px solid #e2e8f0' }}>
+            <div className="studio-sec-head" onClick={() => toggleSec(0)} style={{ display: 'flex', alignItems: 'center', gap: 8, fontWeight: 800, fontSize: '0.90rem', color: '#0f172a', marginBottom: 12 }}>
               <User size={16} style={{ color: '#2563eb' }} />
               Candidate Information
             </div>
-            <div style={{ display: 'grid', gap: 12 }}>
+            <div className="studio-fields" style={{ display: 'grid', gap: 12 }}>
               <div className="input-group">
                 <label className="input-label">Candidate Full Name *</label>
                 <input
@@ -623,12 +646,12 @@ export default function OfferLetterStudio() {
           </div>
 
           {/* Section 2: Position & Work Location */}
-          <div style={{ background: '#f8fafc', padding: 15, borderRadius: 12, border: '1px solid #e2e8f0' }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: 8, fontWeight: 800, fontSize: '0.90rem', color: '#0f172a', marginBottom: 12 }}>
+          <div className={`studio-sec${openSecs[1] ? '' : ' closed'}`} style={{ background: '#f8fafc', padding: 15, borderRadius: 12, border: '1px solid #e2e8f0' }}>
+            <div className="studio-sec-head" onClick={() => toggleSec(1)} style={{ display: 'flex', alignItems: 'center', gap: 8, fontWeight: 800, fontSize: '0.90rem', color: '#0f172a', marginBottom: 12 }}>
               <Briefcase size={16} style={{ color: '#2563eb' }} />
               Position &amp; Work Location
             </div>
-            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
+            <div className="studio-fields" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
               <div className="input-group">
                 <label className="input-label">Department</label>
                 <select
@@ -697,12 +720,12 @@ export default function OfferLetterStudio() {
           </div>
 
           {/* Section 3: Compensation & Key Dates */}
-          <div style={{ background: '#f8fafc', padding: 15, borderRadius: 12, border: '1px solid #e2e8f0' }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: 8, fontWeight: 800, fontSize: '0.90rem', color: '#0f172a', marginBottom: 12 }}>
+          <div className={`studio-sec${openSecs[2] ? '' : ' closed'}`} style={{ background: '#f8fafc', padding: 15, borderRadius: 12, border: '1px solid #e2e8f0' }}>
+            <div className="studio-sec-head" onClick={() => toggleSec(2)} style={{ display: 'flex', alignItems: 'center', gap: 8, fontWeight: 800, fontSize: '0.90rem', color: '#0f172a', marginBottom: 12 }}>
               <DollarSign size={16} style={{ color: '#059669' }} />
               Compensation &amp; Dates
             </div>
-            <div style={{ display: 'grid', gridTemplateColumns: '1.2fr 1fr', gap: 12 }}>
+            <div className="studio-fields" style={{ display: 'grid', gridTemplateColumns: '1.2fr 1fr', gap: 12 }}>
               <div className="input-group">
                 <label className="input-label">Salary / Compensation (₹)</label>
                 <input
@@ -767,12 +790,12 @@ export default function OfferLetterStudio() {
           </div>
 
           {/* Section 4: Authorized Signatory */}
-          <div style={{ background: '#f8fafc', padding: 15, borderRadius: 12, border: '1px solid #e2e8f0' }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: 8, fontWeight: 800, fontSize: '0.90rem', color: '#0f172a', marginBottom: 12 }}>
+          <div className={`studio-sec${openSecs[3] ? '' : ' closed'}`} style={{ background: '#f8fafc', padding: 15, borderRadius: 12, border: '1px solid #e2e8f0' }}>
+            <div className="studio-sec-head" onClick={() => toggleSec(3)} style={{ display: 'flex', alignItems: 'center', gap: 8, fontWeight: 800, fontSize: '0.90rem', color: '#0f172a', marginBottom: 12 }}>
               <PenTool size={16} style={{ color: '#7c3aed' }} />
               Signatory Formalities
             </div>
-            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
+            <div className="studio-fields" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
               <div className="input-group">
                 <label className="input-label">Authorized Signatory Name</label>
                 <input
@@ -797,6 +820,7 @@ export default function OfferLetterStudio() {
           </div>
         </div>
       </div>
+      <StudioPrintBar onPrint={handlePrint} />
     </div>
   );
 }

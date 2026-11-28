@@ -401,6 +401,7 @@ export default function LeaveManagement() {
             )}
             {(canApprove || isAdmin) && (
               <button
+                className="leave-record-btn"
                 onClick={() => setShowRecordLeave(true)}
                 style={{
                   marginLeft: 'auto',
@@ -438,7 +439,7 @@ export default function LeaveManagement() {
             <option value="approved">Approved</option>
             <option value="rejected">Rejected</option>
           </select>
-          <div style={{ overflowX: 'auto' }}>
+          <div className="leave-table-view" style={{ overflowX: 'auto' }}>
           <table className="data-table">
             <thead>
               <tr>
@@ -462,6 +463,11 @@ export default function LeaveManagement() {
             </tbody>
           </table>
           </div>
+          <div className="leave-cards">
+            {myVisible.map((r) => (
+              <LeaveCard key={r.id} r={r} hideEmployee />
+            ))}
+          </div>
           {myVisible.length === 0 && (
             <div className="empty-state">
               <CalendarDays size={48} />
@@ -474,7 +480,7 @@ export default function LeaveManagement() {
       {/* Approval Queue */}
       {tab === 'approvals' && (
         <div className="section-card" style={{ borderTop: '3px solid #d97706' }}>
-          <div style={{ overflowX: 'auto' }}>
+          <div className="leave-table-view" style={{ overflowX: 'auto' }}>
           <table className="data-table">
             <thead>
               <tr>
@@ -511,6 +517,16 @@ export default function LeaveManagement() {
               ))}
             </tbody>
           </table>
+          </div>
+          <div className="leave-cards">
+            {pending.map((r) => (
+              <LeaveCard
+                key={r.id} r={r}
+                onApprove={() => handleApproval(r.id, 'approved')}
+                onReject={() => handleApproval(r.id, 'rejected')}
+                onEdit={() => setEditingRequest(r)}
+              />
+            ))}
           </div>
           {pending.length === 0 && (
             <div className="empty-state">
@@ -591,7 +607,7 @@ export default function LeaveManagement() {
             })()}
           </div>
 
-          <div style={{ overflowX: 'auto' }}>
+          <div className="leave-table-view" style={{ overflowX: 'auto' }}>
             <table className="data-table">
               <thead>
                 <tr>
@@ -631,6 +647,11 @@ export default function LeaveManagement() {
               </tbody>
             </table>
           </div>
+          <div className="leave-cards">
+            {visibleHistory.map((r) => (
+              <LeaveCard key={r.id} r={r} showRequested onEdit={() => setEditingRequest(r)} />
+            ))}
+          </div>
           {visibleHistory.length === 0 && (
             <div className="empty-state">
               <CalendarDays size={48} />
@@ -660,7 +681,7 @@ export default function LeaveManagement() {
                 increase everyone's future entitlement, then "Run Monthly Accrual" to credit it to balances. Safe to
                 click more than once; a type already accrued for the current month is skipped.
               </p>
-              <div style={{ overflowX: 'auto' }}>
+              <div className="leave-table-view" style={{ overflowX: 'auto' }}>
               <table className="data-table">
                 <thead><tr><th style={{ whiteSpace: 'nowrap' }}>Name</th><th style={{ whiteSpace: 'nowrap' }}>Accrual Rate</th><th style={{ whiteSpace: 'nowrap' }}>Payroll Effect</th><th style={{ whiteSpace: 'nowrap' }}>Last Accrued</th><th style={{ whiteSpace: 'nowrap' }}>Actions</th></tr></thead>
                 <tbody>
@@ -689,6 +710,24 @@ export default function LeaveManagement() {
                 </tbody>
               </table>
               </div>
+              <div className="leave-cards">
+                {types.map((lt) => (
+                  <div className="leave-card" key={lt.id}>
+                    <div className="leave-card-top">
+                      <strong>{lt.name}</strong>
+                      <span className={`badge ${lt.is_paid ? 'badge-active' : 'badge-rejected'}`}>{lt.is_paid ? 'Paid' : 'Unpaid'}</span>
+                    </div>
+                    <div className="leave-card-meta">
+                      <span>{Number(lt.accrual_rate).toFixed(2)} days/month</span>
+                      <span>Last accrued: {lt.last_accrued_period || '—'}</span>
+                    </div>
+                    <div className="leave-card-actions">
+                      <button className="btn btn-secondary btn-sm" onClick={() => setShowLeaveTypeModal({ mode: 'edit', leaveType: lt })}>Edit</button>
+                      <button className="btn btn-secondary btn-sm" onClick={() => toggleLeaveTypePaid(lt)}>Mark as {lt.is_paid ? 'Unpaid' : 'Paid'}</button>
+                    </div>
+                  </div>
+                ))}
+              </div>
               {types.length === 0 && <div className="empty-state"><p>No leave types configured</p></div>}
             </div>
           )}
@@ -697,7 +736,7 @@ export default function LeaveManagement() {
 
       {/* Request Modal */}
       {showRequest && (
-        <Modal title="Request Leave" onClose={() => setShowRequest(false)}>
+        <Modal sheet title="Request Leave" onClose={() => setShowRequest(false)}>
           <form onSubmit={handleRequest}>
             <div className="input-group">
               <label className="input-label">Leave Type</label>
@@ -814,6 +853,35 @@ export default function LeaveManagement() {
   );
 }
 
+const dayCount = (r) => Math.max(1, Math.round((new Date(r.end_date) - new Date(r.start_date)) / 86400000) + 1);
+
+function LeaveCard({ r, hideEmployee, showRequested, onApprove, onReject, onEdit }) {
+  const days = dayCount(r);
+  return (
+    <div className="leave-card">
+      <div className="leave-card-top">
+        {hideEmployee
+          ? <strong>{r.leave_type_name || '—'}</strong>
+          : <strong><EmployeeLink id={r.employee_id}>{r.employee_name || '—'}</EmployeeLink></strong>}
+        <span className={`badge badge-${r.status}`}>{r.status}</span>
+      </div>
+      <div className="leave-card-meta">
+        {!hideEmployee && <span className="leave-card-type">{r.leave_type_name || '—'}</span>}
+        <span>{r.start_date} → {r.end_date}</span>
+        <span>{days} day{days === 1 ? '' : 's'}</span>
+        {showRequested && r.created_at && <span>Requested {new Date(r.created_at).toLocaleDateString()}</span>}
+      </div>
+      {(onApprove || onEdit) && (
+        <div className="leave-card-actions">
+          {onApprove && <button className="btn btn-success btn-sm" onClick={onApprove}><Check size={14} /> Approve</button>}
+          {onReject && <button className="btn btn-danger btn-sm" onClick={onReject}><X size={14} /> Reject</button>}
+          {onEdit && <button className="btn btn-secondary btn-sm" onClick={onEdit}><Pencil size={14} /> Edit</button>}
+        </div>
+      )}
+    </div>
+  );
+}
+
 function LeaveTypeModal({ leaveType, onClose, onSuccess }) {
   const isEdit = !!leaveType;
   const [form, setForm] = useState({ name: leaveType?.name || '', accrual_rate: leaveType?.accrual_rate ?? '0' });
@@ -836,7 +904,7 @@ function LeaveTypeModal({ leaveType, onClose, onSuccess }) {
   };
 
   return (
-    <Modal title={isEdit ? 'Edit Leave Type' : 'Add Leave Type'} onClose={onClose}>
+    <Modal sheet title={isEdit ? 'Edit Leave Type' : 'Add Leave Type'} onClose={onClose}>
       <form onSubmit={handleSubmit}>
         {error && <div style={{ marginBottom: 12, color: 'var(--accent-rose)', fontSize: '0.875rem' }}>{error}</div>}
         <div className="input-group">
@@ -882,7 +950,7 @@ function AdjustBalanceModal({ employees, leaveTypes, onClose, onSuccess }) {
   };
 
   return (
-    <Modal title="Adjust Employee Leave Balance" onClose={onClose}>
+    <Modal sheet title="Adjust Employee Leave Balance" onClose={onClose}>
       <form onSubmit={handleSubmit}>
         {error && <div style={{ marginBottom: 12, color: 'var(--accent-rose)', fontSize: '0.875rem' }}>{error}</div>}
         <div className="input-group">
@@ -972,7 +1040,7 @@ function EditBalanceModal({ balance, onClose, onSuccess }) {
   };
 
   return (
-    <Modal title={`Edit ${balance.leave_type_name || 'Leave'} Balance`} onClose={onClose}>
+    <Modal sheet title={`Edit ${balance.leave_type_name || 'Leave'} Balance`} onClose={onClose}>
       <form onSubmit={handleSubmit}>
         {error && <div style={{ marginBottom: 12, color: 'var(--accent-rose)', fontSize: '0.875rem' }}>{error}</div>}
         <div className="input-group">
@@ -1038,7 +1106,7 @@ function RecordLeaveModal({ employees, leaveTypes, onClose, onSuccess }) {
   };
 
   return (
-    <Modal
+    <Modal sheet
       title="Record / Backdate Employee Leave"
       onClose={onClose}
       maxWidth="620px"
@@ -1181,7 +1249,7 @@ function EditLeaveRequestModal({ request, leaveTypes, onClose, onSuccess }) {
   };
 
   return (
-    <Modal
+    <Modal sheet
       title={`Edit Leave — ${request.employee_name || 'Employee'}`}
       onClose={onClose}
       maxWidth="620px"

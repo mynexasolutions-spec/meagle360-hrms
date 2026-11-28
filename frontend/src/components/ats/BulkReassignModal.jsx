@@ -42,7 +42,7 @@ export default function BulkReassignModal({
   };
 
   return (
-    <Modal isOpen={true} onClose={onClose} title="Bulk Reassign Applications">
+    <Modal sheet isOpen={true} onClose={onClose} title="Bulk Reassign Applications">
       <form onSubmit={handleSubmit} className="space-y-4">
         <p className="text-xs text-gray-600">
           Reassign selected applications or transfer an entire recruiter&apos;s pipeline (for example,

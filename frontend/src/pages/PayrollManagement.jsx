@@ -12,7 +12,7 @@ import {
 } from '../api/payroll';
 import { getDirectory } from '../api/employees';
 import {
-  Wallet, Plus, Pencil, Trash2, Play, Lock, Users, Receipt, Settings2, Landmark, HandCoins,
+  Wallet, Plus, Pencil, Trash2, Play, Lock, Users, Receipt, Settings2, Landmark, HandCoins, ChevronDown, Check,
 } from 'lucide-react';
 import Modal from '../components/Modal';
 import { rowClick } from '../utils/rowClick';
@@ -36,6 +36,7 @@ function money(n) {
 export default function PayrollManagement() {
   const { showAlert, showConfirm, showToast } = usePopup();
   const [tab, setTab] = useState('components');
+  const [pickerOpen, setPickerOpen] = useState(false);
 
   const tabsList = [
     { key: 'components', label: 'Salary Components' },
@@ -69,8 +70,34 @@ export default function PayrollManagement() {
         </div>
       </div>
 
+      {/* Phones: one section picker instead of 8 tabs */}
+      <div className="pay-tab-picker">
+        <button type="button" onClick={() => setPickerOpen(true)} aria-haspopup="dialog">
+          <span>
+            <small>Section</small>
+            {tabsList.find((t) => t.key === tab)?.label}
+          </span>
+          <ChevronDown size={18} />
+        </button>
+      </div>
+      {pickerOpen && (
+        <Modal sheet title="Go to section" onClose={() => setPickerOpen(false)} closeOnOverlay>
+          <div className="pay-picker-list">
+            {tabsList.map((item) => (
+              <button
+                key={item.key} type="button" className={tab === item.key ? 'active' : ''}
+                onClick={() => { setTab(item.key); setPickerOpen(false); }}
+              >
+                {item.label}
+                {tab === item.key && <Check size={18} />}
+              </button>
+            ))}
+          </div>
+        </Modal>
+      )}
+
       {/* Modern Pill Tabs */}
-      <div className="pill-tabs" style={{ marginBottom: 24 }}>
+      <div className="pill-tabs pay-tabs-desktop" style={{ marginBottom: 24 }}>
         {tabsList.map((item) => (
           <button
             key={item.key}
@@ -149,7 +176,39 @@ function ComponentsTab() {
   const renderTable = (list, title) => (
     <div className="section-card" style={{ marginBottom: 20 }}>
       <h3 style={{ marginBottom: 16 }}>{title}</h3>
-      <div style={{ overflowX: 'auto' }}>
+      <div className="pay-cards">
+        {list.map((c) => (
+          <div className="pay-card" key={c.id}>
+            <div className="pay-card-top">
+              <strong className="pay-card-title">{c.name}</strong>
+              <span className={`badge ${c.is_active ? 'badge-active' : 'badge-inactive'}`}>{c.is_active ? 'Active' : 'Disabled'}</span>
+            </div>
+            <div className="pay-card-amount">
+              {c.calculation_type === 'fixed' ? `₹${money(c.value)}` : `${c.value}%`}
+              <span>{CALC_LABELS[c.calculation_type] || c.calculation_type}</span>
+            </div>
+            {(c.statutory_type || c.is_employer_contribution || c.is_balancing_figure) && (
+              <div className="pay-card-chips">
+                {c.statutory_type && <span className="badge badge-info">{c.statutory_type.toUpperCase()}</span>}
+                {c.is_employer_contribution && <span className="badge badge-pending">Employer Cost</span>}
+                {c.is_balancing_figure && <span className="badge badge-active">Balancing</span>}
+              </div>
+            )}
+            <div className="pay-card-actions">
+              <button type="button" className="pay-icon-btn" onClick={() => openEdit(c)} title="Edit" aria-label={`Edit ${c.name}`}>
+                <Pencil size={16} style={{ color: '#2563eb' }} />
+              </button>
+              <button type="button" className="btn btn-secondary pay-card-wide" onClick={() => handleToggleActive(c)}>
+                {c.is_active ? 'Disable' : 'Enable'}
+              </button>
+              <button type="button" className="pay-icon-btn pay-icon-danger" onClick={() => handleDelete(c)} title="Delete" aria-label={`Delete ${c.name}`}>
+                <Trash2 size={16} style={{ color: '#e11d48' }} />
+              </button>
+            </div>
+          </div>
+        ))}
+      </div>
+      <div className="pay-table-view" style={{ overflowX: 'auto' }}>
         <table className="data-table">
           <thead>
             <tr>
@@ -199,7 +258,7 @@ function ComponentsTab() {
 
   return (
     <div>
-      <div style={{ display: 'flex', justifyContent: 'flex-end', marginBottom: 16 }}>
+      <div className="pay-add-row" style={{ display: 'flex', justifyContent: 'flex-end', marginBottom: 16 }}>
         <button className="btn btn-primary" onClick={openCreate}><Plus size={16} /> Add Component</button>
       </div>
       {renderTable(earnings, 'Earnings')}
@@ -252,7 +311,7 @@ function ComponentModal({ component, onClose, onSuccess }) {
   };
 
   return (
-    <Modal title={component ? 'Edit Salary Component' : 'Add Salary Component'} onClose={onClose}>
+    <Modal sheet title={component ? 'Edit Salary Component' : 'Add Salary Component'} onClose={onClose}>
       <form onSubmit={handleSubmit}>
         {error && <div style={{ marginBottom: 12, color: 'var(--accent-rose)', fontSize: '0.875rem' }}>{error}</div>}
         <div className="input-group">
@@ -315,7 +374,7 @@ function ComponentModal({ component, onClose, onSuccess }) {
             </label>
           </div>
         )}
-        <div style={{ display: 'flex', gap: 10, justifyContent: 'flex-end', marginTop: 20 }}>
+        <div className="pay-modal-actions" style={{ display: 'flex', gap: 10, justifyContent: 'flex-end', marginTop: 20 }}>
           <button type="button" className="btn btn-secondary" onClick={onClose}>Cancel</button>
           <button type="submit" className="btn btn-primary">Save</button>
         </div>
@@ -360,7 +419,7 @@ function StructuresTab() {
 
   return (
     <div>
-      <div style={{ display: 'flex', justifyContent: 'flex-end', marginBottom: 16 }}>
+      <div className="pay-add-row" style={{ display: 'flex', justifyContent: 'flex-end', marginBottom: 16 }}>
         <button className="btn btn-primary" onClick={() => { setEditing(null); setShowModal(true); }}>
           <Plus size={16} /> Add Structure
         </button>
@@ -438,7 +497,7 @@ function StructureModal({ structure, components, onClose, onSuccess }) {
   const deductions = components.filter((c) => c.component_type === 'deduction');
 
   return (
-    <Modal title={structure ? 'Edit Salary Structure' : 'Add Salary Structure'} onClose={onClose}>
+    <Modal sheet title={structure ? 'Edit Salary Structure' : 'Add Salary Structure'} onClose={onClose}>
       <form onSubmit={handleSubmit}>
         {error && <div style={{ marginBottom: 12, color: 'var(--accent-rose)', fontSize: '0.875rem' }}>{error}</div>}
         <div className="input-group">
@@ -469,7 +528,7 @@ function StructureModal({ structure, components, onClose, onSuccess }) {
             ))}
           </div>
         </div>
-        <div style={{ display: 'flex', gap: 10, justifyContent: 'flex-end', marginTop: 20 }}>
+        <div className="pay-modal-actions" style={{ display: 'flex', gap: 10, justifyContent: 'flex-end', marginTop: 20 }}>
           <button type="button" className="btn btn-secondary" onClick={onClose}>Cancel</button>
           <button type="submit" className="btn btn-primary">Save</button>
         </div>
@@ -501,7 +560,7 @@ function AssignmentsTab() {
     <div>
       <div className="section-card" style={{ marginBottom: 20 }}>
         <h3 style={{ marginBottom: 16 }}><Users size={18} style={{ color: 'var(--accent-violet)' }} /> Employee Salary Assignment</h3>
-        <div style={{ display: 'flex', gap: 16, flexWrap: 'wrap', alignItems: 'flex-end' }}>
+        <div className="pay-assign-row" style={{ display: 'flex', gap: 16, flexWrap: 'wrap', alignItems: 'flex-end' }}>
           <div style={{ flex: '1 1 240px' }}>
             <select className="input-field" value={selectedEmployeeId} onChange={(e) => setSelectedEmployeeId(e.target.value)}>
               <option value="">Select an employee...</option>
@@ -521,7 +580,22 @@ function AssignmentsTab() {
       {selectedEmployeeId && (
         <div className="section-card">
           <h3 style={{ marginBottom: 16 }}>Assignment History</h3>
-          <div style={{ overflowX: 'auto' }}>
+          <div className="pay-cards">
+            {history.map((h) => (
+              <div className="pay-card" key={h.id}>
+                <div className="pay-card-top">
+                  <strong className="pay-card-title">{h.salary_structure_name || 'No structure (Basic only)'}</strong>
+                  <span className="pay-card-date">From {h.effective_from}</span>
+                </div>
+                <div className="pay-card-amount">
+                  {h.annual_ctc ? `₹${money(h.annual_ctc)}` : '—'}
+                  <span>Annual CTC</span>
+                </div>
+                <div className="pay-card-meta"><span>Basic pay</span><strong>₹{money(h.basic_pay)}</strong><span>/ month</span></div>
+              </div>
+            ))}
+          </div>
+          <div className="pay-table-view" style={{ overflowX: 'auto' }}>
             <table className="data-table">
               <thead><tr><th style={{ whiteSpace: 'nowrap' }}>Effective From</th><th style={{ whiteSpace: 'nowrap' }}>Salary Structure</th><th style={{ whiteSpace: 'nowrap' }}>Annual CTC</th><th style={{ whiteSpace: 'nowrap' }}>Basic Pay</th></tr></thead>
               <tbody>
@@ -574,7 +648,7 @@ function AssignmentModal({ employeeId, structures, onClose, onSuccess }) {
   };
 
   return (
-    <Modal title="New Salary Assignment" onClose={onClose}>
+    <Modal sheet title="New Salary Assignment" onClose={onClose}>
       <form onSubmit={handleSubmit}>
         {error && <div style={{ marginBottom: 12, color: 'var(--accent-rose)', fontSize: '0.875rem' }}>{error}</div>}
         <div className="input-group">
@@ -601,7 +675,7 @@ function AssignmentModal({ employeeId, structures, onClose, onSuccess }) {
           <label className="input-label">Effective From</label>
           <input type="date" className="input-field" value={form.effective_from} onChange={(e) => setForm({ ...form, effective_from: e.target.value })} required />
         </div>
-        <div style={{ display: 'flex', gap: 10, justifyContent: 'flex-end', marginTop: 20 }}>
+        <div className="pay-modal-actions" style={{ display: 'flex', gap: 10, justifyContent: 'flex-end', marginTop: 20 }}>
           <button type="button" className="btn btn-secondary" onClick={onClose}>Cancel</button>
           <button type="submit" className="btn btn-primary">Save</button>
         </div>
@@ -630,6 +704,9 @@ function RunsTab() {
     setSelectedRun(run);
     const res = await getRunPayslips(run.id);
     setPayslips(res.data);
+    if (window.matchMedia('(max-width: 768px)').matches) {
+      setTimeout(() => document.getElementById('pay-payslips')?.scrollIntoView({ behavior: 'smooth', block: 'start' }), 80);
+    }
   };
 
   const handleCreateRun = async (year, month) => {
@@ -703,12 +780,41 @@ function RunsTab() {
 
   return (
     <div>
-      <div style={{ display: 'flex', justifyContent: 'flex-end', marginBottom: 16 }}>
+      <div className="pay-add-row" style={{ display: 'flex', justifyContent: 'flex-end', marginBottom: 16 }}>
         <button className="btn btn-primary" disabled={!!busy} onClick={() => setShowRunModal(true)}><Play size={16} /> Run Payroll</button>
       </div>
 
       <div className="section-card" style={{ marginBottom: 20 }}>
-        <div style={{ overflowX: 'auto' }}>
+        <div className="pay-cards">
+          {runs.map((run) => (
+            <div
+              key={run.id}
+              {...rowClick(() => openRun(run), `pay-card pay-card-tap${selectedRun?.id === run.id ? ' selected' : ''}`)}
+            >
+              <div className="pay-card-top">
+                <strong className="pay-card-title">{MONTH_NAMES[run.month - 1]} {run.year}</strong>
+                <span className={`badge ${run.status === 'finalized' ? 'badge-active' : 'badge-pending'}`}>{run.status}</span>
+              </div>
+              <div className="pay-card-amount">
+                ₹{money(run.total_net_pay)}
+                <span>Total net pay</span>
+              </div>
+              <div className="pay-card-foot">
+                <span>{run.payslip_count} employee{run.payslip_count === 1 ? '' : 's'}</span>
+                {run.status === 'draft' ? (
+                  <button
+                    type="button" className="pay-icon-btn pay-icon-danger" disabled={!!busy}
+                    onClick={(e) => { e.stopPropagation(); handleDeleteRun(run); }}
+                    aria-label="Delete draft run"
+                  >
+                    {busy === `delete:${run.id}` ? '…' : <Trash2 size={16} style={{ color: '#e11d48' }} />}
+                  </button>
+                ) : <span className="pay-card-hint">Tap to view payslips</span>}
+              </div>
+            </div>
+          ))}
+        </div>
+        <div className="pay-table-view" style={{ overflowX: 'auto' }}>
           <table className="data-table">
             <thead><tr><th style={{ whiteSpace: 'nowrap' }}>Period</th><th style={{ whiteSpace: 'nowrap' }}>Status</th><th style={{ whiteSpace: 'nowrap' }}>Employees</th><th style={{ whiteSpace: 'nowrap' }}>Total Net Pay</th><th style={{ whiteSpace: 'nowrap' }}>Actions</th></tr></thead>
             <tbody>
@@ -734,8 +840,8 @@ function RunsTab() {
       </div>
 
       {selectedRun && (
-        <div className="section-card">
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16, flexWrap: 'wrap', gap: 12 }}>
+        <div className="section-card" id="pay-payslips">
+          <div className="pay-run-head" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16, flexWrap: 'wrap', gap: 12 }}>
             <h3 style={{ marginBottom: 0 }}>
               <Receipt size={18} style={{ color: 'var(--accent-blue)' }} /> {MONTH_NAMES[selectedRun.month - 1]} {selectedRun.year} Payslips
             </h3>
@@ -743,7 +849,55 @@ function RunsTab() {
               <button className="btn btn-success btn-sm" onClick={handleFinalize}><Lock size={13} /> Finalize Run</button>
             )}
           </div>
-          <div style={{ overflowX: 'auto' }}>
+          <div className="pay-cards">
+            {payslips.map((p) => (
+              <div className="pay-card" key={p.id}>
+                <div className="pay-card-top">
+                  <strong className="pay-card-title">{p.employee_name} <span className="pay-card-code">({p.employee_code})</span></strong>
+                </div>
+                <div className="pay-card-amount">
+                  ₹{money(p.net_pay)}
+                  <span>Net pay</span>
+                </div>
+                <div className="pay-stat-grid">
+                  <div><span>Basic</span><strong>₹{money(p.basic_pay)}</strong></div>
+                  <div><span>Earnings</span><strong>₹{money(p.gross_earnings)}</strong></div>
+                  <div><span>Deductions</span><strong>₹{money(p.gross_deductions)}</strong></div>
+                  <div><span>LOP days</span><strong>{p.lop_days}</strong></div>
+                </div>
+                <div className="pay-card-actions">
+                  <button type="button" className="btn btn-secondary pay-card-wide" onClick={() => setExpandedPayslip(expandedPayslip === p.id ? null : p.id)}>
+                    {expandedPayslip === p.id ? 'Hide details' : 'Details'}
+                  </button>
+                  {selectedRun.status === 'draft' && (
+                    <button type="button" className="btn btn-secondary pay-card-wide" onClick={() => setShowAdjustModal(p)}>Adjust</button>
+                  )}
+                </div>
+                {expandedPayslip === p.id && (
+                  <div className="pay-lines">
+                    {p.lines.map((line) => (
+                      <div key={line.id} className="pay-line">
+                        <span>
+                          {line.component_name}
+                          {line.is_manual_adjustment && <span className="badge badge-info" style={{ marginLeft: 6 }}>Adjustment</span>}
+                          {line.component_type === 'employer_cost' && <span className="badge badge-pending" style={{ marginLeft: 6 }}>Employer cost</span>}
+                        </span>
+                        <span style={{
+                          flexShrink: 0,
+                          color: line.component_type === 'earning' ? 'var(--accent-emerald)'
+                            : line.component_type === 'employer_cost' ? 'var(--text-muted)'
+                              : 'var(--accent-rose)',
+                        }}>
+                          {line.component_type === 'deduction' ? '-' : line.component_type === 'earning' ? '+' : ''}{money(line.amount)}
+                        </span>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+            ))}
+          </div>
+          <div className="pay-table-view" style={{ overflowX: 'auto' }}>
             <table className="data-table">
               <thead>
                 <tr>
@@ -839,7 +993,7 @@ function RunPayrollModal({ busy, existingRuns = [], onClose, onSubmit }) {
   };
 
   return (
-    <Modal title="Run Payroll" onClose={onClose}>
+    <Modal sheet title="Run Payroll" onClose={onClose}>
       <form onSubmit={submit}>
         <div className="input-group">
           <label className="input-label">Month</label>
@@ -860,7 +1014,7 @@ function RunPayrollModal({ busy, existingRuns = [], onClose, onSubmit }) {
         <p style={{ fontSize: '0.8125rem', color: 'var(--text-muted)', marginBottom: 12 }}>
           This generates a draft payslip for every employee with an active salary assignment. You can review and adjust before finalizing.
         </p>
-        <div style={{ display: 'flex', gap: 10, justifyContent: 'flex-end', marginTop: 8 }}>
+        <div className="pay-modal-actions" style={{ display: 'flex', gap: 10, justifyContent: 'flex-end', marginTop: 8 }}>
           <button type="button" className="btn btn-secondary" onClick={onClose}>Cancel</button>
           <button type="submit" className="btn btn-primary" disabled={!!existing || submitting || !!busy}><Play size={14} /> {submitting ? 'Running…' : 'Run Payroll'}</button>
         </div>
@@ -885,7 +1039,7 @@ function AdjustmentModal({ payslip, onClose, onSuccess }) {
   };
 
   return (
-    <Modal title={`Adjustment — ${payslip.employee_name}`} onClose={onClose}>
+    <Modal sheet title={`Adjustment — ${payslip.employee_name}`} onClose={onClose}>
       <form onSubmit={handleSubmit}>
         {error && <div style={{ marginBottom: 12, color: 'var(--accent-rose)', fontSize: '0.875rem' }}>{error}</div>}
         <div className="input-group">
@@ -907,7 +1061,7 @@ function AdjustmentModal({ payslip, onClose, onSuccess }) {
           <label className="input-label">Note (optional)</label>
           <input className="input-field" value={form.description} onChange={(e) => setForm({ ...form, description: e.target.value })} />
         </div>
-        <div style={{ display: 'flex', gap: 10, justifyContent: 'flex-end', marginTop: 20 }}>
+        <div className="pay-modal-actions" style={{ display: 'flex', gap: 10, justifyContent: 'flex-end', marginTop: 20 }}>
           <button type="button" className="btn btn-secondary" onClick={onClose}>Cancel</button>
           <button type="submit" className="btn btn-primary">Add Adjustment</button>
         </div>
@@ -942,7 +1096,20 @@ function TaxSlabsTab() {
     return (
       <div className="section-card" style={{ marginBottom: 20 }}>
         <h3 style={{ marginBottom: 16 }}>{title}</h3>
-        <div style={{ overflowX: 'auto' }}>
+        <div className="pay-cards">
+          {rows.map((s) => (
+            <div className="pay-card pay-card-row" key={s.id}>
+              <div style={{ minWidth: 0 }}>
+                <div className="pay-card-range">₹{money(s.min_income)} – {s.max_income ? `₹${money(s.max_income)}` : 'and above'}</div>
+                <div className="pay-card-amount">{s.rate_percent}%<span>tax rate</span></div>
+              </div>
+              <button type="button" className="pay-icon-btn pay-icon-danger" onClick={() => handleDelete(s)} aria-label="Delete slab">
+                <Trash2 size={16} style={{ color: '#e11d48' }} />
+              </button>
+            </div>
+          ))}
+        </div>
+        <div className="pay-table-view" style={{ overflowX: 'auto' }}>
           <table className="data-table">
             <thead><tr><th style={{ whiteSpace: 'nowrap' }}>Income From</th><th style={{ whiteSpace: 'nowrap' }}>Income To</th><th style={{ whiteSpace: 'nowrap' }}>Rate</th><th style={{ whiteSpace: 'nowrap' }}>Actions</th></tr></thead>
             <tbody>
@@ -967,7 +1134,7 @@ function TaxSlabsTab() {
       <p style={{ fontSize: '0.8125rem', color: 'var(--text-muted)', marginBottom: 16 }}>
         These slabs drive the TDS calculation on every payslip. They're illustrative starting values — review and update them for the current assessment year and any government changes.
       </p>
-      <div style={{ display: 'flex', justifyContent: 'flex-end', marginBottom: 16 }}>
+      <div className="pay-add-row" style={{ display: 'flex', justifyContent: 'flex-end', marginBottom: 16 }}>
         <button className="btn btn-primary" onClick={() => setShowModal(true)}><Plus size={16} /> Add Slab</button>
       </div>
       {renderRegime('new', 'New Regime')}
@@ -1000,7 +1167,7 @@ function TaxSlabModal({ onClose, onSuccess }) {
   };
 
   return (
-    <Modal title="Add Tax Slab" onClose={onClose}>
+    <Modal sheet title="Add Tax Slab" onClose={onClose}>
       <form onSubmit={handleSubmit}>
         {error && <div style={{ marginBottom: 12, color: 'var(--accent-rose)', fontSize: '0.875rem' }}>{error}</div>}
         <div className="input-group">
@@ -1022,7 +1189,7 @@ function TaxSlabModal({ onClose, onSuccess }) {
           <label className="input-label">Rate (%)</label>
           <input type="number" step="0.01" className="input-field" value={form.rate_percent} onChange={(e) => setForm({ ...form, rate_percent: e.target.value })} required />
         </div>
-        <div style={{ display: 'flex', gap: 10, justifyContent: 'flex-end', marginTop: 20 }}>
+        <div className="pay-modal-actions" style={{ display: 'flex', gap: 10, justifyContent: 'flex-end', marginTop: 20 }}>
           <button type="button" className="btn btn-secondary" onClick={onClose}>Cancel</button>
           <button type="submit" className="btn btn-primary">Add</button>
         </div>
@@ -1059,13 +1226,26 @@ function PtSlabsTab() {
       <p style={{ fontSize: '0.8125rem', color: 'var(--text-muted)', marginBottom: 16 }}>
         Professional Tax is looked up by the employee's state (via their assigned Site). A state with no slabs configured means PT simply doesn't apply to employees there.
       </p>
-      <div style={{ display: 'flex', justifyContent: 'flex-end', marginBottom: 16 }}>
+      <div className="pay-add-row" style={{ display: 'flex', justifyContent: 'flex-end', marginBottom: 16 }}>
         <button className="btn btn-primary" onClick={() => setShowModal(true)}><Plus size={16} /> Add Slab</button>
       </div>
       {states.map((state) => (
         <div key={state} className="section-card" style={{ marginBottom: 20 }}>
           <h3 style={{ marginBottom: 16 }}><Landmark size={18} style={{ color: 'var(--accent-blue)' }} /> {state}</h3>
-          <div style={{ overflowX: 'auto' }}>
+          <div className="pay-cards">
+            {slabs.filter((s) => s.state === state).sort((a, b) => a.min_gross - b.min_gross).map((s) => (
+              <div className="pay-card pay-card-row" key={s.id}>
+                <div style={{ minWidth: 0 }}>
+                  <div className="pay-card-range">₹{money(s.min_gross)} – {s.max_gross ? `₹${money(s.max_gross)}` : 'and above'}</div>
+                  <div className="pay-card-amount">₹{money(s.amount)}<span>PT / month</span></div>
+                </div>
+                <button type="button" className="pay-icon-btn pay-icon-danger" onClick={() => handleDelete(s)} aria-label="Delete slab">
+                  <Trash2 size={16} style={{ color: '#e11d48' }} />
+                </button>
+              </div>
+            ))}
+          </div>
+          <div className="pay-table-view" style={{ overflowX: 'auto' }}>
             <table className="data-table">
               <thead><tr><th style={{ whiteSpace: 'nowrap' }}>Gross From</th><th style={{ whiteSpace: 'nowrap' }}>Gross To</th><th style={{ whiteSpace: 'nowrap' }}>Amount</th><th style={{ whiteSpace: 'nowrap' }}>Actions</th></tr></thead>
               <tbody>
@@ -1115,7 +1295,7 @@ function PtSlabModal({ onClose, onSuccess }) {
   };
 
   return (
-    <Modal title="Add Professional Tax Slab" onClose={onClose}>
+    <Modal sheet title="Add Professional Tax Slab" onClose={onClose}>
       <form onSubmit={handleSubmit}>
         {error && <div style={{ marginBottom: 12, color: 'var(--accent-rose)', fontSize: '0.875rem' }}>{error}</div>}
         <div className="input-group">
@@ -1134,7 +1314,7 @@ function PtSlabModal({ onClose, onSuccess }) {
           <label className="input-label">PT Amount (₹/month)</label>
           <input type="number" step="0.01" className="input-field" value={form.amount} onChange={(e) => setForm({ ...form, amount: e.target.value })} required />
         </div>
-        <div style={{ display: 'flex', gap: 10, justifyContent: 'flex-end', marginTop: 20 }}>
+        <div className="pay-modal-actions" style={{ display: 'flex', gap: 10, justifyContent: 'flex-end', marginTop: 20 }}>
           <button type="button" className="btn btn-secondary" onClick={onClose}>Cancel</button>
           <button type="submit" className="btn btn-primary">Add</button>
         </div>
@@ -1177,7 +1357,7 @@ function LoansTab() {
     <div>
       <div className="section-card" style={{ marginBottom: 20 }}>
         <h3 style={{ marginBottom: 16 }}><HandCoins size={18} style={{ color: 'var(--accent-amber)' }} /> Employee Loans / Advances</h3>
-        <div style={{ display: 'flex', gap: 16, flexWrap: 'wrap', alignItems: 'flex-end' }}>
+        <div className="pay-assign-row" style={{ display: 'flex', gap: 16, flexWrap: 'wrap', alignItems: 'flex-end' }}>
           <div style={{ flex: '1 1 240px' }}>
             <select className="input-field" value={selectedEmployeeId} onChange={(e) => setSelectedEmployeeId(e.target.value)}>
               <option value="">Select an employee...</option>
@@ -1194,7 +1374,31 @@ function LoansTab() {
 
       {selectedEmployeeId && (
         <div className="section-card">
-          <div style={{ overflowX: 'auto' }}>
+          <div className="pay-cards">
+            {loans.map((l) => {
+              const principal = Number(l.principal_amount) || 0;
+              const paidPct = principal > 0 ? Math.max(0, Math.min(100, Math.round((1 - Number(l.remaining_balance) / principal) * 100))) : 0;
+              return (
+                <div className="pay-card" key={l.id}>
+                  <div className="pay-card-top">
+                    <strong className="pay-card-title">Started {l.start_date}</strong>
+                    <span className={`badge ${l.status === 'active' ? 'badge-pending' : 'badge-active'}`}>{l.status}</span>
+                  </div>
+                  <div className="pay-card-amount">₹{money(l.principal_amount)}<span>principal</span></div>
+                  <div className="pay-progress" aria-label={`${paidPct}% repaid`}><div style={{ width: `${paidPct}%` }} /></div>
+                  <div className="pay-stat-grid">
+                    <div><span>Installment</span><strong>₹{money(l.monthly_installment)}</strong></div>
+                    <div><span>Remaining</span><strong>₹{money(l.remaining_balance)}</strong></div>
+                  </div>
+                  {l.reason && <div className="pay-card-hint">Reason: {l.reason}</div>}
+                  {l.status === 'active' && (
+                    <button type="button" className="btn btn-secondary pay-card-wide" onClick={() => handleClose(l)}>Close loan</button>
+                  )}
+                </div>
+              );
+            })}
+          </div>
+          <div className="pay-table-view" style={{ overflowX: 'auto' }}>
             <table className="data-table">
               <thead>
                 <tr>
@@ -1272,7 +1476,7 @@ function LoanModal({ employeeId, onClose, onSuccess }) {
   };
 
   return (
-    <Modal title="New Loan / Advance" onClose={onClose} compact maxWidth={640}>
+    <Modal sheet title="New Loan / Advance" onClose={onClose} compact maxWidth={640}>
       <form onSubmit={handleSubmit}>
         {error && <div style={{ marginBottom: 12, color: 'var(--accent-rose)', fontSize: '0.875rem' }}>{error}</div>}
         <div className="form-grid-2">
@@ -1318,7 +1522,7 @@ function LoanModal({ employeeId, onClose, onSuccess }) {
             Deduction: <strong>{money(installment)}</strong> / month · approx. <strong>{months}</strong> month{months > 1 ? 's' : ''} to repay
           </div>
         )}
-        <div style={{ display: 'flex', gap: 10, justifyContent: 'flex-end', marginTop: 16 }}>
+        <div className="pay-modal-actions" style={{ display: 'flex', gap: 10, justifyContent: 'flex-end', marginTop: 16 }}>
           <button type="button" className="btn btn-secondary" onClick={onClose}>Cancel</button>
           <button type="submit" className="btn btn-primary">Create Loan</button>
         </div>
@@ -1394,7 +1598,7 @@ function PolicyTab() {
           {field('overtime_rate_multiplier', 'Overtime Rate Multiplier')}
           {field('tds_cess_percent', 'TDS Cess %')}
         </div>
-        <div style={{ display: 'flex', gap: 10, alignItems: 'center', marginTop: 20 }}>
+        <div className="pay-policy-save" style={{ display: 'flex', gap: 10, alignItems: 'center', marginTop: 20 }}>
           <button type="submit" className="btn btn-primary" disabled={saving}>{saving ? 'Saving...' : 'Save Policy'}</button>
           {saved && <span style={{ color: 'var(--accent-emerald)', fontSize: '0.875rem' }}>Saved</span>}
         </div>

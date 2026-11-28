@@ -401,20 +401,20 @@ function DailyAttendanceOverview({ onOpenRecord, faceEnabled = false }) {
   return (
     <div>
       <div className="section-card" style={{ marginBottom: 20, borderTop: '3px solid #2563eb' }}>
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: 16, marginBottom: 20 }}>
+        <div className="dov-header" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: 16, marginBottom: 20 }}>
           <div>
             <h3 style={{ marginBottom: 4, display: 'flex', alignItems: 'center', gap: 8 }}>
               <CalendarDays size={20} style={{ color: 'var(--accent-blue)' }} />
               Daily Attendance Overview
             </h3>
-            <p style={{ color: '#3d4a5e', fontSize: '0.875rem', margin: 0 }}>
+            <p className="card-sub-desktop-only" style={{ color: '#3d4a5e', fontSize: '0.875rem', margin: 0 }}>
               Company-wide attendance status for {formatDisplayDate(targetDate)}
             </p>
           </div>
 
           {/* Date Picker Controls */}
-          <div style={{ display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap' }}>
-            <div style={{ display: 'inline-flex', alignItems: 'center', background: '#f8fafc', border: '1px solid #e2e8f0', borderRadius: 12, padding: '3px 6px' }}>
+          <div className="dov-controls" style={{ display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap' }}>
+            <div className="dov-date-box" style={{ display: 'inline-flex', alignItems: 'center', background: '#f8fafc', border: '1px solid #e2e8f0', borderRadius: 12, padding: '3px 6px' }}>
               <button
                 className="btn-icon btn-ghost"
                 onClick={() => handleShiftDay(-1)}
@@ -477,7 +477,7 @@ function DailyAttendanceOverview({ onOpenRecord, faceEnabled = false }) {
         </div>
 
         {/* KPI Stat Cards */}
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(140px, 1fr))', gap: 12, marginBottom: 20 }}>
+        <div className="dov-kpis" style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(140px, 1fr))', gap: 12, marginBottom: 20 }}>
           {[
             { label: 'Total Staff', value: stats.total, filter: '', bg: '#f8fafc', border: '#e2e8f0', labelColor: '#475569', valueColor: '#0f172a' },
             { label: 'Present', value: stats.presentTotal, filter: PRESENT_ALL, bg: '#f0fdf4', border: '#bbf7d0', labelColor: '#15803d', valueColor: '#16a34a' },
@@ -490,6 +490,7 @@ function DailyAttendanceOverview({ onOpenRecord, faceEnabled = false }) {
               <button
                 key={c.label}
                 type="button"
+                className="dov-kpi"
                 aria-pressed={active}
                 title={c.filter && active ? 'Click to clear filter' : `Show ${c.label}`}
                 onClick={() => setStatusFilter(c.filter && active ? '' : c.filter)}
@@ -514,8 +515,8 @@ function DailyAttendanceOverview({ onOpenRecord, faceEnabled = false }) {
         </div>
 
         {/* Search & Filters */}
-        <div style={{ display: 'flex', gap: 12, flexWrap: 'wrap', marginBottom: 16 }}>
-          <div style={{ position: 'relative', flex: '1 1 220px', minWidth: 0 }}>
+        <div className="dov-filters" style={{ display: 'flex', gap: 12, flexWrap: 'wrap', marginBottom: 16 }}>
+          <div className="dov-search" style={{ position: 'relative', flex: '1 1 220px', minWidth: 0 }}>
             <Search size={15} style={{ position: 'absolute', left: 12, top: '50%', transform: 'translateY(-50%)', color: 'var(--text-muted)' }} />
             <input
               className="input-field"
@@ -586,7 +587,37 @@ function DailyAttendanceOverview({ onOpenRecord, faceEnabled = false }) {
           </div>
         ) : (
           <>
-            <div style={{ overflowX: 'auto' }}>
+            {/* Mobile: one card per employee (the table is desktop-only) */}
+            <div className="dov-card-list">
+              {sortedEmployees.map((emp) => (
+                <div
+                  key={emp.employee_id || emp.employee_name}
+                  {...rowClick(emp.employee_id ? () => onOpenRecord(emp.employee_id, targetDate) : null, 'dov-card')}
+                >
+                  <div className="dov-card-top">
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 10, minWidth: 0 }}>
+                      <div style={{ width: 34, height: 34, borderRadius: '50%', background: '#eff6ff', color: '#2563eb', display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 700, fontSize: '0.75rem', flexShrink: 0 }}>
+                        {getInitials(emp.employee_name)}
+                      </div>
+                      <div style={{ minWidth: 0 }}>
+                        <div style={{ fontWeight: 700, color: '#0f172a', fontSize: '0.875rem', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{emp.employee_name}</div>
+                        <div style={{ fontSize: '0.72rem', color: 'var(--text-muted)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{emp.department || '—'}</div>
+                      </div>
+                    </div>
+                    <div style={{ flexShrink: 0 }}>
+                      <DailyStatusBadge status={emp.status} leaveType={emp.leave_type} />
+                    </div>
+                  </div>
+                  <div className="dov-card-times">
+                    <span>In <strong>{formatISTTime(emp.check_in)}</strong></span>
+                    <span>Out <strong>{formatISTTime(emp.check_out)}</strong></span>
+                    {showVerification && <FaceVerificationBadge faceStatus={emp.face_status} />}
+                  </div>
+                </div>
+              ))}
+            </div>
+
+            <div className="dov-table-wrap" style={{ overflowX: 'auto' }}>
               <table className="data-table">
                 <thead>
                   <tr>
@@ -742,6 +773,31 @@ function DailyAttendanceOverview({ onOpenRecord, faceEnabled = false }) {
   );
 }
 
+// Mobile-only card used by the Regularization / Overtime lists
+// (the wide tables are shown on desktop; see .req-card-list in index.css).
+function RequestCard({ title, subtitle, badge, facts = [], reason, actions }) {
+  return (
+    <div className="req-card">
+      <div className="req-card-top">
+        <div style={{ minWidth: 0 }}>
+          <div className="req-card-title">{title}</div>
+          {subtitle && <div className="req-card-sub">{subtitle}</div>}
+        </div>
+        {badge}
+      </div>
+      {facts.length > 0 && (
+        <div className="req-card-facts">
+          {facts.map(([label, value]) => (
+            <span key={label}>{label} <strong>{value}</strong></span>
+          ))}
+        </div>
+      )}
+      {reason && <div className="req-card-reason">{reason}</div>}
+      {actions && <div className="req-card-actions">{actions}</div>}
+    </div>
+  );
+}
+
 function formatHours(hours) {
   const h = Math.floor(hours);
   const m = Math.round((hours - h) * 60);
@@ -756,7 +812,59 @@ function MonthOverviewTable({ data }) {
   return (
     <div className="section-card" style={{ borderTop: '3px solid #2563eb' }}>
       <h3><Clock size={18} style={{ color: 'var(--accent-blue)' }} /> Daily Overview</h3>
-      <div style={{ overflowX: 'auto' }}>
+      {/* Mobile: one card per day (the wide table is desktop-only) */}
+      <div className="day-card-list">
+        {data?.days?.map((day) => {
+          const dateObj = new Date(day.date + 'T00:00:00');
+          const isOff = !!day.holiday || [0, 6].includes(dateObj.getDay());
+          return (
+            <div key={day.date} className={`day-card ${isOff ? 'is-off' : ''}`}>
+              <div className="day-card-head">
+                <div>
+                  <span className="day-card-date">{dateObj.toLocaleDateString('en-US', { day: 'numeric', month: 'short' })}</span>
+                  <span className="day-card-weekday">{dateObj.toLocaleDateString('en-US', { weekday: 'short' })}</span>
+                </div>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                  {day.total_hours > 0 && <span className="day-hours">{formatHours(day.total_hours)}</span>}
+                  {day.is_complete === null ? null : day.is_complete ? (
+                    <span className="day-status complete"><CheckCircle2 size={12} /> Complete</span>
+                  ) : (
+                    <span className="day-status in-progress"><Clock size={12} /> In Progress</span>
+                  )}
+                </div>
+              </div>
+              {day.sessions.length > 0 && (
+                <div className="session-pills" style={{ marginTop: 6 }}>
+                  {day.sessions.map((s, i) => (
+                    <div key={i} style={{ display: 'inline-flex', flexDirection: 'column', gap: 2 }}>
+                      <span className={`session-pill ${!s.clock_out ? 'session-open' : ''}`}>
+                        {s.source === 'regularization' && <span className="pill-source">(Regularized)</span>}
+                        <span className="pill-in">{formatTime(s.clock_in)}</span>
+                        <span className="pill-arrow">→</span>
+                        <span className="pill-out">{s.clock_out ? formatTime(s.clock_out) : 'Active'}</span>
+                      </span>
+                      {s.summary && (
+                        <span style={{ fontSize: '0.7rem', color: 'var(--text-muted)', fontStyle: 'italic', paddingLeft: 4 }}>{s.summary}</span>
+                      )}
+                    </div>
+                  ))}
+                </div>
+              )}
+              {(day.leave || day.holiday || day.overtime.length > 0) && (
+                <div className="day-card-chips">
+                  {day.leave && <span className={`badge badge-${day.leave.status}`}>{day.leave.leave_type_name || 'Leave'}</span>}
+                  {day.holiday && <span className="badge badge-info">{day.holiday}</span>}
+                  {day.overtime.map((o, i) => (
+                    <span key={i} className={`badge badge-${o.status}`}>OT {o.hours}h</span>
+                  ))}
+                </div>
+              )}
+            </div>
+          );
+        })}
+      </div>
+
+      <div className="day-table-wrap" style={{ overflowX: 'auto' }}>
       <table className="data-table">
         <thead>
           <tr>
@@ -839,6 +947,11 @@ export default function Attendance() {
   const initialTab = searchParams.get('tab') || 'log';
   const [tab, setTab] = useState(initialTab);
 
+  // Mobile: keep the active tab visible inside the horizontally scrolling tab bar
+  useEffect(() => {
+    document.querySelector('.attendance-tab.is-active')?.scrollIntoView({ inline: 'center', block: 'nearest' });
+  }, [tab]);
+
   const handleTabChange = (newTab) => {
     setTab(newTab);
     setSearchParams((prev) => {
@@ -864,6 +977,7 @@ export default function Attendance() {
   const [erDepartments, setErDepartments] = useState([]);
   const [erSites, setErSites] = useState([]);
   const [erSearch, setErSearch] = useState('');
+  const [erFiltersOpen, setErFiltersOpen] = useState(false); // mobile only
   const [erDeptFilter, setErDeptFilter] = useState('');
   const [erSiteFilter, setErSiteFilter] = useState('');
   const [erStatusFilter, setErStatusFilter] = useState('active');
@@ -1310,10 +1424,11 @@ export default function Attendance() {
           </div>
           <div>
             <h1 style={{ fontSize: 'clamp(1.25rem, 4.5vw, 1.75rem)', fontWeight: 800, color: '#0f172a' }}>Attendance</h1>
-            <p style={{ color: '#3d4a5e', fontSize: '0.875rem' }}>Track your daily work hours, punctuality & regularization requests</p>
+            <p className="card-sub-desktop-only" style={{ color: '#3d4a5e', fontSize: '0.875rem' }}>Track your daily work hours, punctuality & regularization requests</p>
           </div>
         </div>
         <button
+          className="attendance-clock-btn"
           onClick={triggerClock}
           disabled={loading}
           style={{
@@ -1507,7 +1622,7 @@ export default function Attendance() {
       </div>
 
       {/* Modern Pill Tabs */}
-      <div style={{ display: 'flex', gap: 10, marginBottom: 24, flexWrap: 'wrap' }}>
+      <div className="attendance-tabs" style={{ display: 'flex', gap: 10, marginBottom: 24, flexWrap: 'wrap' }}>
         {[
           { key: 'log', label: 'My Timesheet', icon: Clock },
           ...(canApprove ? [{ key: 'daily-overview', label: 'Daily Overview', icon: CalendarDays }] : []),
@@ -1517,6 +1632,7 @@ export default function Attendance() {
         ].map((item) => (
           <button
             key={item.key}
+            className={`attendance-tab ${tab === item.key ? 'is-active' : ''}`}
             onClick={() => handleTabChange(item.key)}
             style={{
               display: 'inline-flex',
@@ -1585,8 +1701,8 @@ export default function Attendance() {
             <h3 style={{ marginBottom: 16 }}><Users size={18} style={{ color: 'var(--accent-violet)' }} /> View Employee Attendance</h3>
 
             {/* Filters — narrow down the employee list */}
-            <div style={{ display: 'flex', gap: 12, flexWrap: 'wrap', marginBottom: 16 }}>
-              <div style={{ position: 'relative', flex: '1 1 200px', minWidth: 0 }}>
+            <div className="er-filters" style={{ display: 'flex', gap: 12, flexWrap: 'wrap', marginBottom: 16 }}>
+              <div className="er-search" style={{ position: 'relative', flex: '1 1 200px', minWidth: 0 }}>
                 <Search size={15} style={{ position: 'absolute', left: 12, top: '50%', transform: 'translateY(-50%)', color: 'var(--text-muted)' }} />
                 <input
                   className="input-field"
@@ -1596,6 +1712,23 @@ export default function Attendance() {
                   onChange={(e) => setErSearch(e.target.value)}
                 />
               </div>
+
+              {/* Mobile-only toggle for the filter dropdowns */}
+              {(() => {
+                const activeCount = [erDeptFilter, erSiteFilter, erOnlineFilter].filter(Boolean).length + (erStatusFilter !== 'active' ? 1 : 0);
+                return (
+                  <button
+                    type="button"
+                    className="er-filters-btn"
+                    onClick={() => setErFiltersOpen((v) => !v)}
+                    aria-expanded={erFiltersOpen}
+                  >
+                    <SlidersHorizontal size={14} /> Filters{activeCount > 0 ? ` (${activeCount})` : ''}
+                  </button>
+                );
+              })()}
+
+              <div className={`er-filter-grid ${erFiltersOpen ? '' : 'is-mobile-collapsed'}`}>
               <select className="input-field" style={{ flex: '1 1 160px', minWidth: 0 }} value={erDeptFilter} onChange={(e) => setErDeptFilter(e.target.value)}>
                 <option value="">All Departments</option>
                 {erDepartments.map((d) => (
@@ -1619,12 +1752,18 @@ export default function Attendance() {
                 <option value="present">Present (clocked out)</option>
                 <option value="offline">Offline (not seen today)</option>
               </select>
+              </div>
             </div>
 
             {/* Employee + month selection */}
-            <div className="timesheet-filter-bar">
+            <div className="timesheet-filter-bar er-select-bar">
+              {erEmployeeId && (
+                <div className="er-viewing">
+                  Viewing: <strong>{erEmployees.find((e) => String(e.id) === String(erEmployeeId))?.full_name || '—'}</strong>
+                </div>
+              )}
               <select
-                className="input-field"
+                className="input-field er-employee-select"
                 style={{ maxWidth: 280 }}
                 value={erEmployeeId}
                 onChange={(e) => setErEmployeeId(e.target.value)}
@@ -1671,14 +1810,25 @@ export default function Attendance() {
 
       {/* Regularization */}
       {tab === 'regularization' && (
-        <div style={{ display: 'grid', gap: 20 }}>
+        <div style={{ display: 'grid', gridTemplateColumns: 'minmax(0, 1fr)', gap: 20 }}>
           {!isAdmin && (
             <div className="section-card" style={{ borderTop: '3px solid #2563eb' }}>
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16, flexWrap: 'wrap', gap: 10 }}>
                 <h3 style={{ marginBottom: 0 }}><CalendarClock size={18} style={{ color: 'var(--accent-blue)' }} /> My Regularization Requests</h3>
-                <button className="btn btn-primary btn-sm" onClick={() => setShowRegularize(true)}><Plus size={14} /> New Request</button>
+                <button className="btn btn-primary btn-sm req-new-btn" onClick={() => setShowRegularize(true)}><Plus size={14} /> New Request</button>
               </div>
-              <div style={{ overflowX: 'auto' }}>
+              <div className="req-card-list">
+                {myRegularizations.map((r) => (
+                  <RequestCard
+                    key={r.id}
+                    title={r.record_date}
+                    badge={<span className={`badge badge-${r.status}`}>{r.status}</span>}
+                    facts={[['In', formatTime(r.requested_clock_in)], ['Out', formatTime(r.requested_clock_out)]]}
+                    reason={r.reason}
+                  />
+                ))}
+              </div>
+              <div className="req-table-wrap" style={{ overflowX: 'auto' }}>
               <table className="data-table">
                 <thead><tr><th style={{ whiteSpace: 'nowrap' }}>Date</th><th style={{ whiteSpace: 'nowrap' }}>Requested In</th><th style={{ whiteSpace: 'nowrap' }}>Requested Out</th><th style={{ whiteSpace: 'nowrap' }}>Reason</th><th style={{ whiteSpace: 'nowrap' }}>Status</th></tr></thead>
                 <tbody>
@@ -1705,7 +1855,7 @@ export default function Attendance() {
                 Maximum number of regularization requests (pending + approved) an employee can submit per calendar month.
               </p>
               {company && !editingRegLimit && (
-                <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap' }}>
                   <span style={{ fontSize: '0.95rem', color: 'var(--text-primary)' }}>
                     Current limit: <strong>{company.max_monthly_regularizations}</strong> request{company.max_monthly_regularizations === 1 ? '' : 's'} / month
                   </span>
@@ -1727,7 +1877,7 @@ export default function Attendance() {
                 </div>
               )}
               {company && editingRegLimit && (
-                <div style={{ display: 'flex', gap: 10, alignItems: 'center' }}>
+                <div style={{ display: 'flex', gap: 10, alignItems: 'center', flexWrap: 'wrap' }}>
                   <input
                     type="number"
                     min="0"
@@ -1756,7 +1906,24 @@ export default function Attendance() {
           {isAdmin && (
             <div className="section-card" style={{ borderTop: '3px solid #d97706' }}>
               <h3><CalendarClock size={18} style={{ color: 'var(--accent-amber)' }} /> Approval Queue</h3>
-              <div style={{ overflowX: 'auto' }}>
+              <div className="req-card-list">
+                {pendingRegularizations.map((r) => (
+                  <RequestCard
+                    key={r.id}
+                    title={<EmployeeLink id={r.employee_id}>{r.employee_name}</EmployeeLink>}
+                    subtitle={r.record_date}
+                    facts={[['In', formatTime(r.requested_clock_in)], ['Out', formatTime(r.requested_clock_out)]]}
+                    reason={r.reason}
+                    actions={(
+                      <>
+                        <button className="btn btn-success btn-sm" onClick={() => handleRegularizeReview(r.id, 'approved')}><Check size={14} /> Approve</button>
+                        <button className="btn btn-danger btn-sm" onClick={() => handleRegularizeReview(r.id, 'rejected')}><X size={14} /> Reject</button>
+                      </>
+                    )}
+                  />
+                ))}
+              </div>
+              <div className="req-table-wrap" style={{ overflowX: 'auto' }}>
               <table className="data-table">
                 <thead><tr><th style={{ whiteSpace: 'nowrap' }}>Employee</th><th style={{ whiteSpace: 'nowrap' }}>Date</th><th style={{ whiteSpace: 'nowrap' }}>Requested In</th><th style={{ whiteSpace: 'nowrap' }}>Requested Out</th><th style={{ whiteSpace: 'nowrap' }}>Reason</th><th style={{ whiteSpace: 'nowrap' }}>Actions</th></tr></thead>
                 <tbody>
@@ -1832,7 +1999,19 @@ export default function Attendance() {
                 </select>
               </div>
 
-              <div style={{ overflowX: 'auto' }}>
+              <div className="req-card-list">
+                {regHistory.map((r) => (
+                  <RequestCard
+                    key={r.id}
+                    title={<EmployeeLink id={r.employee_id}>{r.employee_name || '—'}</EmployeeLink>}
+                    subtitle={r.record_date}
+                    badge={<span className={`badge badge-${r.status}`}>{r.status}</span>}
+                    facts={[['In', formatTime(r.requested_clock_in)], ['Out', formatTime(r.requested_clock_out)]]}
+                    reason={r.reason}
+                  />
+                ))}
+              </div>
+              <div className="req-table-wrap" style={{ overflowX: 'auto' }}>
                 <table className="data-table">
                   <thead>
                     <tr>
@@ -1866,13 +2045,24 @@ export default function Attendance() {
 
       {/* Overtime */}
       {tab === 'overtime' && (
-        <div style={{ display: 'grid', gap: 20 }}>
+        <div style={{ display: 'grid', gridTemplateColumns: 'minmax(0, 1fr)', gap: 20 }}>
           <div className="section-card" style={{ borderTop: '3px solid #7c3aed' }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16, flexWrap: 'wrap', gap: 10 }}>
               <h3 style={{ marginBottom: 0 }}><Timer size={18} style={{ color: 'var(--accent-violet)' }} /> My Overtime Requests</h3>
-              <button className="btn btn-primary btn-sm" onClick={() => setShowOvertime(true)}><Plus size={14} /> New Request</button>
+              <button className="btn btn-primary btn-sm req-new-btn" onClick={() => setShowOvertime(true)}><Plus size={14} /> New Request</button>
             </div>
-            <div style={{ overflowX: 'auto' }}>
+            <div className="req-card-list">
+              {myOvertime.map((o) => (
+                <RequestCard
+                  key={o.id}
+                  title={o.request_date}
+                  badge={<span className={`badge badge-${o.status}`}>{o.status}</span>}
+                  facts={[['Hours', o.hours]]}
+                  reason={o.reason}
+                />
+              ))}
+            </div>
+            <div className="req-table-wrap" style={{ overflowX: 'auto' }}>
             <table className="data-table">
               <thead><tr><th style={{ whiteSpace: 'nowrap' }}>Date</th><th style={{ whiteSpace: 'nowrap' }}>Hours</th><th style={{ whiteSpace: 'nowrap' }}>Reason</th><th style={{ whiteSpace: 'nowrap' }}>Status</th></tr></thead>
               <tbody>
@@ -1893,7 +2083,24 @@ export default function Attendance() {
           {canApprove && (
             <div className="section-card" style={{ borderTop: '3px solid #d97706' }}>
               <h3><Timer size={18} style={{ color: 'var(--accent-amber)' }} /> Approval Queue</h3>
-              <div style={{ overflowX: 'auto' }}>
+              <div className="req-card-list">
+                {pendingOvertime.map((o) => (
+                  <RequestCard
+                    key={o.id}
+                    title={<EmployeeLink id={o.employee_id}>{o.employee_name}</EmployeeLink>}
+                    subtitle={o.request_date}
+                    facts={[['Hours', o.hours]]}
+                    reason={o.reason}
+                    actions={(
+                      <>
+                        <button className="btn btn-success btn-sm" onClick={() => handleOvertimeReview(o.id, 'approved')}><Check size={14} /> Approve</button>
+                        <button className="btn btn-danger btn-sm" onClick={() => handleOvertimeReview(o.id, 'rejected')}><X size={14} /> Reject</button>
+                      </>
+                    )}
+                  />
+                ))}
+              </div>
+              <div className="req-table-wrap" style={{ overflowX: 'auto' }}>
               <table className="data-table">
                 <thead><tr><th style={{ whiteSpace: 'nowrap' }}>Employee</th><th style={{ whiteSpace: 'nowrap' }}>Date</th><th style={{ whiteSpace: 'nowrap' }}>Hours</th><th style={{ whiteSpace: 'nowrap' }}>Reason</th><th style={{ whiteSpace: 'nowrap' }}>Actions</th></tr></thead>
                 <tbody>

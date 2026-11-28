@@ -25,7 +25,10 @@ import {
   UserPlus,
   Copy,
   Check,
+  ChevronLeft,
+  ChevronDown,
 } from 'lucide-react';
+import Modal from '../Modal';
 
 // Column accent theme derived dynamically from stage metadata / order (never hardcoded column names)
 function getStageAccent(stage, index) {
@@ -557,6 +560,9 @@ export default function KanbanBoard({
   onOpenResume,
 }) {
   const [activeCard, setActiveCard] = useState(null);
+  const [phoneStage, setPhoneStage] = useState('ALL');
+  const [stagePickerOpen, setStagePickerOpen] = useState(false);
+  const swipeStart = useRef(null);
 
   const sensors = useSensors(
     useSensor(PointerSensor, {
@@ -576,6 +582,34 @@ export default function KanbanBoard({
     }
     return list;
   }, [stages, columns]);
+
+  // Phones: one stage at a time (tabs), 'ALL' keeps the flat list
+  const phoneStageValid = phoneStage === 'ALL' || stages.some((st) => st.id === phoneStage);
+  const phoneActive = phoneStageValid ? phoneStage : 'ALL';
+  const phoneCards = phoneActive === 'ALL' ? allLoadedCards : allLoadedCards.filter((a) => a.stage_id === phoneActive);
+  const phoneTotal = stages.reduce((sum, st) => sum + (st.applicants_count ?? columns[st.id]?.total ?? 0), 0);
+  const phoneTabs = [
+    { id: 'ALL', name: 'All stages', count: phoneTotal },
+    ...stages.map((st) => ({ id: st.id, name: st.name, count: st.applicants_count ?? columns[st.id]?.total ?? 0 })),
+  ];
+  const phoneIndex = Math.max(0, phoneTabs.findIndex((t) => t.id === phoneActive));
+  const stepStage = (dir) => {
+    const next = phoneTabs[phoneIndex + dir];
+    if (next) setPhoneStage(next.id);
+  };
+  const onSwipeStart = (e) => {
+    const t = e.touches[0];
+    swipeStart.current = { x: t.clientX, y: t.clientY };
+  };
+  const onSwipeEnd = (e) => {
+    const st = swipeStart.current;
+    swipeStart.current = null;
+    if (!st) return;
+    const t = e.changedTouches[0];
+    const dx = t.clientX - st.x;
+    const dy = t.clientY - st.y;
+    if (Math.abs(dx) > 70 && Math.abs(dy) < 45) stepStage(dx < 0 ? 1 : -1);
+  };
 
   const handleDragStart = (event) => {
     const app = event.active?.data?.current?.app || null;
@@ -695,12 +729,77 @@ export default function KanbanBoard({
 
       {/* Mobile Fallback: List view with stage dropdown */}
       <div className="md:hidden space-y-3">
-        {allLoadedCards.length === 0 ? (
+        {/* Stage switcher: previous / current (opens the full list) / next. Swiping the list also switches. */}
+        <div className="flex items-stretch gap-2" role="group" aria-label="Pipeline stage">
+          <button
+            type="button"
+            onClick={() => stepStage(-1)}
+            disabled={phoneIndex === 0}
+            aria-label="Previous stage"
+            className="w-11 min-h-[46px] shrink-0 inline-flex items-center justify-center rounded-xl border border-gray-200 bg-white text-slate-700 disabled:opacity-40"
+          >
+            <ChevronLeft size={18} />
+          </button>
+          <button
+            type="button"
+            onClick={() => setStagePickerOpen(true)}
+            aria-haspopup="dialog"
+            className="flex-1 min-w-0 min-h-[46px] inline-flex items-center justify-between gap-2 px-3.5 rounded-xl bg-blue-600 text-white font-semibold text-sm shadow-sm"
+          >
+            <span className="truncate">{phoneTabs[phoneIndex].name}</span>
+            <span className="inline-flex items-center gap-1.5 shrink-0">
+              <span className="px-2 rounded-full bg-blue-700 text-xs">{phoneTabs[phoneIndex].count}</span>
+              <ChevronDown size={16} />
+            </span>
+          </button>
+          <button
+            type="button"
+            onClick={() => stepStage(1)}
+            disabled={phoneIndex === phoneTabs.length - 1}
+            aria-label="Next stage"
+            className="w-11 min-h-[46px] shrink-0 inline-flex items-center justify-center rounded-xl border border-gray-200 bg-white text-slate-700 disabled:opacity-40"
+          >
+            <ChevronRight size={18} />
+          </button>
+        </div>
+        <div className="text-center text-[0.75rem] text-slate-500 font-medium -mt-1">
+          Stage {phoneIndex + 1} of {phoneTabs.length} · swipe to switch
+        </div>
+
+        {stagePickerOpen && (
+          <Modal sheet title="Go to stage" onClose={() => setStagePickerOpen(false)} closeOnOverlay>
+            <div className="flex flex-col gap-1.5">
+              {phoneTabs.map((tab) => (
+                <button
+                  key={tab.id}
+                  type="button"
+                  onClick={() => { setPhoneStage(tab.id); setStagePickerOpen(false); }}
+                  className={`flex items-center justify-between min-h-[48px] px-3.5 rounded-xl border text-sm font-semibold text-left ${
+                    phoneActive === tab.id
+                      ? 'bg-blue-50 border-blue-500 text-blue-700'
+                      : 'bg-white border-gray-200 text-slate-800'
+                  }`}
+                >
+                  <span>{tab.name}</span>
+                  <span className="inline-flex items-center gap-2">
+                    <span className="px-2 rounded-full bg-gray-100 text-xs text-slate-700">{tab.count}</span>
+                    {phoneActive === tab.id && <Check size={16} />}
+                  </span>
+                </button>
+              ))}
+            </div>
+          </Modal>
+        )}
+
+        <div onTouchStart={onSwipeStart} onTouchEnd={onSwipeEnd} className="space-y-3">
+        {phoneCards.length === 0 ? (
           <div className="bg-white rounded-2xl border border-gray-200 p-10 text-center text-slate-700 text-xs font-medium">
-            No applicants found in the active pipeline.
+            {phoneActive === 'ALL'
+              ? 'No applicants found in the active pipeline.'
+              : `No applicants in ${stages.find((st) => st.id === phoneActive)?.name || 'this stage'}.`}
           </div>
         ) : (
-          allLoadedCards.map((app) => {
+          phoneCards.map((app) => {
             const canRejectThis = canRejectCard(app);
             return (
               <div
@@ -737,7 +836,7 @@ export default function KanbanBoard({
                         onDropToStage?.(app, targetStage);
                       }
                     }}
-                    className="flex-1 text-xs font-semibold bg-gray-50 border border-gray-300 rounded-lg px-2.5 py-1.5 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    className="flex-1 min-w-0 text-base font-semibold bg-gray-50 border border-gray-300 rounded-lg px-2.5 py-2.5 min-h-[44px] focus:outline-none focus:ring-2 focus:ring-blue-500"
                   >
                     {stages.map((st) => {
                       const allowed = st.id === app.stage_id || canMoveToStage(app, st);
@@ -757,7 +856,7 @@ export default function KanbanBoard({
                   <button
                     type="button"
                     onClick={() => onOpenDetail?.(app.id)}
-                    className="btn btn-secondary text-xs py-1.5 px-2.5 inline-flex items-center gap-1 shrink-0"
+                    className="btn btn-secondary text-xs py-1.5 px-3 inline-flex items-center gap-1 shrink-0 min-h-[44px]"
                   >
                     <span>Review</span>
                     <ChevronRight size={13} />
@@ -768,11 +867,13 @@ export default function KanbanBoard({
           })
         )}
 
+        </div>
+
         {/* Load more buttons for columns that have more items on mobile */}
-        {stages.some((st) => columns[st.id]?.has_more) && (
+        {stages.some((st) => columns[st.id]?.has_more && (phoneActive === 'ALL' || phoneActive === st.id)) && (
           <div className="flex flex-wrap gap-2 justify-center pt-1">
             {stages.map((st) =>
-              columns[st.id]?.has_more ? (
+              columns[st.id]?.has_more && (phoneActive === 'ALL' || phoneActive === st.id) ? (
                 <button
                   key={st.id}
                   type="button"

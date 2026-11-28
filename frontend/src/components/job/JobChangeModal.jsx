@@ -103,7 +103,7 @@ export default function JobChangeModal({ employee, departments, canReviseSalary,
   };
 
   return (
-    <Modal title={`Change Job: ${employee.full_name}`} onClose={onClose} maxWidth={560}>
+    <Modal sheet title={`Change Job: ${employee.full_name}`} onClose={onClose} maxWidth={560}>
       <form onSubmit={save}>
         <div style={{ display: 'flex', gap: 8, marginBottom: 16, flexWrap: 'wrap' }}>
           {ACTIONS.map(({ key, label, icon: Icon, color }) => (
